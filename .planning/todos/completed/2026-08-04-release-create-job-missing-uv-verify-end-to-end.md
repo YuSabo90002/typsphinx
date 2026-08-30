@@ -12,6 +12,10 @@ files:
 audit_acknowledged:
   milestone: v0.9.1
   at: 2026-08-29
+
+closed: 2026-08-31
+closed_by: "/gsd-complete-milestone v0.9.2 — release run 33318905691"
+status: resolved
 ---
 
 ## Problem
@@ -78,3 +82,29 @@ A rehearsal path for `create-release` — e.g. a `workflow_dispatch` variant tha
 `release_notes.md` and uploads it as an artifact without creating a release — would let this job be
 exercised without an irreversible tag. Its absence is why a job-level defect survived a phase that
 hand-ran the script, pytest-covered it, and statically read the YAML.
+
+---
+
+## Closed 2026-08-31 — observed at the v0.9.2 tag push
+
+Release run `33318905691`, tag `v0.9.2` on merge commit `45962faa`. Every acceptance item measured,
+not inferred:
+
+- **`create-release` green.** Read from the job's own conclusion via
+  `gh run view 33318905691 --json jobs` — `Create GitHub Release  completed  success` — not from the
+  overall run status. Third consecutive green after the v0.8.0 (`31861043480`) and v0.9.0
+  (`32560457509`) tag pushes, so the `uv: command not found` defect this todo tracks is fixed and
+  has stayed fixed across three real releases.
+- **The body is the curated section, byte-identical.**
+  `scripts/extract_changelog_section.py 0.9.2` emits 4083 bytes / 54 lines; `gh release view v0.9.2
+  --json body` truncated to those 54 lines diffs **empty** against it. Not a `git log` dump, not
+  empty. `grep -c 'Planned for Future Releases'` over the published body returns `0`, so the
+  scratch block did not leak (REL-10's second half, confirmed against the published artifact rather
+  than the file on disk).
+- **Assets include the wheel and the sdist.** `typsphinx-0.9.2-py3-none-any.whl` (193,706 B) and
+  `typsphinx-0.9.2.tar.gz` (851,339 B), alongside the `typsphinx.pdf` that `docs.yml` attaches.
+- **No hand editing.** The release was read, never edited, between `create-release` finishing and
+  this check.
+
+The rehearsal path suggested under "Worth considering alongside" was not built and is not owed —
+the job has now proven itself on three consecutive real tag pushes.

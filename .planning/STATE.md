@@ -2,32 +2,107 @@
 gsd_state_version: 1.0
 milestone: v0.9.2
 milestone_name: Inline image blocker fix and release
-current_phase: 63
-current_phase_name: v0.9.2 Release Prep (prep-only)
-status: completed
-stopped_at: "Phase 63 complete (verified 5/5, UAT 25/25) — milestone v0.9.2 ready for /gsd-complete-milestone"
-last_updated: "2026-08-30T14:50:00.000Z"
-last_activity: 2026-08-30
-last_activity_desc: Phase 63 complete — verification passed 5/5, UAT 25/25 with zero issues after gap closure
-state_head: c3ac5a58a3383b8e6ac4ca7e9c40221c560c7d2a
+status: Awaiting next milestone
+stopped_at: Milestone v0.9.2 shipped and archived — 0.9.2 published to PyPI (release run 33318905691)
+last_updated: "2026-08-31T00:50:00.000Z"
+last_activity: 2026-08-31
+last_activity_desc: Milestone v0.9.2 completed, published to PyPI and archived
+state_head: 45962faad21520c72ac9f1e14c7f684050826bb6
 progress:
   total_phases: 2
   completed_phases: 2
   total_plans: 10
   completed_plans: 10
   percent: 100
+current_phase: 63
+current_phase_name: v0.9.2 Release Prep (prep-only)
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-30 — evolved after Phase 62 completion)
+See: .planning/PROJECT.md (updated 2026-08-31 — full evolution review at the v0.9.2 close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 63 — v0.9.2 Release Prep (prep-only)
+**Current focus:** none — v0.9.2 shipped 2026-08-31; awaiting `/gsd-new-milestone`
 
-## Shipped Milestone (v0.9.1 — archived, NOT published)
+## Shipped Milestone (v0.9.2 — archived, PUBLISHED)
+
+Full phase detail, binding constraints and success criteria:
+[milestones/v0.9.2-ROADMAP.md](milestones/v0.9.2-ROADMAP.md). Requirements as they stood at close:
+[milestones/v0.9.2-REQUIREMENTS.md](milestones/v0.9.2-REQUIREMENTS.md). Phase directories:
+`.planning/milestones/v0.9.2-phases/`. Research: `.planning/milestones/v0.9.2-research/`.
+No `MILESTONE-AUDIT.md` was produced for this milestone.
+
+**Shipped 2026-08-31. `typsphinx 0.9.2` is on PyPI.** 2 phases (62–63), 10 plans, 29 tasks,
+**7/7 v1 requirements complete** — the first close since v0.6.4 to be a `verified_closeout`, and the
+first in this project's history to complete inside a single calendar day (~11 hours). It carries
+v0.9.1's entire completed-but-unpublished output as well as its own fix, under one `## [0.9.2]`
+CHANGELOG heading. No `## [0.9.1]` heading and no `v0.9.1` tag were ever created.
+
+**What it delivered.** An image node that was not first in its container was emitted adjacent to the
+preceding code-mode expression, so Typst refused the file with `expected semicolon or line break`
+and `sphinx-build -b typstpdf` raised `ExtensionError` and wrote **no PDF for any master document**
+— including masters containing no image at all, because Typst's `#include()` re-parses the included
+file. `visit_image()`/`depart_image()` now join the separator triad the rest of the translator
+already runs on (`_add_paragraph_separator()`, `_emit_inline_concat_separator()`, and the
+`in_list_item` / `list_item_needs_separator` pair), as a **9-line pure insertion with zero
+deletions** — both the `in_figure` and `else` branch bodies stay textually unmodified and no new
+line-boundary predicate was introduced (IMG-08, IMG-09, IMG-10). The acceptance gate drives a real
+`typst.compile()` through `-b typstpdf` over a 27-document / 18-master fixture — 16 measured failing
+shapes and 9 that must keep passing — recorded RED against a restored pre-fix `translator.py` before
+the fix landed, with 8 of the 9 PASS shapes bound byte-identical to committed goldens and the ninth
+pinned by an exact-delta assertion (TEST-05). Zero pre-existing test edits, measured with
+`git diff --name-status` over the 20 files carrying the 144 `image(` matches.
+
+**The mechanism was amended before a line was written.** A live 27-document probe measured that
+driving the triad from the non-`in_figure` branch alone — as the requirement first specified — leaves
+**4 of 18 masters still refused**: both legend shapes (a legend image has `in_figure == True` and
+never reaches that branch), the field-list-body concat shape (where the unconditional trailing
+newlines break the concat with a *new* refusal, `cannot apply unary '+' to content`), and `index`
+transitively. The leading half was hoisted above the `if self.in_figure:` split and the trailing half
+made concat-aware. This is the second consecutive milestone in which a locked decision was falsified
+by measurement, put to the owner, and closed with an `AMENDED` block rather than read to fit.
+
+**Publish record.** Branch `gsd/v0.9.2-inline-image-blocker-fix-and-release` (103 commits) merged to
+`main` as `45962faa` via **PR #136**, 15/15 checks green including both `windows-latest` and both
+`macos-latest` lanes. Tag `v0.9.2` annotated on that merge commit. `release.yml` run `33318905691`:
+`Validate Release`, `Build Distribution`, `Publish to PyPI` (after the `pypi` Environment's manual
+approval) and `Create GitHub Release` all `success`. PyPI carries the wheel and the sdist. The
+GitHub Release body is **byte-identical** to `scripts/extract_changelog_section.py 0.9.2` — 4083
+bytes / 54 lines, `diff` empty against the published body truncated to that line count, zero
+`### Planned for Future Releases` leakage. `typsphinx-doc-translations` `update-pin.yml` run
+`33320396502` advanced its submodule pin to exactly `45962faa` and resynced the ja catalogs
+(`fcf66da4`); that repository is tagged `v0.9.2` as a separate action.
+
+**Two things worth carrying.** (1) *A post-plan gate caught a false claim inside the release notes
+themselves.* The curated `## [0.9.2]` intro asserted the runtime changes were confined to
+`typsphinx/translator.py`; the same evidence file's own invariant sweep showed five files changed
+since 0.9.0. `63-REVIEW.md` CR-01 and `63-VERIFICATION.md`'s SC#2 block found it independently,
+after the original extractor inspection had passed the structural checks clean. The corrected text
+is what shipped, and the byte-identity proof was re-taken against it. (2) *The checksum fence held
+for the second time running, and this time the requirement was meant to close.* REL-11's SHA-256 of
+`.planning/REQUIREMENTS.md` was verified at phase head, at phase close, after the gap-closure
+commits, inside `63-HANDOFF.md`, and once more by the operator here **after** all
+`phase.complete`-family tooling had run — MATCH on the digest, the line count, the empty
+`--name-only` diff and the three `REL-09` grep hits, every time. `phase.complete` has auto-flipped
+the release requirement against an explicit CONTEXT decision at five consecutive prior release-prep
+closes; it did not flip here. REL-09/REL-10/REL-11 were checked by the operator at this close, on
+the observed publish.
+
+**REL-04 closed on evidence this release generated.** `Create GitHub Release` — the job that failed
+with `uv: command not found` at the v0.7.0 tag push — completed `success`, read from the job's own
+conclusion rather than inferred from the run status. Third consecutive green after v0.8.0 and
+v0.9.0. Its todo, open since 2026-08-04 and acknowledged as deferred at the v0.9.1 close, is now in
+`todos/completed/`.
+
+**Not verified at this close, by owner selection:** Read the Docs `stable` on the `en` and `ja`
+projects was not re-measured. Both projects' Default Versions have been `stable` since the v0.6.4
+close and have needed no re-flip at any subsequent close, but that is an expectation here, not an
+observation. Procedure: `63-HANDOFF.md` § 5, in `.planning/milestones/v0.9.2-phases/`.
+
+## Shipped Milestone (v0.9.1 — archived, never published; its work shipped inside 0.9.2)
 
 Full phase detail, binding constraints and success criteria:
 [milestones/v0.9.1-ROADMAP.md](milestones/v0.9.1-ROADMAP.md). Requirements as they stood at close:
@@ -83,82 +158,10 @@ land here.
 
 ## Current Position
 
-Phase: 63 (v0.9.2 Release Prep (prep-only)) — COMPLETE
-Plan: 6 of 6 complete
-Status: All phases complete — UAT 25/25 passed — milestone v0.9.2 ready to ship
-Progress: [████████████████████] 100% (2/2 phases)
-Last activity: 2026-08-30 — Phase 63 complete, verification passed 5/5, UAT 25/25 with zero issues
-Live measurement during planning falsified one locked decision, acknowledged by the owner: D-18's
-`ruff` verdict does NOT come from a step named `Run linters` — `grep -rn 'Run linters' .github/`
-returns exactly one hit, `release.yml:84`, the workflow this prep-only phase must never trigger.
-`ci.yml`'s lint job is `Lint and Format Check`, whose one step is `Run lint with tox` (`ci.yml:69`).
-D-18's intent (CI holds lint authority, never this host's unrunnable generic-linux `ruff` ELF) is
-unaffected. Corrected in `63-CONTEXT.md` § Amendments and in ROADMAP milestone constraint 11,
-Phase 62's SC#5 and Phase 63's SC#4 — the third recurrence of the wrong name and the first fixed at
-the source. Phase 62's own two amendments remain recorded in `62-01-PLAN.md` `<amendments>`.
-
-## Active Milestone (v0.9.2 — Inline image blocker fix and release)
-
-Full phase detail, the 14 binding constraints and success criteria:
-[ROADMAP.md](ROADMAP.md) § "🚧 v0.9.2". Requirements and traceability:
-[REQUIREMENTS.md](REQUIREMENTS.md). Research: `.planning/research/` (SUMMARY, ARCHITECTURE,
-FEATURES, PITFALLS, STACK — all measured at HEAD on 2026-08-30).
-
-**Two aims, nothing else:** close the blocker that stopped v0.9.1 from being published, then publish
-that fix together with v0.9.1's completed-but-unreleased work as **0.9.2** on PyPI.
-
-| Phase | Name | Requirements |
-|-------|------|--------------|
-| 62 | The `visit_image()` Separator Fix and Its Real-Compile Gate | IMG-08, IMG-09, IMG-10, TEST-05 (4) |
-| 63 | v0.9.2 Release Prep (prep-only) | REL-09, REL-10, REL-11 (3) |
-
-**The single ordering constraint is 62 before 63** — the `## [0.9.2]` CHANGELOG entry must describe
-a fix that has actually landed and been proven by a real compile, and the version bump must not be
-in the tree while the fix is still being RED/GREEN-proved against a restored pre-fix
-`translator.py`.
-
-**Five things not to re-derive during planning:**
-
-1. **The fix and its gate are one phase.** TEST-05 must be recorded RED against the unfixed tree
-   *before* the fix lands; a phase boundary between them would let "fixed" be claimed before "proven
-   by a real compile" — the precise failure mode that let this defect ship in 0.9.0.
-
-2. **The mechanism is the existing triad, verbatim, in the non-`in_figure` branch.**
-   `_add_paragraph_separator()` + `_emit_inline_concat_separator()` +
-   `in_list_item`/`list_item_needs_separator`, with `_mark_inline_concat_content()` in
-   `depart_image()`. PROJECT.md's original `visit_target` precedent was falsified by research (it is
-   markup-mode content, not a code-mode operand) and the `in_figure` "hazard" was measured cosmetic
-   (byte-identical PDF). Both are amended in PROJECT.md. **No new line-boundary predicate** — none
-   exists in `translator.py` today and REQUIREMENTS.md's Out of Scope table forbids building one.
-
-3. **The trigger surface is 16 measured shapes, not the todo's 4**, and the blast radius is every
-   master in the project — an image-free `index.rst` also fails, because Typst's `#include()`
-   re-parses the poisoned content file. The regression surface is 9 shapes that must stay passing.
-
-4. **Phase 63 is prep-only. REL-09 closes at `/gsd-complete-milestone`, not in the phase** — held at
-   `[ ]` through every plan, cited for coverage only, and every plan declares
-   `requirements-completed: []` for it. REL-11's SHA-256 fence on `.planning/REQUIREMENTS.md` is
-   required: recorded at phase head, re-verified at close, **and once more after
-   `phase.complete`-family tooling runs** — that third observation is the one that catches the flip.
-
-5. **The milestone branch reaches `origin` in Phase 62** (SC#5), evidenced by a *completed* CI run
-   including the `windows-latest` and `macos-latest` lanes, dispatched with
-   `gh workflow run CI --ref <branch>` — `ci.yml`'s push/PR triggers are scoped to `main`/`develop`,
-   so a push alone runs no CI.
-
-**Milestone branch — the decoy pair fired again, INVERTED relative to v0.9.1's, and is already
-resolved.** Measured 2026-08-30 during roadmapping: the canonical config-derived branch
-`gsd/v0.9.2-inline-image-blocker-fix-and-release` sat at `d75ea6dd` (`main` + 2) while
-`gsd/v0.9.2-milestone` sat at `1e4ea286` (canonical + 3) and carried HEAD — the mirror image of
-v0.9.1, where the decoy was the empty pointer. Deleting the decoy as v0.9.1 did would have orphaned
-three commits. Resolved before this roadmap was committed: `git branch -f` fast-forwarded the
-canonical ref to `1e4ea286`, `git symbolic-ref HEAD` re-pointed HEAD at it without a checkout (so the
-roadmapper's uncommitted files survived), and only then was the decoy deleted
-(`Deleted branch gsd/v0.9.2-milestone (was 1e4ea286)`). **Current state: one branch,
-`gsd/v0.9.2-inline-image-blocker-fix-and-release` at `1e4ea286`, HEAD on it, no decoy.** Still
-local-only — nothing matching `0.9.2` exists on `origin` and no `v0.9.2` tag exists locally or
-remotely, so Phase 62 SC#5's push and CI dispatch are still owed. Expect the decoy to be re-created
-by the next `gsd-tools query commit`; it recurs every milestone.
+Phase: Milestone v0.9.2 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-08-31 — Milestone v0.9.2 completed and archived
 
 ## Shipped Milestone (v0.9.0 — archived)
 
@@ -1103,48 +1106,29 @@ into any milestone — third consecutive close at which that is true — and the
 
 ## Operator Next Steps
 
-- **Plan Phase 63 with `/gsd-plan-phase 63`.** Phase 62 is complete and verified 5/5 — the fix and
-  its real-compile gate landed together (IMG-08, IMG-09, IMG-10, TEST-05 all closed). Phase 63 is
-  prep-only release work (REL-09, REL-10, REL-11); the publish itself executes at
-  `/gsd-complete-milestone`.
+- **Start the next milestone with `/gsd-new-milestone`.** v0.9.2 is shipped, archived and tagged;
+  `.planning/REQUIREMENTS.md` has been removed and a fresh one is written during that flow.
 
-- **`/gsd-secure-phase 62` is outstanding.** The `secure-phase` capability is active but Phase 62
-  produced no `62-SECURITY.md`. Run it before the milestone closes, or record an explicit decision
-  not to.
+- **Read the Docs was not verified at this close.** `63-HANDOFF.md` § 5 (in
+  `.planning/milestones/v0.9.2-phases/`) carries the unauthenticated public-API procedure for both
+  the `en` (`typsphinx`) and `ja` (`typsphinx-ja`) projects: the root URL resolving to
+  `/en/stable/`, the `stable` version identifier matching `45962faa` for `en` and `fcf66da4` for
+  `ja`, both pages reporting `0.9.2`, and both PDFs served as `application/pdf`. Neither project's
+  Default Version has needed a re-flip since the v0.6.4 close, so this is expected to be a
+  confirmation, but it has not been taken.
 
-- **Phase 62's code-review warnings are dispositioned.** WR-02 was fixed 2026-08-30 (`1adad07f`,
-  comment-only). WR-01 — the deliberately pinned one-blank-line delta on the image-first-in-paragraph
-  shape — is left standing as the recorded consequence of the pinning decision, not a defect.
+- **No `### Known Limitations` decision was made — the fifth consecutive cycle to default rather
+  than decide.** `.planning/REQUIREMENTS.md` flagged this pattern as worth an explicit call at the
+  v0.9.1 close and it was carried again. It bites less now than it did then: the blocker that made
+  it urgent is fixed and published, and 0.9.0 users are told to upgrade in the release notes' own
+  intro paragraph. It is still an open question for the next release cycle, not a closed one.
 
-- **Check the SKIP count, not just the exit code, when running the suite for Phase 63.** The main
-  `.venv` was found re-synced with `--extra dev` only; `myst-parser` lives in the **`docs`** extra, so
-  `tests/test_changelog_page_gate.py`'s four cases skip silently (1543/5 instead of 1547/1). Restored
-  with `uv sync --extra dev --extra docs`. Phase 63 edits `CHANGELOG.md` — a dev-only venv would let
-  its own gate skip rather than fail.
+- **`gsd/v0.9.2-inline-image-blocker-fix-and-release` was NOT deleted on merge**, unlike v0.9.1's,
+  which was. v0.7.0–v0.9.0's milestone branches are also still standing, locally and on `origin`.
+  The decoy pair (`gsd/v0.9.2-milestone`) did not re-appear during this close, but it is a
+  per-milestone recurrence — expect it again at the next `gsd-tools query commit`.
 
-- **REL-09 was corrected, not carried verbatim.** The owner confirmed 2026-08-30 that its literal
-  `v0.9.1` version token is rewritten to `0.9.2` — the obligations (curated entry, sole-literal
-  version bump with `uv.lock`/`README.md` in lockstep, Release body from the extractor) stand
-  unchanged, but the original wording was unachievable because v0.9.1 will never be published. The
-  v0.9.1 `## [Unreleased]` bullets are promoted into a single `## [0.9.2]` section; **no
-  `## [0.9.1]` heading and no `[0.9.1]` tail link are ever created.**
-
-- **Read `61-HANDOFF.md` before Phase 63 is planned, not after.** It is the only record of the three
-  publish steps the v0.9.1 close did not exercise, and it is the first handoff in eight that does not
-  open as a publish checklist. Phase 63's SC#5 checklist is its direct descendant.
-
-- **The `gsd/v0.9.2-*` decoy pair is already resolved** — the canonical ref was fast-forwarded and
-  the decoy deleted with zero commits orphaned (see the Active Milestone section above). The
-  remaining action **was** Phase 62 SC#5, now discharged: the canonical branch is on `origin` and
-  CI run `33302087913` completed green across all 12 jobs. Watch for the decoy being re-created by
-  the next `gsd-tools query commit`.
-
-- **An explicit decision is owed on the `### Known Limitations` question.** This is the **fourth
-  consecutive** release-cycle at which such a section was declined, and `.planning/REQUIREMENTS.md`
-  itself flagged the pattern as worth deciding rather than defaulting. It bites harder now than
-  before: the inline-image blocker is live in the *published* 0.9.0 with no public surface at all.
-
-- **The audit question from the last close is answered.** v0.9.1 produced a real
-  `MILESTONE-AUDIT.md` after six consecutive closes without one, and it earned its place — it is
-  what let REL-09 be classified `deferred` rather than `unsatisfied`, on stated grounds, instead of
-  the close having to argue the point from scratch.
+- **7 pending todos carry forward** (`.planning/todos/pending/`), one fewer than at the last close:
+  the REL-04 `create-release` todo closed on this release's own evidence. NUM-01, CI-01, MSG-06,
+  WR-02, WR-03, QUA-08, QUA-09, QUA-10, DOC-18 and SEED-001/003/004 remain in the v2 set carried in
+  `milestones/v0.9.2-REQUIREMENTS.md`.

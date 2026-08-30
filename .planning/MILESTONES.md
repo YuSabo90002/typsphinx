@@ -1,5 +1,113 @@
 # Milestones: typsphinx
 
+## v0.9.2 Inline image blocker fix and release (Shipped: 2026-08-31)
+
+**Delivered:** the compile blocker that cancelled v0.9.1's release is closed, and v0.9.1's entire
+completed-but-unpublished output ships with it as one release. An image node that was not first in
+its container was emitted adjacent to the preceding code-mode expression, so Typst refused the file
+with `expected semicolon or line break` and `sphinx-build -b typstpdf` raised `ExtensionError` and
+wrote **no PDF for any master document** — including masters containing no image at all, because
+Typst's `#include()` re-parses the included file. The defect was measured **pre-existing against the
+`v0.9.0` tag**, reachable through stock reST, and live in the published 0.9.0 the whole time; it was
+found by the owner using the tool, not by any gate. Publishing 0.9.2 is what repays that.
+
+**Closeout:** verified_closeout — the first since v0.6.4. Both phases carry
+`phase_complete: true` and `verification_status: passed`, UAT closed 25/25 with zero issues, and the
+pre-close artifact audit reported no open items. Known verification overrides: **0 newly
+acknowledged, 15 carried forward from a prior close** (see STATE.md Deferred Items).
+**No `v0.9.2-MILESTONE-AUDIT.md` was produced** — `/gsd-audit-milestone` was not run for this
+milestone, so cross-phase integration and E2E coverage rest on the two phase verifications, the UAT,
+and the real-`typst.compile()` gate rather than on a separate audit pass. Recorded as an absence,
+not claimed as a pass.
+**Phases:** 2 (62–63) · **Plans:** 10 · **Tasks:** 29
+**Requirements:** 7/7 v1 requirements complete · **Timeline:** 2026-08-30 → 2026-08-31 (~11 hours,
+single calendar day — the shortest milestone in this project's history)
+**Git:** milestone branch `gsd/v0.9.2-inline-image-blocker-fix-and-release` (103 commits) merged to
+`main` as `45962faa` via **PR #136**, 15/15 checks green including both `windows-latest` and both
+`macos-latest` lanes. Tag `v0.9.2` annotated on that merge commit.
+**Release:** `release.yml` run `33318905691` — `Validate Release`, `Build Distribution`,
+`Publish to PyPI` (after the `pypi` Environment's manual approval) and `Create GitHub Release` all
+`success`. PyPI carries `typsphinx 0.9.2` (`typsphinx-0.9.2-py3-none-any.whl`,
+`typsphinx-0.9.2.tar.gz`). The GitHub Release body is the curated CHANGELOG section, **proven
+byte-identical** to `scripts/extract_changelog_section.py 0.9.2` (4083 bytes / 54 lines, `diff`
+empty against the published body truncated to that line count) with zero
+`### Planned for Future Releases` leakage.
+**Second repository:** `typsphinx-doc-translations` `update-pin.yml` run `33320396502` `success`;
+pin commit `fcf66da4` advances the submodule to exactly `45962faa` and resyncs the ja catalogs;
+tagged `v0.9.2` there as a separate action.
+**Code delta (milestone scope, excl. `.planning/`):** 46 files, +1,051 / −11 lines — of which
+`typsphinx/` is **+23 in a single file**, `typsphinx/translator.py`. Everything else is the gate
+corpus (1 module, 27 fixture documents, 10 goldens) plus the four-file version bump. **Zero runtime
+and dev dependencies added, no new `typst_*` config value, no `@preview` bump.**
+
+**Key accomplishments:**
+
+- **An image anywhere but first in its container compiles** (IMG-08, IMG-09, IMG-10, Phase 62) —
+  `visit_image()`/`depart_image()` joined the separator discipline the rest of the translator
+  already runs on: `_add_paragraph_separator()`, `_emit_inline_concat_separator()`, and the
+  `in_list_item` / `list_item_needs_separator` pair, exactly as `visit_Text`, `visit_literal`,
+  `visit_math`, `visit_footnote_reference` and `visit_reference` already call them. A **9-line pure
+  insertion with zero deletions**, so both branch bodies stay textually unmodified and no new
+  line-boundary predicate was introduced.
+
+- **The mechanism was amended on a live measurement before a line was written** (Phase 62 planning)
+  — a 27-document / 18-master probe measured that driving the triad from the non-`in_figure` branch
+  *alone*, as the requirement first specified, leaves **4 of 18 masters still refused**: both legend
+  shapes (a legend image has `in_figure == True` and never reaches that branch), the field-list-body
+  concat shape (where the unconditional trailing newlines break the concat with a *new* refusal,
+  `cannot apply unary '+' to content`), and `index` transitively. The leading half was hoisted above
+  the `if self.in_figure:` split and the trailing half made concat-aware — 18/18 compiling, with the
+  literal `in_figure`-branch-unmodified success criterion still holding.
+
+- **A gate that a string assertion could not be** (TEST-05, Phase 62) — one module driving a real
+  `typst.compile()` through `-b typstpdf` over 16 measured failing shapes and 9 that must keep
+  passing, from a single build invocation. Nine existing string-level image tests never saw this
+  defect because the emitted string *looks* plausible and only the parser rejects it. The gate was
+  recorded RED first: `typsphinx/translator.py` restored from the phase base SHA, the 17-master
+  aggregate `ExtensionError` transcribed verbatim, the fix restored, `git status --porcelain`
+  recorded empty. 8 of the 9 PASS shapes are byte-identical against committed goldens; the ninth
+  gains exactly one empty line and is pinned by an exact-delta assertion rather than softened to
+  "compiles".
+
+- **Zero pre-existing test edits, measured** (IMG-10, Phase 62) — `git diff --name-status` scoped to
+  `tests/` over the phase range shows only `A` entries across the 20 files carrying the 144
+  `image(` matches. The one `M` in the milestone is `tests/test_changelog_page_gate.py`'s version
+  literal, in the release phase.
+
+- **The release-checkbox fence held for the second time running, and this time the requirement was
+  meant to close** (REL-11, Phase 63 + this close) — a SHA-256 of `.planning/REQUIREMENTS.md`
+  recorded at phase head, re-verified at phase close, again after the gap-closure commits, once more
+  inside `63-HANDOFF.md`, and a final time by the operator here **after** all
+  `phase.complete`-family tooling had run: MATCH on the digest, the line count, the empty
+  `--name-only` diff and the three `REL-09` grep hits, every time. `phase.complete` has auto-flipped
+  the release requirement against an explicit CONTEXT decision at five consecutive prior
+  release-prep closes; it did not flip here. REL-09/REL-10/REL-11 were checked by the operator at
+  this close, on the observed publish.
+
+- **A post-plan gate caught a false claim inside the release notes themselves** (Phase 63 gap
+  closure) — the curated `## [0.9.2]` intro asserted "the runtime changes are confined to
+  `typsphinx/translator.py`, with no other file under `typsphinx/` touched", which that same
+  evidence file's own milestone-invariant sweep falsified by showing five files changed since 0.9.0.
+  `63-REVIEW.md` CR-01 and `63-VERIFICATION.md`'s SC#2 block found it independently, *after* the
+  original extractor inspection had passed the structural checks clean. The blanket sentence was
+  deleted, a narrower measured version re-scoped into the one bullet it is true for, and the
+  byte-identity proof re-taken against the corrected text — which is the text that shipped.
+
+- **REL-04 closed on evidence this release generated** — `Create GitHub Release`, the job that
+  failed with `uv: command not found` at the v0.7.0 tag push, completed `success` here, read from
+  the job's own conclusion rather than inferred from the run status. Third consecutive green after
+  v0.8.0 and v0.9.0. Its todo, open since 2026-08-04 and acknowledged as deferred at the v0.9.1
+  close, is now in `todos/completed/`.
+
+**What shipped in 0.9.2 that was v0.9.1's work.** The single `## [0.9.2]` CHANGELOG entry covers
+both milestones: v0.9.1's `_escapes_outdir()` normalization (PATH-01), the Windows-shaped absolute
+image URI fix (IMG-04..IMG-07), and the `quote_path()` diagnostic-message routing (MSG-01..MSG-05),
+alongside this milestone's separator fix. **No `## [0.9.1]` heading was created and no `v0.9.1` tag
+exists** — that release was cancelled, not skipped, and nothing in the published surface pretends
+otherwise.
+
+---
+
 ## v0.9.1 Windows path correctness (Completed: 2026-08-30 — **NOT published**)
 
 **Delivered:** three latent Windows path defect families closed on the product side, behind gates
