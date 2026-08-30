@@ -148,6 +148,39 @@ this phase), or D-13 (zero test edits) without returning to the owner.
 
 </decisions>
 
+<amendments>
+## Amendments (2026-08-30, planning time — owner-acknowledged)
+
+Three items above were corrected by a live 27-document / 18-master probe run during planning
+(real `sphinx-build -b typstpdf`, real `typst.compile()`, HEAD `42f385cb`, repo restored clean
+afterwards). The locked text above is left as written; these are additive corrections. The full
+measurement record is the `<amendments>` block at the top of `62-01-PLAN.md` — read it before
+disputing any of the three.
+
+1. **D-08 / IMG-10 — the triad's scope, not its placement, was wrong.** Confining the triad to
+   `visit_image()`'s non-`in_figure` branch leaves 4 of 18 masters refused: both legend shapes
+   (a legend image has `self.in_figure == True` and never reaches that branch), the field-list-body
+   concat shape (`depart_image()`'s unconditional trailing newlines break the concat expression with
+   `cannot apply unary '+' to content`, an error the unfixed tree never produced), and `index`
+   transitively. Amended: the leading half is hoisted above the `if self.in_figure:` / `else:` split
+   so it runs on both paths, and the trailing half becomes concat-aware. Measured 18/18 compiling,
+   exit 0, full suite 1517 passed / 1 skipped, zero test edits. `_emit_id_anchors()`'s call site
+   stays exactly where D-08 said it should; shape E remains byte-identical, reproducing D-08's own
+   probe result. REQUIREMENTS.md's IMG-10 carries the same note.
+
+2. **D-06 — 8 of the 9 must-pass shapes are byte-identical, not 9.** `pass_c` (image first in its
+   paragraph, text after) gains **exactly one empty line**, zero removals, because
+   `_add_paragraph_separator()` now marks the paragraph as having content so the following text node
+   emits its own separator. D-06 is **not** weakened to "it compiles": `pass_c` is bound by two
+   committed goldens (unfixed-tree and post-fix) plus an assertion that their diff is exactly one
+   added empty line with zero removals — a stricter binding than byte-identity, applied to the one
+   shape where byte-identity was measurably unachievable. The other 8 keep plain byte-identity.
+
+3. **D-01 — the document count is 27, not 26.** D-01's own enumeration (`index` + 16 FAIL +
+   `pass_parent` + 9 PASS) sums to 27; "26 documents" is an arithmetic slip in the prose. The
+   load-bearing half — **18 masters** — is unchanged and is what the plans build and assert.
+</amendments>
+
 <canonical_refs>
 ## Canonical References
 

@@ -296,9 +296,20 @@ of the milestone, so it carries the branch-to-`origin` invariant (constraint 10)
 **Plans**: 4 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 62-01-PLAN.md — Tracer: one failing shape end to end (3-master fixture, the separator triad fix, a real-compile gate) plus the milestone branch to `origin`
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 62-02-PLAN.md — Expand to the full measured matrix: 16 FAIL + 9 PASS documents, 18 masters, 27 documents, and the widened gate
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 62-03-PLAN.md — RED-first evidence against a restored unfixed tree, the 9 committed goldens, and the byte-identity binding
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 62-04-PLAN.md — The single authority 3-OS CI run and the phase-close measurements (zero test edits, `in_figure` bodies untouched, release fence held)
 
 **Planning note (2026-08-30):** two locked decisions were falsified by measurement during planning and

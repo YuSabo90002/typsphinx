@@ -36,6 +36,22 @@ from the pending todo's prose.
       branch is not modified, no new line-boundary predicate is introduced, and **zero pre-existing
       tests are edited** — measured, not asserted, across the 144 `image(` matches in 20 test files.
 
+      **AMENDED 2026-08-30 at planning time, owner-acknowledged.** A live 27-document / 18-master
+      probe measured that driving the triad from the non-`in_figure` branch *alone* leaves 4 of the
+      18 masters refused: both legend shapes (an image inside a figure legend has
+      `self.in_figure == True`, so it never reaches that branch — `visit_legend`,
+      `typsphinx/translator.py:3181-3183`, already sets `in_list_item` / `list_item_needs_separator`
+      correctly; the image simply never consulted them), the field-list-body concat shape (where
+      `depart_image()`'s unconditional trailing newlines break the concat expression with
+      `cannot apply unary '+' to content`), and `index` transitively. The amended mechanism hoists
+      the **leading** half above the `if self.in_figure:` / `else:` split so it runs on both paths,
+      and makes the **trailing** half concat-aware — measured 18/18 masters compiling, exit 0, full
+      suite 1517 passed / 1 skipped, zero test edits. The change is to the *scope of the call*, not
+      the mechanism: the same three pre-existing helpers are used, no new predicate is introduced,
+      and the diff is a 9-line pure insertion with zero deletions, so both branch **bodies** stay
+      textually unmodified and ROADMAP SC#3's literal `in_figure`-branch-unmodified check still
+      holds. This delivers strictly more of IMG-08, never less. See `62-01-PLAN.md` `<amendments>`.
+
 ### TEST — regression gate
 
 - [ ] **TEST-05**: One regression gate module binds the 16 failing shapes **and** the shapes that

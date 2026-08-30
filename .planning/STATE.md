@@ -4,16 +4,16 @@ milestone: v0.9.2
 milestone_name: Inline image blocker fix and release
 current_phase: 62
 current_phase_name: "The `visit_image()` Separator Fix and Its Real-Compile Gate"
-status: roadmap_ready
-stopped_at: Phase 62 context gathered
-last_updated: "2026-08-30T05:59:39.207Z"
+status: planning
+stopped_at: Phase 62 planned (4 plans in 4 waves)
+last_updated: "2026-08-30T06:59:03.180Z"
 last_activity: 2026-08-30
-last_activity_desc: Phase 62 context gathered (13 decisions, 4 gray areas delegated)
-state_head: 2946a304fd40d53edd71b3461d93fc98c221bb5d
+last_activity_desc: Phase 62 planned — 62-01..62-04-PLAN.md committed (wave 1 tracer + branch to origin -> wave 2 full 16+9 matrix -> wave 3 RED evidence + goldens -> wave 4 authority CI). Two locked decisions AMENDED by measurement and acknowledged by the owner; see 62-01-PLAN.md <amendments>
+state_head: bb28b5979fbaee195a5f1b68f6c52f1cd35360de
 progress:
   total_phases: 2
   completed_phases: 0
-  total_plans: 0
+  total_plans: 4
   completed_plans: 0
   percent: 0
 ---
@@ -83,11 +83,16 @@ land here.
 
 ## Current Position
 
-Phase: 62 — The `visit_image()` Separator Fix and Its Real-Compile Gate (not started)
-Plan: — (no plans created yet)
-Status: Roadmap approved; ready for `/gsd-plan-phase 62`
+Phase: 62 (The `visit_image()` Separator Fix and Its Real-Compile Gate) — READY TO EXECUTE
+Plan: Not started (4 plans, 4 sequential waves: 62-01 -> 62-02 -> 62-03 -> 62-04)
+Status: Ready to execute
 Progress: [__________] 0% (0/2 phases)
-Last activity: 2026-08-30 — v0.9.2 roadmap created (Phases 62–63)
+Last activity: 2026-08-30 — Phase 62 planned. Four plans in four sequential waves, tracer-first.
+Live measurement during planning falsified two locked decisions, both acknowledged by the owner:
+the triad scoped to `visit_image()`'s non-`in_figure` branch alone leaves 4 of 18 masters red (the
+leading half is hoisted above the `in_figure`/`else` split instead — 18/18 compiling, measured), and
+8 of the 9 must-pass shapes are byte-identical rather than 9 (`pass_c` gains exactly one empty line,
+bound by a pinned two-golden exact-delta assertion). See `62-01-PLAN.md` `<amendments>`.
 
 ## Active Milestone (v0.9.2 — Inline image blocker fix and release)
 
