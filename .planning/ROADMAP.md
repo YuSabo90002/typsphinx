@@ -393,7 +393,7 @@ user-visible fixes under one heading, because 0.9.1 is a version users will neve
      parent repo's tag push), and the Read the Docs `en` and `ja` `stable` endpoints reporting
      `0.9.2`.
 
-**Plans**: 2/4 plans executed across 3 waves
+**Plans**: 3/4 plans executed across 3 waves
 
 Plans:
 **Wave 1**
@@ -403,7 +403,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 63-03-PLAN.md — Prove the bumped tree green on runs executed in this phase (full suite, format, type, version-sync, both docs builds from a clean build directory) and dispatch one 3-OS CI run on the bumped tip, taking `ruff`'s verdict from the `Lint and Format Check` job (wave 2)
+- [x] 63-03-PLAN.md — Prove the bumped tree green on runs executed in this phase (full suite, format, type, version-sync, both docs builds from a clean build directory) and dispatch one 3-OS CI run on the bumped tip, taking `ruff`'s verdict from the `Lint and Format Check` job (wave 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -441,7 +441,7 @@ below tracks the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 62. The `visit_image()` Separator Fix and Its Real-Compile Gate | v0.9.2 | 4/4 | Complete | 2026-08-30 |
-| 63. v0.9.2 Release Prep (prep-only) | v0.9.2 | 2/4 | In Progress | - |
+| 63. v0.9.2 Release Prep (prep-only) | v0.9.2 | 3/4 | In Progress | - |
 
 ## Roadmap Evolution
 
