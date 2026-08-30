@@ -1,299 +1,160 @@
 # Feature Research
 
-**Domain:** Bug-fix milestone — Windows path correctness for a Sphinx→Typst extension (v0.9.1)
-**Researched:** 2026-08-27
-**Confidence:** HIGH (claims (a)-(c) verified against locally-installed Sphinx 9.1.0 / mypy source and pip's documented cache layout; claim (d) verified with a real `typst.compile()` run in this repo's own `.venv`, not documentation-only)
+**Domain:** Sphinx-to-Typst translator emitter defect (v0.9.2 milestone: `visit_image()` separator fix)
+**Researched:** 2026-08-30
+**Confidence:** HIGH (nearly every claim below is MEASURED against a real Sphinx build + real `typst.compile()`, not inferred from reading alone)
 
-This is a bug-fix round, not a new-capability milestone. "Features" below means the **observable
-correct behaviours** the three defect-family fixes must produce, framed against how comparable
-tools handle the same three situations (escape-guarding a config path, relocating an unusable
-filename, quoting a path in a diagnostic) and against what Typst itself actually accepts.
+## Measurement provenance
 
-## Evidence summary (answers to the four research questions)
+All rows marked **MEASURED** were built and compiled on this machine, at HEAD
+(`main`, unmodified — this is pre-fix behavior), as follows:
 
-### (a) Escape-guarding a path-shaped config value — Sphinx's own answer is "not our problem"
+- Probe project: `/tmp/claude-1000/-home-yuta-Documents-typsphinx/f02be4ed-caf0-468a-897c-407113bde367/scratchpad/probe/src/` (conf.py + one `.rst` per scenario, all listed in one `typst_documents` registry with `<docname>-out` targets to satisfy the docname/target-collision rule).
+- Build: `/home/yuta/Documents/typsphinx/.venv/bin/python -m sphinx -b typst -q src out` (run from the probe project root).
+- Compile: for each `out/<docname>-out.typ` (the true master/wrapper file, template-applied, `#include()`-ing the content file — this is what `-b typstpdf` actually compiles), ran:
+  ```python
+  import typst
+  typst.compile(f"out/{docname}-out.typ", root="out")
+  ```
+- Rows marked **INFERRED** are derived from reading `visit_image`/`depart_image`/`visit_figure`/`depart_figure`/`visit_paragraph`/`visit_list_item`/`visit_legend`/`add_text`/`_add_paragraph_separator`/`_emit_inline_concat_separator` in `typsphinx/translator.py` but were not independently built+compiled in this session (noted per-row why).
 
-Read directly from the installed Sphinx 9.1.0 tree
-(`.venv/lib/python3.13/site-packages/sphinx/builders/latex/__init__.py`):
+The pending todo's own 4-row matrix (`.planning/todos/pending/2026-08-29-inline-image-in-paragraph-emits-unseparated-expression.md`) **reproduces exactly** — the `sub_mid_sentence` emission below is byte-identical to the todo's reproduction, and its FAIL verdict reproduces.
 
-- `LaTeXBuilder.init_document_data()` (line 151) validates only that `entry[0]` (the **docname**)
-  is a known document (`docname not in self.env.all_docs` → `logger.warning(...)`, entry skipped).
-  It performs **zero validation** of `entry[1]` (`targetname`, the LaTeX/PDF output filename —
-  `latex_documents`' direct analogue of typsphinx's `typst_documents` target stem).
-- `write_documents()` (line 299) uses `targetname` completely unguarded:
-  `destination_path = self.outdir / targetname` (line 343), then
-  `destination_path.write_text(output, ...)`.
-- `validate_config_values()` (line 526) only checks `latex_elements` dict keys against a known
-  set — no path-shape validation anywhere in the file.
+## Q1 — Failing shapes (exhaustive, by measurement)
 
-I confirmed the consequence with real `pathlib` semantics (not assumed):
-```
->>> Path('/outdir') / '/etc/cron.d/evil'
-PosixPath('/etc/cron.d/evil')      # outdir silently discarded — Path.__truediv__ on an
-                                     # absolute right operand drops the left operand entirely
->>> Path('/outdir') / '../../etc/evil'
-PosixPath('/outdir/../../etc/evil') # traversal segment passed straight through
-```
-So Sphinx's own most comparable builder does **none of the three candidate behaviours** the
-question asked about (refuse loudly / sanitize silently / derive-and-warn) — it does nothing at
-all. `conf.py` is treated as fully-trusted first-party content, not untrusted input, and a
-malformed `latex_documents` target is the documentation author's problem to notice from the output
-tree, not Sphinx's to guard against.
+The todo's 4-row matrix is a strict subset of what actually fails. **Extended finding: this is not four shapes, it is any image node anywhere in the doctree that is not literally the first thing on its output line** — the failure surface is much broader than "paragraph or list item," and includes shapes the todo never tested: table cells, definition-list bodies, admonitions, footnotes, field-list bodies, section titles, and a figure's own legend body. All of these fail for the exact same single root cause (`visit_image()` has no leading-separator check at all, unlike every sibling inline/block visitor), so a correct general fix (mirroring `visit_Text`'s triad: `_add_paragraph_separator()` / `_emit_inline_concat_separator()` / `in_list_item`+`list_item_needs_separator`) closes all of them at once — this is why the categorization in Q3 puts "extend the todo's matrix" under **table stakes**, not "nice to have."
 
-**Implication for typsphinx:** typsphinx's `_escapes_outdir()` (builder.py:197) already goes
-*beyond* Sphinx's own bar — refusing the escaping stem and falling back to a basename, per its own
-docstring's "OUT-02" contract. That policy predates this milestone and is not up for
-reconsideration here (see Anti-Features below); v0.9.1's job is narrower: make the *detection*
-itself platform-shape-correct, matching the idiom `_is_absolute_image_uri()` (builder.py:190)
-already uses (normalize backslashes to `/` **before** applying `posixpath.isabs()` /
-`_is_drive_qualified()`), rather than applying those predicates to the raw, unnormalized `stem` as
-`_escapes_outdir()` currently does at builder.py:238.
+| # | Shape | rST source (key lines) | Emitted Typst (key excerpt) | Compiles? | Status |
+|---|-------|------------------------|------------------------------|-----------|--------|
+| 1 | Substitution image mid-sentence | `.. \|sub\| image:: img.png` + `Inline substitution \|sub\| in a sentence.` | `par({text("Inline substitution ")image("img.png")\n\n\ntext(" in a sentence.")})` | **NO** — `TypstError: expected semicolon or line break` | MEASURED (reproduces todo row 2) |
+| 2 | Two substitution images adjacent | `Two in a row \|sub\| \|sub\| here.` | `par({text("Two in a row ")image("img.png")\n\n\ntext(" ")image("img.png")\n\n\ntext(" here.")})` | **NO** (two independent unseparated boundaries in one paragraph) | MEASURED (reproduces todo row 3) |
+| 3 | Image (substitution) inside a list item, mid-text | `- item with \|sub\| inline` | `list({\nparbreak()\n\ntext("item with ")image("img.png")\n\n\ntext(" inline")\n})` | **NO** | MEASURED (reproduces todo row 4) |
+| 4 | **Block-level `.. image::` as 2nd element inside a list item** (new — not in todo) | `- First paragraph text.\n\n  .. image:: img.png` | `list({\nparbreak()\n\ntext("First paragraph text in the item.")image("img.png")\n\n\n})` | **NO** | MEASURED |
+| 5 | Image inside a table cell (list-table) | `* - Cell text \|sub\| after text` | `{par({text("Cell text ")image("img.png")\n\n\ntext(" after text")})}` inside `table(...)` | **NO** | MEASURED |
+| 6 | Image inside a definition-list body | `Term\n    Definition text \|sub\| after text.` | `terms.item(text("Term"), {par({text("Definition text ")image("img.png")\n\n\ntext(" after text.")})})` | **NO** | MEASURED |
+| 7 | Image inside an admonition (`.. note::`) | `.. note::\n\n   First sentence here. \|sub\| trailing.` | `info({par({text("First sentence here. ")image("img.png")\n\n\ntext(" trailing.")})\n\n}, title: "Note")` | **NO** | MEASURED |
+| 8 | Image inside a footnote body | `.. [#f1] Footnote text \|sub\| after text.` | `[#footnote({par({text("Footnote text ")image("img.png")\n\n\ntext(" after text.")})\n\n}) <...>]` | **NO** | MEASURED |
+| 9 | Image inside a figure's legend, mid-text | `.. figure:: img.png\n\n   Caption.\n\n   Legend paragraph with \|sub\| inline.` | `[#figure({\n  image("img.png")\nparbreak()\n\ntext("Legend paragraph with ")  image("img.png")\ntext(" inline.")\n}, caption: {...}) <...>]` | **NO** | MEASURED — note the literal `"  "` (two-space) prefix `visit_image` always adds when `in_figure` is cosmetic indentation, not a line-break; it does not save this boundary |
+| 10 | Two images adjacent inside a legend | `\|sub\| \|sub\| two subs in legend.` (as legend body) | `image("img.png")\ntext(" ")  image("img.png")\ntext(" two subs in legend.")` | **NO** | MEASURED |
+| 11 | Image after inline **literal**, not plain text | `` Some ``literal text`` then \|sub\| after it. `` | `par({text("Some ")\nraw("literal text")\ntext(" then ")image("img.png")\n\n\ntext(" after it.")})` | **NO** | MEASURED |
+| 12 | Image after **emphasis**, not plain text | `Some *emphasis text* then \|sub\| after it.` | `par({text("Some ")\nemph({text("emphasis text")})\ntext(" then ")image("img.png")\n\n\ntext(" after it.")})` | **NO** | MEASURED |
+| 13 | Image after a **reference** (external link), not plain text | `` Some `external link <https://example.com>`_ then \|sub\| after it. `` | `par({text("Some ")\n[#link("https://example.com", \ntext("external link"))#label(...)]\ntext(" then ")image("img.png")\n\n\ntext(" after it.")})` | **NO** | MEASURED |
+| 14 | **`:image:`-shaped field-list body** — a field body paragraph containing a substitution image | `:Returns: Some return text \|sub\| after text.` | `pad(left: 2.5em, {strong(text("Returns") + text(": "))\ntext("Some return text ")image("img.png")\n\n + text(" after text.")\n})` | **NO** | MEASURED — this is also a **concat-context** juxtaposition, not just a paragraph one; confirms `visit_image` also needs the `_emit_inline_concat_separator()` half of the fix, not only the paragraph half |
+| 15 | **Substitution image inside a section title** (new — not in todo) | `Title Text \|sub\|\n=================` | `[#heading(depth: 1, {text("Title Text ")image("img.png")\n\n}) <...>]` | **NO** | MEASURED |
+| 16 | Image with `:width:` **and** mid-sentence (dimensions do not change the verdict — the failure is entirely about the boundary *before* `image(`, not its arguments) | `.. \|sub\| image:: img.png\n   :width: 50px` + `Some text before \|sub\| and after.` | `par({text("Some text before ")image("img.png", width: 37.5pt)\n\n\ntext(" and after.")})` | **NO** | MEASURED |
 
-### (b) Relocating a file whose name is unusable — human-recognizable, hash-anchored, silent by default
+**Blast radius, independently confirmed:** the probe's `index.rst` toctree `#include()`s every scenario document. `index-out.typ` **also failed to compile** even though `index.rst` itself contains no image — because Typst's `#include()` re-parses the included file at compile time, one bad content file poisons every master that transitively includes it. This directly corroborates the milestone framing ("no PDF for any master document in the project, not just the offending one") independent of the todo's own claim.
 
-Two real, load-bearing precedents, both read from source rather than assumed:
+## Q2 — Shapes that must keep working unchanged (measured)
 
-1. **Sphinx's own `FilenameUniqDict`** (`sphinx/util/_files.py`, used for `env.images` — the
-   closest upstream analogue of typsphinx's image relocation), on a basename collision:
-   ```python
-   unique_name = new_file.name
-   base, ext = new_file.stem, new_file.suffix
-   i = 0
-   while unique_name in self._existing:
-       i += 1
-       unique_name = f'{base}{i}{ext}'
-   ```
-   Fully human-recognizable (`figure1.png`, `figure2.png`, ...), **no warning at all** — this is
-   the "ordinary, expected" collision case, exactly the register typsphinx's own D-01/D-03/D-04
-   silent-relocation branch (builder.py, `_track_image()`) already occupies for its collision
-   case.
-2. **Sphinx's `DownloadFiles`** (same module) for downloadable-file collisions takes the opposite
-   shape: `digest = hashlib.md5(filename.as_posix()...).hexdigest(); dest_path = digest/filename.name`
-   — hash as a **directory** component, original filename preserved **in full** as the leaf, no
-   truncation, no warning. This is architecturally identical to typsphinx's own
-   `{RESERVED_IMAGE_NAMESPACE}/{digest[:8]}-{basename}` key (builder.py:1772-1776) — a
-   collision-avoidance digest paired with a human-readable basename — except Sphinx's own version
-   has the **same unbounded-length gap** v0.9.1 must close (Sphinx has never hit it in practice
-   because `latex`/`html` builders don't relocate arbitrary-URI images the way typsphinx's
-   third-party-extension rehome path does).
-3. **pip's wheel cache** (documented behaviour, `pip cache dir` / Simon Willison's TIL,
-   cross-checked against pip's own docs): `wheels/<hash>/<hash>/<hash>/<original-filename>.whl` —
-   hash-bucketed **directories**, original filename kept **byte-for-byte** as the leaf component.
-   Same shape again: hash for uniqueness, human-readable name preserved, not mangled.
+| # | Shape | rST source | Emitted Typst | Compiles? | Status |
+|---|-------|-------------|----------------|-----------|--------|
+| A | Standalone block-level `.. image::`, with text before and after | `Some text before.\n\n.. image:: img.png\n\nSome text after.` | `par({text("Some text before.")})\n\nimage("img.png")\n\npar({text("Some text after.")})` | **YES** | MEASURED |
+| B | `.. figure::` (image indented 2 spaces inside `figure(` call) | `.. figure:: img.png\n\n   A caption.` | `[#figure(\n  image("img.png"),\n  caption: {text("A caption.")}\n) <...>]` | **YES** | MEASURED |
+| C | Image first in its paragraph | `\|sub\| leading image then text.` | `par({image("img.png")\n\ntext(" leading image then text.")})` | **YES** | MEASURED (reproduces todo row 1) |
+| D | Image with `:width:`/`:height:` (standalone, first in doc) | `.. image:: img.png\n   :width: 200px\n   :height: 100px` | `image("img.png", width: 150pt, height: 75pt)` | **YES** | MEASURED |
+| D2 | Image with `:scale:`/`:align:` | `.. image:: img.png\n   :scale: 50%\n   :align: center` | `image("img.png")` — **`:scale:`/`:align:` are silently dropped, no kwargs emitted at all** | **YES** | MEASURED — confirms by code reading (no `"scale"`/`"align"` string anywhere in `translator.py`) and by build: these options have zero effect on emission today, so they cannot interact with this fix either way |
+| E | Image with a propagated explicit target landing an id on it | `.. _mytarget:\n\n.. image:: img.png` | `[#metadata(none) <...:mytarget>]\nimage("img.png")` | **YES** | MEASURED |
+| F | Figure that also has a legend, where the legend has **no image of its own** (plain legend text) | `.. figure:: img.png\n\n   A caption.\n\n   A plain legend paragraph, no images here.` | `[#figure({\n  image("img.png")\nparbreak()\n\ntext("A plain legend paragraph...")\n}, caption: {...}) <...>]` | **YES** | MEASURED |
+| G | `.. figure::` nested inside a list item, after a preceding paragraph | `- First paragraph text.\n\n  .. figure:: img.png\n\n     Caption.` | `list({\nparbreak()\n\ntext("First paragraph text.")\n[#figure(\n  image("img.png"),\n  caption: {...}\n) <...>]\n\n\n})` | **YES** | MEASURED — `visit_figure` already has its own `in_list_item`/`list_item_needs_separator` check; this is why figures already survive this class of bug |
+| H | `.. figure::` as the *first* element of a list item | `- .. figure:: img.png\n\n     Caption.` | `list({\n[#figure(\n  image("img.png"),\n  caption: {...}\n) <...>]\n\n\n})` | **YES** | MEASURED |
+| I | Bare block `.. image::` as the *first* element of a list item (no preceding sibling) | `- .. image:: img.png` | `list({\nimage("img.png")\n\n\n})` | **YES** | MEASURED — confirms the rule is strictly "preceded by a sibling," not "inside a list item" |
 
-**Convergent convention across all three:** the collision-avoidance token (counter or hash) is
-kept **separate** from the human-readable name rather than replacing it, and the human-readable
-portion is preserved **in full** wherever the tool doesn't hit a hard filesystem limit — none of
-the three precedents truncate, because none of them anchors the digest to the *whole* original
-identifier (URL, absolute path) the way typsphinx's IMG-03 digest already correctly does
-(`hashlib.sha1(resolved_uri.encode()).hexdigest()[:8]`, builder.py — a comment there already notes
-this is deliberately "a pure function of resolved_uri alone", so injectivity is not at risk from
-truncating the *basename* half of the key). **Truncating only the basename half while keeping the
-8-hex-char digest intact preserves both properties this milestone needs**: collision-avoidance
-(digest, untouched) and human recognizability (as much of the original name as the length budget
-allows). No warning text is warranted for the truncation itself — silent, by the same convention
-as cases 1 and 2 above, which is also consistent with the "SILENTLY" wording already in
-`_track_image()`'s own docstring for its D-01 collision branch. (The **escape** branch is the one
-that already warns, per D-05/D-06 — truncation is orthogonal to escape and should not borrow its
-warning.)
+**These 9+ shapes are the regression surface.** The general fix (mirroring `visit_Text`'s separator triad) must leave every one of these byte-identical, because each already relies on a DIFFERENT existing mechanism staying undisturbed: B/G/H rely on `visit_figure`'s own separator check (untouched by this fix); C/I rely on "nothing precedes me, so no separator flag is set" (also untouched); F relies on `depart_paragraph`'s existing `list_item_needs_separator = True` bookkeeping for the legend's own paragraph, which must still see a properly-updated flag after any image the fix touches.
 
-**Length bound:** the standard, portable filesystem limit both ext4 and NTFS enforce is 255 bytes
-per path *component* (not per path). A conservative bound (well under 255, leaving room for the
-`{digest8}-` prefix and any multi-byte UTF-8 basename characters) is the correct target — this is
-an implementation detail for the roadmap/plan stage, not a research finding requiring a specific
-number here.
+## Q3 — Categorization
 
-### (c) Quoting a filesystem path in a diagnostic — `repr()`/`!r` is wrong for Windows paths, for a documented reason
+Owner-confirmed measurement (`PROJECT.md`, binding constraint #2) states that of fourteen inline constructs placed mid-sentence (`:ref:`, inline literal, emphasis, `:abbr:`, `:kbd:`, `:manpage:`, citation reference, `:term:`, `:index:`, `:guilabel:`, external link, footnote reference, `:math:`, `:download:`), the image is the *only* unseparated juxtaposition. **This reproduces.** A dedicated probe (`inline_construct_survey.rst`, all fourteen constructs placed mid-sentence in one document) was built and compiled: `out/inline_construct_survey-out.typ` compiled **OK**, and inspection of the emitted body confirms every one of the fourteen already emits either a real line break or a `+`-concat separator around itself (e.g. citation references and footnote references already start with a leading `\n[#footnote(...` / `\n[#link(...`, `:math:` already renders as `mi(...)`  on its own line, `:download:` as `raw(...)` on its own line). **No contradiction found; the milestone's "single site, not a class" framing holds.**
 
-Verified directly, not from memory:
-```python
->>> repr(r"C:\Users\foo")
-"'C:\\\\Users\\\\foo'"        # displays as 'C:\\Users\\foo' — backslashes DOUBLED
->>> repr(r"C:\Users\foo's file")
-'"C:\\\\Users\\\\foo\'s file"'  # repr() DOES switch quote character ' -> " when the
-                                  # string contains ' and not " (quote-disambiguation) —
-                                  # but STILL doubles every backslash regardless of which
-                                  # quote character it picked
-```
-This is the exact hazard the milestone context names: `!r` is correct for *identifiers* (docnames,
-registry keys, config tuples — values a user typed as Python source, where doubled backslashes are
-either absent or already meaningful) and wrong for *filesystem paths* (values that came from the
-OS, where a doubled backslash is pure visual noise the user did not write and must mentally
-undo). Confirmed from the installed **mypy** source
-(`.venv/lib/python3.13/site-packages/mypy/build.py:4296`,
-`.venv/lib/python3.13/site-packages/mypy/modulefinder.py:92`) that the convention among Python
-static-analysis/tooling diagnostics is to quote paths and module names with **double quotes**,
-verbatim, no escaping applied to the interpolated value at all:
-```python
-f'Duplicate module named "{st.id}" (also at "{graph[st.id].xpath}")'
-msg = 'Cannot find implementation or library stub for module named "{module}"'
-```
-mypy does not defend against an embedded `"` in its own diagnostics either — this class of tooling
-generally accepts that a pathological path (one containing the chosen delimiter) is a rare enough
-edge case that it is handled by *picking* a safe delimiter for the common case rather than by
-building a general escaping scheme.
-
-**What this means for the required helper:** the correct shape — already implied by PROJECT.md's
-own language ("the quote-disambiguation `repr()` provided ... dropped") — is `repr()`'s **quote
-selection** algorithm (prefer `'`; switch to `"` if the string contains `'` and not `"`; escape a
-literal `'` only when both are present) applied to the **raw path text**, without also running
-`repr()`'s backslash-doubling step. That is: pick a delimiter unambiguous for the specific string,
-then interpolate the path verbatim inside it — never `!r` (doubles backslashes) and never a
-hardcoded `'...'` f-string (breaks the moment the path contains an apostrophe, which is exactly
-57-REVIEW WR-01, a real regression 57-11 already introduced once).
-
-### (d) What Typst's `image("...")` actually accepts — measured with a real `typst.compile()` in this repo
-
-Ran directly against the `typst-py` version already pinned in this project's `.venv`
-(`uv run --project /home/yuta/Documents/typsphinx python3 -c "import typst; typst.compile(...)"`),
-against real files on disk (a synthesized 1×1 PNG), not documentation alone:
-
-| Typst source | Compiles? | Error |
-|---|---|---|
-| `#image("images/normal.png")` (forward slashes, real file) | **Yes** | — |
-| `#image("images\slash.png")` (one literal backslash in the string) | **No** | `TypstError: path must not contain a backslash` |
-| `#image("images\\slash.png")` (an *escaped* backslash — decodes to the same one literal backslash character, pointed at a real file literally named `back\slash.png` which POSIX filesystems permit) | **No** | `TypstError: path must not contain a backslash` |
-| `#image("images/quo'te.png")` (unescaped single quote, no such file) | Parses fine, fails on lookup | `TypstError: file not found (searched at .../images/quo'te.png)` |
-| `#image("images/quo"te.png")` (unescaped double quote — breaks the string literal itself) | **No** | `TypstError: unclosed delimiter` |
-
-**The critical finding, decisive for how defect family 2 must be fixed:** Typst's rejection is
-**value-level**, not syntax-level. Escaping the backslash so it survives Typst's own string-literal
-parsing (`\\` in source → one `\` in the decoded string) does **not** help — Typst decodes the
-literal first and then refuses the *resulting path string* because it contains a backslash
-character at all, in any position, whether used as a directory separator or as an ordinary
-character inside a filename. `escape_typst_string()` (translator.py:156) is therefore **necessary
-but not sufficient** for this defect: it must be applied at the two emission sites
-(translator.py:4746, 4749) for defense-in-depth against other syntax-breaking characters (quotes,
-newlines) already handled correctly for the plain-URI path, but it **cannot** by itself make a
-backslash-bearing path acceptable to Typst — the backslash has to be gone from the *value* before
-it ever reaches the string literal.
-
-I traced why a backslash currently survives into that value even though this project runs its
-Windows-affecting logic on Linux CI: `builder.py` imports `from os import path` (platform-native,
-line 12) — **not** `posixpath`, which the file also imports separately and uses elsewhere (e.g.
-`_is_absolute_image_uri()`, `_escapes_outdir()`). `_track_image()`'s escape branch builds its
-relocation key with `path.basename(resolved_uri)` (builder.py:1772), and confirmed directly:
-```python
->>> from os import path
->>> path.basename(r"C:\Users\x\img.png")   # on this POSIX CI runner
-'C:\\Users\\x\\img.png'                     # unsplit — posixpath.basename only splits on "/"
->>> path.basename("C:/Users/x/img.png")
-'img.png'                                    # splits correctly once slashes are forward
-```
-On the `windows-latest` CI lane, `path` resolves to `ntpath` and this same call *would* split
-correctly — which is exactly why the milestone context notes "the `windows-latest` lane is green
-at HEAD and would stay green if nothing were fixed" (the gap is invisible unless a gate constructs
-a Windows-shaped URI and runs it through the POSIX-native code path, or runs a real backslash
-end-to-end through `typst.compile()` on Windows). The fix for the relocation-key half of this
-defect is therefore **normalize before `path.basename()`, the same idiom `_is_absolute_image_uri()`
-already uses** — not a change to `escape_typst_string()`'s own escaping rules.
-
-## Feature Landscape
-
-### Table Stakes (must ship in v0.9.1 — required to close the three named defect families)
+### Table Stakes (must be in v0.9.2)
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| `_escapes_outdir()` normalizes `stem` (backslash→`/`) before applying `posixpath.isabs()` / `_is_drive_qualified()`, matching `_is_absolute_image_uri()`'s existing idiom | A driveless-absolute Windows-shaped target (`\manuals\guide`) must be refused exactly like its POSIX-shaped equivalent (`/manuals/guide`) already is — cross-platform-correctness is this project's own stated contract (D-05 in `_escapes_outdir()`'s own docstring) | LOW | Single-function fix: `builder.py:238`. `segments` (line 230) is already built from the normalized string — only the two predicate calls on the raw `stem` need to switch to the normalized value. Gate must be RED-first (currently no test drives a driveless-absolute Windows-shaped stem) |
-| Relocation key built from a **normalized** (forward-slash) basename, not `os.path.basename()` on a possibly-Windows-shaped raw URI | Root cause of defect family 2's compile failure — see (d) above. The key must never carry a literal `\` into the value that reaches `image("...")` | LOW-MEDIUM | `_track_image()`'s escape branch, `builder.py:1772`. Same normalize-before-decide idiom as the `_escapes_outdir()` fix — a shared helper for "normalize a possibly-foreign-shaped URI's basename" is a reasonable single source of truth for both this and the length-bound truncation below |
-| `escape_typst_string()` applied at both `image("...")` emission sites | Defense-in-depth for the *other* syntax-breaking characters a basename can legally contain (`"`, embedded newlines from a pathological third-party URI) — proven necessary in general by the `unclosed delimiter` result in the (d) table, even though it does **not** by itself fix the backslash defect | LOW | `translator.py:4746` and `:4749`. Must land together with the key-normalization fix above — escaping alone leaves the backslash-refusal in place, per (d) |
-| Relocation key's basename half truncated against a length bound, digest (`{digest8}-`) kept intact and un-truncated | `ENAMETOOLONG` at `copy_image_files()` time for a long basename; the digest is the only injective/collision-avoidance element (IMG-03 comment: "a PURE function of resolved_uri alone") and must never be the truncated half | MEDIUM | Same call site as above (`builder.py:1772-1776`). Sphinx's own `DownloadFiles` has an identical unbounded-length gap (see (b)) — no upstream precedent to crib the exact bound from; pick a conservative bound under the portable 255-byte-per-component filesystem limit. **No compile-visible symptom** (PROJECT.md constraint 3) — needs its own gate, a compile gate will not surface this |
-| One path-quoting helper: `repr()`'s quote-disambiguation (prefer `'`, switch to `"` if the value contains `'` and not `"`) applied to the raw path text, with **no** backslash-doubling | Verified in (c): plain `!r` doubles backslashes (wrong for Windows paths); a hardcoded `'...'` breaks on an embedded apostrophe (57-REVIEW WR-01, a real prior regression). Neither is correct in isolation | MEDIUM | New helper, routed through all ~13 call sites the milestone's own census names: `builder.py:942,964,965,999,1007,1008,1015,2056,2066,697,1767`, `writer.py:511-513`, `template_registry.py:410,422,433`. Identifier-valued `!r` sites (registry keys, docnames, config tuples) are explicitly **out of scope** and must stay `!r` |
-| Both quoting-gate halves pass | The existing no-doubled-separator property (`TestWindowsPathEscapingRegressionGuard`, `tests/test_templates_path_collision_gate.py`) plus the missing case 57-REVIEW IN-01 names: a path containing a literal `'`, delimited unambiguously | LOW (test-only; implementation is the helper above) | Both halves must gate the *same* helper, not two independently-passing partial implementations |
-| POSIX output byte-identical to pre-fix | Constraint 5 — proven the way 57-11 proved it: zero test edits to existing POSIX-only assertions | N/A (verification discipline, not a feature) | Applies to all four fixes above |
+| `visit_image()` gains a leading-separator check mirroring `visit_Text`'s triad (`_add_paragraph_separator()` for paragraph context, `_emit_inline_concat_separator()` for concat context (field-list bodies, def-list terms), `in_list_item`/`list_item_needs_separator` fallback otherwise) | This is the actual bug; without it `-b typstpdf` produces zero PDFs for any project that places an image anywhere but the very start of its container | LOW | One function, ~10-15 lines added, follows an established pattern used ~15+ times elsewhere in the same file |
+| After emitting, mark `list_item_needs_separator = True` when `in_list_item` (the "mark trailing" half of the same triad, currently entirely absent from both `visit_image`/`depart_image`) so a second image-then-non-image sibling (or vice versa) inside a list item/legend also separates correctly | Needed for rows 3, 4, 9, 10 above and to keep internal separator-flag bookkeeping consistent with every other visitor | LOW | Depends on the previous item (same PR/commit) |
+| The separator decision must key off the *same flags* other visitors use (`in_paragraph`+`paragraph_has_content`, `in_list_item`+`list_item_needs_separator`, `_inline_concat_context()`) — **not** a blanket "insert `\n` unless `in_figure`" — so shapes B/C/D/E/G/H/I above stay byte-identical | A naive unconditional `\n` before every non-figure image would still be correct for the FAIL rows but is the wrong invariant to reason about; the todo itself already flags this ("mirror what the surrounding inline emitters... already do... rather than a bare unconditional `\n`") | LOW–MEDIUM | Depends on item 1; this is where a wrong implementation would silently break the two-space figure-indent shape or double-blank-line existing paragraphs |
+| Real-`typst.compile()` regression gate covering, at minimum, the full measured set above — not just the todo's original 4+2 — since a correct general fix already makes all of rows 1-16 pass, and asserting on all of them is what actually proves generality vs. a shape-specific patch | The emitted string "looks plausible" per the todo — only the parser rejects it, so a string-only assertion is worthless; PROJECT.md's binding constraint already requires binding "all four measured failing shapes... and the two shapes that must keep passing," this research shows there are at least 16 failing + 9 passing worth binding | MEDIUM | Depends on the fix landing; test fixtures can be lifted near-verbatim from the probe `.rst` files enumerated in Q1/Q2 above |
+| Update/close the pending todo (`2026-08-29-inline-image-in-paragraph-emits-unseparated-expression.md`) with the extended matrix so the audit trail matches what was actually fixed | The todo's matrix undercounts the defect's true surface; leaving it as-is misrepresents what the regression gate proves | LOW | Documentation-only, no code dependency |
 
-### Differentiators (beyond the minimum bar — worth doing if cheap, not required to close the named defects)
+### Differentiators (nice, not required)
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|--------------------|------------|-------|
-| Quoting helper also handles a path containing **both** `'` and `"` (repr()'s own fallback: pick `'`, backslash-escape only the `'` characters) | Slightly more robust than the minimum the milestone's own gate (57-REVIEW IN-01) requires — real Windows paths can never contain `"` at all (it's a reserved character NTFS/Windows itself refuses), so this case is nearly unreachable in production, but costs almost nothing once the quote-selection logic already exists | LOW (incremental over the table-stakes helper) | Purely a robustness margin — do not let it expand the helper's scope beyond "select delimiter, interpolate raw" |
-| Shared "normalize a possibly-foreign-shaped basename" helper used by *both* the relocation-key fix and any future Windows-shaped-input fix elsewhere in the codebase | Single source of truth, same rationale `_is_absolute_image_uri()` and `_escapes_outdir()` already share | LOW | Nice factoring, not required — the three sites could each inline `.replace("\\", "/")` and still close the defect |
+| A short doc-comment in `visit_image()` cross-referencing `visit_Text`'s triad by name (the way `_emit_forced_break`'s docstring cross-references its own precedent) | Makes the next person who touches this function find the established pattern instead of re-deriving it | LOW | Pure documentation; zero behavioral risk |
+| A cheaper, non-compiling string-level regression test (regex for `)text\(...\)image\(` / `)image\(...\)image\(` juxtaposition shapes) run alongside the mandatory real-compile gate | Faster signal in environments where a full Typst compile is unavailable or slow | LOW | Strictly additive; the real-compile gate remains authoritative per PROJECT.md binding constraint #2 in the milestone context |
+| Testing the `image_dimensions_mid_sentence` combination (width kwarg + preceded by sibling text) explicitly, beyond the baseline `image_with_dimensions` (dimensions alone, first in doc) | Confirms the fix's separator insertion happens strictly *before* `image(` and doesn't disturb the width/height kwarg-append logic that runs *after* it | LOW | Fixture already exists from this research; cheap to fold into the table-stakes test suite rather than treating as separate work |
 
-### Anti-Features (would seem plausible, explicitly do NOT do)
+### Anti-Features (must NOT be built this milestone)
 
-| Anti-Feature | Why It Seems Appealing | Why Problematic | Correct Alternative |
-|---|---|---|---|
-| Silently rewrite/sanitize a Windows-shaped escaping `typst_documents` target into a derived relative path, no warning | Matches the surface behaviour of "just make it work" | This project has **already decided** (pre-milestone) on refuse-loudly + fallback-to-basename for `_escapes_outdir()`'s escape cases; silently rewriting would hide a real config mistake from the author and contradicts the existing OUT-02 contract this milestone is only extending to Windows shapes, not revisiting | Keep the existing refuse+fallback+warn behaviour; only fix the *detection* (normalize before deciding) |
-| Copy Sphinx's own `latex_documents` policy of validating nothing | Sphinx is the closest upstream precedent and does literally zero path-shape validation (see (a)) | typsphinx already exceeds that bar; reverting to Sphinx's laissez-faire policy for consistency-with-upstream would be a regression the project has never asked for | Treat Sphinx's silence as evidence there is no external convention to defer to — keep typsphinx's stricter, already-built guard |
-| Use `!r` (bare `repr()`) for path-valued interpolation, for consistency with the identifier-valued sites | Looks uniform, `!r` is already used everywhere else in the file for identifiers | Doubles every backslash in a Windows path (verified in (c)) — directly reintroduces the class of defect this milestone exists to close | The new delimiter-aware helper, routed through path-valued sites only; identifier-valued `!r` stays untouched |
-| Hardcode a `'...'` f-string delimiter around a path (57-11's original approach) | Simple, one extra character | Breaks the moment the path contains an apostrophe — this is exactly 57-REVIEW WR-01, a real regression already caught once | The quote-disambiguation helper (table stakes, above) |
-| Generalize the relocation-key fix into full illegal-character sanitization for *all* Windows-reserved filename characters (`<>:"|?*`, reserved device names `CON`/`PRN`/`AUX`/`NUL`/`COM1-9`/`LPT1-9`) | Feels like "doing Windows path handling properly" while already in this code | Out of scope: none of these has a demonstrated compile-visible or copy-time failure the way backslash (Typst-level refusal) and length (`ENAMETOOLONG`) do; PROJECT.md's own defect-family enumeration names exactly two vectors for gap 2/3, not a general filename-sanitization pass | Leave as an explicit gap for a future milestone if a real report surfaces one of these characters in practice; do not speculatively build for it now |
-| Try to make the quoting helper losslessly round-trip *any* path (e.g. full shell-style escaping) | Feels more "correct" | No comparable tool (Sphinx, pip, mypy — see (c)) attempts this for human-facing diagnostics; the convention is delimiter selection for the common case, not general escaping | Delimiter-disambiguation only, matching the ecosystem convention actually observed |
+| Feature | Why it looks appealing | Why it's out of scope / problematic | Alternative |
+|---------|--------------------------|--------------------------------------|-------------|
+| Auditing/fixing separator handling for the other fourteen inline constructs (`:ref:`, literal, emphasis, `:abbr:`, `:kbd:`, `:manpage:`, citation reference, `:term:`, `:index:`, `:guilabel:`, external link, footnote reference, `:math:`, `:download:`) | "While we're in here fixing juxtaposition bugs, why not fix the whole family?" | **Measured in this research** (`inline_construct_survey.rst`, real compile: OK) — none of these are broken. PROJECT.md is explicit: "this milestone fixes one emitter; it does not audit a family." Touching untested code paths in a one-defect patch release risks introducing new regressions with no reported symptom to justify the risk | Leave a note in the closed todo / a future backlog item if a NEW report ever surfaces a break in one of these; don't preemptively touch them |
+| Adding `:scale:`/`:align:` image-option support | These options are visibly silently dropped right now (measured), and "fixing image handling" reads as an invitation to also fix this | Confirmed by code reading (no `"scale"`/`"align"` handling anywhere in `translator.py`) and by build (measured: zero effect on emission) to be a **completely unrelated feature gap** — it has no interaction with the juxtaposition defect (the failure is entirely about the boundary *before* `image(`, proven by row 16 above where `:width:` + mid-sentence still fails identically to no dimensions at all) | File as a separate backlog item if wanted; do not fold into this milestone |
+| Refactoring the separator/concat-context machinery (`_add_paragraph_separator`, `_emit_inline_concat_separator`, `in_list_item`/`list_item_needs_separator`) into one unified helper used everywhere | The duplication across ~15 call sites is real and a legitimate future cleanup target | This milestone's binding constraint is explicitly "a single site, not a class" (D-constraint #2) — touching all 15 existing call sites to "unify" them is the opposite of a minimal, low-risk patch release fix, and risks regressing the 9+ MEASURED-passing shapes in Q2 | Leave as a separate refactor-scoped milestone/todo if pursued later |
+| Changing figure/legend visual layout, indentation, spacing, or caption/legend styling while touching `visit_image`/`visit_figure` | The 2-space figure-body indent and the double-blank-line paragraph spacing look like incidental artifacts worth "cleaning up" while in the area | These are pre-existing, intentional, tested emission shapes (see Q2 rows B/F/G/H) with zero relationship to the defect; changing them is a byte-level regression against the existing test suite, not a fix | Out of scope; leave byte-identical |
+| Inventing a new "does the output already end at a line boundary" introspection over `self.body` (e.g. checking the last character of `"".join(self.body)`) | Reads as more "obviously correct" than reusing flags, since it directly answers the stated question ("does the current output already end at a line boundary") | The existing flag-based machinery (`paragraph_has_content`, `list_item_needs_separator`, `_inline_concat_context()`) already answers this correctly for every other visitor and is what the fix must key off of (per the todo's own solution text); a from-scratch `self.body`-inspecting check would diverge from the established pattern, likely mis-handle the legend's cosmetic `"  "` indent (row 9 shows this literal is NOT a line boundary but also isn't flagged by any existing state), and introduce a second, parallel way of answering the same question elsewhere in the file | Reuse the existing flags exactly as `visit_Text` does |
 
 ## Feature Dependencies
 
 ```
-Defect family 1 (escape-outdir normalization)
-    -- independent of families 2 and 3, single-function change (builder.py:238)
+[visit_image() leading-separator check]
+    └──requires (same fix)──> [visit_image()/depart_image() trailing
+                                list_item_needs_separator bookkeeping]
+                                   └──must preserve──> [visit_figure()'s existing
+                                                          in_list_item separator check
+                                                          (Q2 rows B/G/H — untouched)]
+                                   └──must preserve──> [depart_image()'s existing
+                                                          trailing "\n\n" when not
+                                                          in_figure (Q2 rows A/C/D/E —
+                                                          untouched)]
 
-Defect family 2 (image path safety)
-    [Normalize basename before path.basename()] ──required-precondition-for──> [Length-bound truncation]
-                                                                                     (truncation must act on
-                                                                                      the ALREADY-normalized
-                                                                                      basename, else it could
-                                                                                      truncate mid-backslash-
-                                                                                      run and reintroduce noise)
-    [Normalize basename before path.basename()] ──insufficient-alone,-needs──> [escape_typst_string() at
-                                                                                  both emission sites]
-        (see (d): escaping the backslash in Typst source does NOT stop Typst's
-         value-level refusal -- normalization removes the backslash from the
-         VALUE; escaping is still needed for OTHER syntax-breaking characters)
+[Real-compile regression gate over the full measured matrix]
+    └──requires──> [the fix above landing first]
 
-Defect family 3 (path-quoting helper)
-    -- independent of families 1 and 2; one helper, ~13 call sites, two gate halves
-       (no-doubled-separator + embedded-single-quote) must both pass against the
-       SAME helper implementation, not two partial ones
+[Closing the pending todo with the extended matrix]
+    └──requires──> [the fix + gate above being described accurately]
 ```
 
 ### Dependency Notes
 
-- **Family 2's two sub-fixes are not substitutable for each other.** Landing only the
-  `escape_typst_string()` call (translator.py:4746/4749) without normalizing the relocation key
-  (builder.py:1772) still fails to compile — proven by the `test2_escaped_backslash.typ` result in
-  the (d) evidence table, where an *escaped* backslash still triggers `path must not contain a
-  backslash`. Landing only the key normalization without adding `escape_typst_string()` closes the
-  named defect but leaves the general syntax-breaking-character gap (`"` in a basename) unguarded —
-  both must ship in the same slice per PROJECT.md's own framing ("All three `_track_image()`
-  escape-branch gaps close in one slice").
-- **Truncation must run after normalization**, not before — truncating a not-yet-normalized
-  Windows-shaped basename risks truncating in the middle of a backslash run rather than a clean
-  forward-slash-delimited path segment, which would produce a nonsensical partial filename.
-- **The quoting helper (family 3) has no ordering dependency on families 1/2** — it touches
-  different files (`writer.py`, `template_registry.py`, unrelated `builder.py` warning sites) and
-  can be built and gated independently, though all three share the same underlying "Windows path
-  correctness" root cause and are reasonably sequenced together for the milestone's single
-  3-OS-CI acceptance bar (constraint 6).
+- **The leading-separator check and the trailing-bookkeeping fix are one indivisible change**, not two phases: a leading-only fix would still leave `list_item_needs_separator` never set `True` after an image, which — while not itself causing a NEW compile failure today (because `depart_image`'s own unconditional `"\n\n"` already covers the immediate-next-sibling boundary in the non-figure case) — leaves the flag machinery internally inconsistent with every other visitor's pattern and is the direct cause of row 9/10's legend-internal failures, where `in_figure` is simultaneously true and the `in_list_item` reuse is what must fire.
+- **The fix must not regress `visit_figure`'s own separator check.** `visit_figure` already independently implements the identical `in_list_item`/`list_item_needs_separator` pattern for the figure-as-a-whole (Q2 rows B/G/H). The image fix runs on the SAME flags but must not double-fire a separator when a figure already just cleared `list_item_needs_separator = False` right before visiting its own primary image (this is the mechanism that must be reasoned through, not merely tested — see the Anti-Feature entry above about not inventing a parallel introspection mechanism).
+- **The regression gate cannot precede the fix.** A red-then-green TDD ordering is natural here (write the compile-gate tests against the CURRENT broken tree first, watch them fail with the exact `expected semicolon or line break` error, then land the fix and watch them turn green) — this is a single phase's natural internal ordering, not a cross-phase dependency.
+
+## MVP Definition
+
+### Launch With (v0.9.2)
+
+- [ ] `visit_image()` leading-separator check (paragraph / concat-context / list-item triad) — the actual defect
+- [ ] `visit_image()`/`depart_image()` trailing `list_item_needs_separator` bookkeeping — completes the same triad, needed for legend-internal and consecutive-image cases
+- [ ] Real-`typst.compile()` regression gate over the full measured FAIL set (rows 1-16 above) and the full measured OK set (rows A-I above)
+- [ ] Close/update the pending todo with the extended trigger matrix
+
+### Add After Validation (not this milestone, but cheap if convenient)
+
+- [ ] A faster string-level (non-compiling) regression check alongside the compile gate
+- [ ] Explicit width+mid-sentence combination test (`image_dimensions_mid_sentence`)
+
+### Future Consideration (explicitly out of scope, do not build now)
+
+- [ ] Auditing the other fourteen inline constructs for the same defect class (measured clean; no known break to fix)
+- [ ] `:scale:`/`:align:` image-option support (unrelated existing feature gap, silently dropped today)
+- [ ] Unifying the separator/concat-context machinery into one shared helper (legitimate future refactor, wrong scope for a one-emitter patch release)
+
+## Feature Prioritization Matrix
+
+| Feature | User Value | Implementation Cost | Priority |
+|---------|------------|----------------------|----------|
+| `visit_image()` separator fix (leading + trailing bookkeeping) | HIGH — currently blocks 100% of PDF output for any project with a mid-content image | LOW | P1 |
+| Real-compile regression gate over the full measured matrix | HIGH — this is what makes the fix trustworthy at all, per PROJECT.md's own framing ("the emitted string looks plausible; only the parser rejects it") | MEDIUM | P1 |
+| Todo closure with extended matrix | LOW (documentation) but blocks an honest audit trail | LOW | P1 (cheap, should ride along) |
+| Faster string-level regression check | LOW-MEDIUM | LOW | P3 |
+| `:scale:`/`:align:` support | MEDIUM (separate feature) | MEDIUM-HIGH (unscoped) | P3 (different milestone) |
+| Inline-construct family audit | LOW (measured already clean) | MEDIUM (touches ~14 more call sites) | P3 (do not build absent a new report) |
 
 ## Sources
 
-- `sphinx.builders.latex` — read directly from the installed Sphinx 9.1.0 package
-  (`.venv/lib/python3.13/site-packages/sphinx/builders/latex/__init__.py`, lines 151-175, 299-350,
-  417-505, 526-533). HIGH confidence (primary source, this repo's own pinned dependency).
-- `sphinx.util._files.FilenameUniqDict` / `DownloadFiles` — read directly
-  (`.venv/lib/python3.13/site-packages/sphinx/util/_files.py`, full file). HIGH confidence.
-- `sphinx.util.osutil.make_filename` / `_no_fn_re` — read directly
-  (`.venv/lib/python3.13/site-packages/sphinx/util/osutil.py:147-155`). HIGH confidence.
-- pip wheel cache layout — [pip cache CLI docs](https://pip.pypa.io/en/stable/cli/pip_cache/) and
-  [Simon Willison's TIL on the pip cache directory](https://til.simonwillison.net/python/pip-cache),
-  cross-checked against the documented `wheels/<hash>/<hash>/<hash>/<name>.whl` layout. MEDIUM
-  confidence (web source, but corroborated by two independent descriptions and consistent with
-  pip's own documented "makes a subdirectory... places the resulting wheels inside" behaviour).
-- mypy diagnostic quoting — read directly from the installed mypy package
-  (`.venv/lib/python3.13/site-packages/mypy/build.py:4296`,
-  `.venv/lib/python3.13/site-packages/mypy/modulefinder.py:92,95`). HIGH confidence (primary
-  source, this repo's own pinned dev dependency).
-- Python `repr()` quote-selection and backslash-doubling behaviour — measured directly,
-  `python3` one-liners in this repo's environment (see (c) above for the exact transcript). HIGH
-  confidence (reproduced, not recalled).
-- Typst `image("...")` path acceptance — measured directly with `typst.compile()` against the
-  `typst-py` version pinned in this repo's `.venv`, using synthesized real PNG files on disk (see
-  (d) above for the full transcript, including the exact `TypstError` strings). HIGH confidence
-  (reproduced against this repo's own pinned Typst version, not documentation-only).
-- typsphinx's own `builder.py` / `translator.py` — read directly at the line ranges the milestone
-  context names (`_escapes_outdir` builder.py:190-300, `_track_image` builder.py:1650-1800,
-  `escape_typst_string` translator.py:156-186, `visit_image` translator.py:4718-4760). HIGH
-  confidence (primary source, this repository).
-
----
-*Feature research for: typsphinx v0.9.1 "Windows path correctness"*
-*Researched: 2026-08-27*
+- `/home/yuta/Documents/typsphinx/.planning/PROJECT.md` (`## Current Milestone: v0.9.2` section — binding constraints, scope fence)
+- `/home/yuta/Documents/typsphinx/.planning/todos/pending/2026-08-29-inline-image-in-paragraph-emits-unseparated-expression.md` (original 4-row matrix, reproduced and extended)
+- `/home/yuta/Documents/typsphinx/typsphinx/translator.py` — `visit_image`/`depart_image` (~line 4718), `visit_figure`/`depart_figure` (~line 2915), `visit_legend`/`depart_legend` (~line 3135), `visit_paragraph`/`depart_paragraph` (~line 1410), `visit_list_item`/`depart_list_item` (~line 2373), `add_text`/`_add_paragraph_separator` (~line 887/933), `_emit_inline_concat_separator`/`_mark_inline_concat_content`/`_enter_inline_concat_element` (~line 1651), `visit_Text` (~line 1790, the template the fix should mirror)
+- Probe project built and compiled in this session: `/tmp/claude-1000/-home-yuta-Documents-typsphinx/f02be4ed-caf0-468a-897c-407113bde367/scratchpad/probe/` (24+ scenario `.rst` files, one Sphinx project, built with `sphinx -b typst`, each master compiled with `typst.compile(..., root="out")` via the main-tree `.venv`)

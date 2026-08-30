@@ -26,6 +26,90 @@ As of **v0.5.0 (shipped 2026-07-11)** the extension tracks the current ecosystem
 
 The `typst`/`typstpdf` builders produce correct, compilable **and faithfully-rendered** output on the **current** ecosystem — Sphinx 9 and typst 0.15+ — with the runtime pins raised forward, the bundled `@preview` packages compiling cleanly (no `kai`-class breaks), and real-world documentation sets rendering to PDF that matches the source rather than merely compiling fatal-free. The same standard applies to the publishing surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. **From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct** — an API reference page has to read as a reference document, not as text that happens to compile.
 
+## Current Milestone: v0.9.2 Inline image blocker fix and release
+
+**Goal:** Close the blocker that stopped v0.9.1 from being published — an image that is not the
+first thing in its paragraph aborts the whole Typst compile — and ship the result, together with
+v0.9.1's already-completed but unreleased work, as **0.9.2** on PyPI.
+
+**Target features:**
+
+- **`visit_image()` emits a separator before `image(`** when the current output does not already
+  end at a line boundary. `depart_image()` already emits the trailing `"\n\n"`, which is why the
+  boundary *after* an inline image is safe; `visit_image()` emits nothing before it, which is why
+  the boundary *before* it is not. The fix rides the existing
+  `list_item_needs_separator` / `add_text` machinery (`translator.py:887` and the
+  `visit_Text` / `visit_literal` / `visit_math` / `visit_footnote_reference` / `visit_reference`
+  precedent), not a bare unconditional `"\n"`. The `in_figure` branch, where `visit_image()`
+  indents with two spaces inside a `figure(` argument list, is left untouched.
+
+  *Amended 2026-08-30 after research, two corrections to this section as first written.* (1) The
+  precedent named here was originally `visit_target`; that is a **false precedent** — its
+  unconditional `\n[#metadata(none) <id>]\n` works only because it is markup-mode zero-width
+  content, not a code-mode function-call operand like `image(...)`. The real precedent is the
+  triad five other inline visitors already drive. (2) The `in_figure` suppression was originally
+  stated as a hazard ("must stay suppressed"). Measured: a newline injected inside a `figure(...)`
+  argument list compiles to a **byte-identical PDF** — it is cosmetic, not a syntax error. The
+  branch is still left alone, but as a matter of not touching what works, not as a constraint the
+  fix could violate.
+- **The regression gate is a real `typst.compile()`.** The emitted string looks plausible; only the
+  parser rejects it, which is exactly why this survived every suite to date. The gate binds all
+  four measured failing shapes (substitution image mid-sentence, two images in a row, an image
+  inside a list item, any image preceded by sibling content) **and** the two shapes that must keep
+  passing (an image first in its paragraph, an image inside `.. figure::`).
+- **The full 0.9.2 publish.** The `## [Unreleased]` bullets accumulated by v0.9.1
+  (PATH-01, IMG-04..IMG-07, MSG-01..MSG-05) plus this milestone's fix are curated into a single
+  `## [0.9.2]` entry — **no `## [0.9.1]` heading is created**, because no such release exists.
+  Version bump as the sole literal in `pyproject.toml` with `uv.lock` and `README.md` in lockstep,
+  tag, PyPI upload, and a GitHub Release body sourced from
+  `scripts/extract_changelog_section.py`.
+
+**Binding constraints (measured at HEAD on 2026-08-30, not taken from the todo prose):**
+
+1. **The defect is live and reproduces.** `visit_image()` (`typsphinx/translator.py`, the
+   `in_figure` / else pair) emits `image("{escaped_uri}"` with no preceding separator. A document
+   containing `Inline substitution |sub| in a sentence.` emits
+   `par({text("Inline substitution ")image("img.png")` and `typst.compile()` answers
+   `expected semicolon or line break`.
+2. **The trigger surface is 16 shapes, not the 4 the todo recorded.** Research re-derived the
+   matrix by probe build plus real `typst.compile()`: the same single root cause also breaks a
+   block-level `.. image::` as the second-or-later element of a list item, a table cell, a
+   definition-list body, an admonition, a footnote, a field-list body, a section title, and a
+   figure's own legend body. One fix closes all sixteen; the count matters only for the gate.
+   Blast radius confirmed by measurement too — a master containing no image at all also fails to
+   compile, because Typst's `#include()` re-parses the included content file.
+3. **It is a single site, not a class.** Fourteen inline constructs were placed mid-sentence and
+   the emitted `.typ` scanned for juxtaposed code-mode calls: `:ref:`, inline literal, emphasis,
+   `:abbr:`, `:kbd:`, `:manpage:`, citation reference, `:term:`, `:index:`, `:guilabel:`, an
+   external link, a footnote reference, `:math:`, and `:download:`. **Exactly one** unseparated
+   juxtaposition was found, and it was the image. Footnote, math and download each already emit a
+   leading `\n`. So this milestone fixes one emitter; it does not audit a family.
+4. **It is pre-existing, not a v0.9.1 regression** (D-06, measured at the v0.9.1 close):
+   `visit_image()`'s missing separator is byte-identical to the `v0.9.0` tag. **Users on the
+   published 0.9.0 hit it today** and have had no notice (D-05) — publishing 0.9.2 is what repays
+   that.
+5. **REL-09 carries forward with its obligations unchanged and its version token corrected.**
+   D-08 recorded it as carrying forward "with wording unchanged", but its literal text names
+   *v0.9.1 released to PyPI with a curated `## [0.9.1]` CHANGELOG entry* — unachievable, since
+   v0.9.1 is never published. The obligations (curated entry, sole-literal version bump with
+   `uv.lock`/`README.md` in lockstep, Release body from the extractor) stand; the version token
+   reads 0.9.2.
+6. **The release-prep checkbox fence is required again.** `phase.complete` has auto-flipped the
+   release requirement to `[x]` against the CONTEXT's decision at **five** consecutive release-prep
+   closes; v0.9.1 was the first to hold, by recording a SHA-256 of `REQUIREMENTS.md` at phase head
+   and re-verifying it at close. Same guard here.
+7. **The publish path itself is unproven end to end.** `release.yml`'s `create-release` job failed
+   on the v0.7.0 tag push with `uv: command not found`; it has since run green at the v0.8.0 and
+   v0.9.0 closes. It was deliberately left out of scope as its own requirement, but a real tag push
+   exercises it, so a failure there is handled inside the release-prep phase rather than deferred.
+
+**Not scoped into v0.9.2**, carried forward unchanged: the `numref` per-master divergence, the
+dependabot `uv.lock` `--locked` mismatch, REL-04's end-to-end verification as a requirement,
+`translator.py:5047,5152`'s hardcoded-delimiter debug logs, WR-02 (`templates_path` resolved against
+`srcdir`), 54.1 WR-01 (the tripled "Custom template not found" warning), the `sphinx-build -b
+linkcheck` CI job, the typing modernization (`UP006`/`UP035`), `ruff`-on-NixOS, the root-toctree HTML
+sidebar duplication, and SEED-001, SEED-003, SEED-004.
+
 ## Shipped Milestone: v0.9.1 Windows path correctness (completed 2026-08-30 — NOT published)
 
 **Goal achieved on the product side; the release was deliberately cancelled.** 4 phases (58, 59,
@@ -35,11 +119,10 @@ PyPI), is deliberately unmet and carries forward to v0.9.2 with its literal word
 pull request** for this milestone (D-02, D-12) — the first close in this project's history to
 publish nothing.
 
-**Next milestone: not yet scoped.** Run `/gsd-new-milestone` — it re-scopes this section, the
-`### Active` requirements list below, and `.planning/REQUIREMENTS.md` (removed at this close). Its
-first requirement is already known: the inline-image blocker
+**Next milestone: scoped 2026-08-30 as v0.9.2** — see `## Current Milestone` above. Its first
+requirement is the inline-image blocker
 (`.planning/todos/pending/2026-08-29-inline-image-in-paragraph-emits-unseparated-expression.md`),
-the reason this release was withheld.
+the reason this release was withheld, and it carries REL-09 forward as the 0.9.2 publish.
 
 The original scoping record follows, retained unchanged.
 
@@ -1870,10 +1953,46 @@ commit dump rather than the curated CHANGELOG section (todo filed, D-11).
 
 ### Active
 
-<!-- Scoped 2026-08-27 for v0.9.1. `.planning/REQUIREMENTS.md` is the authoritative, REQ-ID'd list;
+<!-- Scoped 2026-08-30 for v0.9.2. `.planning/REQUIREMENTS.md` is the authoritative, REQ-ID'd list;
      this section only ever carries the active milestone's headline commitments, and is re-scoped by
-     `/gsd-new-milestone`. v0.9.0's list (all six items closed at the 2026-08-22 close) is retained
-     collapsed below. -->
+     `/gsd-new-milestone`. v0.9.1's list (product side complete, release cancelled) and v0.9.0's are
+     retained collapsed below. -->
+
+**v0.9.2 Inline image blocker fix and release (ACTIVE, scoped 2026-08-30)** — close the blocker that
+stopped v0.9.1 from being published, then publish v0.9.1's completed work and this fix together as
+0.9.2:
+
+- [x] An image node preceded by sibling content in the same paragraph or list item is emitted with a
+      separator before `image(`, so the document compiles instead of aborting the whole build with
+      `expected semicolon or line break` — the `in_figure` indented branch stays unseparated —
+      **Phase 62** (IMG-08). Delivered as an AMENDED mechanism: the leading separator triad is
+      hoisted *above* the `if self.in_figure:`/`else:` split rather than added inside the
+      non-`in_figure` branch, because the branch-scoped form was measured to leave 4 of 18 masters
+      red. The commitment holds as written — both `in_figure` branch **bodies** are byte-identical
+      to the phase base SHA, verified independently; the net change is a 9-line pure insertion.
+- [x] A real `typst.compile()` gate binds all four measured failing shapes (substitution image
+      mid-sentence, two images in a row, an image inside a list item, an image preceded by any
+      sibling content) and the two shapes that must keep passing (image first in its paragraph,
+      image inside `.. figure::`), RED-first against the unfixed tree —
+      **Phase 62** (IMG-09, TEST-05). Delivered as a **superset**: the gate binds all **16**
+      measured failing shapes (one master each) and all **9** must-keep-passing shapes, and the
+      RED was reproduced against a genuinely restored unfixed tree — `expected semicolon or line
+      break` on 17 masters — then transcribed verbatim into `62-RED-EVIDENCE.md` with a positive
+      control. The 9 passing shapes are pinned to committed goldens; the one non-byte-identical
+      shape is pinned to an exact committed delta rather than waived.
+- [x] `-b typstpdf` produces a PDF for every master of a project containing a mid-paragraph inline
+      image, where today it raises `ExtensionError` and writes no PDF for any master —
+      **Phase 62** (IMG-08, IMG-09). Measured on the 18-master / 27-document fixture: 18/18 masters
+      write a non-empty `%PDF` file from one `sphinx-build -b typstpdf`, including the image-free
+      `index` master that failed only because Typst's `#include()` re-parses a poisoned content file.
+- [ ] 0.9.2 released to PyPI (REL-09, carried from v0.9.1) with one curated `## [0.9.2]` CHANGELOG
+      entry covering v0.9.1's accumulated `## [Unreleased]` bullets plus this fix, no `## [0.9.1]`
+      heading, the version bumped as the sole literal in `pyproject.toml` with `uv.lock` and
+      `README.md` in lockstep, and a GitHub Release body sourced from
+      `scripts/extract_changelog_section.py`
+
+<details>
+<summary>v0.9.1's Active list (product side complete, release cancelled 2026-08-30) — retained for reference</summary>
 
 **v0.9.1 Windows path correctness (COMPLETE 2026-08-30, deliberately NOT published)** — the Windows
 path defects held behind Phase 57's prep-only fence, closed together with their whole sibling
@@ -1902,7 +2021,10 @@ family. Every headline commitment below is met; the milestone was withheld from 
       (run `924f21d8`/12-of-12 at the Phase 59 acceptance tip; run `33260111745` 12/12 at the
       milestone-final tree)
 - [ ] v0.9.1 released to PyPI (REL-09) — **deliberately unmet (D-08)**. The release was cancelled
-      for the inline-image blocker; the requirement carries to v0.9.2 with its wording unchanged.
+      for the inline-image blocker; the requirement carries to v0.9.2 with its obligations unchanged
+      and its version token corrected to 0.9.2.
+
+</details>
 
 <details>
 <summary>v0.9.0's Active list (complete, shipped 2026-08-22) — retained for reference</summary>
@@ -2128,6 +2250,13 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
+*Last updated: 2026-08-30 — **Phase 63 (v0.9.2 Release Prep, prep-only) complete and verified 5/5**, 6 plans across 5 waves (4 planned + 2 gap-closure), REL-09 / REL-10 / REL-11 all still deliberately OPEN. **The milestone is prepped, not published**: the tree is at 0.9.2 in `pyproject.toml`, `uv.lock` and `README.md`, the `## [0.9.2]` CHANGELOG entry curates v0.9.1's accumulated bullets together with this milestone's blocker fix, and `63-HANDOFF.md` is a standalone checklist for `/gsd-complete-milestone`. Zero irreversible action taken, re-probed three separate times with positive controls: no `v0.9.2` tag local or remote, no PyPI publish, no GitHub Release, no PR, no `release.yml` run. **The phase's first verification FAILED and the failure was the interesting result.** SC#2's bar is "the extracted release body read rather than assumed"; the original inspection reached the body's *shape* and stopped, and so shipped a checkable falsehood — the `## [0.9.2]` intro claimed the release's runtime changes were "confined to `typsphinx/translator.py`" while `git diff --stat v0.9.0..HEAD -- typsphinx/` shows **five** files. That text publishes byte-identically as the GitHub Release body and the Read the Docs changelog page, where a reader auditing the path-handling fixes would have been misdirected away from `builder.py`, `pathfmt.py` and `template_registry.py`. Gap closure (63-05, 63-06) deleted the blanket claim and re-scoped a **measured** version onto the IMG-08/09/10 bullet, where `git diff --stat e3399825..dd385436 -- typsphinx/` (translator.py alone, 23 insertions) makes it true — then re-took every phase-close observation against the corrected tree, because a claim taken before the correction is a claim about a tree that no longer exists. **The `phase.complete` checkbox flip landed for a sixth consecutive release-prep close, and was caught and reverted.** The fence widened its own catch: where the five prior closes recorded REL-09 alone as the target, this run's whole-file SHA-256 showed `phase.complete` flipping **REL-09, REL-10 and REL-11** together, all three against every plan's `requirements-completed: []`. The flip is line-count-neutral, so the digest — not `wc -l` — is the probe that catches it. Reverted with `git checkout` and never committed in the flipped state; the full before/after probe set is recorded in `63-CLOSEOUT-GUARD.md` § "Third observation". Next: `/gsd-complete-milestone` — the only step that takes irreversible action, and the one that closes REL-09. Prior footer retained below.*
+
+---
+*Last updated: 2026-08-30 — **Phase 62 (The `visit_image()` Separator Fix and Its Real-Compile Gate) complete and verified 5/5**, 4 plans across 4 waves, IMG-08 / IMG-09 / IMG-10 / TEST-05 all closed. **The v0.9.2 blocker is fixed and, more to the point, proven to have been necessary.** The production change is nine inserted lines: `visit_image()`'s leading separator triad (`_add_paragraph_separator()` + `_emit_inline_concat_separator()` + the `in_list_item` / `list_item_needs_separator` bookkeeping) is hoisted above the `if self.in_figure:`/`else:` split and `depart_image()`'s trailing bookkeeping is made concat-aware — 0 deletions, both `in_figure` branch bodies byte-identical to the base SHA. **A locked decision was falsified by measurement before planning finished and amended rather than followed**: the originally-recommended branch-scoped triad leaves 4 of 18 masters red, so the hoist-above-the-split form was adopted with owner acknowledgement; rows 9, 10 and 14 of the trigger census are exactly the shapes that would otherwise still be broken, and they are now bound by name. **The gate is the deliverable, not the fix.** Nine string-level image tests existed and this defect shipped in 0.9.0 straight past all of them, so the phase built an 18-master / 27-document fixture project (16 FAIL shapes, one master each, from the measured `FEATURES.md` § Q1 census; 9 PASS shapes under one parent; one image-free root) driven by a single `sphinx-build -b typstpdf` with a `%PDF` magic-byte check on every master — so no structural string assertion in the module can pass vacuously. **RED was established against a genuinely restored unfixed tree, not remembered**: `translator.py` was restored from the phase base SHA `5a837238`, the identical `expected semicolon or line break` refusal reproduced across 17 masters and transcribed verbatim, the fix restored, and `git status --porcelain` recorded empty to prove the restore was byte-identical — and the verifier re-ran that entire choreography independently rather than reading the evidence file. The nine must-keep-passing shapes are pinned to committed goldens; the single measured non-byte-identical shape (image first in its paragraph) is pinned to an **exact committed delta** — one added blank line, with its own `.pre_fix.typ` golden — rather than waived. **Two claims were converted from assertions to observations at phase close.** `git diff --name-status` over the phase range scoped to `tests/` returns 40/40 `A` entries and zero `M`, so the zero-test-edit invariant (D-13) is measured, not promised; and SC#5's authority run is one dispatched CI run (`33302087913`) waited to completion — `windows-latest` and `macos-latest` green individually in both Python lanes, `ruff`'s verdict taken from that run's lint step rather than from this machine, which matters because this project has recorded three defect classes local runs structurally cannot see. That audit was deliberately placed in its own wave, after the work it audits, because a prior phase recorded an audit co-located with its subject abstaining on its own criterion. Full suite 1547 passed / 1 skipped; `black` and `mypy` clean. Code review: 0 blockers, 2 warnings, 2 info — the warnings are the already-pinned blank-line delta (WR-01, a consequence of the pinning decision, not a defect) and a missing rationale comment on `depart_image()`'s new lines (WR-02, real regression-bait: the unconditional `list_item_needs_separator = True` reads as redundant next to the trailing `"\n\n"` and is a plausible future cleanup target). **WR-02 was fixed at the owner's instruction immediately after the phase closed** (`1adad07f`, comment-only — 14/0 numstat, parsed AST identical across the commit, so no success criterion re-opens); WR-01 stands as the recorded consequence of the pinning decision. `62-SECURITY.md` was not produced — the `secure-phase` capability is active, so `/gsd-secure-phase 62` is outstanding. Next: Phase 63 (v0.9.2 Release Prep, prep-only). Prior footer retained below.*
+
+*Last updated: 2026-08-30 — started milestone **v0.9.2 Inline image blocker fix and release** via `/gsd-new-milestone`. Scope set by the owner to the blocker alone plus the publish; every other carried-forward item was explicitly declined for this round. **Three things were measured at HEAD before scoping, not taken from the todo prose.** (1) The defect is live: `visit_image()` emits `image("{escaped_uri}"` with no preceding separator in both its `in_figure` and else branches, a document containing `Inline substitution |sub| in a sentence.` emits `par({text("Inline substitution ")image("img.png")`, and a real `typst.compile()` of the emitted file answers `expected semicolon or line break`. (2) **It is a single site, not a class** — fourteen inline constructs (`:ref:`, inline literal, emphasis, `:abbr:`, `:kbd:`, `:manpage:`, citation reference, `:term:`, `:index:`, `:guilabel:`, external link, footnote reference, `:math:`, `:download:`) were placed mid-sentence in one probe document and the emitted `.typ` scanned for juxtaposed code-mode calls; exactly one hit was found and it was the image, with footnote/math/download each already emitting a leading `\n`. So this milestone fixes one emitter and does not audit a family. (3) **REL-09 cannot carry forward literally.** The v0.9.1 audit records D-08 as carrying it "with wording unchanged", but its text names *v0.9.1 released to PyPI with a curated `## [0.9.1]` CHANGELOG entry* — unachievable for a release that will never exist. Carried with its obligations intact and its version token read as 0.9.2, put to the owner before PROJECT.md was written. **Two standing hazards apply again**: `phase.complete` has auto-flipped the release requirement to `[x]` at five consecutive release-prep closes and was only stopped in v0.9.1 by a recorded `REQUIREMENTS.md` checksum, so the same fence is required; and `release.yml`'s `create-release` job — green at the v0.8.0 and v0.9.0 closes but the job that failed the v0.7.0 tag push with `uv: command not found` — is exercised for real by this milestone's tag push even though REL-04 was declined as a requirement. Phase numbering continues at **62**. Next: define REQUIREMENTS.md, then the roadmap. Prior footer retained below.*
+
 *Last updated: 2026-08-30 at the **v0.9.1 milestone close** (`/gsd-complete-milestone`) — full evolution review complete. **v0.9.1 Windows path correctness COMPLETE but deliberately NOT PUBLISHED**: 4 phases (58–61), 17 plans, 48 tasks, 10/11 v1 requirements complete, `status: tech_debt` with `fail_gate.triggered: false`. Three latent Windows path defect families closed on the product side — the normalized `_escapes_outdir()` predicate, the end-to-end-safe image escape branch (normalized relocation key, 255-byte bound, `escape_typst_string()` at both emission sites, gated by a real `typst.compile()`), and one delimiter-aware `quote_path()` helper in a new zero-import leaf module carrying all 28 path-valued interpolations across three modules. Every fix RED-first against the unfixed tree; POSIX output proven byte-identical by zero pre-existing test edits, measured against `58-REPR-CENSUS.md` rather than asserted. **The release was then cancelled** for a pre-existing `blocker` unrelated to this milestone's work (D-02, D-06, D-07): an inline image not first in its paragraph aborts the Typst compile so `-b typstpdf` writes no PDF — measured byte-identical to the `v0.9.0` tag. No tag, no PyPI publish, no GitHub Release; the next published release is 0.9.2, and REL-09 carries forward unmet with its wording unchanged (D-08). The branch was then merged to `main` as `9db2274c` via merge-only PR #135 (15/15 green) at owner instruction, overriding D-12's no-PR rule but not D-02's no-release rule, so 0.9.2 can carry the fixes. First close in this project's history to publish nothing, and the first in seven with a `MILESTONE-AUDIT.md`. 16 open artifacts acknowledged and deferred, the inline-image blocker among them. Next milestone not yet scoped — `/gsd-new-milestone`, whose first requirement is already known.*
 
 *Last updated: 2026-08-29 — **Phase 59 (Path-Shape Predicate and Image-URI Correctness) complete and verified**: 5 plans in 5 sequential waves, verification `passed` 5/5 must-haves, 0 gaps, 0 human-verification items. All five requirements closed (PATH-01, IMG-04, IMG-05, IMG-06, IMG-07). Product change is confined to `typsphinx/builder.py` and `typsphinx/translator.py`; **zero pre-existing test edits**, measured rather than claimed — `git diff --name-status $PHASE_BASE_SHA..HEAD -- tests/` yields eight `A` lines and nothing else, re-measured after every subsequent commit including the two post-plan fixes. **Two locked decisions were falsified by measurement and amended in place, both owner-approved only after the orchestrator reproduced the measurement itself**: `59-CONTEXT.md` D-01 and ROADMAP SC#2 each predicted `path must not contain a backslash` for the unfixed tree; the measured refusal is `unclosed delimiter`, because a literal carrying a raw backslash AND a raw unescaped `"` has its string terminated at parse time before Typst's semantic backslash check runs — D-01's four probe compiles had each carried exactly one defect, so none of them exercised the literal the real pipeline emits. The substantive claim survived unchanged and was measured true (unfixed, key-normalization-only and escaping-only all fail; only the both-halves tree compiles), and both readings are judged separately in `59-VERIFICATION.md` rather than collapsed. **The plan set was not sufficient on its own — two real defects were found after all five plans reported complete, by two different gates.** Code review found CR-01 (blocker): `_bound_relocation_component()` reserved one *byte* for the stem, which is equivalent to one character only for ASCII, so a multi-byte leading character was dropped entirely by the UTF-8 boundary walk-back while the lower-priority extension kept its allotment — a direct violation of the "never an empty basename" property SC#3 names and the function's own `# D-07: never empty` comment. Fixed in-phase (`924f21d8`) with the reserved unit changed to one character, the shortfall borrowed back from the extension, the duplicated `stem_budget` formula (WR-01) hoisted to one computation, and two regression gates proven RED against the pre-fix tree before the fix was committed. CI found the other: run 1 failed on `ruff` UP012 alone while all six matrix test jobs — both `windows-latest` included — passed. **That failure also corrects a standing note**: ruff is not unrunnable on this dev machine outright; the main `.venv` holds a working wheel and ran clean, but every freshly `uv sync`ed worktree — where all five executors ran — cannot exec it, so no executor in this phase could have caught UP012 locally. CI genuinely is the lint authority, for a more specific reason than previously recorded. Run 3 (`924f21d8`) is the acceptance run at 12/12, dispatched fresh on the post-fix tip. **Tracking automation clobbered prose again, on every call**: `roadmap.update-plan-progress` (×5), `state.begin-phase` and `phase.complete` each orphaned wrapped continuation lines and injected blank lines into bullet lists, and `phase.complete` again left the Current Position progress line contradicting its own frontmatter and the Resume pointer aimed at the finished phase. Every output was diffed and hand-repaired before commit — the second consecutive phase where this was necessary on 100% of calls. Two todos closed (`2026-08-16-escapes-outdir-isabs-not-backslash-normalized`, `2026-08-16-track-image-escape-branch-basename-not-normalized`). Next: `/gsd-plan-phase 60`. Prior footer retained below.*

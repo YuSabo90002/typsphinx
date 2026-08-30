@@ -1,234 +1,351 @@
-# Architecture Research
+# Architecture Research: v0.9.2 `visit_image()` separator fix
 
-**Domain:** Bug-fix integration for a mature Sphinx→Typst extension (v0.9.1 "Windows path correctness")
-**Researched:** 2026-08-27
-**Confidence:** HIGH (every claim below is read directly from `typsphinx/*.py` at HEAD or verified by executing the actual predicate logic in Python; the one place confidence drops to MEDIUM is called out inline)
+**Domain:** Sphinx→Typst translator internals (docutils visitor, code-mode emission)
+**Researched:** 2026-08-30
+**Confidence:** HIGH — every claim below is either a direct `grep`/line-number read of
+`typsphinx/translator.py` at HEAD, or a real `typst.compile()` run against generated
+fragments in the scratchpad (not the repo tree). No claim rests on memory of Typst
+semantics alone.
 
-This is not greenfield research — it answers the four integration questions in the task prompt against the existing 5-module pipeline (`builder.py` / `writer.py` / `translator.py` / `template_registry.py` / `template_engine.py` / `pdf.py`). The generic template's "System Overview" / "Scaling" / project-structure sections do not apply to a bug-fix milestone and are omitted; the template's Integration Points / Internal Boundaries / Anti-Patterns sections are kept and filled with real answers.
+## Answer to Q1 — Mapping the existing separator discipline
 
-## (a) Where the delimiter-aware path-quoting helper must live
+The translator's code-mode body is a single `#{ ... }` block. Two juxtaposed
+expressions with nothing between them (`text("a")image("b")`) is `expected semicolon
+or line break`. Every inline emitter except `visit_image()` already participates in
+one shared discipline built from four primitives:
 
-### Measured import graph (module-scope imports only, read from each file's own `import`/`from` lines)
+| Mechanism | file:line | What it does | Drives / driven by | Invariant maintained |
+|---|---|---|---|---|
+| `add_text()` | `translator.py:887` | Single write funnel. Routes to `self.table_cell_content` when `self.in_table and hasattr(self, "table_cell_content")`, else `self.body`. | Called by every `visit_*`/`depart_*` that emits bytes. | The buffer distinction (`body` vs `table_cell_content`) is invisible to callers — nobody outside `add_text()` needs to know which one is live. |
+| `_emit_forced_break()` | `translator.py:903` | Emits a real Typst `parbreak()`/`linebreak()` statement between siblings; a bare source `"\n"` is proven **cosmetic only** (see its own docstring, citing `visit_desc_signature_line`) — it satisfies the parser but adds no visual break. | `visit_paragraph` (2nd+ paragraph in a list item), `visit_rubric`, `visit_desc`-family siblings. | A sibling boundary that needs a *visible* break gets a real stdlib break, not just a parser-satisfying `\n`. |
+| `in_paragraph` / `paragraph_has_content` + `_add_paragraph_separator()` | flags declared `~627-629`; method at `translator.py:933` | `if in_paragraph and paragraph_has_content: add_text("\n")`, then unconditionally sets `paragraph_has_content = True` when `in_paragraph`. First child in a paragraph emits nothing; every subsequent child gets a leading `"\n"`. | Set by `visit_paragraph` (`:1410`, only when **not** in a list item and **not** an FLD-02 unwrapped field body); read+mutated by `visit_Text`, `visit_emphasis`/`visit_strong` (entry), `visit_literal`, `visit_math`, `visit_footnote_reference`, `visit_reference`. | The paragraph's `par({...})` body never juxtaposes two children with zero separator. |
+| `in_list_item` / `_list_item_stack` | flag `~627`; stack `~630-637` | Bare boolean loses outer context when a *nested* list's `depart_list_item` resets it — the stack (pushed in `visit_list_item` `:2373`, popped in `depart_list_item` `:2409`) preserves the outer item's `True` across a nested list. | `visit_list_item`/`depart_list_item`. | A paragraph immediately following a nested list inside an outer list item is still correctly classified as "inside a list item" (not top-level), so it doesn't emit an unseparated `par(...)`. |
+| `list_item_needs_separator` | flag declared `~700-702` | `if in_list_item and list_item_needs_separator: add_text("\n")`, then the emitter sets it back to `True` after its own content (directly, or via `_mark_inline_concat_content()`). Reset to `False` on entry to a fresh list item/paragraph. | Read+set by essentially every block and inline visitor when `in_list_item` is `True` — `visit_Text`, `visit_literal`, `visit_math`, `visit_footnote_reference`, `visit_reference`, `visit_target` (`:4826`/`:4849`), `visit_figure` (`:2964`)/`depart_figure` (`:3129`), `visit_table`, `_emit_forced_break`. | Two siblings inside one list item's content block are always `"\n"`-separated, regardless of node type. |
+| `_CONCAT_CONTEXTS` / `_inline_concat_context()` / `_emit_inline_concat_separator()` / `_mark_inline_concat_content()` / `_enter_inline_concat_element()` / `_exit_inline_concat_element()` | table `:1631`; methods `:1639`, `:1651`, `:1666`, `:1679`, `:1707` | Five mutually-exclusive scalar contexts (`in_desc_parameter`, `_in_link`, `_in_term`, `_in_field_body`, `_in_attribution`) where siblings must be joined with Typst `" + "`, not a bare newline, because they're expression operands, not block statements. `_emit_inline_concat_separator()` and `_mark_inline_concat_content()` are pure read/emit or read/mutate helpers with **no other side effect**; `_enter_/_exit_inline_concat_element()` additionally suppress/restore the outer context so a nested block element (`emph({...})`) doesn't leak a stray `+` into its own children. | Read by `visit_Text`, `visit_literal`, `visit_math`; entered/exited by `visit_emphasis`/`depart_emphasis`, `visit_strong`/`depart_strong`, `visit_reference` (opens when `decision.opens_wrapper`). | Adjacent expressions inside a def-list term / link body / desc parameter / field body / attribution are `+`-joined; a block-shaped inline element correctly suppresses that `+` for its own interior. |
+| `_emit_id_anchors()` / `visit_target`'s `\n[#metadata(none) <id>]\n` | `translator.py:4785` (visit_target), helper documented `~972` | Emits a **markup-mode** zero-width content block (`[#metadata(none) <id>]`), never a bare code-mode `label(...)` call, and wraps it in a leading+trailing `"\n"` **unconditionally** (not gated on any boundary check). This is safe *because* `[...]` markup content joins cleanly with any adjacent code-mode expression on both sides in Typst's content-joining semantics — unlike a bare `label(...)` call, which is a raw `Label` value, not `content`, and cannot be joined at all. | `visit_target`, `_emit_id_anchors` (shared by `depart_figure`, `depart_table`, `visit_paragraph`, etc.). | A same-document `:ref:`/`:numref:` target always resolves, and the anchor never itself becomes a juxtaposition hazard. |
+| `visit_Text` (`:1790`) / `visit_emphasis` (`:1903`) / `visit_literal` (`:2092`) / `visit_footnote_reference` (`:3229`) / `visit_math` (`:5932`) / `visit_math_block` (`:6010`) / `visit_reference` (`:5534`, covers `:download:` too — there is **no** dedicated `visit_download_reference`; Sphinx's `download_reference` node is handled generically by `visit_reference`) | — | Every one of these opens with `self._add_paragraph_separator()` (or, for list-only contexts like `visit_math_block`, just the `in_list_item`/`list_item_needs_separator` check), then `if not self._emit_inline_concat_separator(): if self.in_list_item and self.list_item_needs_separator: self.add_text("\n")`, emits its own call, then `if not self._mark_inline_concat_content(): if self.in_list_item: self.list_item_needs_separator = True`. | — | **This triad is the actual, load-bearing, already-proven-correct convention** — confirmed independently by `.planning/PROJECT.md`'s own measurement: 14 inline construct types were placed mid-sentence and scanned; exactly one (image) was unseparated, because "Footnote, math and download each already emit a leading `\n`" via this exact mechanism. |
 
-```
-typsphinx/__init__.py
-        │
-        ▼
-typsphinx/builder.py ───────► typsphinx/pdf.py                (leaf: stdlib only)
-        │  │  │                     ▲
-        │  │  └──────────────────────────────────────────────┐
-        │  ▼                                                  │
-        │  typsphinx/template_registry.py ────(module scope)──┤ NOTHING from typsphinx
-        │        │                                            │
-        │        └─(FUNCTION-scoped, lazy)──► typsphinx.builder.TypstBuilder
-        │                                       (deliberate cycle-breaker, see below)
-        ▼
-typsphinx/writer.py
-        │  │
-        │  ├──► typsphinx/template_engine.py    (leaf: stdlib + sphinx only)
-        │  ├──► typsphinx/template_registry.py  (already a dependency of builder.py too)
-        │  └──► typsphinx/translator.py         (leaf: stdlib + docutils/sphinx only)
+**The true precedent for `visit_image()` is the `_add_paragraph_separator()` +
+`_emit_inline_concat_separator()` + `in_list_item`/`list_item_needs_separator` triad**
+used verbatim by `visit_Text`, `visit_literal`, `visit_math`, `visit_footnote_reference`,
+and `visit_reference` — **not** `visit_target`'s unconditional `\n[...]\n` form. The two
+are solving different problems: `visit_target` emits a zero-width *markup* content block
+that Typst can join to anything on either side with no operator at all, so an
+unconditional wrap is correct there; `image(...)` is a code-mode *function call*
+operand exactly like `text(...)`/`raw(...)`/`$...$`, which must be joined the way those
+are (conditionally, and with `+` inside a concat context) or a stray `+`/redundant
+separator results. `visit_image()` (`:4718`) currently calls none of these — it goes
+straight from `_emit_id_anchors()` to `self.add_text(f'image("{escaped_uri}"')` with
+no leading-separator check at all, which is the entire defect.
 
-typsphinx/translator.py       — leaf. Zero `from typsphinx...` imports.
-typsphinx/template_engine.py  — leaf. Zero `from typsphinx...` imports.
-typsphinx/pdf.py              — leaf. Zero `from typsphinx...` imports.
-```
+## Answer to Q2 — Comparing candidate mechanisms
 
-Concretely, from the files themselves:
+Measured with a scratch harness that monkey-patches `visit_image` in-process (real
+`TypstTranslator`, real docutils nodes, real `typst.compile()` against the emitted
+fragments — see verification log below) against six shapes: mid-sentence inline
+image, leading image, two images in a row, image in a list item, image in a table
+cell paragraph, and a nested figure (control).
 
-| File | `from typsphinx.X import ...` (module scope) |
-|------|---|
-| `builder.py:22-29` | `pdf`, `template_registry`, `translator` (`derive_master_edge_keys`), `writer` (`TEMPLATE_OUTPUT_DIR`, `TypstWriter`) |
-| `writer.py:15-26` | `template_engine`, `template_registry`, `translator` |
-| `template_registry.py` | **none** at module scope. `template_registry.py:92` (`_has_case_collision`) does `from typsphinx.builder import TypstBuilder` **inside the function body**, with an explicit comment explaining this is deliberate: importing `builder` at `template_registry.py`'s own module scope would deadlock the import graph, because `builder.py` already imports `template_registry.py` at ITS module scope. |
-| `translator.py` | none |
-| `template_engine.py` | none |
-| `pdf.py` | none |
+**(a) Unconditional `"\n"` before `image(` in the non-figure branch.**
+Emits a newline every time, no matter what precedes. Fixes all four broken shapes.
+*Breaks:* nothing test-visible (confirmed no test depends on the exact byte adjacency
+around a non-figure `image(...)`), but it is the **wrong shape** for this codebase's
+own convention: every other inline emitter conditions its separator on actual prior
+content (`paragraph_has_content`, concat-context state, `list_item_needs_separator`),
+never unconditionally. Using it here would (1) add a stray leading `"\n"` even when
+image is the very first paragraph child — cosmetically harmless, but silently
+diverges from the "leading image" trigger-matrix row that already compiles correctly
+today for a *reason* (nothing precedes it) — and (2) does nothing for the
+`_CONCAT_CONTEXTS` case (`_in_attribution`, `_in_link`, etc.), where the correct
+separator is `" + "`, not `"\n"` — an unconditional `"\n"` there would still be a
+syntax error (a bare newline is not a valid infix operator). Rejected: solves only
+the paragraph/list-item shapes the todo enumerates, not the whole hazard class this
+translator's discipline otherwise covers.
 
-So the graph already has one hard fact that determines the answer: **`builder.py` and `template_registry.py` form a module-scope-import cycle in the "back" direction only** (`builder.py → template_registry.py` at module scope; `template_registry.py → builder.py` only lazily, function-scoped, at runtime). `writer.py` also already imports both `template_registry.py` and `translator.py` at module scope, and `builder.py` imports `writer.py` at module scope too.
+**(b) A conditional separator that inspects whether the current output already ends
+at a line boundary.** This requires a brand-new "does buffer X already end in
+whitespace/newline" predicate. **Searched for and confirmed absent**: no
+`endswith("\n")`, no `rstrip().endswith(...)`, no "boundary" predicate exists
+anywhere in `translator.py` today (`grep` returned nothing). Building one means: (1)
+correctly choosing between `self.body` and `self.table_cell_content` — i.e.
+re-deriving `add_text()`'s own `self.in_table and hasattr(self, "table_cell_content")`
+routing rule at the call site, which the file's own comment at `add_text()`
+(`:896-899`) and the `_desc_break_marker` docstring (`~757-780`, discussing why a
+raw position integer is unsafe across the multiple buffer-reassignment sites) both
+warn against — this is exactly the kind of duplicated per-site guard the codebase has
+already burned effort on generalizing away from; (2) it says nothing about the
+`_CONCAT_CONTEXTS` case, where the correct separator is `+`, not a boundary check —
+"ends in a newline" is simply the wrong question to ask inside a link body or
+attribution; (3) it can't distinguish "safe because we're in a fresh figure" from
+"unsafe because we're mid-paragraph with content that happens to have just emitted a
+break" without *also* tracking figure/paragraph state, which the flag machinery
+already tracks precisely — so the predicate would end up re-deriving state that
+already exists in named booleans, just less legibly. Rejected: no precedent, would be
+a second, parallel bookkeeping system alongside the flag-based one, and doesn't
+generalize to concat contexts.
 
-### The answer
+**(c) Driving the existing `list_item_needs_separator` machinery.** Correct but
+incomplete on its own — it only covers the list-item shape (`- item with |sub|
+inline`), not the plain-paragraph mid-sentence shape (`Inline substitution |sub| in
+a sentence.`, which is a *paragraph*, not a list item — `visit_paragraph` at
+`:1410` only special-cases `in_list_item`; a top-level paragraph opens `par({` and
+uses `in_paragraph`/`paragraph_has_content` instead, per the table above). Using (c)
+alone would leave the mid-sentence-in-a-plain-paragraph shape — the bug report's own
+primary reproduction — unfixed.
 
-**New module.** Name it `typsphinx/pathfmt.py` (or `path_quoting.py` — any name distinct from the existing five role-named files; the point is it must be a **leaf**: it imports nothing from `typsphinx` itself, only stdlib, matching the shape `translator.py`/`template_engine.py`/`pdf.py` already have).
+**(d) A shared helper any inline emitter can call.** This already exists — it is the
+triad identified in Q1 (`_add_paragraph_separator()` + `_emit_inline_concat_separator()`
++ the `in_list_item`/`list_item_needs_separator` check), not a new helper to write.
 
-Why a new leaf module, and not one of the existing files:
+**Recommendation: (c)+(d) merged — call the existing triad verbatim, scoped to the
+`else` (non-`in_figure`) branch of `visit_image()`, exactly the way `visit_Text` /
+`visit_literal` / `visit_math` already do it.** Concretely, in the non-figure branch
+of `visit_image()` (`:4733-4735` today), immediately before
+`self.add_text(f'image("{escaped_uri}"')`:
 
-- **Not `builder.py`.** `writer.py` already imports `builder.py`'s sibling role — no, more precisely: `builder.py` imports `writer.py` at module scope (`builder.py:29`). If the quoting helper lived in `builder.py` and `writer.py` needed to import it, `writer.py` would need `from typsphinx.builder import quote_path` at module scope — but `builder.py` already does `from typsphinx.writer import TEMPLATE_OUTPUT_DIR, TypstWriter` at its own module scope. That is a direct, unconditional two-file cycle (`builder → writer → builder`), which Python cannot resolve at module-scope-import time (whichever module starts importing first will hit a partially-initialized sibling module and raise `ImportError`/`AttributeError` on the not-yet-defined name). This is not hypothetical — it is the identical shape `template_registry.py`'s own comment at line ~86-90 was written to avoid with `builder.py`, and that comment is the direct evidence for this conclusion.
-- **Not `writer.py`.** `builder.py` already imports `writer.py` (`TEMPLATE_OUTPUT_DIR`, `TypstWriter`) at module scope. If the helper lived in `writer.py`, `builder.py`'s existing import line would need to grow to include it — no NEW cycle there — but `template_registry.py` would then need `from typsphinx.writer import quote_path` at module scope. `writer.py` does not import `template_registry.py`... wait, it does (`writer.py:21-25`, `from typsphinx.template_registry import RESERVED_REGISTRY_KEY, TemplateRegistryEntry, resolve_template_registry`). So `template_registry.py → writer.py` would create `writer.py → template_registry.py → writer.py`, a direct two-file cycle. Also structurally wrong home: `writer.py` is the per-document rendering driver, not naturally where a builder-side and registry-side message-formatting utility belongs.
-- **Not `template_registry.py`.** This module already has ONE deliberately-broken cycle with `builder.py` (via the lazy, function-scoped import). Adding new content here that `builder.py` and `writer.py` both need to import back would either (i) require a second lazy-import trick at every call site in two other files (fragile, and the existing trick is scoped narrowly to a single internal predicate, not meant to be a general pattern), or (ii) create the same `builder.py ↔ template_registry.py` cycle at module scope that the existing lazy import exists specifically to avoid.
-- **Not `translator.py`.** Technically safe — `translator.py` is already a leaf, `builder.py` already imports one name from it (`derive_master_edge_keys`, `builder.py:28`) and `writer.py` already imports two names from it (`translator.py:26`), so adding a quoting-helper import here creates zero NEW cycle risk. This is a legitimate technical fallback if a project-owner strongly prefers not adding a sixth file. But it is a poor thematic fit: `translator.py` is exclusively "doctree node → Typst markup" (its own existing helper, `escape_typst_string()`, is a `.typ`-*syntax* escaper for content embedded in emitted Typst source); the new helper is a *human-readable diagnostic/log/error-message* formatter for filesystem paths, consumed only by `builder.py`/`writer.py`/`template_registry.py`'s `logger.warning`/`ExtensionError`/`logger.debug` call sites — none of which touch doctree translation. Mixing the two would make `translator.py`'s already-large surface (8,009 lines) carry an unrelated responsibility.
-- **A new leaf module has zero cycle risk by construction.** Since `builder.py`, `writer.py`, and `template_registry.py` all either already import each other or are imported by each other, the only shape guaranteed to be importable from all three at module scope with no cycle is a module that imports NOTHING from `typsphinx` back — exactly what `translator.py`/`template_engine.py`/`pdf.py` already are. The new module joins that leaf tier. `builder.py` gains one more `from typsphinx.pathfmt import ...` line beside its existing four; `writer.py` gains one beside its existing three; `template_registry.py` gains its FIRST module-scope `typsphinx`-internal import (previously it had none — this is a new, but safe, edge in the graph, running module→leaf, never leaf→module).
-
-**Cycle risk, stated concretely:** the risk is not diffuse — it is exactly two named two-file cycles (`builder.py↔writer.py` if the helper lives in either one of that pair, `builder.py↔template_registry.py` if it lives in `template_registry.py`), both of which already exist as *directed* edges today and would become *bidirectional* the moment either file imports the helper from the other. A new leaf module sidesteps both by definition — it has no back-edge to create.
-
-## (b) `escape_typst_string()` / `visit_image()` — confirmed local to translator.py
-
-Both live in `typsphinx/translator.py`:
-
-- `escape_typst_string()` — `translator.py:156-187`. Pure string function, no dependencies beyond stdlib `str` methods (already imported `re` is unused by it). Escapes `\`, `"`, `\n`, `\r`, `\t` in that order, for embedding inside a Typst `"..."` string literal — this is the module's "single source of truth for string-literal escaping" per its own docstring, already consumed elsewhere in the file (e.g. `visit_literal`, per the docstring's own claim, and the Phase-38 IND-04 comment at `translator.py:6090` referenced in PROJECT.md's footer).
-- `visit_image()` — `translator.py:4718-4766`. The two unescaped emission sites are:
-  - `translator.py:4746`: `self.add_text(f'  image("{adjusted_uri}"')` (inside a figure — 2-space indent variant)
-  - `translator.py:4749`: `self.add_text(f'image("{adjusted_uri}"')` (block-level, no `#` prefix, code-mode variant)
-
-Both are in the SAME method, in the SAME file as `escape_typst_string()`. **Confirmed: defect 2 gap 2 is a pure local change — one file (`translator.py`), no cross-module import needed at all**, since the helper is already module-local.
-
-### Ordering relative to `_compute_relative_image_path()`
-
-`translator.py:4736-4749`:
 ```python
-uri = node.get("uri", "")
-current_docname = getattr(self.builder, "current_docname", None)
-adjusted_uri = self._compute_relative_image_path(uri, current_docname)   # transform FIRST
-if self.in_figure:
-    self.add_text(f'  image("{adjusted_uri}"')                          # emit SECOND — unescaped today
-else:
-    self.add_text(f'image("{adjusted_uri}"')                            # emit SECOND — unescaped today
+self._add_paragraph_separator()
+if not self._emit_inline_concat_separator():
+    if self.in_list_item and self.list_item_needs_separator:
+        self.add_text("\n")
 ```
 
-`_compute_relative_image_path()` (`translator.py:5047-5140+`) is a `PurePosixPath`-only computation — it never touches `os.path`/`ntpath`, so its OWN internal arithmetic always produces forward-slash-joined output (`str(rel_path)`, `"/".join(down_parts)`, `"../" * up_count`). It does **not**, however, strip or reject backslashes that were already present in its `image_uri` input (the `node["uri"]` value, which for a rehomed absolute image is the key `_track_image()` built — see part (c) — and for an ordinary image is the source-root-relative URI Sphinx supplied, verbatim). So `adjusted_uri` can still contain a literal backslash character today (e.g. if `_track_image()`'s gap-1 basename bug — part (c) below — carries one through into the relocation key, or if a third-party extension sets `node["uri"]` to a raw backslash-separated string that never reached `_track_image()`'s absolute-URI branch at all).
-
-**Escaping must happen AFTER `_compute_relative_image_path()`, at the interpolation point** — i.e. wrap `adjusted_uri` itself, not `uri`:
+and, for full parity with the same precedent (so a following sibling inside a concat
+context or list item is itself correctly separated from the image), immediately
+after the `)` that closes the `image(...)` call in `depart_image()`'s non-figure
+branch:
 
 ```python
-adjusted_uri = self._compute_relative_image_path(uri, current_docname)
-escaped_uri = escape_typst_string(adjusted_uri)
-...
-self.add_text(f'  image("{escaped_uri}"')   # and the non-figure branch identically
+if not self._mark_inline_concat_content():
+    if self.in_list_item:
+        self.list_item_needs_separator = True
 ```
 
-Escaping `uri` before the `_compute_relative_image_path()` call instead would be wrong: that method does its own `PurePosixPath(...)`/`.relative_to(...)`/`.parts` arithmetic on the raw value, and feeding it an already-`\\`-doubled or `\"`-escaped string would corrupt that arithmetic (e.g. a doubled backslash is no longer recognized as a single path separator by anything downstream, and `PurePosixPath` never treated backslash as a separator to begin with — the corruption would be in the STRING CONTENT, not the parsing, but it is still the wrong value to relativize). `escape_typst_string()` is a syntax-literal escaper, not a path-shape transform, so it belongs strictly after every path-shape transform is finished and immediately before the value is written into Typst source.
+This is why the task's "cosmetic-only newline" note matters, and the answer is: **it
+matters, but it does not block this recommendation.** `depart_image()`'s existing
+`"\n\n"` (non-figure branch, `:4778`) already unconditionally guarantees the
+*trailing* boundary. Adding the triad's own bookkeeping (`paragraph_has_content =
+True`, `list_item_needs_separator = True`) on top of that guarantee is **provably
+redundant but harmless** in exactly the cases where it fires redundantly: measured
+directly (see verification log) — the "leading image" and "two images in a row"
+shapes gain one *extra* blank line (`"\n\n"` → `"\n\n\n"`) between the image and its
+following sibling, compared to pre-fix output. Per `_emit_forced_break()`'s own
+docstring, a bare source `"\n"` between two code-mode statements inside `#{ ... }`
+is cosmetic only — it satisfies the parser and has **zero** visual effect on the
+rendered PDF (no test in the suite asserts exact newline-count adjacency around a
+non-figure `image(...)` — confirmed by `grep`, see Q4). Trading a provably invisible
+extra blank line for using the *exact same, already-tested, already-understood*
+mechanism every other inline node uses — rather than inventing a leaner but novel
+read-only variant that has no precedent anywhere else in the file — is the safer
+choice for a fix this narrowly scoped and this close to a release.
 
-## (c) `_escapes_outdir()` — blast radius of normalizing it, per call site (measured, not asserted)
+**`in_figure` interaction (addressed explicitly, not silently skipped):** the fix
+touches **only** the `else` branch of `if not self.in_figure:` in `visit_image()`
+(`:4733`/`:4751`). The `in_figure` branch (`self.add_text(f'  image("{escaped_uri}"')`,
+`:4752`) is untouched. This is provably safe, not just convention-following: an
+`image` node is always the *first* child docutils visits inside a `figure` (image,
+then optional `caption`, then optional `legend` — verified against
+`visit_figure`/`visit_caption`/`visit_legend` node-order assumptions throughout the
+file, e.g. the `_figure_has_legend` scan at `:2982`). Whatever branch `visit_figure`
+took (`:2996-3003`: `figure(\n`, `[#figure(\n`, or `block(width:...)[#figure(\n`,
+optionally followed by `{\n` for a legend body) always ends in `"\n"` by the time
+`visit_image` runs — so even the general triad, if run unconditionally inside
+`in_figure`, would be a no-op there (`in_paragraph` is `False` inside a figure body,
+no concat context is active, and `visit_figure` itself already drained
+`list_item_needs_separator` at `:2964-2966` before opening `figure(`). Measured
+directly: the figure case is byte-for-byte **unchanged** (`CHANGED: False`) whether or
+not the fix is applied. The recommendation keeps the branch split anyway (rather than
+relying on that no-op proof and merging the branches) because it is the minimum-diff
+change and keeps the already-passing exact-byte figure tests (Q4) trivially safe
+against any future change to the triad's own logic.
 
-`_escapes_outdir()` (`builder.py:197-238`) has exactly **two** call sites in the whole package (grep-verified — no third site exists in `builder.py`, and it is not imported/re-called from `writer.py`, `translator.py`, or `template_registry.py`):
+**`in_table` interaction (addressed explicitly):** `add_text()` (`:887`) is the
+*only* place that knows whether output goes to `self.body` or
+`self.table_cell_content` — every mechanism in the recommended fix (`add_text()`
+itself, `_add_paragraph_separator()`, `_emit_inline_concat_separator()`) is
+flag-driven and calls `add_text()` for its own emission, so it **never needs to know
+which buffer is live**. This is precisely why (b)'s "inspect the buffer" predicate is
+inferior: it would have to duplicate `add_text()`'s routing decision at the call
+site, while the flag-driven triad sidesteps the question entirely. Measured directly:
+an image mid-sentence inside a table-cell paragraph (`in_table=True`, `in_paragraph=True`,
+output accumulating in `table_cell_content`) is broken identically to the plain-paragraph
+case pre-fix (`expected semicolon or line break`) and fixed identically post-fix,
+verified by a real `typst.compile()` of the generated `table(...)` fragment.
 
-1. `builder.py:670`, inside `_resolve_target_stem()` (the `typst_documents` target-stem guard, OUT-02).
-2. `builder.py:1727`, inside `_track_image()` (the image-rehome escape decision).
+**`_in_attribution` interaction (addressed explicitly):** `_in_attribution` is one of
+the five `_CONCAT_CONTEXTS` entries (`:1636`). An image inside a block-quote
+attribution that already has a prior sibling is, **today, already broken** (bare
+juxtaposition, no operator at all — this is a pre-existing latent defect, not
+something the fix introduces or need avoid regressing, since nothing exercises it).
+Measured directly: pre-fix, `visit_image` inside `_in_attribution` with
+`_attribution_has_content=True` emits a bare `image("img.png")` with nothing before
+it; post-fix, `_emit_inline_concat_separator()` correctly emits `" + image("img.png")"`
+— the same shape `visit_Text`/`visit_literal` already produce in that context. Net
+effect: a previously-untested, previously-broken corner is fixed for free by reusing
+the shared helper, at zero cost to any passing test.
 
-The current body:
-```python
-def _escapes_outdir(stem: str) -> bool:
-    segments = stem.replace("\\", "/").split("/")          # normalized, used only for the ".." test
-    return ".." in segments or posixpath.isabs(stem) or _is_drive_qualified(stem)  # RAW stem
+## Answer to Q3 — The "already ends at a line boundary" predicate
+
+**Not needed for the recommended mechanism**, and this is deliberate, not an
+omission: the recommendation in Q2 never inspects `self.body` or
+`self.table_cell_content` directly. It reads only three existing scalar/stack flags
+(`self.in_paragraph`, `self.paragraph_has_content`, the five `_CONCAT_CONTEXTS`
+flags via `_inline_concat_context()`, and `self.in_list_item` /
+`self.list_item_needs_separator`) — all already maintained correctly by the
+surrounding block visitors regardless of which buffer `add_text()` is currently
+routing into.
+
+**Confirmed absent from the codebase** (the question asks to search before
+proposing a new one): `grep -n 'endswith("\\n")\|rstrip().endswith\|\[-1:\]'` across
+`translator.py` returns nothing. No such predicate exists anywhere in this file
+today. If a future change ever needs one anyway (out of scope for this milestone),
+the specification would have to be:
+
+- **Buffer to inspect:** whichever `add_text()` would route into right now — i.e.
+  `self.table_cell_content if (self.in_table and hasattr(self, "table_cell_content"))
+  else self.body` — the exact condition at `:896-899`, not a fixed choice of one or
+  the other.
+- **Empty buffer:** counts as "already at a line boundary" (no separator needed) —
+  this is what makes every `test_translator.py` unit test that calls
+  `translator.visit_image(image)` on a freshly constructed translator (empty
+  `self.body`) continue to emit `image("...")` with no leading anything.
+- **Trailing empty-string chunk:** a list-of-fragments buffer can have `""` as its
+  last-appended element (e.g. from a conditional `add_text("")` somewhere); the
+  predicate would need to walk backward past empty strings to find the last
+  non-empty chunk's last character, not just check `buffer[-1]`.
+- **Trailing spaces:** should **not** count as a line boundary — Typst's own
+  `"expected semicolon or line break"` is specifically about needing a newline (or
+  semicolon) between statements; trailing spaces before that boundary are
+  irrelevant to the parser but the predicate must not be fooled into treating
+  `"...  "` (trailing spaces, no newline) as safe.
+
+This specification is recorded for completeness per the question, but the
+recommended fix in Q2 does not require it and the planner should not build it for
+this milestone.
+
+## Answer to Q4 — Blast radius
+
+**No handler calls into `visit_image()`/`depart_image()` indirectly** — docutils'
+`walkabout()` dispatches `visit_image`/`depart_image` directly by node type; nothing
+in `translator.py` invokes either method as a helper from another `visit_*`. The
+only structural dependency is `visit_figure`/`depart_figure` relying on `image`
+being the figure's first child (see Q2's `in_figure` analysis) — unaffected, since
+the fix doesn't touch the `in_figure` branch.
+
+**Tests with `image(` assertions** (from `grep -rln "image(" tests/`, 144 total
+matches across 20 files): every non-figure-scoped assertion is a **substring**
+check (`assert 'image("...")' in output` / `in typ_text`), never an exact
+full-string or `startswith` comparison — confirmed by `grep -n "output ==\|
+output.startswith\|astext() =="` across `test_translator.py` (only one exact-equality
+hit in the whole file, `assert output == ""`, unrelated to images). A leading `"\n"`
+or an extra redundant blank line elsewhere in the same fragment cannot break a
+substring check. The two tests with **exact, position-sensitive** string matches are
+both in the untouched `in_figure` branch:
+
+- `tests/test_nested_figure_render_gate.py:256` — `'  image("img.png"),\n'` inside
+  `[#figure(\n  image("img.png"),\n  caption: {...}\n) <index:id4>]` (the
+  image-only-figure byte-invariance control for FIG-01).
+- `tests/test_pdf_render_gate.py:2303` — `'block(width: 60%)[#figure(\n
+  image("image.png")\n)]'`.
+
+Both are figure-branch-only and both were measured **byte-unchanged** by the
+scratch harness with the recommended fix applied.
+
+**Achievability of the project's "zero pre-existing test edits" standard: yes,
+achievable, and verified, not merely asserted.** The scratch-harness compile log
+(all runs against the real `TypstTranslator`, real `typst.compile()`, root =
+scratch dir, never touching the repo tree):
+
+```
+before_mid   (Inline substitution |sub| in a sentence.)      FAIL: expected semicolon or line break
+after_mid    (same, with the recommended fix)                OK
+before_two   (Two in a row |sub| |sub| here.)                 FAIL: expected semicolon or line break
+after_two    (same, fixed)                                    OK
+before_list  (- item with |sub| inline)                       FAIL: expected semicolon or line break
+after_list   (same, fixed)                                    OK
+before_table (image mid-sentence inside a table cell)          FAIL: expected semicolon or line break
+after_table  (same, fixed)                                     OK
+figure       (nested figure control)                           byte-identical before/after (CHANGED: False)
 ```
 
-The candidate fix (mirroring `_is_absolute_image_uri()`'s own idiom, `builder.py:121-194`): normalize once, then test everything against the normalized string:
-```python
-def _escapes_outdir(stem: str) -> bool:
-    normalized = stem.replace("\\", "/")
-    segments = normalized.split("/")
-    return ".." in segments or posixpath.isabs(normalized) or _is_drive_qualified(normalized)
-```
+No test in the existing suite needs to change. New regression tests are additive
+only, and per the todo's own instruction should assert on a real
+`typst.compile()`, not just the emitted string (the string `text("...")image(...)`
+*looks* plausible — only the parser rejects it — which is exactly why this defect
+survived every prior suite run undetected).
 
-**Called in isolation (bypassing both production call sites), this fix DOES flip two shapes** — verified by direct execution on this machine (CPython 3, Linux, `posixpath`):
+## Answer to Q5 — Build order
 
-| Input (raw, as if `_escapes_outdir()` were called directly) | Current (buggy) | Fixed |
-|---|---|---|
-| `"\foo\bar"` (driveless-absolute, one leading backslash) | `False` | `True` |
-| `"\\server\share\bar"` (UNC) | `False` | `True` |
-| `"C:manual"` (drive-qualified) | `True` (unaffected — `_is_drive_qualified` never looked at slashes) | `True` |
-| `"manuals/guide"` (ordinary relative) | `False` | `False` (unaffected) |
-| `"/abs/manual"` (posix-absolute) | `True` (unaffected — already starts with `/`) | `True` |
+Dependencies, in the order they must be satisfied:
 
-This confirms the function-level defect PROJECT.md describes is real: `_escapes_outdir()` is not, by itself, the platform-independent pure-string predicate its sibling `_is_absolute_image_uri()` already is (and which its own docstring's doctest style — `_escapes_outdir("/abs/manual")` — implies it should be).
+1. **`visit_image()`/`depart_image()` fix** (translator.py, the mechanism from Q2)
+   — must land first; everything else in the milestone is either testing it,
+   documenting it, or shipping the release that contains it.
+2. **Regression gate** — a real-compile test binding the four broken shapes
+   (mid-sentence substitution image, two images in a row, image in a list item,
+   any image preceded by sibling content) **and** the two shapes that must keep
+   passing byte-identical (image first in its paragraph — control for the
+   redundant-blank-line tradeoff in Q2; image inside `.. figure::` — control for
+   the `in_figure` branch). This depends on step 1 existing to test against, and
+   should be written/executed together with or immediately after it (TDD-red-then-
+   green is fine either order, but the gate must exist before the phase is
+   considered done — this is the "single site, not a class" milestone framing
+   from `PROJECT.md`, so the gate is the proof that the *right* single site was
+   fixed).
+3. **CHANGELOG curation** — depends on step 1+2 being complete and committed, since
+   the `## [0.9.2]` entry needs to describe the actual fix (not a planned one), and
+   per `PROJECT.md`'s binding constraints, this entry also folds in v0.9.1's
+   already-completed-but-never-published `## [Unreleased]` bullets (PATH-01,
+   IMG-04..IMG-07, MSG-01..MSG-05) — no separate `## [0.9.1]` heading, since that
+   version was never released.
+4. **Version bump** (`pyproject.toml` as sole literal, `uv.lock` + `README.md` in
+   lockstep) — depends on step 3 only in the sense that both are "release-prep"
+   bookkeeping and are conventionally done together in one phase; the version
+   number itself has no code dependency on the changelog text.
+5. **Release-prep checkbox fence** — per `PROJECT.md`'s binding constraint 5, a
+   SHA-256 of `REQUIREMENTS.md` must be recorded at phase head and re-verified at
+   close, guarding against `phase.complete`'s auto-flip-to-`[x]` defect that has
+   fired at five consecutive prior release-prep closes. This is a process gate
+   around steps 3-4, not a separate code dependency.
+6. **Tag + PyPI publish + GitHub Release** — must be strictly last; depends on
+   1-5 all being merged to the branch that gets tagged. Per binding constraint 6,
+   `release.yml`'s `create-release` job has a known-flaky history (failed on the
+   v0.7.0 tag with `uv: command not found`, green since v0.8.0/v0.9.0) — a failure
+   here is handled inside this same step, not deferred to a follow-up milestone,
+   since REL-09 (publish to PyPI) is the one requirement this whole milestone
+   exists to finally close.
 
-**But at BOTH of the two actual production call sites, the fix changes NOTHING**, because both callers already hand `_escapes_outdir()` an argument that has already been backslash-normalized before the call — the two shapes that flip in isolation never reach `_escapes_outdir()` in their raw form through either call site:
-
-- **Call site 1 (`_resolve_target_stem()`, `builder.py:608-732`).** Line 662, `stem = stem.replace("\\", "/")`, runs UNCONDITIONALLY before `_escapes_outdir(stem)` is called at line 670 (comment at 654-661 names this "OUT-01: normalize a Windows-authored separator to POSIX style up front, unconditionally"). By the time `_escapes_outdir()` sees `stem`, it already contains zero backslash characters — normalizing again inside `_escapes_outdir()` is an idempotent no-op. Verified by simulating the exact call-site sequence:
-  ```
-  raw target            → pre-normalized stem → _escapes_outdir(stem) BEFORE fix → AFTER fix
-  '\foo\bar.typ'         '/foo/bar'             True                              True   (no flip)
-  '\\server\share\file.typ' '//server/share/file' True                            True   (no flip)
-  'C:manual.typ'          'C:manual'             True                              True   (no flip)
-  'manuals/guide.typ'     'manuals/guide'        False                             False  (no flip)
-  '../escape.typ'         '../escape'            True                              True   (no flip)
-  ```
-- **Call site 2 (`_track_image()`, `builder.py:1637-1790`).** Line 1719-1721, `rel_uri = path.relpath(resolved_uri, self.doctreedir).replace(path.sep, "/")`, runs before `_escapes_outdir(rel_uri)` at line 1727. On POSIX (`path` = `posixpath`), `path.sep` is `"/"`, so this `.replace()` call is literally a no-op for backslash characters — it does NOT strip them the way call site 1's literal `.replace("\\", "/")` does. Despite that, no flip was observed for any of five tested absolute/UNC/drive-qualified shapes, because `posixpath.relpath()` itself — called with a `resolved_uri` that doesn't start with `/` — treats the whole string as ONE relative path component and prepends `os.getcwd()`-derived `"../"` segments to reach `doctreedir`; the resulting `rel_uri` therefore already contains a literal `".."` segment, which the PRE-EXISTING (never-buggy) `".." in segments` disjunct already catches, before the isabs/drive-qualified disjuncts are even relevant. Verified directly (Linux, this repo's actual `doctreedir` shape):
-  ```
-  resolved_uri                  rel_uri (both before/after fix, identical string)                          before  after
-  '\foo\bar.png'                 '../../home/.../typsphinx/\foo\bar.png'                                    True    True
-  '\\server\share\bar.png'       '../../home/.../typsphinx/\\server\share\bar.png'                          True    True
-  'C:\foo\bar.png'               '../../home/.../typsphinx/C:\foo\bar.png'                                  True    True
-  'C:foo/bar.png'                '../../home/.../typsphinx/C:foo/bar.png'                                   True    True
-  '/abs/foo/bar.png'             '../../abs/foo/bar.png'                                                    True    True
-  ```
-
-**Precise blast-radius conclusion:** normalizing `_escapes_outdir()` changes the CLASSIFICATION OF NEITHER call site for any shape tested (both remain byte-identical before/after, `escaped=True` for every escaping shape, unchanged). The fix's value is (i) making the function correct and self-sufficient as a standalone predicate — matching this module's own D-05 platform-independence precedent and closing the gap a future third call site or a direct unit test would otherwise hit, and (ii) removing the latent inconsistency between `_escapes_outdir()` and its sibling `_is_absolute_image_uri()`, which the PROJECT.md milestone text explicitly calls out as the reason to fix it now. It is **not** a fix that changes observed build behavior at either of today's two call sites — a regression test asserting on `_resolve_target_stem()`'s or `_track_image()`'s OUTPUT for these shapes would already pass both before and after this change; a test must call `_escapes_outdir()` directly (as its own doctests already do) to observe the flip. This has a direct planning consequence: the RED-first gate for this defect must be a **direct unit test on `_escapes_outdir()` itself**, not an integration assertion through either call site (an integration-level test would be tautologically green both before and after, which is exactly the "no test covers it, CI is green" trap PROJECT.md's footer already names for all three defects in this milestone).
-
-## (d) Build order — files touched per fix, and the two named hazards
-
-### Files each fix touches (function/line granularity)
-
-| Fix | New file | `builder.py` | `translator.py` | `writer.py` | `template_registry.py` |
-|---|---|---|---|---|---|
-| **1. `_escapes_outdir()` normalization** | — | `197-238` (`_escapes_outdir` body only) | — | — | — |
-| **2. `_track_image()` escape branch** (3 gaps) | — | `~1761-1772` (gap 1 basename, gap 3 key length) | `4746`, `4749` (gap 2, `visit_image`) | — | — |
-| **3. Path-quoting helper rollout** | new leaf module (part a) | `303-402` (3 message-builder fns), `697`, `942/964/965/999/1007/1008/1015`, `1767`, `2056/2066` | — | `511-513` | `410/422/433` |
-
-Two overlaps are load-bearing for the wave decomposition:
-
-1. **File-level overlap: Fix 1, Fix 2, and Fix 3 ALL touch `builder.py`.** Per this project's own standing hazard (`.claude` memory: "disjoint files still collide at merge" / worktree isolation is the standing execution mode per `CLAUDE.md`) — even where the edited LINE RANGES within `builder.py` don't literally overlap in a diff, this project's convention is that same-file edits across parallel plans in the same wave are treated as a collision risk, not treated as safe-by-line-range.
-2. **Line-level adjacency, not just same-file: Fix 1's `_escapes_outdir()` (lines 197-238) is called FROM inside `_track_image()` at line 1727** — i.e. the exact method Fix 2 is editing at lines ~1761-1772 (13 lines further down the SAME method). **Fix 3's quoting-helper migration explicitly names `builder.py:1767`** (the `_track_image()` escape-branch warning, `"could not rehome image URI {resolved_uri!r} ... relocated to {key!r}"`) as one of its 20 target sites — and `key` at line 1767 is exactly the value Fix 2's gap 1 (basename normalization) and gap 3 (length bound) change. **All three fixes converge on the same ~30-line region of `_track_image()` and its immediate caller `_escapes_outdir()`.** This is not a hand-wavy "same file" claim — it is the same method plus the function it calls, and the same emitted warning string that Fix 2 changes the VALUE of and Fix 3 changes the QUOTING of.
-3. **Shared test file: `TestWindowsPathEscapingRegressionGuard`** (`tests/test_templates_path_collision_gate.py:412` onward) is the existing regression-guard class 57-11 wrote for the three `builder.py` message sites it already fixed (`_conf17_violation_message`, `_templates_path_collision_message`, `_bundle_destination_collision_message`, lines 303-402). PROJECT.md's footer states the quoting helper "must ... be gated by both `TestWindowsPathEscapingRegressionGuard` and the single-quote case 57-REVIEW IN-01 named as missing" — i.e. this ONE class is the natural home for Fix 3's new coverage across ALL of `builder.py`/`writer.py`/`template_registry.py`'s sites. If Fix 3 is split into parallel plans (one per file) that each extend this same class/file with new test methods in the same wave, that is exactly the "one plan changes an emitted string, another plan asserts on it, same wave" hazard this project has already hit once (57-11's own CI-matrix cost) and named as a standing risk in the operator's own memory.
-
-### Proposed decomposition
-
-**Wave 1 — two genuinely independent plans, zero file overlap with anything else in this milestone, safe to run in parallel:**
-
-- **Plan 1a — new quoting-helper module.** Create the new leaf module (part a) with the delimiter-aware helper and its own unit tests (including the single-quote-in-path case 57-REVIEW named as missing, `.planning/PROJECT.md:71-72`). Touches only the new file + its own new test file. No existing file is edited yet — this plan does not wire the helper into any call site.
-- **Plan 1b — `visit_image()` escaping (defect 2 gap 2).** Wrap `adjusted_uri` in `escape_typst_string()` at both `translator.py:4746` and `4749` (part b). Touches only `translator.py` + its own test file. Fully independent of Plan 1a (uses the PRE-EXISTING `escape_typst_string()`, not the new helper) and of everything in Wave 2 below (never touches `builder.py`).
-
-**Wave 2 — depends on Wave 1 Plan 1a (the helper must exist to be imported); internally sequenced, not parallel, for the `builder.py`-touching parts:**
-
-- **Plan 2a (sequential, single plan) — the whole `builder.py` change set: Fix 1 + Fix 2 gaps 1/3 + Fix 3's `builder.py` rollout, as ONE plan.** Given finding (c) — Fix 1 changes NOTHING observable at either call site, so it carries near-zero risk to bundle — and given the tight line-level adjacency named above (Fix 2's gap 1/3 sit 13-45 lines from the `_escapes_outdir()` call Fix 1 touches, and Fix 3's line-1767 message site is the SAME warning Fix 2 changes the value of), splitting these three into separate parallel plans against the same file/method is the exact hazard this project has already paid for once. Doing them as one sequential plan (or, if the executing agent prefers smaller reviewable units, as 2-3 STRICTLY SEQUENTIAL sub-plans in the SAME wave-ordinal — never parallel worktrees — each waiting on the prior one's merge) removes both the same-file and the same-string hazards structurally, because there is only ever one active edit to `builder.py` at a time. This plan also extends `TestWindowsPathEscapingRegressionGuard` for every `builder.py` site (owns that file exclusively for this wave).
-- **Plan 2b (parallel-safe alongside 2a — disjoint file, `writer.py` only) — Fix 3's `writer.py` rollout.** `writer.py:511-513`, the wrapper-render debug log. Genuinely independent of `builder.py` (no shared import, no shared emitted string, no shared assertion target) — safe to parallelize with 2a PROVIDED it does not also extend `TestWindowsPathEscapingRegressionGuard` (route its own new assertions through a writer-scoped test module/class instead, to avoid the same-test-file hazard named above even though the files under test differ).
-- **Plan 2c (parallel-safe alongside 2a — disjoint file, `template_registry.py` only) — Fix 3's `template_registry.py` rollout.** `template_registry.py:410/422/433`, the declared-template validation messages. Same independence argument and same same-test-file caveat as 2b.
-
-**Why this order and not, e.g., Fix-1-then-Fix-2-then-Fix-3 as three fully separate waves:** part (c)'s finding that Fix 1 has zero observable effect at either production call site means there is no CORRECTNESS dependency forcing Fix 1 to land before Fix 2 (Fix 2's gap 1/3 do not read `_escapes_outdir()`'s return value at all — they touch the KEY CONSTRUCTION inside the `escaped` branch, which is already reached correctly today). The only real ordering constraint in this milestone is Wave 1 → Wave 2 (the quoting helper must exist before anything imports it), plus the internal sequencing of `builder.py`'s three fixes to avoid the file/line/string collisions documented above. Fix 2's gap 2 (`translator.py`) and Fix 3's `writer.py`/`template_registry.py` legs have no dependency on `builder.py`'s internal sequencing and should not be blocked behind it.
-
-## Internal Boundaries (template section, filled)
-
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| `builder.py` ↔ new `pathfmt.py` (leaf) | direct function import, module scope | New edge, no cycle risk (leaf has no back-import) |
-| `writer.py` ↔ new `pathfmt.py` (leaf) | direct function import, module scope | New edge, no cycle risk |
-| `template_registry.py` ↔ new `pathfmt.py` (leaf) | direct function import, module scope | New edge — `template_registry.py`'s FIRST module-scope `typsphinx`-internal import; still safe because the target is a leaf |
-| `builder.py` ↔ `writer.py` | `builder.py` imports `writer.py` at module scope (pre-existing) | Do NOT add a `writer.py → builder.py` import for the quoting helper — direct cycle |
-| `builder.py` ↔ `template_registry.py` | `builder.py` imports `template_registry.py` at module scope; `template_registry.py` imports `builder.py` only lazily/function-scoped (pre-existing, deliberate) | Do NOT add a second module-scope `template_registry.py → builder.py` import for the quoting helper — would re-create the exact cycle the lazy import already works around |
-| `_escapes_outdir()` (builder.py:197) ↔ `_resolve_target_stem()` (builder.py:608) | direct call, same file | Call site 1; argument already backslash-normalized by caller (part c) |
-| `_escapes_outdir()` (builder.py:197) ↔ `_track_image()` (builder.py:1637) | direct call, same file, "cross-domain reuse" per the existing comment at builder.py:1719-1725 | Call site 2; argument already backslash-normalized by caller (part c) |
-| `escape_typst_string()` (translator.py:156) ↔ `visit_image()` (translator.py:4718) | direct call, same file, same method | Gap 2's whole fix; must wrap `adjusted_uri` (post-`_compute_relative_image_path()`), never `uri` (part b) |
-
-## Anti-Patterns (specific to this integration)
-
-### Anti-Pattern 1: Putting the quoting helper in `builder.py` or `writer.py` "because that's where the call sites are"
-
-**What people do:** Add the new helper as a private function inside `builder.py` (most call sites are there) and have `writer.py`/`template_registry.py` import it from there.
-**Why it's wrong:** `builder.py` already imports `writer.py` at module scope; `writer.py` importing back from `builder.py` is an unconditional two-file import cycle that fails at interpreter start, not at call time — this is not a style objection, it is a hard `ImportError`.
-**Do this instead:** New leaf module (part a).
-
-### Anti-Pattern 2: Treating Fix 1 as a blocking prerequisite for Fix 2
-
-**What people do:** Sequence "fix `_escapes_outdir()` first, then fix `_track_image()`'s basename/key-length gaps, because they're in the same function family."
-**Why it's wrong:** Part (c) shows Fix 1 changes nothing observable at either call site; Fix 2's gaps 1 and 3 are about the KEY STRING CONSTRUCTION inside the already-correctly-reached `escaped` branch, not about whether that branch is reached. Treating them as strictly ordered adds a false dependency and unnecessarily serializes work that could, in principle, be reviewed independently — the real reason to keep them in one plan is the file/line-adjacency collision risk (item 2 under "two overlaps"), not a correctness dependency.
-
-### Anti-Pattern 3: Parallel plans that each extend `TestWindowsPathEscapingRegressionGuard` in the same wave
-
-**What people do:** Split Fix 3's rollout into "builder.py plan", "writer.py plan", "template_registry.py plan" and let each add its own new test methods to the existing `TestWindowsPathEscapingRegressionGuard` class for coverage symmetry.
-**Why it's wrong:** All three plans editing the same test class/file in the same wave reproduces exactly the "emitted string changed by one plan, asserted on by another, same wave" hazard already named in this project's own operating history (57-11's two burned CI matrices were a variant of this same class of defect — a message-formatting change whose test coverage didn't match the real message builder).
-**Do this instead:** Either keep all `TestWindowsPathEscapingRegressionGuard` edits inside the single sequential `builder.py` plan (2a) and give the parallel `writer.py`/`template_registry.py` plans (2b/2c) their own separate test classes/modules, or run 2b/2c strictly after 2a merges if shared-class coverage is required.
+Recommended phase shape: **Phase A (fix + gate)** = steps 1-2 together (the gate
+is the acceptance criterion for the fix, so splitting them into separate phases
+buys nothing and risks a phase boundary where "fixed" is claimed before "proven by
+real compile"). **Phase B (release-prep)** = steps 3-5. **Phase C (publish)** = step
+6, kept separate so a publish-path failure (constraint 6) doesn't block re-running
+just the fix or the changelog curation if either needs a fixup pass first.
 
 ## Sources
 
-- `typsphinx/builder.py` (read in full, 2440 lines) — import block (8-29), `_is_drive_qualified` (86-118), `_is_absolute_image_uri` (121-194), `_escapes_outdir` (197-238), the three 57-11 message builders (303-402), `_validate_output_path_collisions` (866-1019, the census lines 942/964/965/999/1007/1008/1015), `_track_image` (1637-1790, including the 1767 warning and the 1761-1772 key construction), `_copy_bundle_directory` (the 2056/2066 census lines)
-- `typsphinx/translator.py` lines 1-200 (`escape_typst_string`, 156-187) and 4690-4770 (`visit_image`/`depart_image`, 4718-4769), plus `_compute_relative_image_path` (5047-5140+)
-- `typsphinx/writer.py` (read in full, 515 lines) — import block (8-26), `render_wrapper`'s debug log (511-513)
-- `typsphinx/template_registry.py` (read in full, 529 lines) — import block (27-31), the lazy cycle-breaking comment (`_has_case_collision`, ~79-98), the three census lines (410/422/433)
-- `/home/yuta/Documents/typsphinx/CLAUDE.md` (Architecture section, worktree-isolated execution section)
-- `/home/yuta/Documents/typsphinx/.planning/PROJECT.md` (top "Current Milestone: v0.9.1" section, plus the 2026-08-27 and 2026-08-22 footer entries for the 57-11 prior-art and `TestWindowsPathEscapingRegressionGuard` context)
-- `tests/test_templates_path_collision_gate.py` (grep-verified location and line number of `TestWindowsPathEscapingRegressionGuard`, line 412)
-- Direct execution (Python 3, this machine, `posixpath`) of both the current and the candidate-fixed `_escapes_outdir()` bodies against all five documented shapes, at both call sites' actual invocation contexts — the basis for the part (c) blast-radius table
+- `typsphinx/translator.py` (HEAD, 2026-08-30) — all file:line citations above are
+  direct reads of this file at the current commit; no external documentation was
+  needed since this is entirely an internal-mechanism question.
+- `.planning/todos/pending/2026-08-29-inline-image-in-paragraph-emits-unseparated-expression.md`
+  — original defect report, reproduction matrix, and root-cause framing.
+- `.planning/PROJECT.md` (`## Current Milestone: v0.9.2`) — scope, binding
+  constraints (including the 14-construct sweep that established this is "a
+  single site, not a class"), and release-process obligations (REL-09, the
+  checkbox-fence guard, the `release.yml` flake history).
+- `tests/test_translator.py`, `tests/test_nested_figure_render_gate.py`,
+  `tests/test_pdf_render_gate.py`, and the other 18 files matched by
+  `grep -rln "image(" tests/` — surveyed for assertion shape (substring vs. exact)
+  to assess blast radius.
+- Scratch-harness verification (this session, under
+  `/tmp/claude-1000/-home-yuta-Documents-typsphinx/f02be4ed-caf0-468a-897c-407113bde367/scratchpad/imgfix/`):
+  a monkey-patched `TypstTranslator.visit_image` exercising the recommended triad
+  against six real docutils-node shapes, each compiled with the real `typst`
+  Python package (not merely string-inspected) to confirm before=FAIL/after=OK for
+  the four broken shapes and before=after (byte-identical) for the figure control.
+  No file in the actual repository working tree was modified to produce this
+  evidence.
 
 ---
-*Architecture research for: typsphinx v0.9.1 Windows path correctness (bug-fix integration, not greenfield)*
-*Researched: 2026-08-27*
+*Architecture research for: typsphinx v0.9.2 (`visit_image()` separator fix)*
+*Researched: 2026-08-30*

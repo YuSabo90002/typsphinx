@@ -1,310 +1,225 @@
 # Stack Research
 
-**Domain:** Windows path-shape correctness in an existing Python/Sphinx extension (bug-fix milestone, no new deps)
-**Researched:** 2026-08-27
-**Confidence:** HIGH (a, c, d — verified by direct CPython source diff / live measurement / existing test read); MEDIUM (b — filesystem limits verified via multiple independent web sources but not directly measured on all three CI filesystems)
+**Domain:** Sphinx→Typst translator bugfix + PyPI release (v0.9.2, a narrow blocker-fix-and-ship milestone)
+**Researched:** 2026-08-30
+**Confidence:** HIGH
 
-## Scope discipline
+## Headline Verdict
 
-This milestone (v0.9.1) adds **zero new runtime dependencies**. Every recommendation below is either
-an existing stdlib module already imported in this codebase, or a small hand-rolled function living
-next to the existing hand-rolled predicates (`_is_drive_qualified`, `_is_absolute_image_uri`,
-`_escapes_outdir`) in `typsphinx/builder.py`. Nothing here should be read as "add package X" — the
-answer to every sub-question is "use what's already in the stdlib, correctly, and reuse the idiom
-this file already established."
+**Add nothing.** No new runtime dependency, no new dev dependency, no new test framework, no
+`@preview` package version bump. The one required "stack" action is invoking the test tooling
+already in the repo (`typst-py`'s `typst.compile()`, driven through `sphinx-build -b typstpdf`, in
+a new `tests/test_*_render_gate.py` + `tests/fixtures/*_gate/` pair) in the same shape as three
+existing gates. Everything else in this milestone is bumping ONE version literal
+(`pyproject.toml`'s `version = "0.9.0"`) and writing a CHANGELOG section — no library research
+applies to that at all.
 
-## (a) Path-shape predicates: which stdlib API is the authority
+## 1. Test-side: the real-compile gate idiom to copy
 
-**Answer: none of the four alone. The authority is the composite idiom already in this file —
-backslash-normalize the string, then `posixpath.isabs(normalized) or _is_drive_qualified(normalized)`
-— not `ntpath`, not `os.path`, not `pathlib.PureWindowsPath`.** This is not a new recommendation; it
-is the pattern `_is_absolute_image_uri()` (`builder.py:121-194`) and `_escapes_outdir()`
-(`builder.py:197-238`) already implement, and `_resolve_target_stem()` (`builder.py:662`) already
-reuses the same `.replace("\\", "/")` normalization. `_track_image()`'s basename fix (b/c below) must
-route through the *same* normalized string these two already compute, not re-derive it a fourth time
-— `builder.py` has this exact idiom at three separate lines (193, 230, 662) already; a fourth
-hand-rolled copy at line 1772 would be the kind of drift `_is_drive_qualified()`'s own docstring
-explicitly calls out having fixed once already (A47-03/A3).
+The repo already has 100+ `test_*_render_gate.py` modules; three are close enough to the image
+separator defect that a new gate should copy their structure directly rather than invent a new
+shape.
 
-**Why none of the four single-module options is sufficient, measured against the five named shapes**
-(verified live: `python3 --version` → 3.13.13, this repo's own interpreter; second column verified by
-diffing CPython's own `Lib/ntpath.py` between the `v3.12.8` and `v3.13.13` tags on GitHub):
+### Closest precedent — copy this one
 
-| shape | literal | `posixpath.isabs` | `ntpath.isabs` (3.13) | `ntpath.isabs` (3.12, from source diff) | `os.path.isabs` (this POSIX host) | `PureWindowsPath.is_absolute()` |
-|---|---|---|---|---|---|---|
-| POSIX-absolute | `/a/b` | **True** | False | False | True | False |
-| driveless-absolute (Win) | `\a\b` | False | **False** | **True** | False | False |
-| drive-qualified | `C:\a\b` | False | **True** | True | False | **True** |
-| drive-relative | `C:a` | False | False | False | False | False |
-| UNC | `\\server\share\x` | False | **True** | True | False | **True** |
-| ordinary-relative | `a/b` | False | False | False | False | False |
+**`/home/yuta/Documents/typsphinx/tests/test_paragraph_concat_render_gate.py`** paired with
+**`/home/yuta/Documents/typsphinx/tests/fixtures/paragraph_concat_render_gate/`**
 
-- `posixpath.isabs()` alone only catches the POSIX-absolute shape. It never understands drive letters
-  or UNC — this is exactly why `_is_drive_qualified()` exists as a *second*, independent predicate
-  next to it, not a replacement for it.
-- `ntpath.isabs()` (and `os.path.isabs()` on an actual Windows host, since `os.path` *is* `ntpath`
-  there) is **not** platform-independent across CPython versions on the identical shape. Verified by
-  diffing `Lib/ntpath.py`:
-  - **3.12.8** (`https://github.com/python/cpython/blob/v3.12.8/Lib/ntpath.py`):
-    `if s.startswith(sep) or s.startswith(colon_sep, 1): return True` — a lone leading backslash
-    alone (`sep`) is enough → driveless-absolute is `True`.
-  - **3.13.13** (`https://github.com/python/cpython/blob/v3.13.13/Lib/ntpath.py`):
-    `return s.startswith(colon_sep, 1) or s.startswith(double_sep)` — the single-`sep`-alone branch
-    was **removed**; only a colon-drive or a *double* leading separator counts → driveless-absolute is
-    now `False`.
-  - This exact narrowing is documented in the CPython 3.13 stdlib docs for `os.path.isabs()`
-    (`https://docs.python.org/3/library/os.path.html#os.path.isabs`): *"Changed in version 3.13: On
-    Windows, returns `False` if the given path starts with exactly one (back)slash."* — this is the
-    "one such narrowing" this project already hit (`_is_absolute_image_uri()`'s own docstring cites
-    it; confirmed here against the primary source, not just re-reading that docstring).
-  - Consequence for this milestone: **never gate any of these three fixes on `ntpath.isabs()` /
-    `os.path.isabs()` directly** — its answer for the driveless-absolute shape depends on which
-    CPython minor version is running the *build*, not on which OS. That is strictly worse than the
-    existing `posixpath.isabs`-doesn't-know-about-drives gap, because it is silent and time-dependent
-    rather than a fixed, documented limitation.
-- `pathlib.PureWindowsPath` / `PurePosixPath` are genuinely host-OS-independent (confirmed live:
-  `PureWindowsPath("C:\\a\\b").is_absolute()` returns `True` when run on this Linux host, exactly as
-  it would on Windows — these classes parse a *named* flavor regardless of the interpreter's host
-  OS). But `PureWindowsPath.is_absolute()` requires **both** a drive and a root, so it already
-  returned `False` for the driveless-absolute shape *before* 3.13 too (unlike `ntpath.isabs()`,
-  which only caught up to that stricter definition in 3.13) — so it does not, by itself, catch every
-  shape this milestone needs to widen against either. Using it would mean adding a *second*
-  absolute-path predicate with its own different edge-case boundary, on top of the `posixpath` one
-  already used for `_escapes_outdir()`'s POSIX-absolute case — two predicates with two different
-  drive-relative/UNC boundaries is a worse, not better, foundation than one hand-composed
-  string-shape function reused everywhere.
+This is the same defect *class* as the image-separator bug: a missing separator between two
+juxtaposed Typst code-mode expressions inside the unified code-mode block, verified as a false
+negative in `visit_paragraph`/`depart_paragraph`'s early-return branches, fixed by making the
+right emitter call `add_text("\n")`/`parbreak()` under the same `list_item_needs_separator`
+condition the image fix will reuse. Its idiom:
 
-**Conclusion for (a):** keep `posixpath` + `_is_drive_qualified()` (the existing hand-rolled
-predicate) as the two primitives, backslash-normalize first, and treat that composite — not any
-single stdlib module — as this module's one authority for "is this path-shape absolute," exactly as
-`_is_absolute_image_uri()`'s docstring already states. The only actionable stdlib-selection decision
-this milestone still has to make is at `_escapes_outdir()` (`builder.py:238`), which computes
-`segments` from the normalized string but still applies `posixpath.isabs(stem)` /
-`_is_drive_qualified(stem)` to the **raw** `stem` (the exact bug named in the milestone context) —
-the fix is mechanical: apply both predicates to the same normalized string `segments` was built from,
-matching `_is_absolute_image_uri()`'s own body one-for-one.
+- `TYPST_AVAILABLE` try/except import guard (`import typst`) → `@pytest.mark.skipif(not
+  TYPST_AVAILABLE, ...)` on the test class. No `pypdf` needed for a structural + magic-bytes gate.
+- `_run_sphinx_build_typstpdf(source_dir, build_dir)` helper — a `subprocess.run([sys.executable,
+  "-m", "sphinx", "-b", "typstpdf", ...])` call, invoked as `sys.executable -m sphinx` (never `uv
+  run sphinx-build`, never a resolved binary on PATH) to dodge the NixOS PATH-shadowing hazard.
+  **Every gate module carries its own copy of this helper — do not import a sibling module's.**
+- Two fixtures: `..._render_gate_dir` (returns `Path(__file__).parent / "fixtures" /
+  "paragraph_concat_render_gate"`) and `temp_build_dir(tmp_path)` (returns `tmp_path / "_build"`).
+- Asserts, in order: `result.returncode == 0`; `"Typst compilation failed" not in result.stderr`
+  (a fatal inside `TypstPDFBuilder.finish()` is *logged*, not raised, so returncode alone is not
+  proof); a structural string assert on `index.typ` (here: `"parbreak()" in typ_text`, with an
+  index-ordering check that the separator sits *between* the two paragraphs, not merely anywhere in
+  the file); then `index.pdf`/`master.pdf` exists, is non-empty, and starts with the `%PDF` magic
+  bytes.
 
-## (b) Bounding a filename component's length portably
+### Second precedent — copy its multi-shape-in-one-fixture structure
 
-**There is no portable stdlib constant usable at write time across all three CI platforms.**
-`os.pathconf()` and `os.statvfs()` are the only stdlib-exposed way to *ask the filesystem* for its
-`NAME_MAX`, and both are documented `Availability: Unix` only
-(`https://docs.python.org/3/library/os.html#os.pathconf`) — verified live on this host:
-`hasattr(os, "pathconf")` is `True` here (Linux) and `os.pathconf(".", "PC_NAME_MAX")` returns `255`,
-but neither attribute exists in CPython's Windows build at all, so a `windows-latest` CI job would
-raise `AttributeError` before ever reaching the filesystem question. This rules out querying the
-limit at runtime as a cross-platform solution for the `windows-latest`-inclusive acceptance bar
-(binding constraint #6) — any fix that calls `os.pathconf` unconditionally must branch on
-`hasattr(os, "pathconf")` or platform, which is exactly the kind of OS-native branching this module's
-other predicates deliberately avoid.
+**`/home/yuta/Documents/typsphinx/tests/test_abbr_pep_separator_render_gate.py`** paired with
+**`/home/yuta/Documents/typsphinx/tests/fixtures/abbr_pep_separator_render_gate/`**
 
-**Actual limits** (verified against independent sources; MEDIUM confidence — not measured directly
-against a live ext4/APFS/NTFS volume in this sandbox):
-- **ext4:** `NAME_MAX = 255`, counted in **bytes** of the UTF-8-encoded name, applies to a single
-  path **component** (one directory entry), not the whole path. A pure-ASCII name can be 255
-  characters; a name built from 4-byte code points caps out far shorter.
-- **APFS (macOS):** also 255, counted in bytes of the UTF-8 encoding, per-component (same shape as
-  ext4 for this purpose, despite Apple's own marketing copy sometimes saying "255 characters").
-- **NTFS (Windows):** 255, but counted in **UTF-16 code units**, per-component. NTFS itself supports
-  much longer *total* paths (up to 32,767 UTF-16 units) but the classic Win32 `MAX_PATH` (260 total
-  characters) ceiling still applies unless the application opts into long-path support — a
-  **separate, whole-path** constraint this milestone's defect does not need to solve (the reported
-  `ENAMETOOLONG` is a component-length symptom from a single long basename, not a deep directory
-  tree).
+Use this one for the *fixture layout*, not the assertion content: it packs a suppressed-behavior
+case and a must-still-work regression case into the SAME `index.rst`/`conf.py` fixture pair, so the
+"fails pre-fix" and "must keep passing" shapes can never drift apart from each other. The image
+gate needs exactly this: the todo's trigger matrix has **four failing shapes** (substitution image
+mid-sentence, two images in a row, an image inside a list item, an image preceded by any sibling
+content) and **two shapes that must keep passing** (image first in its paragraph, image inside
+`.. figure::`) — one fixture document exercising all six, one compile, structural asserts per shape
+plus one shared PDF-produced assert, mirrors this module's `abbr_pep_separator_render_gate/
+index.rst` combining the auto-generated-separator case with a genuine `:abbr:` regression case.
+Its `conf.py` also documents the fixture-naming convention worth reusing verbatim: `typst_documents
+= [("index", "master.typ", "<Title>", "Test Author")]` — index must be a *master* document (not
+merely included), because only a master gets the full template applied by `TypstWriter.translate()`
+(`writer.py`); a bare `"index"` target would collide with the unconditional docname-derived content
+file `index.typ`, so a de-collided target name like `master.typ` is the convention every existing
+fixture in this suite already follows.
 
-**Recommendation:** hardcode a conservative constant, not a filesystem query — mirroring how
-`RESERVED_IMAGE_NAMESPACE` and `_EXCLUDED_BUNDLE_*` are already hardcoded module-level constants in
-this same file rather than probed at runtime. A single `_MAX_BASENAME_BYTES = 255` (matching ext4/
-APFS exactly, and safely under NTFS's 255-UTF-16-unit limit since ASCII/Latin basenames — the
-realistic shape of a Sphinx source tree's image filenames — take 1 UTF-16 unit per UTF-8 byte)
-applied by:
-1. Encoding the candidate basename to UTF-8 (`.encode("utf-8")`), never counting `len()` on the `str`
-   directly — the byte count, not the character count, is what ext4/APFS actually enforce.
-2. Truncating the byte string to fit within `_MAX_BASENAME_BYTES` **after** reserving room for the
-   `{sha1[:8]}-` prefix (the digest is the collision anchor per the milestone's own constraint 3 — it
-   must never be the part that gets cut).
-3. Decoding back with `errors="ignore"` (or an explicit boundary-safe trim) so truncation never splits
-   a multi-byte UTF-8 sequence and produces an invalid filename.
+### Third precedent — cited in the question, correctly heavier than needed here
 
-No new dependency: `str.encode()` / `bytes` slicing / `str.decode()` are all builtins.
+**`/home/yuta/Documents/typsphinx/tests/test_windows_image_uri_render_gate.py`** paired with
+**`/home/yuta/Documents/typsphinx/tests/fixtures/windows_shaped_image_uri_gate/`**
 
-## (c) Delimiter-aware display quoting without backslash escaping
+Also a real image-related compile gate, and also builds a `_assert_..._escaped_and_separator_free`
+shared helper reused by two test classes — but its second class needs a **measured runtime
+filesystem probe** (`pytest.skip` if the OS cannot hold a backslash+quote basename) because ITS
+defect is platform-shaped (Windows path escaping). The image-separator defect is not
+platform-shaped — it reproduces identically on every OS the todo measured it on — so this module's
+extra skip-probing machinery is not needed for the new gate. Name it as evidence the pattern exists
+in-repo, but do not copy its runtime-probe skip logic.
 
-**Hand-rolled is correct; neither `shlex.quote()` nor `json.dumps()` satisfies both constraints.**
-Measured live against three sample paths (a Windows path with backslashes, a path containing a
-literal apostrophe, a path with a space):
+### What is NOT missing
 
-| input | `shlex.quote()` | `json.dumps()` | `repr()` |
+`typst-py` (already a runtime dependency, `pyproject.toml`: `typst>=0.15.0,<0.16`) is the same
+package these three existing gates already import and call through `TypstPDFBuilder.finish()` (via
+`sphinx-build -b typstpdf`) — no separate "call `typst.compile()` directly" pattern needs
+introducing; all three precedent gates go through the builder, not a bare `typst.compile()` call,
+and that is the right idiom to copy since it also exercises the code path the bug actually breaks
+(`ExtensionError` raised by `TypstPDFBuilder.finish()`, not a raw compiler exception). `pypdf` is
+only needed if a gate wants extracted-*text* assertions (as `test_abbr_pep_separator_render_gate.py`
+does for its second test); the image-separator gate's needs (compile succeeds + PDF magic bytes +
+structural `.typ` string checks) do not require it, so `pypdf` is optional for this gate, not
+missing.
+
+**Verdict: the existing tooling suffices. Add zero test dependencies, zero test frameworks.**
+
+## 2. Version currency — verified against live sources 2026-08-30
+
+| Dependency | Pinned in this repo | Resolved in `uv.lock` | Current released version (verified) | Verdict |
+|---|---|---|---|---|
+| `typst` (typst-py, PyPI) | `pyproject.toml:11` `typst>=0.15.0,<0.16` | `uv.lock:1533` `version = "0.15.0"` | **0.15.0** (PyPI JSON API, `pypi.org/pypi/typst/json`, `info.version`) | **IRRELEVANT** — pinned version already equals PyPI's current release; no newer 0.15.x/0.16 exists to bump to. |
+| `sphinx` | `pyproject.toml:24` `sphinx>=9.1,<10` | `uv.lock:1266` `version = "9.1.0"` | **9.1.0** (PyPI JSON API, `pypi.org/pypi/sphinx/json`) | **IRRELEVANT** — already current. |
+| `docutils` | `pyproject.toml:25` `docutils>=0.21,<0.23` | `uv.lock:407` `version = "0.22.4"` | **0.23** exists on PyPI (PyPI JSON API, `pypi.org/pypi/docutils/json`) but is excluded by this repo's own `<0.23` upper bound | **MERELY AVAILABLE, and out of scope.** Relaxing `<0.23` → `<0.24` (or similar) is a real option that exists, but it is an ecosystem-currency change unrelated to the image-separator blocker or the release mechanics, and `CLAUDE.md`'s pinned filterwarnings comment ("No third-party ignore:: entries needed as of ... docutils 0.22.4") documents that the current pin was verified deliberately — do not touch it in this milestone. |
+| `@preview/codly` | `templates/base.typ:8`, `template_engine.py:706`, `writer.py:266` — all `1.3.0` | n/a (Typst package, not a Python dep) | **1.3.0** (typst.app/universe/package/codly, fetched live) | **IRRELEVANT** — already the latest published version. |
+| `@preview/codly-languages` | same three files — all `0.1.10` | n/a | **0.1.10** (typst.app/universe/package/codly-languages, fetched live) | **IRRELEVANT** — already latest. |
+| `@preview/mitex` | same three files — all `0.2.7` | n/a | **0.2.7** (typst.app/universe/package/mitex, fetched live) | **IRRELEVANT** — already latest. |
+| `@preview/gentle-clues` | same three files — all `1.3.1` | n/a | **1.3.1** (typst.app/universe/package/gentle-clues, fetched live) | **IRRELEVANT** — already latest. |
+
+**No REQUIRED bump exists anywhere in this table.** All four `@preview` packages are already at
+their current Typst Universe release, `typst`/`sphinx` are already at their current PyPI release
+within their pinned ranges, and `docutils`'s available-but-unpinned `0.23` is an unrelated,
+out-of-scope ecosystem question. This confirms the milestone's own stated default ("do not bump")
+is correct — nothing in the stack would break the release, and nothing in the stack needs touching
+to make the release succeed.
+
+Since all four `@preview` versions are unchanged, `tests/test_preview_version_sync.py`'s
+three-way lockstep assertion (`writer.py` / `template_engine.py` / `templates/base.typ`) needs no
+action this milestone — it is already green and stays green.
+
+## 3. Release tooling — exact files, exact literals, exact lockstep
+
+### Files carrying the version literal (must move in lockstep for 0.9.0 → 0.9.2)
+
+| File | Line | Current literal | Action |
 |---|---|---|---|
-| `C:\Users\runner\project\_templates\nested` | `'C:\Users\runner\project\_templates\nested'` (backslashes preserved, but a bare single-quote wrap with **no delimiter present in unquoted-safe cases** — see below) | `"C:\\Users\\runner\\project\\_templates\\nested"` (backslashes **doubled** — the exact regression this milestone exists to close) | `'C:\\Users\\runner\\project\\_templates\\nested'` (backslashes **doubled**) |
-| `it's/a/path/o'brien` | `'it'"'"'s/a/path/o'"'"'brien'` (POSIX shell quote-breaking — multiple quote characters spliced into the middle of the string, unreadable as a plain-English log sentence) | `"it's/a/path/o'brien"` (correct here, but only because this sample has no backslash) | `"it's/a/path/o'brien"` (switches to double-quote delimiter automatically, zero escaping needed — this is the "quote-disambiguation" behavior the CONTEXT text credits `repr()` with) |
-| `plain/path` | `plain/path` (**no quoting at all** — `shlex.quote` omits delimiters entirely for shell-safe strings) | `"plain/path"` | `'plain/path'` |
+| `pyproject.toml` | `7` | `version = "0.9.0"` | Edit to `"0.9.2"` — this is the **sole hand-edited source of truth** per PROJECT.md's own D-08/carry-forward wording. |
+| `uv.lock` | `1467` | `version = "0.9.0"` (under the `name = "typsphinx"`, `source = { editable = "." }` entry) | **Not hand-edited** — regenerate via `uv lock` (or `uv sync --extra dev`) after the `pyproject.toml` edit, so this stays a lockfile-managed derivative, not a second hand-maintained literal. |
+| `README.md` | `347` | `**Status**: Stable (v0.9.0) - Production ready` | Edit to `v0.9.2`. This is the only literal version string in `README.md` — the PyPI/Python-version badges above it (lines 4–8) are dynamic shields.io badges with no literal to edit, and line 348 (`**Python**: 3.12+ \| **Sphinx**: 9.1+ \| **Typst**: 0.15+`) is a range statement unaffected by this bump. |
+| `CHANGELOG.md` | new `## [0.9.2]` heading + tail reference-link block | see below | Curate content; no other file needs a version-string literal for this bump (there is no `__version__.py`, no `docs/conf.py` version pin found — Sphinx's own docs build reads `release`/`version` from the installed package, not a separate literal). |
 
-- **`shlex.quote()` is POSIX-shell-command-substitution quoting, not display quoting** — wrong tool.
-  Two independent problems: (1) it quote-breaks (`'...'"'"'...'`) a string containing a single quote
-  into an unreadable multi-segment mess rather than a single delimited span, which fails the
-  57-REVIEW IN-01 "delimited unambiguously" bar in spirit even though it is technically shell-safe;
-  (2) it silently **omits delimiters** for a string containing no shell-special characters, which
-  breaks this codebase's existing convention that every interpolated path always appears wrapped
-  (every current `!r` and every current hardcoded `'...'` site always emits a delimiter pair).
-- **`json.dumps()` escapes backslash to `\\`** — this is precisely the defect class this milestone
-  exists to close (the same doubling `repr()` causes); ruled out on that basis alone, independent of
-  its JSON-specific `"..."` delimiter also being an odd choice for a plain-English sentence.
-- **`repr()`'s *delimiter-selection* half is exactly right and worth keeping** (this is what the
-  milestone context means by "restore the quote-disambiguation `repr()` provided"): Python's `repr()`
-  picks `'...'` by default, but switches to `"..."` when the string contains a single quote and no
-  double quote — verified live above, zero escaping needed in that case. What must be **dropped** is
-  `repr()`'s *other* half: its backslash-doubling and its control-character/non-ASCII escaping, which
-  is what caused the original defect and is not needed for a filesystem path.
+No other file in the repo carries a `0.9.0`-shaped literal that gates this release: `docs/`
+version fields are computed from the installed package, not a checked-in literal (confirmed by
+`README.md:176`'s `'release': 'version'` mapping comment referring to the *translator's*
+document-metadata mapping, unrelated to the package's own version).
 
-**Recommendation:** one small hand-rolled helper, in the same module and the same style as
-`_is_drive_qualified()` / `_conf17_violation_message()` — a single source-of-truth function that:
-1. Picks `'` as the delimiter, unless the value contains `'` and not `"`, in which case picks `"`
-   (repr()'s own delimiter-selection rule, reimplemented — CPython exposes no public API for just this
-   half; `unicode_repr()` is a C-internal implementation detail with no callable-in-parts surface).
-2. If the value contains *both* quote characters (the one case that still needs an escape to stay
-   unambiguous), backslash-escapes only the chosen delimiter character itself — never any other
-   backslash already present in the path. This is the one narrow exception, and it does not fire for
-   either of the two named regression-guard cases (a Windows path with no quotes at all; a path with a
-   single quote and no double quote).
-3. Wraps the (possibly delimiter-escaped) value in the chosen delimiter pair and returns it.
+### What `scripts/extract_changelog_section.py` requires of the heading format
 
-This is ~10 lines, zero new dependency, and slots into the same three call-site groups the existing
-`_conf17_violation_message()` / `_templates_path_collision_message()` /
-`_bundle_destination_collision_message()` functions already isolate — those three should call the new
-helper instead of their current hardcoded `'{value}'` f-string interpolation (dropping the single-quote
-hardcode per binding constraint #4/57-REVIEW WR-01), and the remaining path-valued `!r` sites census'd
-in the milestone context (`builder.py:942,964,965,999,1007,1008,1015,1767,2056,2066,697`,
-`writer.py:511-513`, `template_registry.py:410,422,433`) should route through it too. Identifier-valued
-`!r` (registry keys, docnames, config tuples — e.g. `key!r`, `docname!r`, `entry!r` seen throughout
-`builder.py`) is explicitly **out of scope and stays `!r`** — only filesystem-path-valued
-interpolations change.
+- The extraction is **purely positional**, matched by `_SECTION_HEADER_RE = re.compile(r"^## \[(?P<version>[^\]]+)\]")`:
+  find the first line whose heading names the requested version string exactly (no `v` prefix,
+  e.g. `"0.9.2"` not `"v0.9.2"` — `release.yml` already strips the `v` before calling the script),
+  then take every line up to (but not including) the *next* `## [...]`-shaped heading of any name,
+  or end of file.
+- It does **not** special-case the string `"Unreleased"` — deliberately, per its own module
+  docstring, because `CHANGELOG.md` already carries a second, unrelated `## [Unreleased]` heading
+  deep in a "Planned for Future Releases" scratch block. Any two same-named headings are handled
+  the same way: whichever occurs first wins, terminated by whichever `## [...]` line comes next.
+- It raises `RuntimeError` (exit 1, message on stderr) if no heading matches, or if the matched
+  body is empty after stripping — both cases `release.yml`'s `validate` job treats as a hard
+  failure *before* `build`/`publish-pypi`/`create-release` run (the "Verify CHANGELOG has a section
+  for this version" step), so an incomplete `## [0.9.2]` entry blocks the tag from publishing
+  rather than publishing with an empty GitHub Release body.
 
-## (d) pytest facilities for asserting Windows-shaped behavior without a Windows runner
+### What "v0.9.1 was never released" implies for the extractor and the tail link block
 
-**Answer: plain `pytest.mark.parametrize` over hand-built literal strings — no `monkeypatch`, no
-`skipif`.** This follows directly from (a): every predicate in scope
-(`_is_drive_qualified`, `_is_absolute_image_uri`, `_escapes_outdir`, and the new quoting helper from
-(c)) is a **pure string function** that calls `posixpath` explicitly and never touches `os.path` /
-`ntpath` / any OS-native module or `sys.platform`. That is a deliberate, load-bearing property — it
-is precisely *why* these functions are declared platform-independent (D-05) and *why* `_track_image()`
-was moved off the OS-native `path.isabs()` it used before BLD-09 (Phase 55). Given that:
+Today `CHANGELOG.md`'s top has ONE `## [Unreleased]` heading holding the PATH-01, IMG-04..07, and
+MSG-02..05 bullets (v0.9.1's completed-but-unreleased work), immediately followed by a `###
+Planned for Future Releases` sub-block (an unrelated, persistent scratch list: BibTeX, Glossary,
+Index generation, pre-commit hooks, template integration — none of these are release notes for any
+version), then `## [0.9.0] - 2026-08-17`.
 
-- **`monkeypatch` of `os.path`/`ntpath` is inapplicable, not merely unnecessary.** These functions
-  never import or call `os.path`/`ntpath` at all (they import `posixpath` directly, plus the
-  hand-rolled `_is_drive_qualified`), so there is nothing in their call graph a monkeypatch of
-  `os.path` could intercept. Reaching for `monkeypatch` here would be testing the wrong layer, and
-  worse, it would tempt a future edit toward re-introducing an OS-native-module dependency into code
-  whose whole point is to have none. The one place `monkeypatch` legitimately belongs in this
-  codebase is code that *does* branch on `sys.platform` or call the OS-native `path` module — and
-  this milestone's whole thrust (a) is moving code *away* from that shape, not toward it.
-- **`pytest.mark.skipif` is actively wrong for this milestone**, not just unneeded. Binding constraint
-  #1 states the whole class of defects is *latent because* the `windows-latest` CI lane doesn't
-  exercise these shapes today, and constraint #6's acceptance bar is the 3-OS lane green *including*
-  `windows-latest`. A `skipif` gating a Windows-shaped-string assertion to `sys.platform == "win32"`
-  would mean the POSIX lanes — where these bugs actually reproduce, since the predicates are pure
-  string functions with no OS dependency — never run the assertion at all, which is exactly backwards:
-  it would hide the defect from the two CI legs that can catch it fastest and reintroduce the
-  "green at HEAD, would stay green if nothing were fixed" trap constraint #1 already names.
-- **The existing test already demonstrates the correct pattern and should be extended, not
-  replaced:** `TestWindowsPathEscapingRegressionGuard`
-  (`tests/test_templates_path_collision_gate.py:412-452`) defines
-  `WINDOWS_SHAPED_PATH = "C:\\Users\\runner\\project\\_templates\\nested"` as a plain class attribute
-  and calls the real product functions (`_conf17_violation_message()`, etc.) directly with it — no
-  fixture indirection, no platform mocking, runs identically and meaningfully on every CI leg. The
-  new gates for `_escapes_outdir()`'s raw-vs-normalized bug, the three `_track_image()` gaps, and the
-  quoting helper's apostrophe case should follow the identical shape: `pytest.mark.parametrize` (or
-  the same hand-built-literal-plus-plain-`assert` style already used in the doctest blocks inside
-  `_is_drive_qualified`/`_escapes_outdir`) over string literals for the five shapes in (a)'s table,
-  asserted directly against the module-level functions.
-- **One exception the milestone itself names (binding constraint #2):** at least one gate must be a
-  real `typst.compile()` call, not a string assertion — because the `image("...")` backslash-escaping
-  gap (`translator.py:4746,4749`) is invisible to any assertion that stops at `node["uri"]`. This is
-  still not a platform-mocking concern: `typst-py`'s `compile()` binding is itself OS-agnostic (it
-  parses Typst-language syntax, not filesystem paths), so feeding it a Windows-shaped URI string on a
-  POSIX CI runner exercises the real defect (Typst's language-level refusal of an unescaped backslash
-  in a string literal) with no OS simulation needed at all — this is the "real gate," not a
-  monkeypatch target.
+Per the milestone context, **no `## [0.9.1]` heading is ever created.** The correct edit is:
 
-## What NOT to use
+1. Rename the current `## [Unreleased]` heading to `## [0.9.2] - <release date>`, folding in this
+   milestone's own image-separator fix as an additional `### Fixed` bullet alongside the carried
+   PATH-01/IMG-04..07/MSG-02..05 bullets.
+2. **Extract the `### Planned for Future Releases` sub-block out from under that heading first** —
+   it must not become part of the `## [0.9.2]` section body, because
+   `extract_section()`'s positional algorithm would otherwise include it verbatim in the GitHub
+   Release body (it has no heading of its own to stop at until the next `## [...]` line, which
+   today is `## [0.9.0]` — so as currently nested, the scratch block IS inside the "Unreleased"
+   section and WOULD be captured if that heading were simply renamed in place without relocating
+   the sub-block). The scratch content needs to persist somewhere (it is not versioned work); the
+   simplest correct shape is a **fresh, empty `## [Unreleased]` heading placed above the new `##
+   [0.9.2]` heading**, with the `### Planned for Future Releases` sub-block moved under that new
+   empty `## [Unreleased]` heading instead of remaining under `## [0.9.2]`. This also restores the
+   normal Keep-a-Changelog convention (an `## [Unreleased]` heading always exists at the top,
+   ready to receive the next round's bullets) that the v0.9.1-was-never-released situation had
+   temporarily broken.
+3. At the tail reference-link block (currently ending
+   `[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.9.0...HEAD`), add a new line
+   `[0.9.2]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.2` positioned above the
+   existing `[0.9.0]: .../releases/tag/v0.9.0` line (newest-first, matching every existing entry's
+   ordering), and advance the `[Unreleased]` compare link's base ref from `v0.9.0` to `v0.9.2`:
+   `[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.9.2...HEAD`. No `[0.9.1]`
+   link is ever added, matching the "no `## [0.9.1]` heading" rule.
 
-| Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| `ntpath.isabs()` / `os.path.isabs()` (bare, on either the raw or the normalized string) as the sole absolute-path test | Its answer for a driveless-absolute shape flipped between CPython 3.12 and 3.13 (verified against `Lib/ntpath.py` source and the 3.13 changelog) — version-dependent, not just OS-dependent | The existing composite: backslash-normalize, then `posixpath.isabs(normalized) or _is_drive_qualified(normalized)` |
-| `pathlib.PureWindowsPath.is_absolute()` as a second, Windows-specific predicate alongside `posixpath.isabs()` | Introduces a second predicate with its own, different drive/UNC boundary rather than reusing the one already established; doubles the surface that must be kept in sync | The single existing composite predicate, applied uniformly |
-| `os.pathconf()` / `os.statvfs()` to query the filesystem's `NAME_MAX` at write time | `Availability: Unix` only (verified against the stdlib docs) — raises `AttributeError` unconditionally on the `windows-latest` CI leg | A hardcoded, conservative byte-count constant (`_MAX_BASENAME_BYTES = 255`, UTF-8 byte-counted) |
-| `shlex.quote()` for a human-readable log/warning message | POSIX shell quoting: quote-breaks a single-quote-containing string into an unreadable multi-segment escape, and omits delimiters entirely for "safe" strings, breaking this codebase's always-delimited convention | A small hand-rolled helper reusing `repr()`'s delimiter-selection rule without its escaping |
-| `json.dumps()` for the same purpose | Escapes backslash to `\\` — reproduces the exact defect this milestone exists to close | Same hand-rolled helper |
-| `repr()` unmodified, for any filesystem-path-valued interpolation | Doubles backslashes (the root defect) and escapes control/non-ASCII characters not relevant to a path | The hand-rolled helper, which keeps only `repr()`'s delimiter-selection half |
-| `pytest.mark.skipif(sys.platform != "win32", ...)` on any of these predicate tests | These are pure string functions with no OS dependency; skipping them on POSIX lanes hides the exact defect class this milestone exists to surface, and contradicts binding constraint #6 (3-OS lane, all green) | `pytest.mark.parametrize` over hand-built literal strings, run unconditionally on every OS |
-| `monkeypatch` of `os.path`/`ntpath`/`sys.platform` for these predicates | None of the in-scope functions import or call those modules — there is nothing for the monkeypatch to intercept, and reaching for it would pull code back toward the OS-native-module dependency this milestone (and Phase 55/BLD-09 before it) deliberately removed | Plain literal-string test inputs; no mocking layer |
+### `release.yml` mechanics that apply unchanged (no workflow edit needed)
 
-## Version Compatibility
+`release.yml`'s `validate` job resolves `TAG_VERSION` from the pushed tag (`v0.9.2` → `0.9.2`),
+compares it string-for-string against `pyproject.toml`'s `project.version` (so the `pyproject.toml`
+edit above is what this check reads), then calls `extract_changelog_section.py "$VERSION"` to gate
+on the `## [0.9.2]` section existing and being non-empty — all before `build`/`publish-pypi` run.
+The `create-release` job later calls the same script to build the GitHub Release body. Per
+PROJECT.md's own binding constraint #6, this job's `uv`-on-PATH step previously failed on the
+v0.7.0 tag push (`uv: command not found`, since fixed) and has been green at v0.8.0/v0.9.0 — a real
+tag push exercises it again, so a failure here is an in-scope release-prep problem, not a stack
+question; no code or dependency change is indicated by this research.
 
-| Concern | Notes |
-|---|---|
-| CPython 3.12 vs 3.13 `ntpath.isabs()`/`os.path.isabs()` | Diverge on the driveless-absolute shape (3.12: `True`; 3.13: `False`) — irrelevant to the recommended fix since it never calls either function, but worth keeping in mind if any future code in this file is tempted to reach for the OS-native `path` module again |
-| `posixpath`, `pathlib` | Stable across 3.12–3.13 for every shape in the table above — no compatibility concern for the recommended composite predicate |
-| `typst-py` (`>=0.15,<0.16`, already pinned) | Unaffected by any of these path-handling fixes; only relevant as the real-compile gate binding constraint #2 requires (feeding an escaped-vs-unescaped `image("...")` string through `typst.compile()`) |
+## 4. What NOT to add — explicit out-of-scope list
 
-## Integration points (concrete, file:line)
-
-- **`builder.py:238`** (`_escapes_outdir`) — apply `posixpath.isabs(...)` / `_is_drive_qualified(...)`
-  to the same normalized string `segments` is already built from, not the raw `stem` — one-line fix,
-  mirrors `_is_absolute_image_uri()`'s body exactly.
-- **`builder.py:1772`** (`_track_image`, escape branch) — replace `path.basename(resolved_uri)`
-  (OS-native `path`, imported `from os import path` at the top of this module) with a basename taken
-  from the same backslash-normalized string `_is_absolute_image_uri()` computed for the gate check
-  just above it in this same function — do not recompute the normalization a fourth time in this file;
-  factor the existing `.replace("\\", "/")` line into a tiny shared normalize step if that avoids the
-  duplication cleanly, otherwise inline it identically to the other three sites (`builder.py:193, 230,
-  662`).
-- **`builder.py:1772-1780`** (key construction) — apply the (b) truncation (`_MAX_BASENAME_BYTES`,
-  digest-anchored) to the basename component only, after the normalization fix above.
-- **`translator.py:4746,4749`** (`visit_image`) — route `adjusted_uri` through
-  `escape_typst_string()` (`translator.py:156`, already the single source of truth for Typst
-  string-literal escaping in this file) before interpolating it into `image("{adjusted_uri}"`.
-- **Quoting helper (c)** — new small function, most naturally placed beside
-  `_conf17_violation_message()` / `_templates_path_collision_message()` /
-  `_bundle_destination_collision_message()` in `builder.py` (lines 303-403), since those three already
-  own the "build the message text once, call it from every site" pattern this milestone extends. Every
-  site in the census (`builder.py:942,964,965,999,1007,1008,1015,1767,2056,2066,697`,
-  `writer.py:511-513`, `template_registry.py:410,422,433`) that currently interpolates a **path
-  value** (not an identifier) with `!r` or a hardcoded `'...'` switches to call it.
+| Tempting addition | Why it is out of scope for v0.9.2 | What to do instead |
+|---|---|---|
+| A new test framework, mocking library, or snapshot-testing tool for the regression gate | The existing `subprocess.run([sys.executable, "-m", "sphinx", ...])` + `typst-py`-via-builder idiom, already used by 100+ gates in this suite, fully covers "assert on a real compile" — introducing anything else (e.g. `pytest-subprocess`, a Typst-specific test harness) would be a second, divergent idiom for no capability gain. | Copy `test_paragraph_concat_render_gate.py` + `test_abbr_pep_separator_render_gate.py`'s structure exactly (Section 1 above). |
+| Bumping `typst`, `sphinx`, or the four `@preview` packages | All five are already at their current released version (Section 2) — a bump literal would not change what gets installed, it would only be a no-op edit that risks a version-sync test false alarm. | Leave `pyproject.toml`, `writer.py`, `template_engine.py`, `templates/base.typ` byte-identical on these lines. |
+| Relaxing the `docutils<0.23` upper bound to admit `docutils==0.23` | `docutils` 0.23 exists but this repo's own `filterwarnings` comment in `pyproject.toml` documents that the current `0.22.4`-resolving pin was deliberately verified against `error::DeprecationWarning`/`error::PendingDeprecationWarning`; admitting an unverified newer `docutils` is an ecosystem-currency change with its own research burden, unrelated to the image blocker or the release mechanics. | Leave the pin as `>=0.21,<0.23`; file it as a future-milestone research item if desired, not this one. |
+| A new `numref`/per-master-divergence fix, a `templates_path` fix (WR-02), the tripled-warning fix (54.1 WR-01), a `linkcheck` CI job, the `UP006`/`UP035` typing modernization, or `ruff`-on-NixOS work | PROJECT.md's own "Not scoped into v0.9.2" list names every one of these explicitly as carried-forward-unchanged. None of them touch the image-separator defect or the publish path. | Leave untouched; they remain filed as pending todos for a future milestone. |
+| Creating a `## [0.9.1]` CHANGELOG heading, or a `v0.9.1` git tag/PyPI release | v0.9.1 was never published — its work is absorbed into `## [0.9.2]` directly (Section 3). Creating a retroactive `0.9.1` artifact would misrepresent what was actually shipped and complicate the tail reference-link block for no reason. | Fold v0.9.1's bullets into the `## [0.9.2]` entry; add only a `[0.9.2]` link, never a `[0.9.1]` one. |
+| A second, independent implementation of changelog-section extraction (e.g. a new script, or reading `CHANGELOG.md` a different way inside a new test) | `scripts/extract_changelog_section.py` is explicitly documented (D-06 in its own module docstring) as the ONE committed, pytest-covered implementation, consumed by both `release.yml` jobs via subprocess — a second implementation risks silent divergence from what CI actually runs. | Reuse the existing script as-is; if a test needs to check the new `## [0.9.2]` section, drive it the same way `tests/test_changelog_extraction.py` already does (subprocess, not import). |
+| Auditing the other thirteen inline constructs the todo already swept (`:ref:`, inline literal, emphasis, `:abbr:`, `:kbd:`, `:manpage:`, citation reference, `:term:`, `:index:`, `:guilabel:`, external link, footnote reference, `:math:`, `:download:`) for the same class of bug | PROJECT.md's binding constraint #2 states this sweep was already measured and found exactly one unseparated site (the image); footnote, math, and download already emit a leading separator. Re-auditing them is scope creep on a "single site, not a class" fix. | Fix only `visit_image()`; do not touch the other fourteen visitor pairs. |
 
 ## Sources
 
-- CPython `Lib/ntpath.py` at tag `v3.12.8`:
-  `https://github.com/python/cpython/blob/v3.12.8/Lib/ntpath.py` — `isabs()` source, fetched and
-  diffed directly.
-- CPython `Lib/ntpath.py` at tag `v3.13.13`:
-  `https://github.com/python/cpython/blob/v3.13.13/Lib/ntpath.py` — `isabs()` source, fetched and
-  diffed directly.
-- CPython stdlib docs, `os.path.isabs()`:
-  `https://docs.python.org/3/library/os.path.html#os.path.isabs` — quotes the "Changed in version
-  3.13" note verbatim.
-- CPython stdlib docs, `os.pathconf()` availability:
-  `https://docs.python.org/3/library/os.html#os.pathconf` — `Availability: Unix` confirmed.
-- Live measurement, this repo's own interpreter (`python3 --version` → 3.13.13): `posixpath.isabs`,
-  `ntpath.isabs`, `os.path.isabs`, `pathlib.PurePosixPath.is_absolute`,
-  `pathlib.PureWindowsPath.is_absolute`, `os.pathconf(".", "PC_NAME_MAX")` → `255`, and the
-  `shlex.quote()` / `json.dumps()` / `repr()` comparison table — all run directly via `python3 -c`
-  during this research session (commands and output preserved in the session transcript).
-- Web search cross-check on ext4/APFS/NTFS component-length limits (byte-vs-UTF-16-unit distinction),
-  no single canonical stdlib/vendor doc page found — MEDIUM confidence, flagged in-line above; if this
-  matters for the eventual gate's exact test values, a real-filesystem measurement on each CI runner
-  (`os.pathconf` on ubuntu-latest/macos-latest; a `MAX_PATH`-adjacent probe or documentation-only
-  reference on windows-latest, since no stdlib call exists there) is the fallback plan, not required
-  for the hardcoded-constant recommendation above.
-- Existing repository code read directly, not re-derived: `typsphinx/builder.py` (`_is_drive_qualified`
-  86-118, `_is_absolute_image_uri` 121-194, `_escapes_outdir` 197-238, `_track_image` ~1650-1790,
-  `_conf17_violation_message`/`_templates_path_collision_message`/
-  `_bundle_destination_collision_message` 303-403), `typsphinx/translator.py`
-  (`escape_typst_string` ~156, `visit_image` ~4740-4760), `typsphinx/writer.py` (~500-516),
-  `typsphinx/template_registry.py` (~400-436), `tests/test_templates_path_collision_gate.py`
-  (`TestWindowsPathEscapingRegressionGuard` 412-452), `.planning/PROJECT.md` (v0.9.1 milestone
-  section).
+- `/home/yuta/Documents/typsphinx/.planning/PROJECT.md` (`## Current Milestone: v0.9.2` section) — HIGH confidence, primary project record.
+- `/home/yuta/Documents/typsphinx/.planning/todos/pending/2026-08-29-inline-image-in-paragraph-emits-unseparated-expression.md` — HIGH confidence, measured reproduction with trigger matrix.
+- `/home/yuta/Documents/typsphinx/pyproject.toml`, `uv.lock`, `README.md`, `CHANGELOG.md`, `.github/workflows/release.yml`, `scripts/extract_changelog_section.py` — HIGH confidence, read directly from the working tree at HEAD, 2026-08-30.
+- `/home/yuta/Documents/typsphinx/typsphinx/writer.py`, `typsphinx/template_engine.py`, `typsphinx/templates/base.typ`, `typsphinx/translator.py` — HIGH confidence, read directly, line numbers verified by direct `grep -n`/`sed -n` against the working tree.
+- `/home/yuta/Documents/typsphinx/tests/test_paragraph_concat_render_gate.py`, `test_abbr_pep_separator_render_gate.py`, `test_windows_image_uri_render_gate.py` and their `tests/fixtures/*` pairs — HIGH confidence, read directly.
+- PyPI JSON API (`https://pypi.org/pypi/typst/json`, `.../sphinx/json`, `.../docutils/json`) — HIGH confidence, live official package-index source, fetched 2026-08-30.
+- `https://typst.app/universe/package/codly`, `.../codly-languages`, `.../mitex`, `.../gentle-clues` — HIGH confidence, live official Typst Universe package pages, fetched 2026-08-30.
 
 ---
-*Stack research for: typsphinx v0.9.1 "Windows path correctness"*
-*Researched: 2026-08-27*
+*Stack research for: typsphinx v0.9.2 (inline-image blocker fix + PyPI release)*
+*Researched: 2026-08-30*
+</content>

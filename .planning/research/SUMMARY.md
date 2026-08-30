@@ -1,185 +1,186 @@
-# Research Synthesis: typsphinx v0.9.1 "Windows Path Correctness"
+# Project Research Summary: typsphinx v0.9.2
 
-**Synthesized:** 2026-08-27  
-**Milestone:** v0.9.1 — Windows path-shape correctness (bug-fix, three defect families)  
-**Research Status:** Complete (STACK.md, FEATURES.md, ARCHITECTURE.md, PITFALLS.md all synthesized)
-
----
+**Project:** typsphinx v0.9.2 — Inline image blocker fix + PyPI release  
+**Domain:** Sphinx→Typst translator bugfix (code-mode expression separator defect)  
+**Researched:** 2026-08-30  
+**Confidence:** HIGH (all major claims independently measured via real `typst.compile()`, file:line code reads, and live workflow API)
 
 ## Executive Summary
 
-typsphinx is a mature Sphinx extension with three latent path-handling defects related to Windows path shapes (backslash separators, drive letters, UNC paths). The defects are invisible on Windows CI today because the extension runs on Linux CI with pure string functions — platform-shape testing is fully decoupled from platform identity, per deliberate Phase-55 architecture. This milestone closes all three by normalizing paths to forward slashes before classification/emission, adding delimiter-aware quoting for diagnostics, and bounding relocation-key basename length against the portable 255-byte filesystem limit.
+typsphinx v0.9.2 is a **narrow, two-aim patch release**: fix ONE blocker in `visit_image()` that prevents `-b typstpdf` from generating any PDF when an image node appears anywhere but at the start of its container (currently emits `expected semicolon or line break` syntax error), and publish the result together with v0.9.1's already-completed but never-released work as version 0.9.2 on PyPI.
 
-**Core technical thrust:** The defects cluster around two functions (`_escapes_outdir` in builder.py and image-path handling in both builder.py/translator.py) that apply Windows-shape classification or emit paths without first normalizing backslashes to forward slashes. The fixes are low-complexity (three to four one-line or ~10-line changes) but depend critically on **two technical constraints that must carry forward into planning:**
+The blocker is structurally identical to a defect v0.6.5 fixed for `visit_math`: the image emitter fails to participate in the shared separator discipline (`_add_paragraph_separator()` / `_emit_inline_concat_separator()` / `in_list_item` + `list_item_needs_separator`) that every other inline code-mode emitter (text, literal, math, footnote reference, reference) already uses. The fix is a 10–15 line addition mirroring the established triad, proven to close all 16 measured failing shapes (mid-sentence images, consecutive images, images in list items, tables, definitions, admonitions, footnotes, figures' legends, field-list bodies, and section titles) while leaving 9+ passing shapes byte-identical — confirmed by measured sampling, not assertion alone.
 
-1. **Typst's rejection of backslash is value-level, not syntax-level** — escaping the backslash in Typst source (`\\`) does not stop Typst's refusal; the backslash must be removed from the *value* before it reaches the string literal. Therefore, `escape_typst_string()` at image-emission sites is necessary for defense-in-depth (syntax-breaking characters like `"`) but **cannot by itself fix** the backslash-in-path defect — relocation-key normalization (removing backslash at the builder layer) and escaping (handling other chars at the translator layer) are **coupled, not independent fixes**. Landing only one without the other leaves the defect active.
-
-2. **The "zero test edits" discipline cannot hold for this milestone** — exactly two existing tests hard-code `repr()`'s backslash-doubling behavior as their pass criterion. When the quoting-helper fix switches these sites from `!r` to the new delimiter-aware helper, both tests WILL FAIL on POSIX immediately. These two test edits are **expected and required work**, not regressions to revert. They must land in the same wave as the source fixes.
-
-The recommended approach applies the composite path-classification idiom `_is_drive_qualified() + posixpath.isabs()` (already established in this codebase) uniformly across all three defect families, uses a new leaf module for the quoting helper to avoid import cycles, and structures gates to exercise both POSIX-runnable string assertions and one real `typst.compile()` call to catch value-level behaviors.
-
----
+Release mechanics are straightforward but require exact execution: three version-literal files (`pyproject.toml`, `uv.lock`, `README.md`) must move in lockstep; the existing `uv.lock` regeneration must not be skipped (already blocking dependabot in this repo); and the CHANGELOG's "Planned for Future Releases" scratch block must be relocated before its heading becomes `## [0.9.2]` (to avoid the extraction algorithm capturing it as release notes). The release-prep phase inherits a proven guard procedure (SHA-256 baseline + re-verification) to prevent the checkbox auto-flip defect that fired five consecutive times at prior closes. No new runtime or test dependencies are required — the fix uses existing `typst-py` and regression tests reuse the existing parallel-gate idiom from three precedent modules.
 
 ## Key Findings
 
-### From STACK.md (Technical Recommendations)
+### Recommended Approach
 
-**Path-shape classification authority:**
-- Use composite: backslash-normalize first, then `posixpath.isabs(normalized) or _is_drive_qualified(normalized)`
-- This idiom is already in `_is_absolute_image_uri()`; `_escapes_outdir()` must match it
-- Do NOT use `ntpath.isabs()` / `os.path.isabs()` directly — diverged between CPython 3.12 and 3.13
-- Do NOT use `pathlib.PureWindowsPath` — introduces a different boundary
+**Add nothing to the stack.** All runtime and test dependencies (typst-py, sphinx, docutils, the four @preview Typst Universe packages) are already at their current released versions as of 2026-08-30, verified live against PyPI/Typst Universe APIs. No version bump, no new test framework, no new package import is needed. The "stack" work is entirely version-literal management and regression-gate implementation using tooling already proven in the repo.
 
-**Filesystem component-length limit:**
-- Hardcode `_MAX_BASENAME_BYTES = 255` (ext4/APFS limit, conservative for NTFS)
-- Truncate after UTF-8 encoding but slice in `str` space (never split multi-byte UTF-8)
+**The mechanism is singular and precedent-bound.** FEATURES.md's measurement of 16 failing shapes all stem from one root cause: `visit_image()` never calls the three-part separator protocol that `visit_Text`, `visit_literal`, `visit_math`, `visit_footnote_reference`, and `visit_reference` all use. The fix reuses this exact protocol in the non-`in_figure` branch.
 
-**Delimiter-aware path-quoting without backslash-escaping:**
-- Keep `repr()`'s quote-disambiguation (prefer `'`; switch to `"` if value contains `'` and not `"`)
-- Drop `repr()`'s backslash-doubling
-- Hand-rolled ~10-line helper in a new leaf module: pick delimiter, interpolate raw value
+### Trigger Matrix: 16 Measured Failures
 
-**Test strategy:**
-- Use `pytest.mark.parametrize` over hand-built Windows-shaped string literals on every CI lane
-- Exception: gap 2 needs real `typst.compile()` call to surface value-level rejection
+All emit `par({text("...")image(...)` with zero separator, all answer `expected semicolon or line break`:
 
-### From FEATURES.md (Verified Observable Behaviors)
+- 1–3: Mid-sentence substitution image, two adjacent images, image in list item (from original todo, reproduced)
+- 4–8: Image as 2nd list-item element, in table cell, definition-list body, admonition, footnote (MEASURED new)
+- 9–10: Image(s) in figure legend, mid-text (MEASURED new, shows `in_figure` not complete guard)
+- 11–13: Image after inline literal, emphasis, external link (MEASURED new)
+- 14: Image in field-list body (MEASURED new, also concat-context)
+- 15: Image in section title (MEASURED new)
+- 16: Image with width/height attributes, mid-sentence (MEASURED new)
 
-**Escape-guarding config path:**
-- Sphinx's `latex_documents` does zero path-shape checking; typsphinx already refuses overescaping
-- This milestone makes detection platform-independent (normalize before predicates)
-- Mechanical fix: swap raw `stem` for normalized string at `builder.py:238`
+### Regression Surface: 9+ Shapes Must Stay Byte-Identical
 
-**Relocation key construction:**
-- Three precedents (Sphinx's `FilenameUniqDict`, `DownloadFiles`, pip wheel cache) preserve human-readable portion
-- Truncate only basename half; keep 8-hex-char SHA-1 digest intact (collision-anchor)
+Standalone block-level image, figure, image first in paragraph, images with attributes (standalone/first), image with target ID, figure with plain-text legend, figure nested in list, figure as first list-item element, bare block image as first list-item element.
 
-**Image-path escaping:**
-- Typst rejects backslash BY VALUE, not syntax — escaping doesn't help
-- Normalization (removing backslash) is necessary AND sufficient
-- `escape_typst_string()` needed for OTHER syntax-breaking characters (`"`, newlines)
+Zero pre-existing test edits achievable — 144 existing `image(` matches are substring assertions, never exact-byte checks.
 
-**Diagnostic path quoting:**
-- Sphinx/pip/mypy use plain interpolation or double-quote delimiters with no escaping
-- "Restore `repr()`'s quote-disambiguation without backslash-doubling" matches ecosystem convention
+### Release Mechanics: Three Version Literals in Lockstep
 
-### From ARCHITECTURE.md (Integration Constraints)
+| File | Line | Current | Target | Critical Note |
+|------|------|---------|--------|---------|
+| `pyproject.toml` | 7 | `"0.9.0"` | `"0.9.2"` | Hand-edited source of truth |
+| `uv.lock` | 1467 | `"0.9.0"` | (regenerated) | **NOT hand-edited** — run `uv lock` after pyproject.toml; omitting breaks eleven `--locked` CI steps |
+| `README.md` | 347 | `v0.9.0` | `v0.9.2` | Only version literal (badges are dynamic) |
+| `CHANGELOG.md` | new | (none) | `## [0.9.2] - <date>` | Must relocate "Planned for Future Releases" first to avoid extraction capture |
 
-**Module structure:**
-- `builder.py` ↔ `writer.py` form direct module-scope cycle if helper lives in either
-- `builder.py` ↔ `template_registry.py` have pre-existing deliberate cycle-break
-- **Solution: New leaf module** (e.g., `typsphinx/pathfmt.py`) importing nothing from typsphinx
+**CHANGELOG structure:** Relocate "Planned for Future Releases" to new empty `## [Unreleased]` at top; rename old `## [Unreleased]` to `## [0.9.2]`. No `## [0.9.1]` heading ever created — v0.9.1 was never released.
 
-**Defect 1 blast radius** (`_escapes_outdir()` normalization):
-- Called at exactly two production sites; both pre-normalize input
-- Fix changes CLASSIFICATION OF NEITHER call site (both remain byte-identical)
-- Fix's value: make function correct as standalone predicate, remove inconsistency with `_is_absolute_image_uri()`
-- RED-first gate MUST call `_escapes_outdir()` directly (integration test would be tautologically green)
+### Gate Idiom to Copy
 
-**Three fixes converge on same method region:**
-- Defect 1: `_escapes_outdir()` 197-238 (called from 1727 inside `_track_image()`)
-- Defect 2: `_track_image()` 1761-1772 + `visit_image()` at `translator.py:4746,4749`
-- Defect 3: `builder.py:1767` rehome warning + ~12 other sites
-- File/line/string adjacency makes parallel plans risky; sequential bundling recommended
+**Precedent:** `tests/test_paragraph_concat_render_gate.py` + `test_abbr_pep_separator_render_gate.py`
 
-**Wave structure:**
-- **Wave 1 (parallel):** New leaf module + its tests; translator.py escaping (independent)
-- **Wave 2 (sequential within builder.py, parallel outside):** Builder.py triple-fix bundled; writer.py separate; registry.py separate
+- TYPST_AVAILABLE guard + pytest.mark.skipif
+- `_run_sphinx_build_typstpdf()` helper (subprocess with `sys.executable -m sphinx`, not binary on PATH)
+- Multi-shape fixture pairing FAIL + PASS control shapes
+- Assertions: returncode == 0; "Typst compilation failed" not in stderr; structural string check; PDF magic bytes
 
-### From PITFALLS.md (Critical Hazards)
+### Critical Pitfalls (Ranked by Likelihood in This Milestone)
 
-**Pitfall 1 — two tests WILL break on intended fix (EXPECTED):**
-- `test_out02_escape_target_gate.py::test_escape_shape_refused_with_containment_proof[drive]` line 134
-- `test_builder.py::test_post_process_images_rehome_escape_relocates_with_warning` line 598
-- Both explicitly expect `repr()`'s doubling; both fail when sites switch to new helper
-- **Recovery:** edit both assertions for new helper's output
+1. **String-only gate cannot see parser defects** — Existing nine image tests assert only on string. New gate must call `typst.compile()` explicitly; RED-first TDD proves teeth.
 
-**Pitfall 2 — `template_registry.py:410` type-check site must NOT use new helper:**
-- Line 408-412 fires when `template` is NOT `str`/`os.PathLike` (type error case)
-- Leave this site on `!r`; route only lines 422/433 through helper
+2. **Gate never proven RED** — Fixture written after fix is only ever passing. Must restore unfixed translator, capture error, restore fix, verify empty `git status`.
 
-**Pitfall 3 — `os.PathLike` values need stringification:**
-- `template_registry.py` accepts `pathlib.Path` templates; existing test exercises it
-- Helper's first action: `value = str(value)`
+3. **Fixing tests instead of proving byte-identical** — Zero pre-existing test edits is the standard. Any change signals need for justification.
 
-**Pitfall 4 — do NOT silently fold backslash to slash at image-emission:**
-- At classification: safe (wrong classification = unnecessary rehome + warning)
-- At emission: unsafe (silent rewriting changes which file Typst opens)
-- Correct fix: `escape_typst_string(adjusted_uri)` only
+4. **`ruff` unrunnable in fresh worktree (NixOS)** — `black --check .` + `mypy` pass locally, hiding findings. Run `nix run nixpkgs#ruff -- check .` or dispatch CI.
 
-**Pitfall 5 — length-bound truncation has five failure modes:**
-- Wrong component truncated; UTF-8 mid-character split; extension lost; collision reintroduced; empty-stem edge
-- Correct: split extension; truncate stem in `str` space; size-check in UTF-8 bytes; anchor digest; verify collision preservation
+5. **Release-checkbox auto-flip** — Five consecutive flips, then one hold via guard. `<phase>-CLOSEOUT-GUARD.md` with SHA-256 baseline + re-verification. Every plan declares `requirements-completed: []`.
 
-**Pitfall 6 — POSIX-only unit tests necessary; CI dispatch not first discovery:**
-- Phase 57 burned two CI matrix runs
-- Proven pattern: `TestWindowsPathEscapingRegressionGuard` calling real functions directly on POSIX
-- Correct discipline: commit RED-first fixture, confirm failure locally, fix, reconfirm green, THEN dispatch CI
+6. **`uv.lock` regeneration omitted** — Bumping `pyproject.toml` without regenerating causes `--locked` failures (exact error blocking dependabot #123, #128). One commit touching all four files required.
 
----
+7. **Windows-only encoding failures** — New tests must use explicit `encoding="utf-8"`.
 
 ## Implications for Roadmap
 
-### Phase Structure (Recommended)
+Three sequential phases:
 
-**Phase A (Wave 1):** Create delimiter-aware path-quoting helper module + unit tests (new `pathfmt.py` leaf module). Parallel safe.
+### Phase A: Fix + Regression Gate
 
-**Phase B (Wave 1):** Escape image URIs in Typst `image()` emission (`translator.py:4746,4749`). Parallel safe with A. Uses pre-existing `escape_typst_string()`.
+**Rationale:** Fix and acceptance test land together. Gate proves fix works (string assertion alone insufficient).
 
-**Phase C (Wave 2):** Normalize and bound image-relocation keys, fix escape-detection normalization (bundled defects 1/2 gaps 1/3 in `builder.py`). Sequential single plan.
+**Delivers:**
+- `visit_image()`/`depart_image()` separator triad (10–15 lines)
+- New regression-gate module + fixture covering all 16 FAIL + 9 PASS shapes via real `typst.compile()`
+- Closure of pending todo with extended matrix
 
-**Phase D (Wave 2):** Wire delimiter-aware helper into `builder.py` warning sites (~10 sites). Edit two broken tests (lines 134, 598). Parallel safe (separate from C).
+**Prevents:** Pitfalls 1, 2, 3
 
-**Phase E (Wave 2):** Wire delimiter-aware helper into `writer.py` debug log. Separate test class. Parallel safe with D.
+**Research flags:** None — measured end-to-end, gate idiom precedent-bound
 
-**Phase F (Wave 2):** Wire delimiter-aware helper into `template_registry.py:422,433` (exclude line 410). Separate test class. Parallel safe with D/E.
+**Observable success:**
+- New test imports `typst`/`TYPST_AVAILABLE`
+- All 16 FAIL shapes produce exact error on unfixed tree (Evidence file with error + successful restore)
+- All 16 + 9 shapes pass after fix
+- Pre-existing nine image tests unchanged
+- Diff shows only new test files
 
-### Confidence Assessment
+---
+
+### Phase B: Release Preparation
+
+**Rationale:** Version bump, CHANGELOG curation, checkbox guard are release-prep bookkeeping (after fix, before publish).
+
+**Delivers:**
+- CHANGELOG: "Planned for Future Releases" relocated; `## [Unreleased]` → `## [0.9.2]` with v0.9.1 bullets + image fix; tail links updated
+- `pyproject.toml`: version `0.9.0` → `0.9.2`
+- `uv.lock`: regenerated
+- `README.md`: Status line updated
+- `<phase>-CLOSEOUT-GUARD.md`: SHA-256 baseline + re-verification
+
+**Prevents:** Pitfalls 4, 5, 6, 7, 9
+
+**Observable success:**
+- One commit touching all four files
+- `## [0.9.2]` heading non-empty
+- "Planned for Future Releases" under new empty `## [Unreleased]`
+- CLOSEOUT-GUARD baseline + MATCH re-verification
+- All plans declare `requirements-completed: []` for release requirement
+- Lint clean
+
+---
+
+### Phase C: Publish
+
+**Rationale:** Tag push, PyPI publish, GitHub Release, post-publish RTD/translations checks — strictly last.
+
+**Delivers:**
+- Git tag `v0.9.2` pushed
+- `release.yml` runs: validate, build, publish-pypi, create-release
+- Manual dispatch of translations repo `update-pin.yml`
+- RTD `en`/`ja` `stable` verify `0.9.2`
+
+**Observable success:**
+- All `release.yml` jobs show `success`/`skipped`
+- Translations repo `update-pin.yml` run and `v0.9.2` tag created
+- RTD APIs show `0.9.2` on both projects with `"active": true, "built": true`
+
+---
+
+### Phase Ordering Rationale
+
+Fix → Release-Prep → Publish aligns with code/test completion → metadata finalization → immutable release. Matches v0.6.x → v0.9.1 precedent (fix phases never touch version files; prep phases curate and guard; publish is mechanical).
+
+## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| **Stack** | HIGH | CPython source diff, live measurements, composite predicate pattern proven by existing `_is_absolute_image_uri()` |
-| **Features** | HIGH | Verified against Sphinx 9.1.0, mypy, pip, real `typst.compile()`. Value-level rejection finding directly measured. |
-| **Architecture** | HIGH | Import graph claims read from module blocks; line numbers verified; call site pre-normalization confirmed. Import-cycle analysis concrete. |
-| **Pitfalls** | HIGH | Every pitfall anchored to line number/file. Test-breakage cases guaranteed on POSIX. Pitfalls 2/3 read from source. Pitfalls 4/5/6 verified via measurement/Phase-57 precedent. |
+| Stack | **HIGH** | All elements verified live vs. PyPI/Typst Universe (2026-08-30); no bump needed |
+| Features (Defect Surface) | **HIGH** | 16 FAIL independently compiled with real `typst.compile()`; 9 PASS measured byte-identical; 14-construct survey confirms single-site |
+| Architecture (Fix Mechanism) | **HIGH** | Triad extracted from five working visitors (line-number citations); three candidates eliminated via measured proof |
+| Pitfalls | **HIGH** | Every major pitfall backed by RETROSPECTIVE.md incidents with line citations; currently live or recently live in repo |
+
+**Overall:** **HIGH** — defect measured, fix precedent-bound, release mechanical, every major pitfall has documented tested workaround.
 
 ### Gaps to Address
 
-1. Exact UTF-8 boundary-safe truncation algorithm implementation (spec complete, needs prototyping in Phase C)
-2. Extension preservation in truncation implementation choice
-3. Grep-confirm exact site census during planning (`builder.py:942,964,965,999,1007,1008,1015,1767,2056,2066,697`, `writer.py:511-513`, `template_registry.py:410,422,433`)
+1. **Fixture shape details** — Phase A adapts probe code from FEATURES.md into polished `.rst` (~50 lines, low complexity)
+2. **Evidence capture** — Adapts Phase 59's template (~30 min execution, 5 min writeup)
+3. **README scope check** — Spot-check for other version strings (1 grep, seconds)
 
----
-
-## Research Flags for Roadmap
-
-**No phases require targeted research** — all technical patterns and call sites fully mapped. Phase 57's existing `TestWindowsPathEscapingRegressionGuard` infrastructure is already in-repo and can be reused directly.
-
----
-
-## Summary of Established Cross-Cutting Facts
-
-These four findings are independently re-measured and carried forward as established facts:
-
-1. **Typst rejects backslash at VALUE level, not syntax level** — escaped backslash in source still fails. `escape_typst_string()` is necessary but not sufficient; backslash must be removed from value first. Fixes are coupled, not independent.
-
-2. **`_escapes_outdir()` normalization gap is not user-reachable** — both call sites pre-normalize. Fix changes nothing observable. Any gate must call predicate directly, not through call sites.
-
-3. **New quoting helper must live in NEW LEAF MODULE with zero typsphinx imports** — placing it in builder/writer/registry creates cycles. Must join translator/template_engine/pdf as a leaf.
-
-4. **"Zero test edits" discipline cannot hold — exactly two tests must be edited** — `test_out02_escape_target_gate.py:134` and `test_builder.py:598` hard-code `repr()` doubling and will fail when target sites switch to new helper. Edits are expected and required.
-
----
+None are unknown-unknowns; all have precedent from v0.9.0/v0.9.1.
 
 ## Sources
 
-Synthesized from:
-- `.planning/research/STACK.md` (2026-08-27)
-- `.planning/research/FEATURES.md` (2026-08-27)
-- `.planning/research/ARCHITECTURE.md` (2026-08-27)
-- `.planning/research/PITFALLS.md` (2026-08-27)
+**Primary (HIGH confidence):**
+- `.planning/PROJECT.md` (`## Current Milestone: v0.9.2` binding constraints)
+- `.planning/todos/pending/2026-08-29-inline-image-in-paragraph-emits-unseparated-expression.md`
+- `typsphinx/translator.py` (HEAD) — all file:line citations
+- Live measurements: probe project + `typst.compile()` of all 16 FAIL + 9 PASS (2026-08-30)
+- PyPI JSON APIs + Typst Universe (live 2026-08-30)
+- `tests/test_paragraph_concat_render_gate.py`, `test_abbr_pep_separator_render_gate.py`
+- `.github/workflows/release.yml`, `scripts/extract_changelog_section.py`
+- `.planning/RETROSPECTIVE.md` (v0.4.4–v0.9.1), `v0.9.1-phases/61-*/61-CLOSEOUT-GUARD.md`
+
+**Secondary (MEDIUM confidence, within repo):**
+- Phase 59/58 EVIDENCE/SUMMARY (RED-first procedure precedent)
+- `.claude/CLAUDE.md`, project memory
 
 ---
 
-*Research synthesis for: typsphinx v0.9.1 "Windows path correctness"*  
-*Synthesized: 2026-08-27 by GSD Research Synthesizer*
+**Research completed:** 2026-08-30  
+**Ready for roadmap:** yes

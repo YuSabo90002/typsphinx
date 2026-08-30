@@ -1,405 +1,715 @@
-# Pitfalls Research
+# Pitfalls Research — v0.9.2 (Inline Image Blocker Fix + Release)
 
-**Domain:** Bug-fix milestone on a mature Sphinx→Typst build tool — Windows path-shape correctness
-(three related defect families: an un-normalized escape predicate, an un-escaped/un-normalized
-image-relocation path, and a codebase-wide `!r`-vs-delimiter message-quoting inconsistency)
-**Researched:** 2026-08-27
-**Confidence:** HIGH — every pitfall below is anchored to a line number, a docstring, a real grep
-result, or a named test in this repository at HEAD, not to generic cross-platform-Python folklore.
-
-## Critical Pitfalls
-
-### Pitfall 1: Two existing tests hard-code the CURRENT (backslash-doubling) `repr()` output as
-their pass criterion at two of the ~20 in-scope message sites — the quoting-helper fix breaks
-them by design, on POSIX, with no Windows CI required to see it
-
-**What goes wrong:**
-`tests/test_out02_escape_target_gate.py::test_escape_shape_refused_with_containment_proof[drive]`
-asserts `assert repr(target) in combined_output` for `target = "C:\\escape.typ"` (line 134) — this
-targets `builder.py:697`'s `f"name: {target!r} -- using {fallback!r} instead"`, one of the sites
-PROJECT.md's group 3 names for the new helper. `tests/test_builder.py`'s
-`test_post_process_images_rehome_escape_relocates_with_warning` asserts
-`assert repr(abs_uri) in message` (line 598) against `builder.py:1767`'s
-`f"could not rehome image URI {resolved_uri!r} relative..."`. Both docstrings/comments explicitly
-acknowledge `repr()` doubles a backslash and assert *for* that doubling, not around it:
-`test_out02_escape_target_gate.py`'s own comment reads "repr() doubles it for display, so the
-warning-text search must match the repr'd form"; `test_builder.py`'s reads "on Windows repr()
-doubles every backslash ... Asserting against repr(abs_uri) holds on both." The `[drive]`
-parametrization is explicitly marked to run "on every platform (including the drive-qualified
-case)" — it is not Windows-only, so it fails on THIS POSIX machine the moment `builder.py:697` is
-rewired to the new delimiter-aware helper (which, by design, stops doubling the backslash). The
-`test_builder.py` case is subtler: on POSIX its `abs_uri` (`os.path.join(os.sep, ...)`) contains no
-backslash, so `repr(abs_uri)` happens to equal the new helper's output too — it stays green
-*here*, unedited, but will go red the moment the SAME test runs on the `windows-latest` lane, where
-`os.sep == "\\"` makes `abs_uri` backslash-bearing and `repr()`'s doubling and the new helper's
-non-doubling diverge.
-
-**Why it happens:**
-The two sites were fixed shape-first ("stop doubling backslashes") without auditing every existing
-assertion that already depends on the OLD shape. `repr(value) in message` is an attractive,
-DRY-looking assertion (it reuses the product's own quoting instead of hardcoding a literal), but
-that is exactly what makes it silently track whatever the product currently does, including a
-defect.
-
-**How to avoid:**
-Before writing the shared quoting helper, run `grep -rn "repr(" tests/*.py` (already run for this
-research — 20 hits; the other 18 are all on identifier/list/bytes/int values, never a plain path
-string, and correctly stay `!r`/`repr()`) and manually triage every hit for "is the asserted value
-path-shaped." Rewrite `test_escape_shape_refused_with_containment_proof[drive]`'s assertion to
-expect the new helper's actual (non-doubled, correctly-delimited) output instead of `repr(target)`.
-For `test_post_process_images_rehome_escape_relocates_with_warning`, either parametrize it with an
-explicitly Windows-shaped `abs_uri` literal (not `os.sep`-derived, so its expectation is the same
-on every host) asserting the NEW helper's output, or add a comment recording that the existing
-`os.sep`-derived assertion is POSIX-coincidental and will need a matching edit if this test is ever
-run against a real Windows-shaped `abs_uri`.
-
-**Warning signs:**
-`pytest tests/test_out02_escape_target_gate.py -k drive` or
-`pytest tests/test_builder.py -k rehome_escape` goes red immediately after the source edit, on this
-machine, with no CI dispatch needed — treat that red as EXPECTED and required, not as a signal to
-revert the source fix.
-
-**Phase to address:**
-The quoting-helper phase (defect family 3) itself. The two test edits must land in the SAME plan
-that touches `builder.py:697` and `builder.py:1767` — never deferred as "tests still pass, ship
-now," because for the `[drive]` case they do NOT still pass, and for the rehome case they pass for
-the wrong reason (POSIX coincidence) and will silently stop being evidence of anything once a
-Windows-shaped value is ever asserted against.
+**Domain:** Sphinx→Typst translator bug-fix + a version-skip PyPI release in this specific repository
+**Researched:** 2026-08-30
+**Confidence:** HIGH — every claim below is either a direct file:line read at HEAD, a live re-run of
+this repository's own commands/API in a scratch directory, or a citation to this project's own
+recorded milestone history (RETROSPECTIVE.md, the v0.9.1 audit, archived phase artifacts). No
+claim is carried forward from planning prose without independent verification against the current
+tree; two places (below) where planning prose could plausibly be assumed were checked and found
+correct, and are cited as "confirmed," not "assumed."
 
 ---
 
-### Pitfall 2: The type-check failure at `template_registry.py:410` interpolates `template`
-*before* its type is known to be path-shaped — routing it through a string-only quoting helper
-built for family 3 will misbehave on the exact non-str values three existing tests deliberately
-supply
+## Part 1 — Translator-fix pitfalls (mined from this repo's own history)
 
-**What goes wrong:**
-`template_registry.py:408-412`:
-```python
-if template and not isinstance(template, (str, os.PathLike)):
-    failures.append(
-        f"registry key {key!r}'s template {template!r} must be a path string or os.PathLike, "
-        f"not a {type(template).__name__}"
-    )
+### Pitfall 1: A gate that asserts on the emitted string cannot see a parser-level defect
+
+**What goes wrong:** A regression test constructs a doctree, runs the translator, and asserts
+against `translator.body` (a string) or against `node["uri"]` — never against a real
+`typst.compile()`. The emitted string *looks* syntactically plausible even when it is not, so the
+test goes green on exactly the defect it exists to catch.
+
+**Measured in THIS repository, three separate times, all in the image/inline-mixed-content
+family this milestone touches:**
+
+- `tests/test_translator.py` currently has **nine** image-related unit tests
+  (`test_image_conversion`, `test_image_with_attributes`, `test_image_relative_path`,
+  `test_image_path_adjustment_root/_nested/_deep_nested/_cross_directory/_same_directory/_subdirectory`,
+  lines 1706–3918) — confirmed by grep at HEAD, **none** of them call `typst.compile()` or import
+  `TYPST_AVAILABLE`; every other image-adjacent test file that does compile
+  (`test_image_literal_escaping_gate.py`, `test_windows_image_uri_render_gate.py`) is a separate,
+  newer file. These nine tests almost certainly still pass on the *unfixed* translator, because
+  each constructs an image node as the sole/first content of its container — exactly the one shape
+  PROJECT.md's binding constraint 2 says is unaffected. **Extending these nine tests is not a
+  gate for this milestone's fix; a new real-compile fixture is.**
+- v0.6.0's own retrospective lesson, stated in this project's own words: *"A green unit suite ≠
+  correct rendered output ... GATE-01's `sphinx-build → typst.compile() → pypdf` methodology
+  caught three additional latent fatals that no unit assert would have surfaced."*
+  (`.planning/RETROSPECTIVE.md:101`).
+- v0.6.5 (the *direct* precedent for this exact defect class — a missing separator before an
+  inline code-mode call) was root-caused specifically because `visit_math` "participates" in three
+  separator protocols in some containers and not others — the RETROSPECTIVE's own pattern name is
+  *"When a bug appears in some containers and not others, suspect protocol participation, not
+  ordering"* (`.planning/RETROSPECTIVE.md:326`). `visit_image()` today participates in **none** of
+  the three protocols (`_add_paragraph_separator()`, the `list_item_needs_separator` check, and the
+  five-site code-mode-concat check) — confirmed by reading `typsphinx/translator.py:4718-4772` and
+  cross-referencing the other visitors that do call `list_item_needs_separator`
+  (`translator.py:927, 1023, 1777, 1837, 1878, 1921`, etc.). This is the *identical* structural gap
+  v0.6.5 fixed for math, now recurring for images.
+
+**Measured directly (this research), not assumed:** a bare missing separator between two adjacent
+code-mode calls reproduces the exact error PROJECT.md quotes. Compiled in a scratch directory with
+the project's own `typst` package:
+
 ```
-This branch is reached PRECISELY when `template` is *not* `str`/`os.PathLike` — by construction,
-the value here is never a plain path string. `tests/test_template_registry.py` exercises this with
-`template = ["a", "b"]` (asserting `repr(["a", "b"]) in message`, line 832) and
-`template = b"base.typ"` (asserting `repr(b"base.typ") in message`, line 847). A quoting helper
-built to choose a delimiter based on whether a *string* contains `'`/`"` will either raise
-(`AttributeError`/`TypeError` calling `.replace()` on a `list` or `bytes`) or silently produce the
-wrong quoting shape if naively applied to this f-string too. This is the SAME family PROJECT.md
-groups under "template_registry.py:410,422,433," but 410 is structurally different from its two
-siblings.
+$ cat unseparated.typ
+#{
+par({text("Inline substitution ")image("test.png")
+})
+}
+$ uv run python -c "import typst; typst.compile('unseparated.typ')"
+FAILED: expected semicolon or line break
+```
 
-**Why it happens:**
-Grouping "the three `template_registry.py` sites" as one unit (as the source todo and PROJECT.md
-both do, reasonably, since they are textually adjacent and share the `{template!r}` shape) hides
-that line 410 fires on the FAILURE of the very isinstance check that lines 422/433 rely on having
-already passed (`elif template:` — only reached when the outer `if` is False, i.e. `template` IS
-`str`/`os.PathLike`).
+**How it would manifest in this milestone specifically:** an executor implements the
+`visit_image()` fix, runs the existing suite (including the nine string-level tests above), sees
+"all green," and reports done — without ever having proven the *new* fixture fails on the unfixed
+tree or passes a real Typst parse of the four failing shapes PROJECT.md names (substitution image
+mid-sentence, two images in a row, image inside a list item, image preceded by sibling content).
 
-**How to avoid:**
-Treat `template_registry.py:410` as excluded from the new helper, with a one-line comment
-explaining why (the value is guaranteed non-path-shaped there); route only lines 422 and 433
-(inside the `elif template:` block, where `template` is guaranteed `str`/`os.PathLike`) through it.
+**Prevention:** the phase's acceptance gate MUST include at minimum one test that calls
+`sphinx-build -b typstpdf` (or `typst.compile()` directly on the emitted `.typ`) for each of the
+four failing shapes and the two passing shapes (image first in paragraph, image inside
+`.. figure::`) named in PROJECT.md's Target Features. A test that only inspects `self.body` or
+`node["uri"]` does not count as having exercised this defect, however many assertions it contains.
 
-**Warning signs:**
-`pytest tests/test_template_registry.py -k "list_template_field or bytes_template_field"` raises
-an unhandled exception (not the expected `ExtensionError`) or produces a mangled message.
-
-**Phase to address:**
-The quoting-helper phase (defect family 3), as an explicit per-site classification step, not an
-incidental side effect of a codebase-wide find/replace on `{...!r}` fragments.
+**Phase to address:** the phase implementing the `visit_image()` separator fix. Observable proof:
+the new test module's own file explicitly invokes `typst.compile()` (or `sphinx-build -b
+typstpdf`) — `grep -c 'typst.compile\|TYPST_AVAILABLE' <new_test_file>` returns > 0.
 
 ---
 
-### Pitfall 3: `os.PathLike` values (e.g. a `pathlib.Path` `template`) reaching the quoting helper
-break it unless the helper stringifies first — the codebase already deliberately accepts `Path`
-here, and a working shape must not regress
+### Pitfall 2: A gate that is never proven RED against the unfixed tree is tautological
 
-**What goes wrong:**
-`template_registry.py`'s own design comment (lines 398-407) documents that `template` accepting
-BOTH `str` and `os.PathLike` is deliberate ("a `pathlib.Path` `template` works end to end TODAY,
-and blanket-rejecting it would withdraw a working shape rather than close a crash"), and
-`tests/test_template_registry.py`'s "Test H (control)" (line 851, `declared_template =
-Path("sub/path_tpl.typ")`) exercises exactly this. `Path.__repr__` renders as
-`PosixPath('sub/path_tpl.typ')` (or `WindowsPath(...)` on Windows) — not a bare quoted string —
-and `Path` has no `.replace(old, new)` string method (it has `.replace()` for filesystem rename,
-a completely different signature). A helper written assuming `str` input will either raise
-`TypeError` calling a string method on a `Path`, or leak a `PosixPath(...)` wrapper into a
-user-facing refusal message if it falls back to bare `f"{value}"`.
+**What goes wrong:** A fixture is written *after* the fix already exists in the working tree, so it
+is only ever observed passing. It may be vacuously true (e.g., it would also pass against a
+correctly-behaving translator with different content), and nobody would notice until the next
+regression.
 
-**Why it happens:**
-Every failing example seen while writing the fix will likely be a plain `str` (that's what a
-`conf.py` author normally writes), so a `Path`-valued `template` is easy to never exercise by hand
-before shipping — it only surfaces via the one existing control test, or a real user who wrote
-`Path("template.typ")` in `conf.py`.
+**This project has already built, and repeatedly proved, the antidote — and this milestone should
+reuse it verbatim, not reinvent it:**
 
-**How to avoid:**
-The shared helper's first action should be `value = str(value)` (or every call site does the
-`str(...)` conversion before calling it) — never assume the incoming value is already `str`.
+- Phase 59 (v0.9.1) explicitly names this failure mode in its own success-criteria language:
+  *"a call-site-routed gate would be tautologically green before and after the fix and prove
+  nothing"* (`59-01-SUMMARY.md:35`), and structured its RED-proof by reconstructing the pre-fix tree
+  file-by-file: `git checkout $PHASE_BASE_SHA -- typsphinx/{builder,translator}.py`, running the new
+  test, confirming the *exact* Typst error string, then `git status --porcelain` confirming the
+  restore was byte-identical (`59-VERIFICATION.md:34`).
+- Phase 58 did the same for a test-side-only rewrite: *"proved the rewrite is neither a regression
+  nor a tautology via a real, recorded RED against a temporarily-edited `typsphinx/builder.py`"*
+  (`58-01-SUMMARY.md:91`).
+- PROJECT.md's own binding constraint 1 for the *prior* Windows-path milestone states the general
+  rule this milestone inherits: *"the acceptance bar is therefore only meaningful in its RED-first
+  form: each gate must FAIL against the unfixed tree before its fix lands."*
 
-**Warning signs:**
-A new/changed message for a `Path`-valued `template` shows `PosixPath('...')` or
-`WindowsPath('...')` instead of a plain quoted path, or the existing "Test H" control test starts
-raising instead of resolving successfully.
+**How it would manifest in this milestone specifically:** the new `visit_image()` separator test is
+written and passes on the fixed tree, but is never actually run against a `git show
+$PHASE_BASE_SHA:typsphinx/translator.py`-restored copy, so nobody can show it would have caught the
+*current, live* bug (PROJECT.md's binding constraint 1 gives the exact reproduction: a document
+containing `Inline substitution |sub| in a sentence.` emits `par({text("Inline substitution
+")image("img.png")` and `typst.compile()` answers `expected semicolon or line break`).
 
-**Phase to address:**
-The quoting-helper phase (defect family 3) — add a unit test with a `pathlib.Path` `template`
-value that *also* violates CONF-17 or is missing (exercising lines 422/433, not just the
-already-covered happy-path "Test H"), asserting the emitted message is a plain quoted string.
+**Prevention:** before closing the phase, restore `typsphinx/translator.py` to the phase's base SHA
+(recorded at phase start, exactly as `61-CLOSEOUT-GUARD.md` records `PHASE_BASE_SHA` for
+`REQUIREMENTS.md`), re-run the new gate, capture the verbatim `TypstError` string, then restore the
+fix and confirm `git status --porcelain` is empty. This is not new process — it is the exact
+choreography Phase 59 already executed and recorded in `59-WINDOWS-URI-EVIDENCE.md`.
 
----
-
-### Pitfall 4: Fixing `translator.py:4746/4749` by ALSO folding `\` to `/` (not just adding
-`escape_typst_string()`) would repeat this project's own accepted classification tradeoff at the
-wrong layer, turning a loud compile error into a silent wrong-file reference
-
-**What goes wrong:**
-`_is_absolute_image_uri()`'s docstring (required reading, `builder.py:160-165`) states the
-project's own accepted tradeoff explicitly: normalizing `\`→`/` before classifying a URI as
-absolute means "a POSIX filename that literally contains a backslash character is classified as
-absolute here, on every platform, even though a bare backslash carries no special meaning in a
-POSIX filename." That tradeoff is accepted at the CLASSIFICATION boundary — a false positive there
-only causes an unnecessary rehome (a distinct, well-tested, warned-about branch). It would be a
-DIFFERENT and strictly worse tradeoff to repeat `.replace("\\", "/")` inside `visit_image()`'s
-emission (`translator.py:4746`/`4749`), because by that point the string is CONTENT — the literal
-path Typst will open — not a classification input. Silently rewriting a legal POSIX filename's
-literal backslash to a slash there changes WHICH FILE Typst looks for: a loud, debuggable
-"path must not contain a backslash" compile error becomes a silent "file not found" (or, worse, a
-silently-wrong file if the slash-substituted name happens to resolve to something that exists).
-
-**Why it happens:**
-The fix sketch for this defect family is naturally read as "make this path safe for Typst," and
-`.replace("\\", "/")` is the exact idiom used two call sites away (`_is_absolute_image_uri`,
-`_escapes_outdir`) for a *different* purpose (classification) — pattern-matching on the idiom
-without re-deriving why it is safe at those two sites (pure classification, no effect on the
-written bytes) but not at this third one (the written bytes ARE the classification's own subject)
-is an easy, plausible-looking mistake.
-
-**How to avoid:**
-The fix at `translator.py:4746`/`4749` is exactly one change: wrap `adjusted_uri` in
-`escape_typst_string(adjusted_uri)` (the existing helper, `translator.py:156`, which already
-escapes a literal backslash to `\\` — content-preserving, not shape-changing). Land it as its own
-diff hunk so a reviewer can confirm no `.replace()` call was added alongside it.
-
-**Warning signs:**
-A regression test asserting that an ordinary (non-absolute, non-escaping) relative image URI
-containing a literal backslash character in its basename renders with `\\` (escaped) in the
-`.typ` output — not with `/` silently substituted.
-
-**Phase to address:**
-The `_track_image()`/`visit_image()` slice (defect family 2).
+**Phase to address:** same phase as Pitfall 1. Observable proof: a `*-EVIDENCE.md` (or
+`*-VERIFICATION.md`) file quoting the verbatim pre-fix pytest traceback / Typst error string,
+followed by a `git status --porcelain` empty-output block proving the restore.
 
 ---
 
-### Pitfall 5: A naive length bound on `{digest8}-{basename}` reintroduces the exact collision the
-digest was added (IMG-03) to prevent, or produces an unopenable filename — five distinct failure
-shapes, all reachable from this project's specific `f"{RESERVED_IMAGE_NAMESPACE}/{digest}-{basename}"`
-construction
+### Pitfall 3: Fixing a test instead of proving byte-identical output
 
-**What goes wrong, enumerated against the actual construction (`builder.py:1761-1765`):**
+**What goes wrong:** When a fix changes emitted output, it is tempting to update whichever
+pre-existing test now fails, rather than proving the change is additive (new separators appear only
+where the bug lived) and that unaffected shapes are byte-identical to before.
 
-1. **Wrong component truncated.** The key is a TWO-segment relative path
-   (`_typst_converted/<digest>-<basename>`); POSIX's 255-byte `NAME_MAX` applies PER COMPONENT.
-   Truncating the whole `key` string risks eating into `RESERVED_IMAGE_NAMESPACE` or the digest
-   itself; the bound belongs on `f"{digest}-{basename}"` alone.
-2. **Mid-character UTF-8 split.** `NAME_MAX` is a byte limit; slicing a UTF-8-encoded basename by
-   raw byte count (needed to respect that limit) can split a multi-byte character, producing
-   invalid UTF-8 that some filesystems refuse to create — trading today's `ENAMETOOLONG` for a
-   different, equally opaque `OSError` at the same call site.
-3. **Extension lost.** Truncating from the tail with no extension awareness turns
-   `long-name.png` into `long-nam` — Typst's `image()` (and this project's own
-   `supported_image_types` mimetype-preference logic) can rely on the extension to select an
-   embedder, so a working image silently becomes a compile error or a mis-rendered one.
-4. **Collision reintroduced.** Two different long basenames sharing the same truncated prefix
-   collide again UNLESS the digest (already unique per full `resolved_uri`, not per basename)
-   stays untruncated and is what any later collision-avoidance logic anchors on — this is exactly
-   what the source todo's fix sketch flags: "the digest must stay the collision anchor when the
-   basename is truncated."
-5. **Empty-stem edge.** A pathological basename that truncates to nothing (name shorter than the
-   fixed digest+separator overhead budgeted for) can yield a leading-dot result (e.g. bare
-   `.png`), silently changing POSIX visibility semantics (a hidden file) as a side effect of a
-   length fix nobody asked for.
+**This is this project's single most-repeated positive pattern, stated explicitly across at least
+five milestones — meaning its absence would be conspicuous and should raise suspicion, not be
+treated as routine cleanup:**
 
-**Why it happens:**
-"Add a length cap" sounds like a one-line `[:N]` slice; the digest-collision-anchor requirement,
-the per-component (not whole-path) scope of `NAME_MAX`, and the byte-vs-character slicing
-distinction are all easy to miss under that framing.
+- v0.6.2: *"the fix is +45 lines with no new helper... non-regression came out clean on a
+  set-comparison against the pre-fix baseline (NEW-failures empty)"* — wait, that is v0.6.5's exact
+  wording (`.planning/RETROSPECTIVE.md:314`); v0.6.2 independently established *"Prove fixtures have
+  teeth by reverting in place"* as a named pattern (`RETROSPECTIVE.md:203`).
+  v0.9.1's own product work: *"POSIX output was proven byte-identical the way v0.9.0 proved it — by
+  zero pre-existing test edits, measured rather than asserted"* (PROJECT.md, v0.9.1 section).
+- v0.9.0: *"the registry is additive... proven against a pre-change SHA-256/page-count baseline
+  captured before any code was written"* (`RETROSPECTIVE.md` v0.9.0 entry / `.planning/PROJECT.md`
+  Key Lesson 22).
 
-**How to avoid:**
-Bound only the `f"{digest}-{basename}"` component; split the extension first (e.g. via
-`os.path.splitext`) and preserve it; truncate the STEM portion (never the digest, never the
-extension); slice in `str` space (Python `str` indexing is already character-safe — the byte-split
-risk appears only if the implementation re-encodes to UTF-8 bytes to check the length and then
-slices the BYTES rather than the `str`); size-check against the encoded byte length but slice the
-decoded characters.
+**How it would manifest in this milestone specifically:** if the `visit_image()` fix's separator
+logic is slightly too aggressive (fires even when a leading separator already exists — e.g. an
+image that is genuinely first in its paragraph), one or more of the nine existing string-level image
+tests (Pitfall 1) would start failing because an extra blank line/newline now appears in
+`translator.body`. The failure mode to avoid is quietly editing the expected string in those nine
+tests to match the new (buggy, over-aggressive) output — because they are string-level tests, they
+cannot tell the difference between "this separator was needed" and "this separator is a harmless
+but incorrect insertion."
 
-**Warning signs:**
-A test with a >255-character basename should assert THREE things, not just "build succeeds": (a)
-no `ENAMETOOLONG`/`OSError`, (b) the resulting file is present with its original extension intact,
-and (c) two DIFFERENT long-but-truncation-colliding basenames still produce two DIFFERENT keys
-(collision preservation, not merely length compliance) — a test that only checks (a) would pass
-even for a fix that reintroduces gap 4.
+**Prevention:** run the full pre-existing suite against the fix; if any pre-existing test's
+*expected string* must change, treat that as a signal requiring justification (is the old expected
+output still correct, or did the assertion need to change because the separator now appears where
+it did not before, in a spot that changes visible behavior?) — not as routine test maintenance. The
+project's own standard is **zero edits to pre-existing tests** for this class of fix (matches
+PROJECT.md binding constraint 2: "Exactly one unseparated juxtaposition was found... So this
+milestone fixes one emitter; it does not audit a family" — a correctly-scoped fix should not need to
+touch tests for footnote/math/download, which already emit a leading `\n`).
 
-**Phase to address:**
-Defect family 2's length-bound sub-task. Per PROJECT.md's binding constraint #3 this needs its OWN
-gate — "no compile-visible symptom... a compile gate will not force it out" — sequenced separately
-from the `escape_typst_string()` gate in Pitfall 4.
+**Phase to address:** same phase. Observable proof: `git diff --stat` scoped to `tests/` shows only
+*new* test files, or an explicit, reviewed justification for any line changed in a pre-existing test
+file.
 
 ---
 
-### Pitfall 6: A POSIX-only "no doubled separator" unit test is necessary but was already proven
-insufficient once at this exact site family (Phase 57) — the discipline this project has since
-adopted for it must be applied to all ~20 sites from the start, not re-derived by trial dispatch
+### Pitfall 4: `ruff` is unrunnable in a freshly `uv sync`ed worktree on this machine — lint failures surface only in CI
 
-**What goes wrong:**
-Phase 57 burned two full CI matrix dispatches (`31956166848`, `31959060298`) on this same
-`typst_document_templates`-registry message family before landing 57-11's fix, and even after
-57-11 landed, `57-REVIEW.md`'s WR-01 finding shows the fix ITSELF was incomplete (it removed
-backslash-doubling but also dropped `repr()`'s quote-disambiguation, so a path containing a literal
-`'` now closes the message's quoting early) — meaning even a real green `windows-latest` dispatch
-did not, by itself, prove the fix was fully correct. The pattern that DOES work and IS already
-proven — `TestWindowsPathEscapingRegressionGuard` in `tests/test_templates_path_collision_gate.py`
-calling the message-building functions DIRECTLY with a Windows-shaped string literal, asserting no
-doubled separator, entirely on POSIX, no real Windows filesystem needed — exists in this repo
-today and is exactly what PROJECT.md's binding constraint #4 requires be extended with the sibling
-single-quote case (57-REVIEW's IN-01).
+**What goes wrong:** An executor runs `black --check .` and `mypy typsphinx/` locally, sees them
+pass, and reports "lint clean" without ever running `ruff check .` — because it silently fails with
+a NixOS stub-loader rejection, not a lint finding, and can be mistaken for "not installed" or
+skipped.
 
-**Why it happens:**
-"Push and see what `windows-latest` says" is a faster first step to try than writing a
-function-level Windows-shaped-string test, especially when the failure mode (backslash doubling)
-seems like it should be visible in a diff review — Phase 57's own history shows it was
-misdiagnosed as a path-SEPARATOR problem twice before being correctly diagnosed as an ESCAPING
-problem, which is a strong empirical signal that eyeballing the diff is not reliable for this
-defect class.
+**Measured live, in this exact worktree provisioning shape, moments before writing this file:**
+`.planning/todos/pending/2026-08-11-ruff-generic-linux-elf-unrunnable-on-nixos.md` records the
+failure reproducing as recently as 2026-08-22 inside a **freshly `uv sync --extra dev`-provisioned
+worktree venv** — the exact provisioning CLAUDE.md mandates for every executor in this project's
+standing worktree-isolated execution mode:
 
-**How to avoid:**
-For every one of the ~20 sites plus both `_escapes_outdir()`/`_track_image()` defect families:
-write the Windows-shaped-string (and, for family 2, a real `typst.compile()`) RED fixture FIRST,
-confirm it fails against the unfixed function via a plain `pytest`/`python -c` invocation on this
-POSIX machine, THEN fix, THEN reconfirm green — all before the first CI dispatch. Reserve the
-`windows-latest` lane for FINAL confirmation (constraint #6), never for diagnosis.
+```
+$ uv run ruff check .
+Could not start dynamically linked executable: ruff
+NixOS cannot run dynamically linked executables intended for generic
+linux environments out of the box.
+EXIT CODE: 127
+```
 
-**Warning signs:**
-A plan for this milestone that proposes "dispatch to `windows-latest` and see" as a discovery step,
-rather than a POSIX-runnable RED-first fixture, is repeating Phase 57's exact costly pattern.
+The todo explicitly records this is **not a one-time fluke**: it disappeared for one session
+(2026-08-16, in a different, not-freshly-provisioned `.venv`) and then reproduced again a week later
+in a fresh worktree venv — "the condition flips with the environment... not with any change to this
+repository's own tree." CI is unaffected (GitHub's Linux runners have a working `ruff`, confirmed
+green at every dispatch).
 
-**Phase to address:**
-Cross-cutting — call it out once in the roadmap's shared discipline rather than per-phase; every
-phase in this milestone inherits it.
+**Compounding hazard, also measured in this project's history:** the post-merge gate that watches
+wave completion in this project's tooling runs `pytest` only — not `black`/`ruff`/`mypy` — so a
+wave can merge with a lint-breaking file present as long as pytest is green
+(`.claude/…` — recorded as Phase 54.1's real incident in user memory: a new test file broke
+`black --check .` and passed pytest-only gates for a full wave before a different executor's
+out-of-scope full-repo lint run caught it).
+
+**How it would manifest in this milestone specifically:** the `visit_image()` fix (or the release-
+prep phase's CHANGELOG/version edits) introduces an import-order (`I001`) or unused-import
+finding that only `ruff` would catch; the executor's local `black --check .` / `mypy` pass green,
+`ruff` silently 127s, and the finding is never seen until `release.yml`'s `validate` job runs
+`uv run ruff check .` on the real tag push — by which point `build`/`publish-pypi` have not yet run
+(ruff is in `validate`, which gates `build`), so the failure is caught before publish, but costs a
+failed CI run and a re-tag cycle.
+
+**Prevention:** do not treat local `black`+`mypy` green as "lint clean." Either (a) run
+`nix run nixpkgs#ruff -- check .` (confirmed working in this sandbox as of 2026-08-16, per this
+project's own recorded workaround) before considering a wave/phase lint-clean, or (b) dispatch
+`gh workflow run ci.yml --ref <branch>` explicitly before the release-prep phase closes, and treat
+that as the lint authority — CLAUDE.md and this project's memory both already say CI, not the local
+machine, is the lint authority here.
+
+**Phase to address:** every phase touching `typsphinx/*.py`, but especially the release-prep phase
+(it is the last chance before a real tag push exercises `release.yml`'s `validate` job, which is the
+actual lint gate that matters). Observable proof: either a captured `nix run nixpkgs#ruff -- check .`
+transcript ending "All checks passed!", or a linked CI run ID with the `Run linters` step green.
 
 ---
 
-## Technical Debt Patterns
+### Pitfall 5: Locale-dependent test failures that only appear in CI
 
-| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|-----------------|------------------|
-| Leaving `template_registry.py:410`'s type-check message on plain `!r` instead of routing it through the new quoting helper | Avoids building type-dispatch logic into the helper (Pitfall 2) | A `list`/`bytes`/`int` `template` value's repr stays possibly-ugly (e.g. `b'base.typ'`) forever, inconsistent in STYLE with its two path-valued siblings two lines below | Always acceptable here — the value is provably never path-shaped at that line, so there is no correctness gap, only a cosmetic asymmetry the source todo itself does not ask to close |
-| Not adding a compile-visible OR filesystem-visible regression test for `writer.py:511-513`'s debug log before quoting-fixing it | Faster — this site has zero existing test coverage (confirmed: `grep -rn "Rendering wrapper for docname" tests/` returns nothing) | The fix itself is permanently unverified; a future regression here is invisible to CI forever | Never — add at least one `caplog`-based assertion alongside the fix, mirroring the pattern `test_builder.py:591` already uses for the sibling `logger.warning` site |
-| Treating the "3-OS CI green" acceptance bar (constraint #6) as sufficient proof on its own | Simpler mental model — one gate to watch | Constraint #6's own bar was already shown insufficient once for this exact area: 57-11 shipped, CI went green (12/12, run `32557477023`), and WR-01 (single-quote quote-disambiguation) still shipped broken because no test asserted the quote-disambiguation property | Never for this milestone specifically — always pair the 3-OS lane with the function-level RED-first fixtures (Pitfall 6) |
+**What goes wrong:** A test asserts against a Sphinx warning's localized *text* (not its
+locale-invariant structural markers), passing on a Japanese-locale dev machine and failing on
+CI's English-locale runner.
 
-## Integration Gotchas
+**Measured, this project, Phase 52 (v0.8.0):** *"`tests/test_state_guard_shapes_gate.py`... was
+checking a Japanese-language baseline fragment via partial match; English-locale CI failed 2 cases,
+taking down 6 lanes plus Code Coverage."* The fix that stuck was **not** translating the literal
+(that just moves the dependency) but anchoring on Sphinx's locale-invariant `file:line: WARNING:`
+prefix and `[toc.duplicate_entry]`-style diagnostic tag instead (`_locale_invariant_anchors()`).
 
-| Integration | Common Mistake | Correct Approach |
-|-------------|-----------------|-------------------|
-| Worktree-isolated execution (CLAUDE.md, standing mode) | Editing `builder.py`/`translator.py`/`template_registry.py` in a worktree without its own `uv sync --extra dev`, so `pytest` imports the MAIN tree's unchanged editable install and every RED-first fixture in this milestone falsely reports GREEN against the unfixed code | `env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev` then `uv run pytest ...` for every command in every worktree, per CLAUDE.md's "Worktree-isolated execution" section (mandatory, not conditional, per the project owner's 2026-07-20 decision) |
-| `ruff` on this NixOS dev machine | Trusting a local `ruff check .` result inside a freshly-provisioned worktree venv, which pulls a generic-linux wheel whose ELF the loader rejects — silently reporting nothing or erroring out, mistaken for "clean" | Treat CI's `lint` job as sole lint authority for this milestone (per user memory: "ruff は未解消... lint 権威は CI"); do not gate a local commit decision on a worktree `ruff` run |
-| The 3-OS CI matrix (`ubuntu-latest`/`windows-latest`/`macos-latest`, confirmed in `.github/workflows/ci.yml`) | Using a real CI dispatch as the FIRST signal for a Windows-shape defect (Phase 57's proven-costly pattern, Pitfall 6) | Front-load every Windows-shape assertion into a POSIX-runnable, function-level fixture (mirroring `TestWindowsPathEscapingRegressionGuard`) and reserve CI for final confirmation only |
-| This project's "RED before fix" hard rule (binding constraint #1, all three defects latent, `windows-latest` currently green and would stay green unfixed) | Writing the fix first and the regression test second, then never actually confirming the test fails against the PRE-fix code (since the pre-fix code is gone by the time the test exists) | Commit the failing test against the unfixed tree (or capture its failure output) BEFORE the fix commit, per this project's standing GATE-01 discipline already invoked by both source todos read for this research |
+**Quick local pre-check, proven cheap (seconds) by this project's own record:**
+```bash
+LC_ALL=C LANG=C LANGUAGE=C uv run python -m pytest tests/ -q
+```
 
-## Performance Traps
+**How it would manifest in this milestone specifically:** if the new gate's assertion inspects any
+Sphinx-emitted warning text produced along the way (e.g., a degrade-warning for an unresolvable
+image path, or any build-log string), rather than the Typst compile error itself (which is not
+Sphinx-localized — it comes from the `typst` Rust binary in English), this class could recur.
+Lower risk here than in Phase 52's case because the primary assertion is a `typst.compile()`
+success/failure, not a Sphinx warning string — but the release-prep phase's CI dispatch is exactly
+where this class has surfaced before (v0.7.0: *"neither Windows CI nor a tag push had touched the
+branch once"* across eight phases of green local runs).
 
-| Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|-----------------|
-| Byte-slicing a UTF-8 basename for the WR-01 length bound without character-boundary awareness (Pitfall 5.2) | An intermittent `UnicodeDecodeError` or filesystem-level rejection, reproducible only with non-ASCII (e.g. this project's own documented Japanese-filename edge cases) basenames long enough to trip the 255-byte cap | Slice in `str`/character space, size-check against the UTF-8-encoded byte length, never slice the encoded bytes directly | Any project with a non-ASCII image filename near or past 255 UTF-8 bytes (roughly 85+ multi-byte CJK characters) |
-| `NAME_MAX` differs by filesystem/OS (POSIX ext4/APFS: 255 bytes; Windows without long-path opt-in: `MAX_PATH` 260 total, a different limit shape entirely) | A length-bound fix validated only via a POSIX `ENAMETOOLONG` reproduction may not reproduce — or may fail differently — on the `windows-latest` CI lane | Do not assume the POSIX reproduction generalizes; if the `windows-latest` lane is silent on this specific gate, verify it is silent because the fix works there, not because Windows' different length semantics never triggered the code path at all | Whenever the length-bound gate is asserted only via one platform's error class/errno |
+**Prevention:** run the `LC_ALL=C` pre-check before any CI dispatch (near-zero cost), and dispatch
+`gh workflow run ci.yml --ref <branch>` at least once mid-phase, not only at the release PR — per
+this project's own recorded rule (*"push→observe terminal gates"*, v0.4.4; *"the milestone branch
+was never pushed until the release PR, and both defects found at the close were invisible until
+it was,"* v0.7.1).
 
-## Security Mistakes
+**Phase to address:** the `visit_image()` fix phase (mid-phase CI dispatch) and the release-prep
+phase (final dispatch before tagging). Observable proof: a linked CI run ID from a
+`workflow_dispatch` triggered *before* the release PR, not only the PR's own automatic run.
 
-| Mistake | Risk | Prevention |
-|---------|------|------------|
-| Treating the quoting helper as a security boundary (escaping a path for LOG-MESSAGE legibility) and conflating it with the SHA-1 relocation digest (a collision-avoidance key, explicitly documented in `builder.py` as non-cryptographic and outside this project's ruff security-rule selection) | None directly — both are correctly non-security-boundary constructs today — but a future contributor "hardening" one in response to a scanner finding could accidentally change the digest's determinism (e.g. adding a random salt), breaking the documented "two builds of the identical project emit the same filename" invariant | Preserve the existing `builder.py` comment explaining the digest is a collision-avoidance key, not a security boundary, when touching the surrounding code for the length-bound fix (Pitfall 5) |
+---
 
-## UX Pitfalls
+### Pitfall 6: Windows-only failures invisible on a Linux-only local run
 
-| Pitfall | User Impact | Better Approach |
-|---------|-------------|-------------------|
-| A refusal message whose path is delimited with a single quote (`'...'`) when the path itself contains a literal `'` (57-REVIEW's WR-01/IN-01) reads as if it closes early, hiding the rest of the actual path from the reader | A `conf.py` author debugging a template-path collision on a path like `/home/O'Brien's Projects/_templates/nested` sees a message that appears to truncate mid-sentence | Choose `"` as the delimiter when the value contains `'` and not `"`, otherwise `'`, escaping only the chosen delimiter if both appear (exactly the suggested fix already recorded in the source todo) |
-| A message that leaks a `PosixPath(...)`/`WindowsPath(...)` repr wrapper (Pitfall 3) instead of a plain path string | Reads as an internal implementation detail leaking into user-facing output, undermining trust that the tool understands its own configuration | Stringify every value before it reaches the quoting helper |
+**What goes wrong:** A fix that touches path handling or string encoding passes every local test
+(this sandbox is Linux/NixOS) but fails only on `windows-latest`, because of a Windows-specific
+default (encoding, `ntpath` semantics, path separator).
 
-## "Looks Done But Isn't" Checklist
+**Measured, this project, twice, in exactly the path-handling code family v0.9.1/v0.9.2 both touch:**
 
-- [ ] **Quoting-helper rollout across all ~20 sites:** Often missing the per-site type/shape audit
-  (Pitfalls 1–3) — verify each site's interpolated value is guaranteed `str`/path-shaped before
-  routing it through the new helper, not just textually similar to a site that is.
-- [ ] **`_track_image()`'s three gaps (basename normalization, escaping, length bound):** Often
-  fixed as "gap 1 only" (the smallest useful step the source todo itself calls out) while gaps 2/3
-  are silently left latent — verify all three have their OWN RED-first gate, per PROJECT.md's
-  explicit "Gap 3 has no compile-visible symptom... needs its own gate."
-  Their prevention/verification: a real `typst.compile()` for gap 2 (per binding constraint #2 —
-  an assertion stopping at `node["uri"]` cannot see it), and a >255-char basename fixture asserting
-  collision-preservation (not just length) for gap 3.
-- [ ] **The two existing tests that hard-code `repr()`'s doubling as their pass criterion
-  (Pitfall 1):** Often missed because they currently pass (on POSIX, for the non-drive-shaped
-  parametrizations) right up until the exact line they target is rewired — verify by running them
-  BEFORE claiming the quoting-helper phase complete, expecting and confirming the `[drive]` one
-  goes red.
-- [ ] **`_escapes_outdir()`'s widened predicate:** Often verified only against the driveless-
-  absolute shape the todo measures — verify the existing OUT-01/OUT-02 regression suite (drive-
-  qualified and POSIX-absolute branches) still passes unchanged, since those two shapes were
-  already correctly classified pre-fix and must not regress.
+- v0.7.1: *"three Phase 37 signature render-gate modules read `.typ` with a bare
+  `Path.read_text()`, and Windows' cp1252 default cannot decode UTF-8"* — 820 passed / 1 failed on
+  Windows only, invisible on Linux/macOS (`RETROSPECTIVE.md:369`).
+- v0.9.1 itself (Phase 59): *"CPython 3.13's `ntpath.isabs()` change... the same commit, same OS,
+  py3.12 passes and py3.13 fails"* — a version-lane-specific Windows defect, not even reproducible
+  on all Windows lanes uniformly.
 
-## Recovery Strategies
+**This milestone's fix is a pure `translator.py` string-emission change** (not file I/O, not path
+parsing), so its direct Windows exposure is lower than v0.9.1's own work — but the release-prep
+phase's CHANGELOG/version files, and any test reading `.typ`/`.pdf` output with a bare
+`open()`/`Path.read_text()` without an explicit `encoding="utf-8"`, carry the identical hazard
+class.
 
-| Pitfall | Recovery Cost | Recovery Steps |
-|---------|----------------|------------------|
-| Pitfall 1 (two tests break on the intended fix) | LOW | Edit the two named tests to assert the new helper's output instead of `repr(...)`; this is expected work, not a regression to revert |
-| Pitfall 2/3 (helper misapplied to a non-str or PathLike value) | LOW | Add the type guard/stringify-first step to the shared helper; re-run `tests/test_template_registry.py -k "list_template_field or bytes_template_field or pathlike"` |
-| Pitfall 4 (backslash silently folded to slash in emitted content) | MEDIUM | Revert the extra `.replace()` call; re-verify via the regression test that a literal-backslash relative basename round-trips escaped, not substituted |
-| Pitfall 5 (length-bound truncation reintroduces a collision or invalid name) | MEDIUM | Add the missing extension-preservation/digest-anchor step; add the two-adversarial-basenames collision test before re-shipping |
-| Pitfall 6 (CI dispatch used for diagnosis, burning matrix runs) | HIGH (time cost, not correctness cost) | Stop dispatching; write the POSIX-runnable function-level fixture first, confirm RED against the unfixed function locally, then fix and re-dispatch once |
+**Prevention:** grep any new test file this phase adds for `Path.read_text()` or `open(` without an
+explicit `encoding=` argument; and, per Pitfall 5, dispatch the 3-OS CI matrix
+(`windows-latest` included) mid-phase, not only at the release PR — this is the acceptance bar
+PROJECT.md's binding constraint 6 already states for the release-prep phase, but this milestone's
+own fix phase should not wait that long to find out.
+
+**Phase to address:** the `visit_image()` fix phase (any new test file: grep for missing
+`encoding=`) and the release-prep phase (3-OS CI dispatch, both `windows-latest` lanes, before
+tagging). Observable proof: linked CI run showing `Test Python 3.12 on windows-latest` and
+`Test Python 3.13 on windows-latest` both green.
+
+---
+
+## Part 2 — The `in_figure` trap, measured directly
+
+**Claim to verify:** a separator added to `visit_image()` without branch-awareness would inject a
+newline inside a `figure(...)` function-call argument list. Does this break compilation, change
+rendered output, or do nothing?
+
+**Measured directly** (scratch directory, this project's own `typst` package, `uv run`):
+
+```
+$ cat control.typ
+#figure(
+  image("test.png",
+  width: 40%),
+  caption: [A caption]
+)
+
+$ cat injected.typ        # one extra blank line injected before "image(", inside figure(...)
+#figure(
+
+  image("test.png",
+  width: 40%),
+  caption: [A caption]
+)
+
+$ uv run python -c "
+import typst
+for name in ['control.typ', 'injected.typ']:
+    pdf = typst.compile(name)
+    print(name, '-> COMPILED OK, bytes:', len(pdf))
+"
+control.typ -> COMPILED OK, bytes: 7417
+injected.typ -> COMPILED OK, bytes: 7417
+```
+
+**Result: neither a syntax error nor a silent layout change — a bare newline inside a
+parenthesized Typst function-call argument list is pure insignificant whitespace.** Both files
+compiled to byte-identical PDF sizes; Typst's parser treats a line break between tokens inside an
+open `(...)` exactly like a space, because the expression is not yet syntactically complete (no
+`;`/newline-as-terminator applies until the parenthesis closes). This is the same reason the
+*missing*-separator defect (outside any parens, between two complete top-level expressions) fails
+while the parenthesized case does not: Typst's "expected semicolon or line break" error fires only
+between two syntactically *complete* adjacent expressions at statement level, never inside an
+unclosed argument list.
+
+**Cross-check, the actual defect, reproduced for contrast:**
+
+```
+$ cat unseparated.typ
+#{
+par({text("Inline substitution ")image("test.png")
+})
+}
+$ uv run python -c "import typst; typst.compile('unseparated.typ')"
+FAILED: expected semicolon or line break
+```
+
+**What this means for the fix:** the `in_figure`-branch-unaware failure mode PROJECT.md warns
+about is real as a *code-quality* concern (a branch-unaware fix would still be structurally wrong —
+it would misplace the two-space indentation convention `visit_image()` otherwise maintains for
+readability inside `figure(...)` bodies, and could break the *deliberate* invariant that in-figure
+content is exempt from paragraph/list-item separator bookkeeping since figures manage their own
+spacing via `depart_figure`) but it is **not** the mechanism by which a naive fix would cause a
+compile failure. A naive unconditional `self.add_text("\n")` before every `image(` call would
+compile *successfully* in the `in_figure` branch (cosmetic-only) and would very likely be the
+*correct* half of the fix in the non-`in_figure` branch (since that is exactly where the real
+defect lives). The actual risk of branch-unawareness is not a Typst syntax error inside `figure()`;
+it is a maintainability/consistency regression — the "cosmetic" newline could still trip a
+*string-level* regression test if one existed asserting the exact figure-body text (none currently
+do, per Part 1 Pitfall 1's grep — the nine image tests are all non-figure shapes), or could
+interact badly with a *future* whitespace-sensitive Typst construct this project does not currently
+use.
+
+**Gate that would catch a genuinely harmful branch-unaware mistake:** the real-`typst.compile()`
+gate from Part 1, Pitfall 1 — specifically the "must keep passing" shape PROJECT.md names: *"an
+image inside `.. figure::`"*. If a branch-unaware fix somehow did break figure compilation (e.g. by
+emitting the separator *before* checking `in_figure` and routing it through a code path that
+`add_text()` treats specially — not demonstrated here, but not excluded either), only a real
+compile of a figure fixture would show it; a string-level assert on `figure_content` would not,
+per Pitfall 1's general argument.
+
+**Phase to address:** the `visit_image()` fix phase. Observable proof: the real-compile gate
+includes a figure-fixture case (PROJECT.md already names this as a required "must keep passing"
+shape) and it passes; additionally, a byte-count or `pypdf`-extracted-text comparison of the
+figure fixture's output before/after the fix, proving zero change (cosmetic whitespace inside
+`figure(...)` does not need to be *asserted absent* — it needs to be proven *harmless*, which a
+compile-success + unchanged-rendered-output check both establish).
+
+---
+
+## Part 3 — Release pitfalls specific to this repository
+
+### Pitfall 7: The release-requirement checkbox auto-flip (five-for-five, then one hold)
+
+**Evidence, this repository, six consecutive release-prep closes, with citations:**
+
+| Release-prep phase | Flip happened? | Source |
+|---|---|---|
+| v0.7.0 (Phase 41→42) | Yes — caught in Phase 41, `42-CLOSEOUT-GUARD.md` created as the first checksum baseline | `RETROSPECTIVE.md:361` |
+| v0.7.1 (Phase 46) | Yes — REL-06 flipped, REL-04 todo auto-closed; "three-for-three" | `RETROSPECTIVE.md:415` |
+| v0.8.0 (Phase 52) | Yes (implied by "four-for-four" at v0.8.0 close) | `RETROSPECTIVE.md:492` |
+| v0.9.0 (Phase 57) | Yes — REL-08 flipped, `57-CLOSEOUT-GUARD.md` SHA-256 baseline caught + reverted by hand; "five-for-five" | `RETROSPECTIVE.md:522,544` |
+| v0.9.1 (Phase 61) | **No — held for the first time** | `61-CLOSEOUT-GUARD.md`; `.planning/milestones/v0.9.1-MILESTONE-AUDIT.md` Release fence table |
+
+**The exact guard procedure that worked (reusable verbatim), read from `61-CLOSEOUT-GUARD.md`:**
+
+1. **At phase head, before any plan runs:** record `sha256sum .planning/REQUIREMENTS.md`,
+   `wc -l .planning/REQUIREMENTS.md`, and `git rev-parse HEAD` (the `PHASE_BASE_SHA`) in a
+   dedicated `<phase>-CLOSEOUT-GUARD.md` file. Quote the exact lines under guard verbatim
+   (the requirement's checkbox line, its Traceability-table row, and any phase-totals line that
+   mentions it) via `grep -n '<REQ-ID>' .planning/REQUIREMENTS.md`.
+2. **At phase close, before `phase.complete`-family tooling runs:** re-run the same three commands
+   and confirm MATCH against the baseline.
+3. **After `phase.complete`-family tooling has run — this is the step that actually catches the
+   flip, because it runs OUTSIDE any plan's reach, at precisely the moment the flip has
+   historically landed:** re-run `sha256sum`, `git diff --name-only -- .planning/REQUIREMENTS.md`,
+   and the `grep -n` again. If the digest moved or the diff shows the checkbox/Traceability-row
+   touched, **revert by hand** (`git checkout -- .planning/REQUIREMENTS.md`) and report it —
+   *never* accept or commit the flipped state.
+4. Reproduce the "for the operator running phase.complete" section verbatim into the phase's
+   `HANDOFF.md`, so whoever runs the close step (which may not be the plan author) reaches the
+   procedure without having to know this file exists.
+
+**A second, subtler hazard the v0.9.1 audit itself flagged and this milestone inherits:**
+`61-VERIFICATION.md`/the milestone audit found that **three of Phase 61's four plans** declared
+`requirements-completed: [REL-09]` in their `SUMMARY.md` frontmatter, contradicting the correctly
+unmet checkbox — only one plan (`61-02`) got it right, with an inline comment naming the decision.
+**A downstream tool that trusts SUMMARY frontmatter rather than `REQUIREMENTS.md` itself would
+still flip the wrong thing even with the checksum guard on `REQUIREMENTS.md` holding.** For v0.9.2
+this risk is *structurally different but not absent*: the release-prep phase's requirement
+(inherited REL-09, or its renumbered ID) is genuinely meant to become `[x]` — but only *after* the
+actual PyPI publish/tag at `/gsd-complete-milestone`, not during the prep-only phase itself. Every
+plan's `SUMMARY.md` in the prep-only phase must declare `requirements-completed: []` for that
+requirement (matching the one correct v0.9.1 example, `61-02-SUMMARY.md`), and the checksum-guard
+procedure above must be run once more.
+
+**Phase to address:** the v0.9.2 release-prep phase. Observable proof: a
+`<phase>-CLOSEOUT-GUARD.md` file with a baseline SHA-256 recorded at phase head, a re-verification
+section recorded at phase close showing `MATCH`, and every plan's `SUMMARY.md` frontmatter in that
+phase declaring `requirements-completed: []` for the release requirement (grep confirms no
+plan claims it early).
+
+---
+
+### Pitfall 8: `release.yml`'s `uv: command not found` — confirmed fixed, but the workflow has other real exposure
+
+**Read at HEAD (`.github/workflows/release.yml`):** the `create-release` job now has explicit
+`Install uv` (`astral-sh/setup-uv@v7`) and `Set up Python` (`uv python install 3.12`) steps before
+its `Generate release notes` step, with an inline comment naming the exact prior failure: *"Omitting
+these two steps is exactly what failed the first real v0.7.0 tag push (`uv: command not found`, run
+30848860064)."* This is **confirmed fixed** — not merely present in the file, but observed running
+green at two subsequent real tag pushes: v0.8.0 and v0.9.0, per `RETROSPECTIVE.md`/`PROJECT.md`
+(*"the release ran `validate` → `build` → `publish-pypi` → `create-release` all `success`... the
+job that failed at the v0.7.0 close"*). No action needed here for v0.9.2 beyond the standing rule
+(binding constraint 6): a real tag push still exercises the whole chain, so treat any failure as a
+release-prep-phase concern, not a deferred one.
+
+**What else in this workflow could genuinely fail on a real v0.9.2 tag push, read at HEAD:**
+
+1. **The `pypi` environment likely requires manual approval** (GitHub Environment protection
+   rule) before `publish-pypi` runs — confirmed by PROJECT.md's own language for v0.9.0: *"published
+   by release run `32560457509` after owner approval of the `pypi` environment."* This is an
+   expected manual gate, not a failure — but an operator who does not know to expect it may
+   mistake a pending run for a stuck/broken one.
+2. **`Verify CHANGELOG has a section for this version` (validate job) requires `## [0.9.2]` to
+   exist in `CHANGELOG.md` *before* the tag is pushed** — read at HEAD, `CHANGELOG.md`'s only
+   version heading below `## [Unreleased]` is `## [0.9.0]`; there is currently no `## [0.9.2]`
+   section. This is release-prep's job to create, and `scripts/extract_changelog_section.py`'s
+   algorithm is purely positional (matches the literal string after `## [`), so it does not care
+   that `0.9.1` is skipped — it will find `## [0.9.2]` correctly as long as that exact heading
+   exists, with no dependency on there having been a `## [0.9.1]` heading at any point.
+3. **`generate_release_notes: true` stays enabled alongside the curated `body_path`** (by design,
+   D-08 from Phase 41 — confirmed unchanged at HEAD) — GitHub's auto-generated "What's Changed"
+   section is *appended after* the curated CHANGELOG body, not instead of it. **Live-tested against
+   this repository's real GitHub API** (read-only, no release created):
+   ```
+   $ gh api repos/YuSabo90002/typsphinx/releases/generate-notes \
+       -f tag_name=v-scratch-test -f previous_tag_name=v0.9.0 --jq '.body'
+   ## What's Changed
+   * merge: v0.9.1 — Windows path correctness (Phases 58-61, not released) by @YuSabo90002 in https://github.com/YuSabo90002/typsphinx/pull/135
+
+   **Full Changelog**: https://github.com/YuSabo90002/typsphinx/compare/v0.9.0...v-scratch-test
+   ```
+   Because v0.9.1's ~155 commits (142 of them `.planning/`-only) were merged as a **single** PR
+   (#135), GitHub's auto-notes list **one line per merged PR**, not one line per commit — the
+   `.planning/` noise does not leak into this section. The v0.9.2 real release will additionally
+   list whatever PR(s) close the inline-image fix and release-prep phases, so this section will be
+   2-3 lines instead of the "1 PR line + compare link" shape measured at v0.6.4 — still compact, not
+   a commit dump, but worth a human glance before/after publish since the comparison window now
+   spans two milestones' worth of history (v0.9.0 → v0.9.2, no v0.9.1 tag to anchor an intermediate
+   comparison).
+4. **`uv sync --extra dev --locked` in the `validate` and `build` jobs will hard-fail if `uv.lock`
+   is not regenerated in the same commit as the `pyproject.toml` version bump** — see Pitfall 10
+   below; this is the single highest-probability failure point for the actual v0.9.2 tag push,
+   because it is exactly the failure class already live and unresolved for dependabot PRs in this
+   repository today.
+
+**Phase to address:** the release-prep phase for items 2–4 (all release-prep's own responsibility);
+item 1 needs no phase action, only operator awareness recorded in the phase's handoff notes.
+Observable proof: a real `workflow_dispatch` of `release.yml` (or the real tag push itself) with all
+five jobs (`validate`, `build`, `publish-pypi`, `create-release`, and the conditional
+`publish-testpypi` correctly skipped) showing `success`/`skipped` as appropriate — not "the workflow
+file looks correct."
+
+---
+
+### Pitfall 9: The 0.9.0 → 0.9.2 version skip
+
+**Enumerated per the question's named surfaces, each checked at HEAD:**
+
+- **`scripts/extract_changelog_section.py`** — confirmed safe by design. Its docstring explicitly
+  documents the algorithm is *purely positional*, matching only the literal requested version
+  string with no dependency on adjacency to any other version heading. `## [0.9.1]` never having
+  existed is a complete non-issue for this script.
+- **The CHANGELOG tail compare-link block** (read at HEAD, `CHANGELOG.md` tail): currently reads
+  `[0.9.0]: .../releases/tag/v0.9.0` followed by `[Unreleased]: .../compare/v0.9.0...HEAD` with no
+  `[0.9.1]` line ever added (correct — v0.9.1 was never released, so it should never get a link
+  line). Release-prep must add `[0.9.2]: .../releases/tag/v0.9.2` and roll the `[Unreleased]:
+  compare` line forward to `.../compare/v0.9.2...HEAD` — **skipping 0.9.1 in this chain is
+  correct, not a defect**; the risk is only in forgetting the mechanical roll for 0.9.2 itself,
+  which is unrelated to the skip. (Per project memory, this link-block edit is release-prep's job,
+  same phase as the version bump — not a separate concern.)
+- **`README.md`** — read at HEAD: line 347 reads `**Status**: Stable (v0.9.0) - Production ready`.
+  A dedicated gate already exists for exactly this drift class:
+  `tests/test_readme_version_sync.py::test_readme_status_version_matches_pyproject` parses both
+  files independently and asserts equality — **and this gate's own docstring records that README's
+  Status line previously drifted stale through two entire releases (v0.6.0 and v0.6.1) before it
+  was added.** For v0.9.2, this test will fail loudly (not silently drift) if the version bump
+  touches `pyproject.toml` without touching README.md in the same change — this is a real,
+  already-armed CI gate, not a new risk to design around, but it is the exact class that has bitten
+  this project twice before, so it earns explicit mention in the release-prep checklist.
+- **`uv.lock`** — read at HEAD: `uv.lock`'s own `[[package]] name = "typsphinx"` stanza carries a
+  literal `version = "0.9.0"` (line 1467), independent of `pyproject.toml`'s `version` field. **This
+  is the same defect class already live and blocking dependabot in this repository today**
+  (`.planning/todos/pending/2026-08-16-dependabot-prs-die-on-uv-lock-locked-mismatch.md`): every
+  `uv sync --extra dev --locked` step (11 occurrences across `ci.yml`, `docs.yml`, `release.yml`)
+  refuses a stale lockfile with `error: The lockfile at 'uv.lock' needs to be updated, but
+  '--locked' was provided`, and the failure is at the *install* step, before any test/lint/type
+  check runs. **The version bump commit must regenerate `uv.lock` (`uv lock` or `uv sync` without
+  `--locked`) in the same commit as the `pyproject.toml` edit, or the release-prep phase's own CI
+  run — and the real tag push's `validate`/`build` jobs — fail immediately and uninformatively.**
+  This is not hypothetical: it is the exact error signature already reproduced twice in this
+  repository's dependabot PRs (#123, #128) at the time of the linked todo.
+- **`typsphinx-doc-translations` pin/tag procedure** — confirmed via the public GitHub API
+  (read-only): the translations repo's tags currently jump `v0.8.0 → v0.9.0` directly (no `v0.9.1`
+  tag exists there either), consistent with v0.9.1 never publishing. The established, working
+  procedure (used successfully for v0.9.0, "not by a hand-made clone-edit-push, for the second
+  consecutive close") is to dispatch that repository's own `update-pin.yml` workflow after the
+  v0.9.2 tag lands on `main` — it advances the submodule/pin reference and tags the translations
+  repo itself. **This is a manual dispatch step, not automatic on the parent repo's tag push** — it
+  must be an explicit item in the release-prep or complete-milestone checklist, not assumed to
+  happen as a side effect of `release.yml`.
+
+**Phase to address:** the release-prep phase owns the `pyproject.toml`/`uv.lock`/`README.md`/
+`CHANGELOG.md` edits (one atomic commit); `/gsd-complete-milestone` or an explicit release-prep
+step owns dispatching `typsphinx-doc-translations`'s `update-pin.yml` after the tag lands.
+Observable proof: `git diff` of the version-bump commit touches all four of
+`pyproject.toml`/`uv.lock`/`README.md`/`CHANGELOG.md` together (a commit touching only
+`pyproject.toml` is the exact shape that currently breaks dependabot); a linked `update-pin.yml`
+run ID on the translations repo with a resulting `v0.9.2` tag confirmed via
+`gh api repos/YuSabo90002/typsphinx-doc-translations/tags`.
+
+---
+
+### Pitfall 10: `.planning/` commits inside the release PR — measured, and mostly benign
+
+**Measured directly against PR #135 (v0.9.1's merge into `main`):**
+
+```
+$ gh pr view 135 --json additions,deletions,changedFiles
+"additions": 31797  (dominated by .planning/ phase artifacts — 142 of 155 commits are
+                      ".planning/"-only "docs(...)" commits)
+```
+
+**This is a code-review-hygiene cost, not a release-body leak.** As shown under Pitfall 8 item 3,
+GitHub's auto-generated release notes list one line per *merged PR*, not per commit — since this
+project merges each milestone as a single PR, the `.planning/` commit noise inside that PR's diff
+does not surface in the GitHub Release body (which is sourced from the curated `CHANGELOG.md`
+section, never from `git log`). **The actual cost is at review time**: a reviewer (human or
+`code-review`/`gsd-code-review` tooling) working through PR #135's ~31.8k additions has to
+distinguish the handful of files that matter (`typsphinx/*.py`, `tests/*.py`,
+`.github/workflows/*`) from the much larger `.planning/` volume. This project has a purpose-built
+tool for exactly this (`gsd-pr-branch`: "Create a clean PR branch by filtering out `.planning/`
+commits — ready for code review") that was **not** used for PR #135 — confirmed by the additions
+count above, which is consistent with `.planning/` being included wholesale.
+
+**How it would manifest in this milestone specifically:** the v0.9.2 PR will similarly carry every
+`.planning/` commit from phases 62+ (the fix, plus release-prep) mixed with the actual
+`translator.py` diff, making a manual or automated code-review pass slower and more error-prone at
+finding the one load-bearing hunk (the `visit_image()` separator logic) — a phase where getting the
+separator wrong in a subtle way (Part 2) is exactly the kind of thing a rushed review would miss in
+a 30k-line diff.
+
+**Prevention:** either invoke `gsd-pr-branch` before requesting review on the v0.9.2 PR (filtering
+`.planning/` out of the review-facing diff, matching what this repo already has a skill for but has
+not yet used), or explicitly scope any code-review pass with `--files typsphinx/translator.py
+tests/<new-gate-file>` rather than reviewing the full PR diff — mirroring the project's own recorded
+lesson about `gsd-code-review`'s scope-detection dropping root-level files unless named explicitly
+(user memory: `gsd-code-review` extraction only follows paths containing `/`).
+
+**Phase to address:** whichever phase opens the PR for review (likely the fix phase or release-prep).
+Observable proof: either a `gsd-pr-branch`-filtered branch/PR exists, or the code-review invocation's
+recorded command explicitly lists the product files reviewed (not "reviewed the PR").
+
+---
+
+### Pitfall 11: RTD / translations-repo steps that must follow a publish
+
+**Confirmed sequence from this project's own v0.9.0 close** (`PROJECT.md`, "Prior state, retained
+for reference"), reusable verbatim for v0.9.2:
+
+1. Tag push (`v0.9.2`) triggers `release.yml`, publishing to PyPI and creating the GitHub Release.
+2. Dispatch `typsphinx-doc-translations`'s own `update-pin.yml` (NOT automatic — a manual/explicit
+   dispatch step) — this advances its pin to the new `main` merge commit and tags that repository
+   `v0.9.2` itself.
+3. Verify Read the Docs `en` `stable` resolves from the new tag and reports `0.9.2` (public API,
+   no auth needed — per this project's own recorded fact that RTD's status/build/PDF/flyout APIs
+   are curlable without authentication).
+4. Verify `ja` `stable` advances only once step 2's translations-repo tag has landed (RTD's
+   translation-project resolution follows the *translations repo's own* tags, not the parent's).
+5. Confirm no RTD "Default Version" flip is needed on either project — this project's own record
+   states this has been unnecessary for six consecutive closes running, so its *absence* is the
+   expected, unremarkable outcome, not something requiring action.
+
+**Phase to address:** `/gsd-complete-milestone` (matches the pattern used at every prior publish —
+this is explicitly NOT release-prep's job, which stays prep-only per the established
+prep/publish split). Observable proof: a linked `update-pin.yml` run ID plus a fresh (same-day)
+curl of both RTD project's version-info endpoints showing `0.9.2`.
+
+---
+
+### Pitfall 12: The dependabot `uv.lock --locked` mismatch — does it block this release?
+
+**No — but it is adjacent, not unrelated, and worth a one-line acknowledgment in release-prep.**
+The open todo (`.planning/todos/pending/2026-08-16-dependabot-prs-die-on-uv-lock-locked-mismatch.md`)
+describes dependabot's own PRs (bumping only `pyproject.toml`'s dependency versions) failing
+`uv sync --extra dev --locked` in eleven CI steps. **This todo is explicitly scoped to
+dependabot-authored PRs**, not to a maintainer-authored version-bump commit — a human/executor
+bumping `pyproject.toml`'s `[project].version` field and remembering to run `uv lock` afterward does
+not hit this defect (Pitfall 9 above covers that risk directly). The two are the *same underlying
+mechanism* (manifest changed, lockfile not regenerated, `--locked` refuses to proceed) but different
+triggers: this todo does not need to be resolved to ship v0.9.2, but its existence is the strongest
+available evidence for why Pitfall 9's `uv.lock` regeneration step must not be skipped or assumed
+automatic.
+
+**Phase to address:** none required for v0.9.2 to ship (correctly out of scope, confirmed by
+PROJECT.md's own "Not scoped into v0.9.2" list, which names this todo explicitly). Observable proof:
+not applicable — this is a "confirmed non-blocking" finding, not a pitfall requiring a phase.
+
+---
 
 ## Pitfall-to-Phase Mapping
 
-| Pitfall | Prevention Phase | Verification |
-|---------|-------------------|----------------|
-| 1: hard-coded `repr()` test expectations | Quoting-helper phase (family 3) | `pytest tests/test_out02_escape_target_gate.py -k drive` and `tests/test_builder.py -k rehome_escape` both green, asserting the NEW (non-doubled, delimiter-aware) form, not `repr(...)` |
-| 2: `template_registry.py:410` type-check site wrongly routed through the helper | Quoting-helper phase (family 3) | `pytest tests/test_template_registry.py -k "list_template_field or bytes_template_field"` stays green with `ExtensionError` (not an unhandled exception) |
-| 3: `os.PathLike` value breaks the helper | Quoting-helper phase (family 3) | New unit test: a `pathlib.Path` `template` that also fails CONF-17/existence emits a plain quoted string |
-| 4: backslash silently folded to slash at image emission | `_track_image()`/`visit_image()` phase (family 2) | New regression test: literal-backslash relative basename renders `\\`-escaped in `.typ`, not slash-substituted |
-| 5: naive length-bound truncation | `_track_image()`/`visit_image()` phase (family 2), its own gate per binding constraint #3 | Two adversarially-truncation-colliding >255-char basenames produce two distinct keys; extension survives |
-| 6: CI-dispatch-as-diagnosis | Cross-cutting, stated once in roadmap shared discipline | Every phase's plan shows a POSIX-runnable RED fixture committed/confirmed BEFORE the corresponding fix commit |
+| Pitfall | Prevention Phase | Verification (observable artifact) |
+|---|---|---|
+| 1. String-only gate can't see parser defect | `visit_image()` fix phase | New test file greps positive for `typst.compile`/`TYPST_AVAILABLE`; the 9 pre-existing string-level image tests are left untouched |
+| 2. Gate never proven RED | `visit_image()` fix phase | `*-EVIDENCE.md` quoting verbatim pre-fix Typst error + `git status --porcelain` empty after restore |
+| 3. Editing tests instead of proving byte-identical | `visit_image()` fix phase | `git diff --stat -- tests/` shows only new files, or justified edits |
+| 4. `ruff` unrunnable in fresh worktree | Every code-touching phase; release-prep especially | `nix run nixpkgs#ruff -- check .` transcript or a linked CI run's `Run linters` step |
+| 5. Locale-dependent CI-only failures | `visit_image()` fix phase + release-prep | `LC_ALL=C` local pre-check + a mid-phase `workflow_dispatch` CI run ID |
+| 6. Windows-only failures | `visit_image()` fix phase + release-prep | Grep new tests for missing `encoding=`; CI run showing both `windows-latest` lanes green |
+| 7. Release-checkbox auto-flip | Release-prep phase | `<phase>-CLOSEOUT-GUARD.md` with SHA-256 baseline + post-close MATCH; every plan's SUMMARY frontmatter shows `requirements-completed: []` |
+| 8. `release.yml` exposure beyond the fixed `uv: command not found` | Release-prep phase | Real `workflow_dispatch`/tag-push run with all jobs `success`/`skipped` as expected |
+| 9. 0.9.0→0.9.2 version-skip surfaces | Release-prep phase | One commit touching `pyproject.toml` + `uv.lock` + `README.md` + `CHANGELOG.md` together; `test_readme_status_version_matches_pyproject` green |
+| 10. `.planning/` noise in the release PR | PR-opening phase | `gsd-pr-branch`-filtered PR, or a review scoped explicitly to product files |
+| 11. RTD/translations follow-up | `/gsd-complete-milestone` | `update-pin.yml` run ID + fresh RTD API curl showing `0.9.2` on both `en`/`ja` `stable` |
+| 12. Dependabot `--locked` mismatch | None (confirmed non-blocking, carried forward) | N/A — already recorded as out of scope |
+
+---
+
+## "Looks Done But Isn't" Checklist
+
+- [ ] **The `visit_image()` fix "passes all tests":** verify the passing tests include at least one
+  real `typst.compile()` invocation per failing shape named in PROJECT.md — a green run of only the
+  9 pre-existing string-level tests proves nothing new.
+- [ ] **The new gate "is RED-first":** verify the RED observation was captured by actually
+  restoring `typsphinx/translator.py` to its pre-fix state and re-running — not by reasoning that it
+  "must have failed before."
+- [ ] **The release requirement "is checked off":** verify by reading `.planning/REQUIREMENTS.md`
+  directly, not by trusting a SUMMARY.md's `requirements-completed` frontmatter field.
+- [ ] **"Lint is clean":** verify `ruff check .` actually executed (not 127'd) — a green `black
+  --check .` and `mypy` alone do not establish this on this machine.
+- [ ] **"CHANGELOG is ready":** verify the version-bump commit also touched `uv.lock` and
+  `README.md`'s Status line in the same commit, not just `CHANGELOG.md` and `pyproject.toml`.
+- [ ] **"The release is done" after the tag push:** verify `typsphinx-doc-translations`'s
+  `update-pin.yml` was dispatched and its resulting tag exists — this does not happen automatically
+  from the parent repo's tag push.
+
+---
 
 ## Sources
 
-- `typsphinx/builder.py` (this repository, HEAD) — `_is_absolute_image_uri()` docstring
-  (lines 121-194, especially 160-165's stated tradeoff), `_escapes_outdir()` (197-238),
-  `_track_image()` (1637-1792), the message-builder helpers (`_conf17_violation_message`,
-  `_templates_path_collision_message`, `_bundle_destination_collision_message`, lines 303-402).
-- `typsphinx/translator.py` (this repository, HEAD) — `escape_typst_string()` (156-187),
-  `visit_image()` (4718-4766).
-- `typsphinx/template_registry.py` (this repository, HEAD) — lines 395-434 (the type-check/
-  CONF-17/existence failure trio).
-- `.planning/todos/pending/2026-08-16-track-image-escape-branch-basename-not-normalized.md`
-- `.planning/todos/pending/2026-08-17-repr-escaped-paths-in-remaining-user-facing-messages.md`
-- `.planning/todos/pending/2026-08-16-escapes-outdir-isabs-not-backslash-normalized.md`
-- `tests/test_out02_escape_target_gate.py` (lines 79-138, especially the `[drive]` parametrization
-  and its `repr(target)` assertion) — grepped and read directly for this research.
-- `tests/test_builder.py` (lines 560-599, `test_post_process_images_rehome_escape_relocates_with_warning`)
-  — grepped and read directly for this research.
-- `tests/test_template_registry.py` (lines 820-1005, the type/bytes/pathlike-value tests) —
-  grepped and read directly for this research.
-- `tests/test_templates_path_collision_gate.py` (lines 440-491,
-  `TestWindowsPathEscapingRegressionGuard`) — the existing proven POSIX-runnable Windows-shape
-  test pattern this milestone's binding constraint #4 requires extending.
-- `.github/workflows/ci.yml` (lines 12-46) — confirms the 3-OS (`ubuntu-latest`/`windows-latest`/
-  `macos-latest`) matrix binding constraint #6 references.
-- `.planning/PROJECT.md` — "## Current Milestone: v0.9.1 Windows path correctness" section (goal,
-  target features, binding constraints, deferred items).
-- `CLAUDE.md` — "Conventions & gotchas" and "Worktree-isolated execution" sections.
+- `.planning/PROJECT.md` (`## Current Milestone: v0.9.2`, v0.9.1/v0.9.0 sections, binding
+  constraints) — read at HEAD.
+- `.planning/RETROSPECTIVE.md` (v0.4.4 through v0.9.1 entries) — read at HEAD.
+- `.planning/milestones/v0.9.1-MILESTONE-AUDIT.md` — read at HEAD.
+- `.planning/milestones/v0.9.1-phases/58-*/58-01-SUMMARY.md`, `58-VERIFICATION.md`.
+- `.planning/milestones/v0.9.1-phases/59-*/59-01-SUMMARY.md`, `59-VERIFICATION.md`,
+  `59-WINDOWS-URI-EVIDENCE.md`.
+- `.planning/milestones/v0.9.1-phases/60-*/60-02-EVIDENCE.md`, `60-PATH-QUOTING-EVIDENCE.md`.
+- `.planning/milestones/v0.9.1-phases/61-*/61-CLOSEOUT-GUARD.md` — read in full at HEAD.
+- `.planning/todos/pending/2026-08-16-dependabot-prs-die-on-uv-lock-locked-mismatch.md`.
+- `.planning/todos/pending/2026-08-11-ruff-generic-linux-elf-unrunnable-on-nixos.md`.
+- `typsphinx/translator.py:4718-4772` (`visit_image`/`depart_image`), and separator-protocol call
+  sites at lines 927, 1023, 1777, 1837, 1878, 1914-1935 — read at HEAD.
+- `tests/test_translator.py:1706-3918` (image test census) — read at HEAD.
+- `.github/workflows/release.yml`, `.github/dependabot.yml` — read at HEAD.
+- `scripts/extract_changelog_section.py` — read in full at HEAD.
+- `CHANGELOG.md`, `README.md:347`, `pyproject.toml:7`, `uv.lock:1466-1468` — read at HEAD.
+- `tests/test_readme_version_sync.py` — read in full at HEAD.
+- Live, read-only measurements performed for this research: `typst.compile()` of
+  control/injected/naive-injected/unseparated `.typ` fixtures in
+  `/tmp/claude-1000/.../scratchpad/typst_probe/`; `gh api
+  repos/YuSabo90002/typsphinx/releases/generate-notes` (scratch tag name, no release created);
+  `gh api repos/YuSabo90002/typsphinx-doc-translations/tags`; `gh pr view 135 --json
+  additions,deletions,changedFiles`; `git log --oneline v0.9.0..HEAD`.
 
 ---
-*Pitfalls research for: typsphinx v0.9.1 "Windows path correctness"*
-*Researched: 2026-08-27*
+*Pitfalls research for: typsphinx v0.9.2 milestone*
+*Researched: 2026-08-30*
