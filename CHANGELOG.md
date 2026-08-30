@@ -20,9 +20,8 @@ This release curates the Windows-shaped path-handling hardening accumulated sinc
 output-directory escape check, an absolute image URI that aborted the PDF build, and diagnostic
 message quoting — together with a separate compile-blocking defect in the image visitor. A project
 built with the published 0.9.0 release produced no PDF for any master document when an image was
-not first in its container, and 0.9.0 users should upgrade to this release. The runtime changes are
-confined to `typsphinx/translator.py`, with no other file under `typsphinx/` touched. Zero new
-runtime dependencies; the bundled `@preview` version-sync surface is untouched.
+not first in its container, and 0.9.0 users should upgrade to this release. Zero new runtime
+dependencies; the bundled `@preview` version-sync surface is untouched.
 
 ### Fixed
 
@@ -33,7 +32,8 @@ runtime dependencies; the bundled `@preview` version-sync surface is untouched.
   expression, so Typst refused the file with `expected semicolon or line break` and the `typstpdf`
   builder raised an extension error, producing no PDF for any master document in the project,
   including masters that contained no image at all. `visit_image()` now joins the translator's
-  existing separator discipline, so every one of those containers compiles.
+  existing separator discipline, so every one of those containers compiles. This fix is confined
+  to `typsphinx/translator.py`; no other file under `typsphinx/` was touched for it.
 
 - **A Windows-shaped `typst_documents` target that reaches outside the output directory is now
   refused on the normalized path, matching its sibling image-URI check (PATH-01).** The
