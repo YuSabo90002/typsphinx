@@ -307,6 +307,61 @@ verifier all read one wording.
    recorded as `success`), with the `Run lint with tox` step's own `ruff check .` output quoted
    verbatim in `63-CI-EVIDENCE.md`. No plan drills for a step named `Run linters` in either
    workflow, and no plan triggers `release.yml` for any reason.
+
+---
+
+## Amendments (2026-08-30, gap-closure planning time — owner-approved)
+
+`63-VERIFICATION.md` returned `status: gaps_found` (4/5) with SC#2 open, and `63-REVIEW.md` CR-01
+independently found the same defect: the `## [0.9.2]` lead paragraph asserts "The runtime changes
+are confined to `typsphinx/translator.py`, with no other file under `typsphinx/` touched," which is
+false. The three decisions below were put to the owner during the `/gsd-plan-phase 63 --gaps` run
+and answered. They are additive; nothing above is retracted.
+
+2. **D-22 — the gap closure is additive, never a replan.** New plans `63-05-PLAN.md` and
+   `63-06-PLAN.md` carry `gap_closure: true`; `63-01-PLAN.md` through `63-04-PLAN.md` and their four
+   `SUMMARY.md` files are left byte-untouched, because they describe work already committed and
+   independently re-verified (SC#1, SC#3, SC#4 and SC#5 all hold). The follow-up execution command is
+   `/gsd-execute-phase 63 --gaps-only`, which scopes to the `gap_closure: true` plans only.
+   — **Reversibility:** reversible.
+
+3. **D-23 — the CR-01 fix is "drop the blanket claim AND re-scope a true version into the IMG-08
+   bullet."** This is CR-01's first suggested option applied in full, chosen over the bare
+   drop-the-sentence option. Two edits inside the `## [0.9.2]` section of `CHANGELOG.md`: the
+   file-confinement sentence is deleted from the lead paragraph, and a narrowed, true version is
+   appended to the IMG-08/IMG-09/IMG-10 bullet.
+
+   **This is an additive correction to how D-01 was applied, not a reversal of D-01.** D-01 named
+   `## [0.6.5]` (`CHANGELOG.md:410`) as the model to follow, and that model's lead paragraph does
+   carry a file-confinement sentence — which was true for 0.6.5, a single-defect hotfix whose whole
+   content was one `translator.py` separator defect. Copying the shape to 0.9.2, which bundles the
+   Windows-path work as well, made the sentence false. D-23 keeps D-01's shape and moves the
+   sentence to the one bullet where it holds.
+
+   Measured at gap-closure planning time, both re-run rather than recalled:
+   - `git diff --stat v0.9.0..HEAD -- typsphinx/` → **5 files** (`builder.py`, `pathfmt.py`,
+     `template_registry.py`, `translator.py`, `writer.py`; 408 insertions, 58 deletions) — the
+     falsification of the blanket claim.
+   - `git diff --stat e3399825..dd385436 -- typsphinx/` → `typsphinx/translator.py | 23 +++`,
+     **1 file changed**, over exactly `8430ca62` + `1adad07f` — the narrowed claim holds for the
+     IMG-08/09/10 fix.
+   - Milestone-wide, `typsphinx/translator.py` is **33** insertions, not 23; `756b9fad`
+     (`feat(59-03)`) accounts for the difference. The plans require that gap be stated beside the
+     bullet's figure so the narrower scope reads as deliberate rather than as a second
+     undermeasurement.
+
+   The executor re-measures the phase-62 range itself before writing the bullet. The whole point of
+   this gap is that an unproven file-scope claim shipped once already; the figures above are
+   provenance, never a value to be matched. — **Reversibility:** reversible (a Markdown edit in a
+   tree with no tag, no release and no upload).
+
+4. **D-24 — `63-REVIEW.md` IN-01 stays out of scope.** The stale range comment at
+   `tests/test_changelog_page_gate.py:47` ("0.4.4 through 0.9.2" against a tuple starting at
+   `"0.4.1"`) is Info-severity, pre-existing, and absent from `63-VERIFICATION.md`'s `gaps:` block.
+   No plan in this closure edits that file, and `63-05` gates on its being untouched. The
+   declination is recorded rather than acted on, so a later reader does not read the absence of the
+   edit as an oversight. — **Reversibility:** reversible.
+
 </amendments>
 
 <canonical_refs>
