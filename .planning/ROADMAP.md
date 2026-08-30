@@ -393,7 +393,7 @@ user-visible fixes under one heading, because 0.9.1 is a version users will neve
      parent repo's tag push), and the Read the Docs `en` and `ja` `stable` endpoints reporting
      `0.9.2`.
 
-**Plans**: 3/4 plans executed across 3 waves
+**Plans**: 4/4 plans executed across 3 waves
 
 Plans:
 **Wave 1**
@@ -407,7 +407,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 63-04-PLAN.md — Take SC#5 fence observation 2 of 2 with the scoped/widened `typsphinx/` diff pair, re-verify the checksum fence at phase close, and author the standalone `63-HANDOFF.md` (wave 3)
+- [x] 63-04-PLAN.md — Take SC#5 fence observation 2 of 2 with the scoped/widened `typsphinx/` diff pair, re-verify the checksum fence at phase close, and author the standalone `63-HANDOFF.md` (wave 3)
 
 **Cross-cutting constraints** *(truths any plan in this phase must carry)*:
 
@@ -441,7 +441,7 @@ below tracks the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 62. The `visit_image()` Separator Fix and Its Real-Compile Gate | v0.9.2 | 4/4 | Complete | 2026-08-30 |
-| 63. v0.9.2 Release Prep (prep-only) | v0.9.2 | 3/4 | In Progress | - |
+| 63. v0.9.2 Release Prep (prep-only) | v0.9.2 | 4/4 | In Progress | - |
 
 ## Roadmap Evolution
 
