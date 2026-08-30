@@ -437,3 +437,288 @@ one-commit-four-files requirement rather than asserting it.
 `63-01-SUMMARY.md`'s frontmatter declares `requirements-completed: []` for REL-09. This plan cites
 REL-09 for coverage only, closes nothing, and does not touch its checkbox — REL-09 closes at
 `/gsd-complete-milestone`, not here.
+
+## Post-correction re-run (gap closure, SC#2)
+
+**Timestamp:** 2026-08-30T13:20:55Z
+**Resolving commit:** `2a0bc3bef1770a373fa48d122ba35a4d1de2417b` (`2a0bc3be`)
+
+### The contradiction, and its resolution
+
+This same file carries two sections that contradicted each other. § "Milestone-invariant sweep
+(D-06 bullets 1 and 2)" above transcribes `git diff --stat v0.9.0..HEAD -- typsphinx/` showing
+**five** files changed (`builder.py`, `pathfmt.py`, `template_registry.py`, `translator.py`,
+`writer.py`). § "The extracted body, verbatim" above transcribes the `## [0.9.2]` intro paragraph
+as it stood before this closure, which asserted "The runtime changes are confined to
+`typsphinx/translator.py`, with no other file under `typsphinx/` touched" — a blanket claim that
+sentence directly falsified. Both transcriptions are left exactly as they were recorded; neither is
+edited by this section. `63-REVIEW.md` CR-01 (Critical) and `63-VERIFICATION.md` SC#2 both caught
+this independently.
+
+**The contradiction is RESOLVED as of commit `2a0bc3be`.** The blanket sentence has been deleted
+from the `## [0.9.2]` intro paragraph, and a narrower, measured claim now sits in the first
+`### Fixed` bullet (the one citing IMG-08, IMG-09, IMG-10) — the one bullet whose fix genuinely is
+confined to `typsphinx/translator.py`. The two sections above are no longer in tension with the
+text currently on disk.
+
+### The replacement claim's own proof
+
+Scoped `--stat` over the phase-62 commit range, re-run in this closure:
+
+```
+$ git diff --stat e3399825..dd385436 -- typsphinx/
+ typsphinx/translator.py | 23 +++++++++++++++++++++++
+ 1 file changed, 23 insertions(+)
+```
+
+Two-commit log over the same range:
+
+```
+$ git log --oneline e3399825..dd385436 -- typsphinx/
+1adad07f docs(62): document depart_image()'s sibling-boundary bookkeeping (WR-02)
+8430ca62 feat(62-01): join visit_image() to the separator triad, add tracer gate
+```
+
+Each commit's own single-file stat:
+
+```
+$ git show --stat --format= 8430ca62 -- typsphinx/
+ typsphinx/translator.py | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+```
+
+```
+$ git show --stat --format= 1adad07f -- typsphinx/
+ typsphinx/translator.py | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
+```
+
+9 + 14 = 23, matching the scoped `--stat` total exactly.
+
+**The milestone-wide figure, recorded alongside it, and why the two differ:**
+
+```
+$ git diff --stat v0.9.0..HEAD -- typsphinx/translator.py
+ typsphinx/translator.py | 33 +++++++++++++++++++++++++++++++--
+ 1 file changed, 31 insertions(+), 2 deletions(-)
+```
+
+```
+$ git log --oneline v0.9.0..HEAD -- typsphinx/translator.py
+1adad07f docs(62): document depart_image()'s sibling-boundary bookkeeping (WR-02)
+8430ca62 feat(62-01): join visit_image() to the separator triad, add tracer gate
+756b9fad feat(59-03): route adjusted image URI through escape_typst_string()
+```
+
+```
+$ git show --stat 756b9fad -- typsphinx/translator.py
+ typsphinx/translator.py | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+```
+
+The milestone-wide diff (31 insertions, 2 deletions) is larger than the phase-62 range's 23
+insertions because commit `756b9fad` (a different fix family, IMG-04..07's escape routing) also
+touched `translator.py`: 23 + 8 = 31 insertions, and the 2 deletions are entirely `756b9fad`'s.
+The IMG-08/IMG-09/IMG-10 bullet's replacement claim scopes itself to the phase-62 range only, so
+its narrower figure (23 insertions, one file, two commits) is visibly deliberate — it is not a
+second undermeasurement of the milestone-wide figure.
+
+### SC#2's structural set, re-run against the corrected text
+
+Extractor exit status and stdout size, from a run executed in this closure:
+
+```
+$ uv run python scripts/extract_changelog_section.py 0.9.2 > /tmp/63g-e.md
+exit=0
+$ wc -c /tmp/63g-e.md
+4083 /tmp/63g-e.md
+```
+
+4083 is a **byte** count (`wc -c`, not `wc -m`). The `## [0.9.2]` section carries 9 U+2014 em
+dashes, each 3 bytes in UTF-8; a character count would read 18 bytes lower than this figure, which
+is why the byte-vs-character distinction matters for any future byte-identity comparison against
+the published GitHub Release body.
+
+D-20's three named greps, re-run against the corrected tree:
+
+```
+$ grep -c '^## \[0\.9\.1\]' CHANGELOG.md
+0
+$ grep -c '^\[0\.9\.1\]:' CHANGELOG.md
+0
+$ grep -c 'Planned for Future Releases' /tmp/63g-e.md
+0
+```
+
+Byte-identity `diff`, with the `## [0.6.5]` section as positive control, both sizes recorded:
+
+```
+$ awk '/^## \[0\.9\.2\]/{f=1;next} f&&/^## \[/{exit} f' CHANGELOG.md \
+    | sed -e '/./,$!d' | tac | sed -e '/./,$!d' | tac > /tmp/63g-s.md
+$ diff -q /tmp/63g-e.md /tmp/63g-s.md
+(empty; no output)
+$ wc -c /tmp/63g-e.md /tmp/63g-s.md
+4083 /tmp/63g-e.md
+4083 /tmp/63g-s.md
+8166 total
+```
+
+```
+$ uv run python scripts/extract_changelog_section.py 0.6.5 > /tmp/63g-e65.md
+$ awk '/^## \[0\.6\.5\]/{f=1;next} f&&/^## \[/{exit} f' CHANGELOG.md \
+    | sed -e '/./,$!d' | tac | sed -e '/./,$!d' | tac > /tmp/63g-s65.md
+$ diff -q /tmp/63g-e65.md /tmp/63g-s65.md
+(empty; no output)
+$ wc -c /tmp/63g-e65.md /tmp/63g-s65.md
+1299 /tmp/63g-e65.md
+1299 /tmp/63g-s65.md
+2598 total
+```
+
+Both comparisons are empty `diff`s; the 0.6.5 positive control reproduces the same 1299-byte
+both-sides result recorded earlier in this file, confirming the pipeline is sound rather than
+vacuously matching.
+
+Whole-file heading count, and absence of any heading or tail link for the never-published version:
+
+```
+$ grep -c '^## \[' CHANGELOG.md
+23
+$ grep -n '^## \[' CHANGELOG.md | head -3
+8:## [Unreleased]
+17:## [0.9.2] - 2026-08-30
+74:## [0.9.0] - 2026-08-17
+$ grep -c '0\.9\.1' CHANGELOG.md
+0
+$ grep -c '^## \[0\.9\.1\]' CHANGELOG.md
+0
+$ grep -c '^\[0\.9\.1\]:' CHANGELOG.md
+0
+```
+
+Tail block's unreleased compare base:
+
+```
+$ tail -1 CHANGELOG.md
+[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.9.2...HEAD
+```
+
+### The corrected body, transcribed verbatim
+
+```markdown
+This release curates the Windows-shaped path-handling hardening accumulated since 0.9.0 — an
+output-directory escape check, an absolute image URI that aborted the PDF build, and diagnostic
+message quoting — together with a separate compile-blocking defect in the image visitor. A project
+built with the published 0.9.0 release produced no PDF for any master document when an image was
+not first in its container, and 0.9.0 users should upgrade to this release. Zero new runtime
+dependencies; the bundled `@preview` version-sync surface is untouched.
+
+### Fixed
+
+- **An image not first in its container no longer aborts the `typstpdf` compile (IMG-08, IMG-09,
+  IMG-10).** Whenever an image followed other content in the same container — mid-sentence, in a
+  list item, a table cell, a definition-list body, an admonition, a footnote, a field-list body, a
+  section title, or a figure's legend — the emitted Typst lacked a separator from the preceding
+  expression, so Typst refused the file with `expected semicolon or line break` and the `typstpdf`
+  builder raised an extension error, producing no PDF for any master document in the project,
+  including masters that contained no image at all. `visit_image()` now joins the translator's
+  existing separator discipline, so every one of those containers compiles. This fix is confined
+  to `typsphinx/translator.py`; no other file under `typsphinx/` was touched for it.
+
+- **A Windows-shaped `typst_documents` target that reaches outside the output directory is now
+  refused on the normalized path, matching its sibling image-URI check (PATH-01).** The
+  `typst_documents` escape predicate now applies its absolute-path and drive-qualified checks to
+  the same backslash-normalized string its sibling image-URI predicate already used, rather than
+  to the raw stem. Neither of the predicate's two real call sites can currently reach the gap this
+  closes — both normalize or otherwise guarantee a safe value before calling it — so this is
+  contract hardening for a future caller, not the repair of a defect any user was hitting.
+
+- **A Windows-shaped absolute image URI now compiles instead of aborting the PDF build (IMG-04,
+  IMG-05, IMG-06, IMG-07).** The relocation key built for a relocated image is now derived from a
+  forward-slash-normalized basename, so no backslash or drive letter from the original URI
+  survives into the emitted `image(...)` path value, and that value is now escaped as a Typst
+  syntax literal before it is interpolated. The two halves are coupled — neither alone closes the
+  compile-time failure, because Typst refuses a backslash in an `image()` path by value, not by
+  syntax. The relocation basename is also bounded to 255 UTF-8 bytes, with the collision-avoidance
+  digest kept whole so two images that would otherwise collide on a shared filename still resolve
+  to distinct files.
+
+- **A path named in a diagnostic message now reads exactly as it appears on disk (MSG-02, MSG-03,
+  MSG-04, MSG-05).** Path-valued messages across the extension no longer double a Windows
+  separator, and the quoting that wraps a path no longer closes early on a path containing a
+  quote character — a POSIX path with an apostrophe in it (for example, a directory named
+  `O'Brien`) was affected by the same defect family as a Windows-shaped path, so this is not a
+  Windows-exclusive fix. Identifier-valued messages (registry keys, docnames) are unaffected;
+  only path-valued messages route through the new quoting.
+
+### Verified
+
+- Zero new runtime or dev dependencies across this milestone's diff (`v0.9.0..HEAD`) — the only
+  change to `pyproject.toml` and `uv.lock` is the version literal itself.
+- The four bundled `@preview` package version strings unchanged across all four sync surfaces
+  (`writer.py` / `template_engine.py` / `templates/base.typ` / `examples/**/*.typ`).
+- The `visit_image()` separator fix is bound by a real `typst.compile()` gate covering the 16
+  previously-failing and 9 must-keep-passing image shapes (TEST-05), with 18 of 18 master
+  documents compiling.
+```
+
+This is byte-identical to the on-disk `## [0.9.2]` section (see the `diff -q` above) and is the
+exact text `/gsd-complete-milestone` will publish as the GitHub Release body and that the Read the
+Docs changelog page will render via `docs/source/changelog.rst`'s MyST include.
+
+**Every remaining checkable claim in this body was read, not skimmed.** The 255-UTF-8-byte
+relocation bound (IMG-04..07 bullet) is confirmed present in `typsphinx/builder.py`
+(`MAX_PATH_COMPONENT_BYTES = 255`, `builder.py:49`). The TEST-05 gate result (16
+previously-failing / 9 must-keep-passing / 18-of-18 masters compiling) is independently verified
+in `62-VERIFICATION.md` § "Observable Truths", row 1. The zero-new-dependency and
+`@preview`-version-strings claims in the `### Verified` bullets are backed by this same file's
+§ "Milestone-invariant sweep" Measurements 1–3, re-run above. No remaining checkable claim in the
+body was found that could not be checked; there is no open question to record.
+
+### Adjacency, ordering and encoding observations
+
+```
+$ sed -n '17,26p' CHANGELOG.md
+## [0.9.2] - 2026-08-30
+
+This release curates the Windows-shaped path-handling hardening accumulated since 0.9.0 — an
+output-directory escape check, an absolute image URI that aborted the PDF build, and diagnostic
+message quoting — together with a separate compile-blocking defect in the image visitor. A project
+built with the published 0.9.0 release produced no PDF for any master document when an image was
+not first in its container, and 0.9.0 users should upgrade to this release. Zero new runtime
+dependencies; the bundled `@preview` version-sync surface is untouched.
+
+### Fixed
+```
+
+The intro remains exactly one paragraph, separated from `### Fixed` by exactly one blank line
+(line 25), with no orphaned short line and no double space at the sentence join (`grep -n '  '`
+over the paragraph region returns no hits). The three leading `^## [` headings are unchanged in
+order (`[Unreleased]`, `[0.9.2]`, `[0.9.0]`). The section's em-dash count is unchanged at 9
+(`grep -o '—' | wc -l` over the `## [0.9.2]` region).
+
+### The verification report's gaps, discharged
+
+`63-VERIFICATION.md`'s `gaps:` block records exactly two `missing:` items for SC#2, quoted
+verbatim:
+
+1. "Correct or remove the false file-confinement sentence in CHANGELOG.md's ## [0.9.2] intro
+   paragraph, per 63-REVIEW.md CR-01's suggested fix (scope the claim to the one fix it's true
+   for, or drop the blanket claim entirely)."
+
+   **Discharged by:** the two edits in commit `2a0bc3be` — the blanket sentence is deleted from
+   the intro paragraph (§ "Adjacency, ordering and encoding observations" above shows the
+   corrected paragraph in full) and a scoped, measured version now sits in the IMG-08/IMG-09/
+   IMG-10 bullet, proven true by the `git diff --stat e3399825..dd385436` re-run recorded above.
+
+2. "Re-run the extractor and re-verify SC#2's byte-identity/structural checks against the
+   corrected text before this is handed to /gsd-complete-milestone, since the GitHub Release body
+   and RTD changelog page publish this text verbatim."
+
+   **Discharged by:** § "SC#2's structural set, re-run against the corrected text" above — the
+   extractor was re-run against the corrected `CHANGELOG.md`, its exit status and byte-count
+   captured, its stdout proven byte-identical to the on-disk section with the `## [0.6.5]` section
+   as positive control, and every one of D-20's structural greps re-verified at 0.
+
+A reader can re-derive the closure from the measurements above without taking this paragraph's
+word for it.
