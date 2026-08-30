@@ -39,8 +39,19 @@ v0.9.1's already-completed but unreleased work, as **0.9.2** on PyPI.
   boundary *after* an inline image is safe; `visit_image()` emits nothing before it, which is why
   the boundary *before* it is not. The fix rides the existing
   `list_item_needs_separator` / `add_text` machinery (`translator.py:887` and the
-  `visit_target` precedent), not a bare unconditional `"\n"` — inside `figure(`, where
-  `visit_image()` indents with two spaces, the separator must stay suppressed.
+  `visit_Text` / `visit_literal` / `visit_math` / `visit_footnote_reference` / `visit_reference`
+  precedent), not a bare unconditional `"\n"`. The `in_figure` branch, where `visit_image()`
+  indents with two spaces inside a `figure(` argument list, is left untouched.
+
+  *Amended 2026-08-30 after research, two corrections to this section as first written.* (1) The
+  precedent named here was originally `visit_target`; that is a **false precedent** — its
+  unconditional `\n[#metadata(none) <id>]\n` works only because it is markup-mode zero-width
+  content, not a code-mode function-call operand like `image(...)`. The real precedent is the
+  triad five other inline visitors already drive. (2) The `in_figure` suppression was originally
+  stated as a hazard ("must stay suppressed"). Measured: a newline injected inside a `figure(...)`
+  argument list compiles to a **byte-identical PDF** — it is cosmetic, not a syntax error. The
+  branch is still left alone, but as a matter of not touching what works, not as a constraint the
+  fix could violate.
 - **The regression gate is a real `typst.compile()`.** The emitted string looks plausible; only the
   parser rejects it, which is exactly why this survived every suite to date. The gate binds all
   four measured failing shapes (substitution image mid-sentence, two images in a row, an image
@@ -60,27 +71,34 @@ v0.9.1's already-completed but unreleased work, as **0.9.2** on PyPI.
    containing `Inline substitution |sub| in a sentence.` emits
    `par({text("Inline substitution ")image("img.png")` and `typst.compile()` answers
    `expected semicolon or line break`.
-2. **It is a single site, not a class.** Fourteen inline constructs were placed mid-sentence and
+2. **The trigger surface is 16 shapes, not the 4 the todo recorded.** Research re-derived the
+   matrix by probe build plus real `typst.compile()`: the same single root cause also breaks a
+   block-level `.. image::` as the second-or-later element of a list item, a table cell, a
+   definition-list body, an admonition, a footnote, a field-list body, a section title, and a
+   figure's own legend body. One fix closes all sixteen; the count matters only for the gate.
+   Blast radius confirmed by measurement too — a master containing no image at all also fails to
+   compile, because Typst's `#include()` re-parses the included content file.
+3. **It is a single site, not a class.** Fourteen inline constructs were placed mid-sentence and
    the emitted `.typ` scanned for juxtaposed code-mode calls: `:ref:`, inline literal, emphasis,
    `:abbr:`, `:kbd:`, `:manpage:`, citation reference, `:term:`, `:index:`, `:guilabel:`, an
    external link, a footnote reference, `:math:`, and `:download:`. **Exactly one** unseparated
    juxtaposition was found, and it was the image. Footnote, math and download each already emit a
    leading `\n`. So this milestone fixes one emitter; it does not audit a family.
-3. **It is pre-existing, not a v0.9.1 regression** (D-06, measured at the v0.9.1 close):
+4. **It is pre-existing, not a v0.9.1 regression** (D-06, measured at the v0.9.1 close):
    `visit_image()`'s missing separator is byte-identical to the `v0.9.0` tag. **Users on the
    published 0.9.0 hit it today** and have had no notice (D-05) — publishing 0.9.2 is what repays
    that.
-4. **REL-09 carries forward with its obligations unchanged and its version token corrected.**
+5. **REL-09 carries forward with its obligations unchanged and its version token corrected.**
    D-08 recorded it as carrying forward "with wording unchanged", but its literal text names
    *v0.9.1 released to PyPI with a curated `## [0.9.1]` CHANGELOG entry* — unachievable, since
    v0.9.1 is never published. The obligations (curated entry, sole-literal version bump with
    `uv.lock`/`README.md` in lockstep, Release body from the extractor) stand; the version token
    reads 0.9.2.
-5. **The release-prep checkbox fence is required again.** `phase.complete` has auto-flipped the
+6. **The release-prep checkbox fence is required again.** `phase.complete` has auto-flipped the
    release requirement to `[x]` against the CONTEXT's decision at **five** consecutive release-prep
    closes; v0.9.1 was the first to hold, by recording a SHA-256 of `REQUIREMENTS.md` at phase head
    and re-verifying it at close. Same guard here.
-6. **The publish path itself is unproven end to end.** `release.yml`'s `create-release` job failed
+7. **The publish path itself is unproven end to end.** `release.yml`'s `create-release` job failed
    on the v0.7.0 tag push with `uv: command not found`; it has since run green at the v0.8.0 and
    v0.9.0 closes. It was deliberately left out of scope as its own requirement, but a real tag push
    exercises it, so a failure there is handled inside the release-prep phase rather than deferred.
