@@ -238,3 +238,9 @@ None - no external service configuration required.
 ---
 *Phase: 63-v0-9-2-release-prep-prep-only*
 *Completed: 2026-08-30*
+
+## Self-Check: PASSED
+
+- `pyproject.toml`, `CHANGELOG.md`, `.planning/phases/63-v0-9-2-release-prep-prep-only/63-CHANGELOG-EVIDENCE.md`, and this `63-01-SUMMARY.md` all confirmed present on disk.
+- Commits `10d9d95d` (feat, four-file bump), `1129ee1a` (test, RELEASE_VERSIONS + evidence consolidation), and `a5575d23` (docs, this SUMMARY) all confirmed present in `git log --oneline --all`.
+- All plan-level `<verification>` items re-confirmed: 23 `## [` headings, 23 tail links, `### Verified` count 10, `### Known Limitations` count 1, zero `0.9.1` occurrences, extractor exit 0 with byte-identity proven against the 0.6.5 positive control, `RELEASE_VERSIONS` at 16 entries with 6 passed/0 skipped under the docs extra, `git status --porcelain typsphinx/ docs/` empty, and no `63-VERIFICATION.md` created.
