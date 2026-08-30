@@ -506,3 +506,215 @@ after this dispatch touches only this evidence file, this plan's own SUMMARY, an
 mode) shared planning documents -- none of which is part of the code tip GitHub Actions checked out
 and ran. This run is therefore authoritative for the phase's code tip: no later commit in this phase
 can invalidate a conclusion CI already reached against the fix as shipped.
+
+## Phase-close measurements
+
+All commands below were run against the merged phase tip (this worktree's HEAD, which by this
+point includes plans 01, 02, 03 and this plan's Task 1 commit), using `PHASE_BASE_SHA`
+(`5a837238aadc126611b175228cbed5ac8b1058f8`, recorded in `## Phase base SHA` above) as the range
+start throughout.
+
+### D-13 / SC#4 - zero pre-existing test edits
+
+**`git diff --name-status $PHASE_BASE_SHA..HEAD -- tests/`, in full** (40 lines):
+
+```
+A	tests/fixtures/inline_image_separator_render_gate/_static/pic.png
+A	tests/fixtures/inline_image_separator_render_gate/conf.py
+A	tests/fixtures/inline_image_separator_render_gate/fail_01_sub_mid_sentence.rst
+A	tests/fixtures/inline_image_separator_render_gate/fail_02_two_subs_adjacent.rst
+A	tests/fixtures/inline_image_separator_render_gate/fail_03_sub_in_list_item.rst
+A	tests/fixtures/inline_image_separator_render_gate/fail_04_block_image_second_in_list_item.rst
+A	tests/fixtures/inline_image_separator_render_gate/fail_05_image_in_table_cell.rst
+A	tests/fixtures/inline_image_separator_render_gate/fail_06_image_in_definition_list_body.rst
+A	tests/fixtures/inline_image_separator_render_gate/fail_07_image_in_admonition.rst
+A	tests/fixtures/inline_image_separator_render_gate/fail_08_image_in_footnote_body.rst
+A	tests/fixtures/inline_image_separator_render_gate/fail_09_image_in_legend_mid_text.rst
+A	tests/fixtures/inline_image_separator_render_gate/fail_10_two_images_in_legend.rst
+A	tests/fixtures/inline_image_separator_render_gate/fail_11_image_after_inline_literal.rst
+A	tests/fixtures/inline_image_separator_render_gate/fail_12_image_after_emphasis.rst
+A	tests/fixtures/inline_image_separator_render_gate/fail_13_image_after_reference.rst
+A	tests/fixtures/inline_image_separator_render_gate/fail_14_image_in_field_list_body.rst
+A	tests/fixtures/inline_image_separator_render_gate/fail_15_image_in_section_title.rst
+A	tests/fixtures/inline_image_separator_render_gate/fail_16_image_with_width_mid_sentence.rst
+A	tests/fixtures/inline_image_separator_render_gate/goldens/pass_a_standalone_block_image.typ
+A	tests/fixtures/inline_image_separator_render_gate/goldens/pass_b_figure_with_caption.typ
+A	tests/fixtures/inline_image_separator_render_gate/goldens/pass_c_image_first_in_paragraph.pre_fix.typ
+A	tests/fixtures/inline_image_separator_render_gate/goldens/pass_c_image_first_in_paragraph.typ
+A	tests/fixtures/inline_image_separator_render_gate/goldens/pass_d_image_with_dimensions_and_scale_align.typ
+A	tests/fixtures/inline_image_separator_render_gate/goldens/pass_e_image_with_propagated_target_id.typ
+A	tests/fixtures/inline_image_separator_render_gate/goldens/pass_f_figure_with_plain_legend.typ
+A	tests/fixtures/inline_image_separator_render_gate/goldens/pass_g_figure_in_list_item_after_paragraph.typ
+A	tests/fixtures/inline_image_separator_render_gate/goldens/pass_h_figure_first_in_list_item.typ
+A	tests/fixtures/inline_image_separator_render_gate/goldens/pass_i_bare_image_first_in_list_item.typ
+A	tests/fixtures/inline_image_separator_render_gate/index.rst
+A	tests/fixtures/inline_image_separator_render_gate/pass_a_standalone_block_image.rst
+A	tests/fixtures/inline_image_separator_render_gate/pass_b_figure_with_caption.rst
+A	tests/fixtures/inline_image_separator_render_gate/pass_c_image_first_in_paragraph.rst
+A	tests/fixtures/inline_image_separator_render_gate/pass_d_image_with_dimensions_and_scale_align.rst
+A	tests/fixtures/inline_image_separator_render_gate/pass_e_image_with_propagated_target_id.rst
+A	tests/fixtures/inline_image_separator_render_gate/pass_f_figure_with_plain_legend.rst
+A	tests/fixtures/inline_image_separator_render_gate/pass_g_figure_in_list_item_after_paragraph.rst
+A	tests/fixtures/inline_image_separator_render_gate/pass_h_figure_first_in_list_item.rst
+A	tests/fixtures/inline_image_separator_render_gate/pass_i_bare_image_first_in_list_item.rst
+A	tests/fixtures/inline_image_separator_render_gate/pass_parent.rst
+A	tests/test_inline_image_separator_render_gate.py
+```
+
+**Every line begins with `A`.** `git diff --name-status $PHASE_BASE_SHA..HEAD -- tests/ | grep -cv
+'^A'` returns `0` -- zero `M` lines, so SC#4's "any `M` entry is reported as an over-reach signal"
+clause has nothing to report. Not absorbed, not asserted -- measured directly: the phase's entire
+`tests/` diff is 40 newly-added files, all inside the single new fixture/gate-module tree.
+
+**None of the pre-existing files carrying `image(` matches appears in this diff at all** -- this
+follows directly from the all-`A` result above (an `A` line names a file that did not exist at
+`$PHASE_BASE_SHA`; a pre-existing file could only appear as `M` or `D`, and there are zero of
+either). Confirmed by name for the specific file SC#4 calls out: `git diff --name-only
+$PHASE_BASE_SHA..HEAD -- tests/test_translator.py` returns empty -- the nine string-level image
+tests in `tests/test_translator.py` do not appear in this phase's diff in any form.
+
+### IMG-10 / SC#3 - the fix stayed inside its shape
+
+**`git diff --numstat $PHASE_BASE_SHA..HEAD -- typsphinx/translator.py`:**
+
+```
+9	0	typsphinx/translator.py
+```
+
+9 insertions, 0 deletions -- a pure insertion, matching plan 01's own measurement exactly (this
+plan's Task 1 CI-dispatch commit touched only `62-RED-EVIDENCE.md`, so the translator diff is
+unchanged from plan 01's landing).
+
+**Full `git diff $PHASE_BASE_SHA..HEAD -- typsphinx/translator.py`:**
+
+```diff
+diff --git a/typsphinx/translator.py b/typsphinx/translator.py
+index ee01a9d5..929c94f1 100644
+--- a/typsphinx/translator.py
++++ b/typsphinx/translator.py
+@@ -4747,6 +4747,11 @@ class TypstTranslator(SphinxTranslator):
+         # last regardless of which branch below interpolates it.
+         escaped_uri = escape_typst_string(adjusted_uri)
+ 
++        # IMG-08 (AMENDED D-08): mirrors visit_Text's in_signature_text triad.
++        self._add_paragraph_separator()
++        if not self._emit_inline_concat_separator():
++            if self.in_list_item and self.list_item_needs_separator:
++                self.add_text("\n")
+         # Add proper indentation if inside a figure
+         if self.in_figure:
+             self.add_text(f'  image("{escaped_uri}"')
+@@ -4780,6 +4785,10 @@ class TypstTranslator(SphinxTranslator):
+         """
+         # If inside a figure, don't add extra newlines (figure will handle spacing)
+         if not self.in_figure:
++            if self._mark_inline_concat_content():
++                return
++            if self.in_list_item:
++                self.list_item_needs_separator = True
+             self.add_text("\n\n")
+ 
+     def visit_target(self, node: nodes.target) -> None:
+```
+
+A reader can see directly from this diff: in `visit_image()`, the entire 5-line insertion (the
+`IMG-08` comment plus the three-call triad) sits ABOVE the `if self.in_figure: ... else: ...`
+split -- neither the `if` branch (`self.add_text(f'  image(...')`) nor the `else` branch
+(`self.add_text(f'image(...')`) body is touched; both are the exact same lines, at the exact same
+position, as they were at `$PHASE_BASE_SHA`. In `depart_image()`, the 4-line insertion sits INSIDE
+the pre-existing `if not self.in_figure:` block, but strictly BEFORE the one pre-existing statement
+that block already contained (`self.add_text("\n\n")`), which itself is unmodified -- the branch
+body grew by insertion, no existing line was altered, moved, or deleted. Zero lines were removed
+from either function (the `0` deletions in the numstat above holds this as a fact, not an
+interpretation).
+
+**Absence check for the three ROADMAP SC#3 line-boundary-predicate spellings, over
+`typsphinx/translator.py`:**
+
+```
+$ grep -F -e 'endswith("\n")' -e 'rstrip().endswith' -e '[-1:]' typsphinx/translator.py
+(no output, exit code 1)
+```
+
+Finds nothing -- none of the three forbidden spellings exists anywhere in the file, not only in the
+diff. No new line-boundary predicate was introduced; the mechanism is exclusively the pre-existing
+triad (`_add_paragraph_separator()`, `_emit_inline_concat_separator()`,
+`in_list_item`/`list_item_needs_separator`) plus `_mark_inline_concat_content()`, all reused
+unmodified from their existing definitions elsewhere in the translator.
+
+**The two exact-byte figure gate tests, re-run on this merged tip:**
+
+```
+$ uv run pytest tests/test_nested_figure_render_gate.py tests/test_pdf_render_gate.py -q
+tests/test_nested_figure_render_gate.py .......                          [ 18%]
+tests/test_pdf_render_gate.py ...............................            [100%]
+38 passed in 9.03s
+```
+
+Both pass. Neither file appears in the phase's `tests/` diff (`git diff --name-only
+$PHASE_BASE_SHA..HEAD -- tests/test_nested_figure_render_gate.py tests/test_pdf_render_gate.py`
+returns empty) -- discharging SC#3's exact-byte figure-assertion clause: the two pinned assertions
+pass, unedited.
+
+### D-09 / prep-only fence
+
+**`git diff --name-only $PHASE_BASE_SHA..HEAD -- CHANGELOG.md pyproject.toml uv.lock README.md`:**
+
+```
+(empty)
+```
+
+Empty -- none of the four release-surface files was touched anywhere in this phase's range.
+Phase 63 owns every `CHANGELOG.md` bullet and the version bump; this phase's product-and-test diff
+is exactly `typsphinx/translator.py` (one file, pure insertion) plus 40 new files under `tests/`,
+confirmed directly rather than assumed: `git diff --name-only $PHASE_BASE_SHA..HEAD -- typsphinx/`
+lists exactly one file, `typsphinx/translator.py`.
+
+**`git tag -l 'v0.9.2*'` and `git ls-remote --tags origin 'v0.9.2*'`:** both empty (re-confirmed at
+this same observation point as the `## SC#5` section above) -- no `v0.9.2` tag exists anywhere.
+
+### Full-suite baseline on the merged tip
+
+```
+$ uv run pytest -q
+================= 1543 passed, 5 skipped in 123.57s (0:02:03) ==================
+
+$ uv run black --check .
+All done! ✨ 🍰 ✨
+355 files would be left unchanged.
+
+$ uv run mypy typsphinx/
+Success: no issues found in 9 source files
+```
+
+All three green. **No local `ruff` verdict is claimed anywhere in this phase.** Task 1's dispatched
+CI run (`33302087913`, `## SC#5 - authority CI run` above) holds sole authority for the `ruff`
+verdict, quoted there verbatim from the `Run lint with tox` step's `ruff check .` output
+(`All checks passed!`) -- this section deliberately does not attempt a local `ruff` invocation, per
+this plan's own `<worktree_provisioning>` instruction and the standing project knowledge that
+`ruff` is an unrunnable generic-linux ELF in a freshly `uv sync`-provisioned worktree venv on this
+host.
+
+### Amendment cross-check - a direct read of the final shipped source
+
+Read `typsphinx/translator.py:4718-4800` directly (not inferred from the green suite):
+
+- **`visit_image()` still applies the leading triad above the figure/non-figure split (AMENDED
+  D-08).** The `# IMG-08 (AMENDED D-08): mirrors visit_Text's in_signature_text triad.` comment and
+  the three-call block (`self._add_paragraph_separator()`, `self._emit_inline_concat_separator()`,
+  the `in_list_item`/`list_item_needs_separator` guard) sit immediately before `if self.in_figure:`
+  -- confirmed present and unconditional, running on both the `in_figure` and non-`in_figure` paths.
+  Without this placement, the two legend shapes (`fail_09_image_in_legend_mid_text`,
+  `fail_10_two_images_in_legend`) would regress, since a legend image has `in_figure == True` and
+  would never reach the triad if it were confined to the `else` branch.
+- **`depart_image()`'s trailing half is still concat-aware.** Inside `if not self.in_figure:`, the
+  call `if self._mark_inline_concat_content(): return` precedes the unconditional
+  `self.add_text("\n\n")`, and the `in_list_item` bookkeeping (`self.list_item_needs_separator =
+  True`) precedes it too. Without this, `fail_14_image_in_field_list_body` (a concat context) would
+  regress: the unconditional trailing `"\n\n"` would break the field-list body's concat expression
+  with a `cannot apply unary '+' to content` refusal, as measured at planning time and recorded in
+  `62-01-PLAN.md`'s `<amendments>` block.
+
+Both amendments are present in the shipped, merged-tip source exactly as `62-01-SUMMARY.md` and
+`62-01-PLAN.md`'s `<amendments>` describe them -- confirmed here a third time, independently, by
+this plan's own direct source read.
