@@ -293,7 +293,7 @@ of the milestone, so it carries the branch-to-`origin` invariant (constraint 10)
      **completed**, with the `windows-latest` and `macos-latest` lanes named individually and green,
      and `ruff`'s verdict taken from that run's `Run linters` step rather than from this machine.
 
-**Plans**: 1/4 plans executed
+**Plans**: 2/4 plans executed
 
 Plans:
 **Wave 1**
@@ -302,7 +302,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 62-02-PLAN.md — Expand to the full measured matrix: 16 FAIL + 9 PASS documents, 18 masters, 27 documents, and the widened gate
+- [x] 62-02-PLAN.md — Expand to the full measured matrix: 16 FAIL + 9 PASS documents, 18 masters, 27 documents, and the widened gate
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -420,7 +420,7 @@ below tracks the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 62. The `visit_image()` Separator Fix and Its Real-Compile Gate | v0.9.2 | 1/4 | In Progress | - |
+| 62. The `visit_image()` Separator Fix and Its Real-Compile Gate | v0.9.2 | 2/4 | In Progress | - |
 | 63. v0.9.2 Release Prep (prep-only) | v0.9.2 | 0/? | Not started | - |
 
 ## Roadmap Evolution
