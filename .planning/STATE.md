@@ -5,15 +5,15 @@ milestone_name: Inline image blocker fix and release
 current_phase: 63
 current_phase_name: v0.9.2 Release Prep (prep-only)
 status: planning
-stopped_at: Phase 63 context gathered
-last_updated: "2026-08-30T09:46:50.516Z"
+stopped_at: Phase 63 planned (4 plans in 3 waves)
+last_updated: "2026-08-30T11:00:56.875Z"
 last_activity: 2026-08-30
-last_activity_desc: Phase 63 context gathered (all four gray areas delegated, D-01..D-21 recorded)
-state_head: 6e1b781f70bacfb614dba749d06d3d449a8b5bdb
+last_activity_desc: Phase 63 planned — 63-01..63-04-PLAN.md committed (wave 1 tracer bump + curated `## [0.9.2]` + REL-11 fence baseline and SC#5 observation 1 -> wave 2 green-tree proof + one 3-OS CI dispatch on the bumped tip -> wave 3 SC#5 observation 2 + close-time fence re-verification + 63-HANDOFF.md). D-18 AMENDED by measurement and acknowledged by the owner (ruff's CI verdict comes from ci.yml's `Lint and Format Check` job, step `Run lint with tox` — `ci.yml` has no step named `Run linters`); see 63-CONTEXT.md § Amendments
+state_head: c178569f5f0105b36e4b4ca61a304692577e09ca
 progress:
   total_phases: 2
   completed_phases: 1
-  total_plans: 4
+  total_plans: 8
   completed_plans: 4
   percent: 50
 ---
@@ -83,16 +83,19 @@ land here.
 
 ## Current Position
 
-Phase: 63 — v0.9.2 Release Prep (prep-only)
-Plan: Not started
-Status: Ready to plan
+Phase: 63 (v0.9.2 Release Prep (prep-only)) — READY TO EXECUTE
+Plan: Not started — 4 plans across 3 waves
+Status: Ready to execute
 Progress: [██████████░░░░░░░░░░] 50% (1/2 phases)
-Last activity: 2026-08-30 — Phase 62 complete, transitioned to Phase 63
-Live measurement during planning falsified two locked decisions, both acknowledged by the owner:
-the triad scoped to `visit_image()`'s non-`in_figure` branch alone leaves 4 of 18 masters red (the
-leading half is hoisted above the `in_figure`/`else` split instead — 18/18 compiling, measured), and
-8 of the 9 must-pass shapes are byte-identical rather than 9 (`pass_c` gains exactly one empty line,
-bound by a pinned two-golden exact-delta assertion). See `62-01-PLAN.md` `<amendments>`.
+Last activity: 2026-08-30 — Phase 63 planned (research, pattern map, 4 plans, plan-checker PASSED)
+Live measurement during planning falsified one locked decision, acknowledged by the owner: D-18's
+`ruff` verdict does NOT come from a step named `Run linters` — `grep -rn 'Run linters' .github/`
+returns exactly one hit, `release.yml:84`, the workflow this prep-only phase must never trigger.
+`ci.yml`'s lint job is `Lint and Format Check`, whose one step is `Run lint with tox` (`ci.yml:69`).
+D-18's intent (CI holds lint authority, never this host's unrunnable generic-linux `ruff` ELF) is
+unaffected. Corrected in `63-CONTEXT.md` § Amendments and in ROADMAP milestone constraint 11,
+Phase 62's SC#5 and Phase 63's SC#4 — the third recurrence of the wrong name and the first fixed at
+the source. Phase 62's own two amendments remain recorded in `62-01-PLAN.md` `<amendments>`.
 
 ## Active Milestone (v0.9.2 — Inline image blocker fix and release)
 

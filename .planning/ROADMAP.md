@@ -396,9 +396,17 @@ user-visible fixes under one heading, because 0.9.1 is a version users will neve
 **Plans**: 4 plans across 3 waves
 
 Plans:
+**Wave 1**
+
 - [ ] 63-01-PLAN.md — Bump the version literal, lockfile and README, promote `## [Unreleased]` into a curated `## [0.9.2]` section in the load-bearing four-step order, extend `RELEASE_VERSIONS`, and prove it by running the extractor and reading its stdout (wave 1, tracer-led)
 - [ ] 63-02-PLAN.md — Record the phase-head REL-09 checksum fence with its PHASE_BASE_SHA anchor and the three-observation protocol, take SC#5 fence observation 1 of 2 with positive controls, and write the external-API coverage declaration (wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 63-03-PLAN.md — Prove the bumped tree green on runs executed in this phase (full suite, format, type, version-sync, both docs builds from a clean build directory) and dispatch one 3-OS CI run on the bumped tip, taking `ruff`'s verdict from the `Lint and Format Check` job (wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 63-04-PLAN.md — Take SC#5 fence observation 2 of 2 with the scoped/widened `typsphinx/` diff pair, re-verify the checksum fence at phase close, and author the standalone `63-HANDOFF.md` (wave 3)
 
 **Cross-cutting constraints** *(truths any plan in this phase must carry)*:
