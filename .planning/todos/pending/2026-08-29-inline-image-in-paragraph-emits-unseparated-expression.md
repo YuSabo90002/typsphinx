@@ -3,6 +3,7 @@ created: 2026-08-29
 title: "An inline image inside a paragraph is emitted with no separator before `image(...)`, so Typst aborts the whole compile with `expected semicolon or line break` and no PDF is produced"
 area: translator
 severity: blocker
+resolves_phase: 62
 source: owner report 2026-08-29 ("par(image(...)) になるパターンが存在するっぽい / typst
   によってエラーが出て画像が出力されない"), reproduced and root-caused during capture
 files:
