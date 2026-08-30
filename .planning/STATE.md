@@ -5,7 +5,7 @@ milestone_name: Inline image blocker fix and release
 current_phase: 63
 current_phase_name: v0.9.2 Release Prep (prep-only)
 status: executing
-stopped_at: Phase 63 all plans executed (4/4) — verification pending
+stopped_at: Phase 63 verified gaps_found (4/5) — CHANGELOG CR-01 blocks SC#2
 last_updated: "2026-08-30T11:11:54.813Z"
 last_activity: 2026-08-30
 last_activity_desc: Phase 63 execution started
@@ -84,7 +84,7 @@ land here.
 ## Current Position
 
 Phase: 63 (v0.9.2 Release Prep (prep-only)) — EXECUTING
-Plan: 4 of 4 complete (all waves done, verifying)
+Plan: 4 of 4 complete — verification found 1 gap (SC#2)
 Status: Executing Phase 63
 Progress: [██████████░░░░░░░░░░] 50% (1/2 phases)
 Last activity: 2026-08-30 — Phase 63 execution started
