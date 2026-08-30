@@ -158,3 +158,99 @@ $ git status --porcelain typsphinx/ docs/
 
 No trim was made to any of the three promoted bullets — all three are carried verbatim from the
 prior `## [Unreleased]` section, per D-04.
+
+## Milestone-invariant sweep (D-06 bullets 1 and 2)
+
+**Positive control — proving the `v0.9.0` anchor is reachable and real:**
+
+```
+$ git rev-list --count v0.9.0..HEAD
+224
+```
+
+```
+$ git diff --stat v0.9.0..HEAD -- typsphinx/
+ typsphinx/builder.py           | 306 ++++++++++++++++++++++++++++++++++-------
+ typsphinx/pathfmt.py           |  96 +++++++++++++
+ typsphinx/template_registry.py |  25 +++-
+ typsphinx/translator.py        |  33 ++++-
+ typsphinx/writer.py            |   6 +-
+ 5 files changed, 408 insertions(+), 58 deletions(-)
+```
+
+Non-empty and matches the measurement recorded while this plan was written (5 files, 408
+insertions, 58 deletions) — the anchor is reachable, so the three empty sweep results below are
+genuine findings, not an artifact of an unreachable anchor.
+
+**Measurement 1 — dependency arrays (`pyproject.toml`):**
+
+```
+$ git diff v0.9.0..HEAD -- pyproject.toml
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
+
+ [project]
+ name = "typsphinx"
+-version = "0.9.0"
++version = "0.9.2"
+ description = "Sphinx extension for Typst output"
+ readme = "README.md"
+ requires-python = ">=3.12"
+```
+
+Exactly one added and one removed line, both the `version` assignment on line 7 — nothing inside
+`[project.dependencies]` or `[project.optional-dependencies]`.
+
+**Measurement 2 — lockfile (`uv.lock`):**
+
+```
+$ git diff v0.9.0..HEAD -- uv.lock
+--- a/uv.lock
++++ b/uv.lock
+@@ -1464,7 +1464,7 @@ wheels = [
+
+ [[package]]
+ name = "typsphinx"
+-version = "0.9.0"
++version = "0.9.2"
+ source = { editable = "." }
+ dependencies = [
+     { name = "docutils" },
+```
+
+Only the self-package `version` stanza changed; no dependency pin moves.
+
+**Measurement 3 — bundled `@preview` package version strings:**
+
+```
+$ git diff v0.9.0..HEAD -- typsphinx/writer.py typsphinx/template_engine.py typsphinx/templates/base.typ examples/ | grep -c '@preview'
+0
+```
+
+```
+$ grep -n '@preview' typsphinx/templates/base.typ
+8:#import "@preview/codly:1.3.0": *
+9:#import "@preview/codly-languages:0.1.10": *
+14:#import "@preview/mitex:0.2.7": *
+19:#import "@preview/gentle-clues:1.3.1": *
+```
+
+Zero diff lines mentioning `@preview`; the four current version strings are unchanged across this
+milestone.
+
+**Bullet-to-evidence mapping:**
+
+- `### Verified` bullet 1 (zero new runtime or dev dependencies) is backed by Measurements 1 and 2
+  above, in this section.
+- `### Verified` bullet 2 (the four `@preview` version strings unchanged) is backed by Measurement
+  3 above, in this section.
+- `### Verified` bullet 3 (the TEST-05 gate result — 16 previously-failing plus 9
+  must-keep-passing image shapes, 18/18 masters compiling) is backed by
+  `.planning/phases/62-the-visit-image-separator-fix-and-its-real-compile-gate/62-VERIFICATION.md`
+  § "Observable Truths", row 1 and the "Behavioral Spot-Checks" table's first row.
+
+The full-corpus Sphinx `doc/` typstpdf re-run sentence that nine prior `### Verified` entries
+carried is deliberately NOT copied here — this milestone did not run that corpus. This is the
+break in that streak D-06 requires; see `grep -c 'full-corpus'` returning 0 inside the 0.9.2
+section, verified above.

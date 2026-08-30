@@ -61,6 +61,16 @@ runtime dependencies; the bundled `@preview` version-sync surface is untouched.
   Windows-exclusive fix. Identifier-valued messages (registry keys, docnames) are unaffected;
   only path-valued messages route through the new quoting.
 
+### Verified
+
+- Zero new runtime or dev dependencies across this milestone's diff (`v0.9.0..HEAD`) — the only
+  change to `pyproject.toml` and `uv.lock` is the version literal itself.
+- The four bundled `@preview` package version strings unchanged across all four sync surfaces
+  (`writer.py` / `template_engine.py` / `templates/base.typ` / `examples/**/*.typ`).
+- The `visit_image()` separator fix is bound by a real `typst.compile()` gate covering the 16
+  previously-failing and 9 must-keep-passing image shapes (TEST-05), with 18 of 18 master
+  documents compiling.
+
 ## [0.9.0] - 2026-08-17
 
 This release lets every `typst_documents` entry choose its own template, Typst Universe package,
