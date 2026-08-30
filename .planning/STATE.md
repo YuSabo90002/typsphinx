@@ -5,11 +5,11 @@ milestone_name: Inline image blocker fix and release
 current_phase: 63
 current_phase_name: v0.9.2 Release Prep (prep-only)
 status: completed
-stopped_at: "Phase 63 complete (verified 5/5) — milestone v0.9.2 ready for /gsd-complete-milestone"
-last_updated: "2026-08-30T14:10:34.000Z"
+stopped_at: "Phase 63 complete (verified 5/5, UAT 25/25) — milestone v0.9.2 ready for /gsd-complete-milestone"
+last_updated: "2026-08-30T14:50:00.000Z"
 last_activity: 2026-08-30
-last_activity_desc: Phase 63 complete — verification passed 5/5 after gap closure
-state_head: 6e37ece7e0bd68029170654cbcf210210804fe24
+last_activity_desc: Phase 63 complete — verification passed 5/5, UAT 25/25 with zero issues after gap closure
+state_head: c3ac5a58a3383b8e6ac4ca7e9c40221c560c7d2a
 progress:
   total_phases: 2
   completed_phases: 2
@@ -85,9 +85,9 @@ land here.
 
 Phase: 63 (v0.9.2 Release Prep (prep-only)) — COMPLETE
 Plan: 6 of 6 complete
-Status: All phases complete — milestone v0.9.2 ready to ship
+Status: All phases complete — UAT 25/25 passed — milestone v0.9.2 ready to ship
 Progress: [████████████████████] 100% (2/2 phases)
-Last activity: 2026-08-30 — Phase 63 complete, verification passed 5/5
+Last activity: 2026-08-30 — Phase 63 complete, verification passed 5/5, UAT 25/25 with zero issues
 Live measurement during planning falsified one locked decision, acknowledged by the owner: D-18's
 `ruff` verdict does NOT come from a step named `Run linters` — `grep -rn 'Run linters' .github/`
 returns exactly one hit, `release.yml:84`, the workflow this prep-only phase must never trigger.
@@ -1081,7 +1081,7 @@ v0.9.1 close did not exercise, written with `vX.Y.Z` placeholders so no dead tag
 out of it, and Phase 63's SC#5 handoff checklist inherits directly from it.
 
 Last session: 2026-08-30T09:46:50.495Z
-Stopped at: Phase 63 complete — milestone v0.9.2 ready for /gsd-complete-milestone
+Stopped at: Phase 63 complete (UAT 25/25) — milestone v0.9.2 ready for /gsd-complete-milestone
 
 **Nothing is owed forward from a publish, because there was no publish.** The three standing publish
 steps — the `typsphinx-doc-translations` pin advance via that repository's own `update-pin.yml`, the

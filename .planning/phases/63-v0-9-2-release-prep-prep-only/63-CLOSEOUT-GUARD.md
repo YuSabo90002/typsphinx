@@ -488,6 +488,85 @@ is NOT in it, and no commit anywhere in Phase 63 records the flipped state.
 
 REL-09, REL-10 and REL-11 remain open and close at `/gsd-complete-milestone`.
 
+## Fourth observation — taken after `phase.complete` re-ran under `/gsd-verify-work 63`
+
+Taken by the orchestrator running `/gsd-verify-work 63`, immediately after the workflow's
+auto-transition step invoked `gsd-tools query phase.complete 63` a second time. UAT had just closed
+25/25 with zero issues, so the workflow proceeded into `transition.md`, which calls `phase.complete`
+unconditionally — the same tooling, reached by a different entry point.
+
+**VERDICT: the flip landed for a SEVENTH consecutive time, and was reverted.**
+
+`phase.complete` again reported `"requirements_updated": true` and again wrote the same three
+requirements. The blast radius matched the third observation exactly — REL-09, REL-10 and REL-11
+together, not REL-09 alone:
+
+```
+-- [ ] **REL-09**  ->  - [x] **REL-09**
+-- [ ] **REL-10**  ->  - [x] **REL-10**
+-- [ ] **REL-11**  ->  - [x] **REL-11**
+| REL-09 | Phase 63 | Pending |  ->  | REL-09 | Phase 63 | Complete |
+| REL-10 | Phase 63 | Pending |  ->  | REL-10 | Phase 63 | Complete |
+| REL-11 | Phase 63 | Pending |  ->  | REL-11 | Phase 63 | Complete |
+```
+
+All three remain unwarranted for the same reason as before: every one of Phase 63's six plans
+declares `requirements-completed: []`, and this phase publishes nothing.
+
+Probes at the moment of detection, before reversion:
+
+```
+sha256sum .planning/REQUIREMENTS.md
+  (diverged from Baseline f0dd4ec3...)
+wc -l < .planning/REQUIREMENTS.md
+  184                                     <- unchanged again; the flip stays line-count-neutral
+git diff --name-only -- .planning/REQUIREMENTS.md
+  .planning/REQUIREMENTS.md               <- expected no output
+```
+
+**New this observation — the flip is not confined to `phase.complete`'s documented entry point.**
+The five prior closes and the third observation all reached the flip through
+`/gsd-execute-phase`. This one reached it through `/gsd-verify-work`'s auto-transition, which runs
+`transition.md` § `update_roadmap_and_state` inline. Any workflow that transitions a phase calls the
+same verb, so the operator protocol in § "For the operator running `phase.complete`" above must be
+read as applying to **every** transition entry point, not only to a manual `phase.complete`
+invocation.
+
+`.planning/ROADMAP.md` and `.planning/STATE.md` were reverted in the same command. Neither carried a
+warranted change: ROADMAP's only delta was column-padding on the already-`Complete` Phase 63 row plus
+blank lines injected into two unrelated deferred-item lists, and STATE.md's rewrite *dropped*
+`current_phase_name` and degraded three descriptive fields (`Plan: 6 of 6 complete` -> `Not started`,
+and the `/gsd-complete-milestone` readiness pointer -> `all phases complete`). STATE.md was
+hand-edited afterwards instead.
+
+Reverted with the prescribed command, never committed in the flipped state:
+
+```bash
+git checkout -- .planning/REQUIREMENTS.md .planning/ROADMAP.md .planning/STATE.md
+```
+
+Probes re-run after reversion — **MATCH on all four**:
+
+```
+sha256sum .planning/REQUIREMENTS.md
+  f0dd4ec377bbc95cd2b8cdb19fe784cfc21bd6d08e2743de6f5b9fc1768f5b33   <- MATCHES Baseline
+wc -l < .planning/REQUIREMENTS.md
+  184                                                                <- MATCHES
+git diff --name-only -- .planning/REQUIREMENTS.md
+  (no output)                                                        <- MATCHES
+grep -nE '^- \[.\] \*\*REL-(09|10|11)\*\*' .planning/REQUIREMENTS.md
+  70:- [ ] **REL-09**: ...
+  82:- [ ] **REL-10**: ...
+  89:- [ ] **REL-11**: ...
+grep -n '| REL-09\|| REL-1[01]' .planning/REQUIREMENTS.md
+  154:| REL-09 | Phase 63 | Pending |
+  155:| REL-10 | Phase 63 | Pending |
+  156:| REL-11 | Phase 63 | Pending |
+                                                                     <- byte-identical to Baseline
+```
+
+REL-09, REL-10 and REL-11 remain open and close at `/gsd-complete-milestone`.
+
 ---
 *Phase: 63-v0-9-2-release-prep-prep-only*
-*Plan: 02, 04, 06 + orchestrator post-`phase.complete` observation*
+*Plan: 02, 04, 06 + orchestrator post-`phase.complete` observations (execute-phase and verify-work)*
