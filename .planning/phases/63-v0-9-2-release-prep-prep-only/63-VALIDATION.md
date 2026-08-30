@@ -72,6 +72,23 @@ addition. Wherever D-11's proof or the docs-warning baseline runs, sync `--extra
   (D-18), all 12 jobs green, both `windows-latest` lanes named individually.
 - **Max feedback latency:** local suite minutes; CI dispatch ≈ 7 min wall clock.
 
+**Gap-closure wave (waves 4–5, added 2026-08-30).** The **CHANGELOG-edit clause fires a second
+time**: `63-05-T3` runs `rm -rf docs/_build && uv run tox -e docs-html`, then the same for
+`docs-pdf`, with warning counts compared against the 3 / 5 baseline, and runs
+`uv run --extra dev --extra docs pytest tests/test_changelog_page_gate.py` with the **skipped count
+read rather than the exit code**. That clause's `RELEASE_VERSIONS` half does **not** fire — D-24
+keeps `tests/test_changelog_page_gate.py` unedited, and `63-05-T3` gates on that file being
+unmodified. The **phase gate deliberately does not fire a second time**, and the reason is a
+measurement `63-05-T3` records rather than an assumption: every `ci.yml` job installs the `dev` extra
+and none installs `docs`, every tox environment `ci.yml` invokes declares `extras = dev`, and
+`tests/test_changelog_page_gate.py` guards both content-coverage classes on importing `myst_parser` —
+so **no CI lane reads CHANGELOG content** and a dispatch would exercise nothing in a prose-only diff
+at a cost of twelve jobs. `ruff`'s verdict continues to come from the already-recorded run
+`33309565005`'s `Lint and Format Check` job. The "after every plan wave" clause's `black --check .`
+and `mypy typsphinx/` halves are **not re-run and are not claimed**: neither tool reads Markdown and
+the closure changes no `.py` file, which `63-05-T3` and `63-06-T1` both assert by gating on
+`git status --porcelain typsphinx/` being empty.
+
 ---
 
 ## Per-Task Verification Map
@@ -83,6 +100,15 @@ the decomposition spread their surface across two tasks: REL-10's extractor surf
 green-tree surface (the full suite in `63-03-T1`, the format/type/version-sync gates in `63-03-T2`).
 Two rows were added for surfaces the seed did not carry: D-06's `### Verified` milestone-invariant
 sweep, and the external-API coverage declaration.
+
+**The last six rows (`63-05-T1`..`63-06-T3`) were appended by the gap-closure planning run**
+(2026-08-30), after `63-VERIFICATION.md` returned `gaps_found` (4/5) on **SC#2**: the extracted
+release body's structural inspection passed, but a false, trivially-checkable file-confinement claim
+survived it (`63-REVIEW.md` CR-01). Those six rows cover the SC#2 closure only — the correction
+itself, its re-run proof, the green-tree re-proof on the corrected tree, and the three phase-close
+observations re-taken against the post-correction tip. Every Automated Command below is transcribed
+from the task's own `<automated>` block in `63-05-PLAN.md` / `63-06-PLAN.md`, not predicted. Rows
+`63-01-T*` through `63-04-T*` describe executed work and are unchanged.
 
 | Task ID | Plan | Wave | Requirement | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------------|-----------|-------------------|-------------|--------|
@@ -102,6 +128,12 @@ sweep, and the external-API coverage declaration.
 | `63-04-T2` (closeout guard re-verification) | 63-04 | 3 | REL-11 / D-16 / SC#3 — closeout guard, **phase close** | a detected flip is reverted by hand and reported, never committed | audit (checksum) | live `sha256sum` / `wc -l` / `grep -n 'REL-09'` compared line-for-line to the recorded Baseline, with the compared values shown side by side · `git diff --name-only -- .planning/REQUIREMENTS.md` empty · exactly 1 unchecked and 0 checked REL-09 bullets, 1 `Pending` Traceability row, 3 total `REL-09` occurrences · on divergence: `git checkout -- .planning/REQUIREMENTS.md` and report | ✅ N/A — created by 63-02, extended here | ⬜ pending |
 | _(operator, outside any plan)_ | — | post-phase | REL-11 / D-16 / SC#3 — **third observation, after `phase.complete`-family tooling** | the flip that historically lands *after* the last plan is caught | audit (checksum) | the same three commands re-run once more after `phase.complete` has run — recorded in `63-CLOSEOUT-GUARD.md`'s "For the operator running phase.complete" section, authored by `63-02-T1`, confirmed reachable by `63-04-T2` and pointed at by name from `63-HANDOFF.md` (`63-04-T3`). **This is the observation that actually catches the flip, because it runs outside any plan's reach.** | ✅ N/A — created by `63-02-T1` | ⬜ pending |
 | `63-04-T3` (handoff) | 63-04 | 3 | SC#5 / D-13 / D-14 / D-15 — the standalone handoff | the handoff cannot be read as authorising a publish, and cannot omit a step | audit | `63-HANDOFF.md` opens by stating the POSITIVE (this milestone **does** publish) · the `v0.9.2` tag push, the `pypi` Environment approval named as an **expected** gate at a LOWER line number than the tag-push command, the Release body's byte-identity to the extractor's stdout, the `update-pin.yml` **manual dispatch** plus that repository's own separate tag, and the RTD `en`/`ja` (`typsphinx-ja`) `stable` checks all present · D-14's four REL-04 items present including the todo filename · REL-09 quoted verbatim as an unchecked blockquote · plus a `<human-check>` reading it cold against SC#5's five steps for polarity and standalone-ness | ✅ N/A — created by the task | ⬜ pending |
+| `63-05-T1` (tracer: two CHANGELOG edits → measured scope proof → extractor stdout read) | 63-05 | 4 | REL-09 / REL-10 / SC#2 / CR-01 / D-23 — the false blanket claim deleted, a measured narrower one re-scoped into the IMG-08 bullet | a checkable false claim about a release's blast radius cannot reach the published GitHub Release body or the RTD changelog page | subprocess/integration + anchored diff | newline-normalised whole-file `grep -c 'The runtime changes are confined to'` → **0**, with the **pre-edit count of 1 recorded as its own control** (a zero-count gate whose pre-state was never measured proves nothing) · intro-region `awk` slice `grep -c 'confined to'` → **0** · IMG-08 bullet-region slice `grep -c 'confined to \`typsphinx/translator.py\`'` → **1** · section still carries `0.9.0 users should upgrade to this release` (1) and `Windows-exclusive fix` (1) · **9** em dashes · no line > 99 columns · `grep -c '^## \['` → **23** · all three `0.9.1` greps → **0** · `git diff --name-only e3399825..dd385436 -- typsphinx/` = exactly `typsphinx/translator.py` · `uv run python scripts/extract_changelog_section.py 0.9.2` non-empty, `grep -c 'Planned for Future Releases'` → **0** · `diff` vs the `awk`-sliced section → empty, with the **identical `## [0.6.5]` pipeline as the POSITIVE CONTROL** · `tail -1` = the `v0.9.2...HEAD` compare link · `git status --porcelain typsphinx/ .planning/REQUIREMENTS.md` empty. Precondition halts unless `e3399825`, `dd385436` and `v0.9.0` all resolve — a shallow clone would make every diff vacuously empty | ✅ exists (`CHANGELOG.md`; `tests/test_changelog_extraction.py` exercises the extractor) | ⬜ pending |
+| `63-05-T2` (post-correction evidence, contradiction annotated resolved) | 63-05 | 4 | REL-10 / D-20 / SC#2 — the corrected body transcribed verbatim and the file's own contradiction closed | the record of what was inspected, when, and what it missed survives the correction — append-only, never rewritten | audit | all four pre-existing sections still present (`Milestone-invariant sweep`, `Byte-for-byte identity`, `The extracted body, verbatim`) · a new `Post-correction` section with ≥1 UTC timestamp · the replacement claim's proof transcribed: `e3399825`, `dd385436`, `8430ca62`, `1adad07f`, and `756b9fad` (the commit explaining why the milestone-wide `translator.py` figure exceeds the phase-62 one) all cited · size labelled in `bytes` · the extractor **re-run at gate time** and its live byte count required to appear in the file (so no pre-correction figure can be carried forward) · `63-01-PLAN.md`..`63-04-PLAN.md` untouched by the commit · no near-miss reserved-name file | ✅ N/A — extends `63-CHANGELOG-EVIDENCE.md`, created by `63-01-T3` | ⬜ pending |
+| `63-05-T3` (green-tree re-proof, CI-dispatch decision, D-24 declination) | 63-05 | 4 | SC#4 / D-21 / D-18 AMENDED / D-24 — the corrected tree proven green on runs executed **in this closure** | a docs-extra skip cannot pass as a proof, and a CI dispatch is neither taken reflexively nor skipped silently | full-suite + docs build + audit | `63-GAP-CLOSURE-EVIDENCE.md` exists with ≥1 UTC timestamp · records an `extra docs` invocation and a `SKIPPED`/`skipped` count (read, not inferred from exit code) · `rm -rf docs/_build` appears **≥2** times, once before each of `docs-html` and `docs-pdf`, warnings compared to the **3 / 5** baseline · `Lint and Format Check` named and `grep -c 'Run linters'` → **0** · CI run `33309565005` cited as the standing lint authority · `IN-01`, `COVERAGE.md` and `myst_parser` all recorded · `tests/test_changelog_page_gate.py` unmodified (D-24) and its milestone-wide change count still 1 · plus a live `uv run --extra dev --extra docs pytest` over the changelog page gate, the extractor contract tests and the version-sync guard trio | ✅ N/A — creates `63-GAP-CLOSURE-EVIDENCE.md`; all test/build infrastructure already exists | ⬜ pending |
+| `63-06-T1` (fence probe, **observation 3**, post-correction) | 63-06 | 5 | SC#5 / D-16 — fence probe, **third observation, after the correction commit** | the zero-irreversible-action claim is re-observed against the tree that now exists, never inherited from observations that pre-date it | audit | PHASE_BASE_SHA read back out of `63-CLOSEOUT-GUARD.md` and `git cat-file -e`-resolved · `typsphinx/`-scoped diff **empty**, paired with the same-anchor widened diff whose NON-empty result must still be exactly the five touched files (no sixth) · local tag probe empty with the `v0.9.0` list as control · **one** unfiltered `git ls-remote --tags origin` fetch yielding ≥1 control reference and **0** release-tag references · **one** `gh release list` fetch yielding ≥1 `Latest` marker and **0** release rows · **0** open PRs and **0** `release.yml` runs on this milestone branch · file carries all three observation headings with observation 3 strictly **after** observation 2, ≥3 distinct UTC timestamps, ≥9 `positive control` occurrences · `superseded` recorded with a cross-reference to `63-GAP-CLOSURE-EVIDENCE.md` and to run `33309565005` | ✅ N/A — extends `63-SC5-INVARIANTS.md`, created by `63-02-T2` | ⬜ pending |
+| `63-06-T2` (closeout guard re-verification, **after gap closure**) | 63-06 | 5 | REL-11 / D-16 / SC#3 — closeout guard, re-run **after the gap-closure commits move HEAD** | a fence verified before the new commits says nothing about the tree after them, and moving HEAD is exactly when the flip has historically landed | audit (checksum) | live `sha256sum .planning/REQUIREMENTS.md` = the **first** 64-hex Baseline digest in the guard file · live `wc -l` present in the file · `git diff --name-only` and `git status --porcelain` over `.planning/REQUIREMENTS.md` both empty · exactly **1** unchecked and **0** checked REL-09 bullets, **1** `Pending` Traceability row, **3** total `REL-09` occurrences · both `Re-verification at phase close` and `Re-verification after gap closure` present, the new one strictly **after** the old · ≥3 distinct UTC timestamps · **the first 64-hex match still occurs above the new section**, proving no hexadecimal value was inserted above the Baseline and silently re-pointing every gate · on divergence: `git checkout -- .planning/REQUIREMENTS.md` and report | ✅ N/A — extends `63-CLOSEOUT-GUARD.md`, created by `63-02-T1` | ⬜ pending |
+| `63-06-T3` (handoff brought back into accuracy) | 63-06 | 5 | SC#5 / D-13 / D-14 / D-15 — the standalone handoff, post-correction | a stale extractor size would make a correct publish look like a failure or hide a real body mismatch, and an update must not quietly drop a publish step | audit | the extractor **re-run at gate time** and its live byte count required to appear in `63-HANDOFF.md`, with the pre-correction figure required absent unless the two coincide · `63-05` and an `observation 3` citation present · every pre-existing element still present: ≥4 `REL-04` mentions, `update-pin.yml`, ≥3 `create-release`, the operator-facing guard pointer, `typsphinx-ja`, and `manual approval` at a **lower line number** than the tag-push command · **0** occurrences of the release-workflow-only lint step name · REL-09 still unchecked, no `v0.9.2` tag, `typsphinx/` and `tests/test_changelog_page_gate.py` clean | ✅ N/A — updates `63-HANDOFF.md`, created by `63-04-T3` | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -171,6 +203,14 @@ there is clobbered at verify time. **No plan may write `63-VERIFICATION.md`.** T
 mirroring Phase 61's: `63-CLOSEOUT-GUARD.md`, `63-CHANGELOG-EVIDENCE.md`,
 `63-GREEN-TREE-EVIDENCE.md`, `63-CI-EVIDENCE.md`, `63-SC5-INVARIANTS.md`, `63-HANDOFF.md`.
 
+**Gap-closure addition (2026-08-30).** The set above is the *plan-authored* evidence set as of the
+phase's original close. The gap closure adds one more permitted file,
+**`63-GAP-CLOSURE-EVIDENCE.md`**, following the same `{padded_phase}-{TOPIC}-EVIDENCE.md`
+convention; the ban on the reserved name is unchanged and unweakened. Note also that `gsd-verifier`
+has since **legitimately written `63-VERIFICATION.md`** for this phase — which is exactly why the two
+gap-closure plans gate on the absence of the near-miss name `63-VERIFICATION-GAP.md` rather than
+reusing `63-02`/`63-04`'s now-unsatisfiable `[ ! -f … 63-VERIFICATION.md ]` assertion.
+
 ---
 
 ## `uv lock` sequencing constraint (D-17)
@@ -185,19 +225,21 @@ test, lint or type signal exists. `uv.lock` is regenerated with `uv lock` and **
 
 ## Validation Sign-Off
 
-Checked items are properties of the four authored plans, verified at plan time against
-`63-01-PLAN.md` through `63-04-PLAN.md`. The unchecked item is `/gsd-validate-phase`'s to set.
+Checked items are properties of the **six** authored plans, verified at plan time against
+`63-01-PLAN.md` through `63-06-PLAN.md` — the four original plans plus the two gap-closure plans
+(`63-05`, `63-06`) added after `63-VERIFICATION.md` returned `gaps_found` (4/5) on SC#2. The
+unchecked item is `/gsd-validate-phase`'s to set.
 
-- [x] All tasks have `<automated>` verify or a recorded-observation audit with a stated positive control — 12/12 tasks carry `<automated>`; the three audit tasks (`63-02-T2`, `63-04-T1`, `63-04-T3`) each pair every negative probe with a control derived from the same fetch
+- [x] All tasks have `<automated>` verify or a recorded-observation audit with a stated positive control — **18/18** tasks across the six plans carry `<automated>`; the four audit tasks that pair every negative probe with a control derived from the same fetch are `63-02-T2`, `63-04-T1`, `63-04-T3` and `63-06-T1`, and `63-05-T1` carries two controls of its own — the `## [0.6.5]` byte-identity pipeline, and the **pre-edit count of 1** recorded for its own zero-count gate so a post-edit 0 cannot be a vacuous match
 - [x] Sampling continuity: no 3 consecutive tasks without automated verify — every task has one
 - [x] Wave 0 covers all MISSING references — *(none; existing infrastructure suffices)*
 - [x] No watch-mode flags — `gh run watch --exit-status` is a one-shot wait-for-completion, not a watch loop
 - [x] Feedback latency < 10 min (local suite minutes; CI dispatch ≈ 7 min)
-- [x] D-11's proof recorded from a `--extra docs` run or from CI — never from a `--extra dev`-only skip — `63-01-T3` runs `uv run --extra dev --extra docs pytest tests/test_changelog_page_gate.py -v` and gates on **zero** skipped
-- [x] `ruff` verdict recorded from `ci.yml`'s `Lint and Format Check` job, not from this host — `63-03-T3` gates on that job's conclusion; `63-03-T2` records the local attempt additively under a `Division of authority` heading; the release workflow's own differently-named lint step appears in no plan body
-- [x] The two SC#5 fence observations sit in **different waves** — `63-02-T2` in wave 1, `63-04-T1` in wave 3, separated by wave 2's green-tree proof and CI dispatch
-- [x] No plan writes `63-VERIFICATION.md` — all four plans forbid it by name and three gate on its absence
-- [x] Every plan declares `requirements-completed: []` for REL-09 — in plan frontmatter and again as an instruction in each plan's `<output>` block for the generated `SUMMARY.md`
+- [x] D-11's proof recorded from a `--extra docs` run or from CI — never from a `--extra dev`-only skip — `63-01-T3` runs `uv run --extra dev --extra docs pytest tests/test_changelog_page_gate.py -v` and gates on **zero** skipped; `63-05-T3` re-runs the same gate under the same extra on the corrected tree and records the skipped count rather than reading the exit code
+- [x] `ruff` verdict recorded from `ci.yml`'s `Lint and Format Check` job, not from this host — `63-03-T3` gates on that job's conclusion; `63-03-T2` records the local attempt additively under a `Division of authority` heading; `63-05-T3` re-reads the verdict from that same recorded run and gates on **zero** occurrences of the release-workflow-only step name; the release workflow's own differently-named lint step appears in no plan body
+- [x] The SC#5 fence observations sit in **different waves** — `63-02-T2` in wave 1, `63-04-T1` in wave 3, and `63-06-T1` in wave 5, separated by wave 2's green-tree proof and CI dispatch and by wave 4's correction commit. The third was added by the gap closure because observations 1 and 2 **both pre-date that commit** and therefore say nothing about the tree that now exists; SC#5's two-observation minimum was already met by the first pair, so this is an addition, not a renumbering
+- [x] No plan writes `63-VERIFICATION.md` — all **six** plans forbid it by name. Two of the original four (`63-02`, `63-04`) additionally gated on the file's absence with `[ ! -f … ]`; that assertion is **no longer available**, because `gsd-verifier` has since legitimately written `63-VERIFICATION.md` for this phase. The two gap-closure plans therefore gate on the absence of the **near-miss name** `63-VERIFICATION-GAP.md` and route their own evidence to `63-GAP-CLOSURE-EVIDENCE.md`
+- [x] Every plan declares `requirements-completed: []` for REL-09 — all **six** plans, in plan frontmatter and again as an instruction in each plan's `<output>` block for the generated `SUMMARY.md`
 - [ ] `nyquist_compliant: true` set in frontmatter — set by `/gsd-validate-phase`, not at plan time
 
 **Approval:** pending (`status: draft` until `/gsd-validate-phase` runs)
