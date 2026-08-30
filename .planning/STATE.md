@@ -22,10 +22,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-30 — v0.9.2 scoped via `/gsd-new-milestone`)
+See: .planning/PROJECT.md (updated 2026-08-30 — evolved after Phase 62 completion)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** Phase 62 — The `visit_image()` Separator Fix and Its Real-Compile Gate
+**Current focus:** Phase 63 — v0.9.2 Release Prep (prep-only)
 
 ## Shipped Milestone (v0.9.1 — archived, NOT published)
 
@@ -484,6 +484,17 @@ archived `milestones/v0.6.4-ROADMAP.md`. Standing process decisions that carry f
 - Run `/gsd-audit-milestone` before each close (v0.6.4 restored it; first verified_closeout since
   v0.4.4).
 
+- **[Phase 62] Two decisions locked at planning were falsified by measurement and AMENDED with owner
+  acknowledgement before execution** (recorded in `62-01-PLAN.md`'s `<amendments>` block). The
+  operative one: the separator triad scoped to `visit_image()`'s non-`in_figure` branch alone leaves
+  4 of 18 masters red, so the leading half is hoisted *above* the `in_figure`/`else` split instead.
+  The general lesson is the one already in the ledger — a locked `D-NN` carried forward from a prior
+  phase can encode a guess in declarative form; reproduce it before building on it.
+
+- **[Phase 62] An audit belongs in a later wave than the thing it audits.** SC#5's CI authority run
+  and the phase-close measurements were deliberately isolated in wave 4, because this project has
+  already recorded a case where an audit co-located with its subject abstained on its own criterion.
+
 - Standing GATE-01 bar (since v0.6.0): every node-handler change ships a real
   `sphinx-build → typst.compile()` regression fixture, recorded **red against the unfixed code**
   before it is accepted as green. **v0.7.0 amends what "red" means** — see the Active Milestone
@@ -724,6 +735,17 @@ Promoted out of the backlog during v0.7.0 and now shipped: `citation-node-suppor
   executor runs. No worktree executor in this phase could have caught the UP012 that CI run 1 found.
 
 ### Blockers/Concerns
+
+**[Phase 62] One open review Warning carried forward, comment-only: WR-02.** `62-REVIEW.md` closes
+with 0 blockers, 2 warnings, 2 info. `depart_image()`'s new lines in `typsphinx/translator.py` — the
+actual fix payload for the block-image-inside-a-list-item shape — carry no rationale comment, against
+this file's dense-comment convention everywhere else in the same diff. The unconditional
+`list_item_needs_separator = True` looks redundant next to the trailing `"\n\n"` and is a plausible
+future "cleanup" target; removing it silently re-opens `fail_04`. **Not a functional defect** — the
+18-master real-compile gate is green and would catch the regression — but the fix is one comment.
+WR-01 (a one-blank-line delta on the image-first-in-paragraph shape) is the deliberately pinned
+`.pre_fix.typ` golden delta, not a defect. IN-01/IN-02 are two fixture combinations traced by hand as
+harmless and left uncovered.
 
 **[Phase 47] One open review Warning carried forward, doc-only: WR-02.**
 `47-REVIEW.md` closes at `status: issues_found` with CR-01 and WR-01 both verified-closed and one
@@ -1046,7 +1068,7 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/62-the-visit-image-separator-fix-and-its-real-compile-gate/62-CONTEXT.md
+**Resume file:** None — Phase 62 is complete and verified; transitions do not use resume files.
 Archived milestone phases live under `.planning/milestones/v0.9.1-phases/` (and the equivalent
 directory for each earlier milestone). v0.9.1's own inheritance record is
 `.planning/milestones/v0.9.1-phases/61-v0-9-1-release-prep-prep-only/61-HANDOFF.md` — **read it
@@ -1054,7 +1076,7 @@ before Phase 63 is planned, not after.** It is the only record of the three publ
 v0.9.1 close did not exercise, written with `vX.Y.Z` placeholders so no dead tag name can be copied
 out of it, and Phase 63's SC#5 handoff checklist inherits directly from it.
 
-Last session: 2026-08-30T05:59:39.195Z
+Last session: 2026-08-30T09:17:32.000Z
 Stopped at: Phase 62 complete, ready to plan Phase 63
 
 **Nothing is owed forward from a publish, because there was no publish.** The three standing publish
@@ -1067,16 +1089,31 @@ copied out of it. None of them was executed here, and none should be.
 What IS owed forward is the **16-item Deferred Items ledger above**, and one entry in it dominates:
 `2026-08-29-inline-image-in-paragraph-emits-unseparated-expression` (`severity: blocker`) is live in
 the *published* 0.9.0, undisclosed on every public surface by D-05, and is the reason this release
-was withheld. Read it before scoping anything. Two others carry structural weight: **`SEED-004`**
+was withheld. **Closed in the tree by Phase 62 (2026-08-30)** — the todo has moved to
+`.planning/todos/completed/` and IMG-08/IMG-09/IMG-10/TEST-05 are all verified — but it remains live
+for *users* until 0.9.2 is actually published, which is what Phase 63 plus `/gsd-complete-milestone`
+exist to do. The ledger row below is the v0.9.1-close record and is left as written. Two others carry structural weight: **`SEED-004`**
 (typst-py upstream maintenance slowing) is the largest risk on the horizon and has never been scoped
 into any milestone — third consecutive close at which that is true — and the dependabot `uv.lock`
 `--locked` mismatch still kills every dependabot PR before a single test runs.
 
 ## Operator Next Steps
 
-- **Plan Phase 62 with `/gsd-plan-phase 62`.** The roadmap is written and all 7 v1 requirements are
-  mapped with zero orphans. Phase 62 is the fix plus its real-compile gate (IMG-08, IMG-09, IMG-10,
-  TEST-05); Phase 63 is prep-only release work (REL-09, REL-10, REL-11).
+- **Plan Phase 63 with `/gsd-plan-phase 63`.** Phase 62 is complete and verified 5/5 — the fix and
+  its real-compile gate landed together (IMG-08, IMG-09, IMG-10, TEST-05 all closed). Phase 63 is
+  prep-only release work (REL-09, REL-10, REL-11); the publish itself executes at
+  `/gsd-complete-milestone`.
+
+- **`/gsd-secure-phase 62` is outstanding.** The `secure-phase` capability is active but Phase 62
+  produced no `62-SECURITY.md`. Run it before the milestone closes, or record an explicit decision
+  not to.
+
+- **Two open code-review warnings from Phase 62 await disposition** (`62-REVIEW.md`, 0 blockers).
+  WR-02 is the one worth acting on: `depart_image()`'s new lines — the actual fix payload for the
+  block-image-in-list-item shape — carry no rationale comment, and the unconditional
+  `list_item_needs_separator = True` reads as redundant next to the trailing `"\n\n"`, making it a
+  plausible future "cleanup" target. WR-01 is the deliberately-pinned blank-line delta on the
+  image-first-in-paragraph shape, not a defect.
 
 - **REL-09 was corrected, not carried verbatim.** The owner confirmed 2026-08-30 that its literal
   `v0.9.1` version token is rewritten to `0.9.2` — the obligations (curated entry, sole-literal
@@ -1091,9 +1128,9 @@ into any milestone — third consecutive close at which that is true — and the
 
 - **The `gsd/v0.9.2-*` decoy pair is already resolved** — the canonical ref was fast-forwarded and
   the decoy deleted with zero commits orphaned (see the Active Milestone section above). The
-  remaining action is Phase 62 SC#5: push the canonical branch to `origin` and dispatch CI with
-  `gh workflow run CI --ref <branch>`. Watch for the decoy being re-created by the next
-  `gsd-tools query commit`.
+  remaining action **was** Phase 62 SC#5, now discharged: the canonical branch is on `origin` and
+  CI run `33302087913` completed green across all 12 jobs. Watch for the decoy being re-created by
+  the next `gsd-tools query commit`.
 
 - **An explicit decision is owed on the `### Known Limitations` question.** This is the **fourth
   consecutive** release-cycle at which such a section was declined, and `.planning/REQUIREMENTS.md`
