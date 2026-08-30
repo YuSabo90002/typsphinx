@@ -718,3 +718,42 @@ Read `typsphinx/translator.py:4718-4800` directly (not inferred from the green s
 Both amendments are present in the shipped, merged-tip source exactly as `62-01-SUMMARY.md` and
 `62-01-PLAN.md`'s `<amendments>` describe them -- confirmed here a third time, independently, by
 this plan's own direct source read.
+
+---
+
+## Post-verification addendum — comment-only follow-up (2026-08-30, after phase close)
+
+Recorded here so IMG-10's and D-13's measurements above stay readable against the right SHA.
+
+**Every `typsphinx/translator.py` measurement in this file is anchored to the verified phase tip
+`26595728`** — that is where `git diff --numstat 5a837238..HEAD -- typsphinx/translator.py` returns
+`9  0` (nine inserted lines, zero deletions), where both `in_figure` branch **bodies** are
+byte-identical to the phase base SHA, and where `62-VERIFICATION.md` re-measured SC#3 independently.
+
+**After the phase was marked complete and verified, one comment-only commit landed on the same
+file:** `1adad07f docs(62): document depart_image()'s sibling-boundary bookkeeping (WR-02)`,
+closing `62-REVIEW.md`'s WR-02 at the owner's instruction. Its properties were measured, not
+asserted:
+
+- `git diff --numstat 26595728..1adad07f -- typsphinx/translator.py` → `14  0` — additions only,
+  zero deletions.
+- The **parsed AST is identical** across the two commits:
+  `ast.dump(ast.parse(before)) == ast.dump(ast.parse(after))` → `True`. There is no semantic change
+  of any kind, so no success criterion above is re-opened: SC#3's `in_figure`-bodies-unchanged and
+  forbidden-predicate-grep claims, SC#4's `tests/`-is-all-`A` claim (this commit touches no test),
+  and SC#1/SC#2's compile behaviour all hold unchanged.
+- `black --check`, `ruff check`, `mypy typsphinx/` clean; full suite **1547 passed / 1 skipped**.
+
+**Consequence for readers:** the "pure 9/0 insertion" figure describes the *behavioural* change and
+remains the correct number for IMG-10/D-13. A diff taken against the current branch tip instead of
+`26595728` will read `23  0` for this file; the extra 14 lines are comments and carry no behaviour.
+
+### Unrelated environment finding, recorded because it would mislead Phase 63
+
+While re-running the suite for the commit above, the main checkout reported **1543 passed / 5
+skipped** rather than 1547/1. Cause: the main `.venv` had been re-synced with `--extra dev` only at
+some point during this phase, and `myst-parser` lives in the **`docs`** extra (D-01), so the four
+`tests/test_changelog_page_gate.py` cases **skip silently** without it. Restored with
+`uv sync --extra dev --extra docs`; the suite returned to 1547/1 and the changelog gate runs again.
+Phase 63 edits `CHANGELOG.md`, so a dev-only local venv would have let its gate skip rather than
+fail — check the skip count, not just the exit code.

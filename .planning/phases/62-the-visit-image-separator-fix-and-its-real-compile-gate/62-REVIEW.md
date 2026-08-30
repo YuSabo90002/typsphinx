@@ -117,6 +117,8 @@ if not self.in_figure:
 
 ### WR-02: `depart_image()`'s new concat-aware bookkeeping has zero rationale comment, unlike every other line touched in this diff
 
+**RESOLVED 2026-08-30** by `1adad07f docs(62): document depart_image()'s sibling-boundary bookkeeping (WR-02)` — the suggested comment was added, expanded to name the ~40 reader sites and to cite `_emit_forced_break`'s docstring and `depart_paragraph`'s "previously MISSING" precedent. Comment-only: 14/0 numstat, parsed AST identical across the commit. See `62-RED-EVIDENCE.md`'s post-verification addendum.
+
 **File:** `typsphinx/translator.py:4786-4792`
 **Issue:** `visit_image()`'s new lines carry a one-line traceability comment (`# IMG-08 (AMENDED D-08):
 mirrors visit_Text's in_signature_text triad.`), and the rest of this ~2700-line file is written in a style

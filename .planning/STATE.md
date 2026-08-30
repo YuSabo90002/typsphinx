@@ -736,16 +736,17 @@ Promoted out of the backlog during v0.7.0 and now shipped: `citation-node-suppor
 
 ### Blockers/Concerns
 
-**[Phase 62] One open review Warning carried forward, comment-only: WR-02.** `62-REVIEW.md` closes
-with 0 blockers, 2 warnings, 2 info. `depart_image()`'s new lines in `typsphinx/translator.py` — the
-actual fix payload for the block-image-inside-a-list-item shape — carry no rationale comment, against
-this file's dense-comment convention everywhere else in the same diff. The unconditional
-`list_item_needs_separator = True` looks redundant next to the trailing `"\n\n"` and is a plausible
-future "cleanup" target; removing it silently re-opens `fail_04`. **Not a functional defect** — the
-18-master real-compile gate is green and would catch the regression — but the fix is one comment.
-WR-01 (a one-blank-line delta on the image-first-in-paragraph shape) is the deliberately pinned
-`.pre_fix.typ` golden delta, not a defect. IN-01/IN-02 are two fixture combinations traced by hand as
-harmless and left uncovered.
+**[Phase 62] Review warnings: WR-02 CLOSED, WR-01 standing by decision.** `62-REVIEW.md` closed with
+0 blockers, 2 warnings, 2 info. **WR-02 is fixed** (`1adad07f`, 2026-08-30, at the owner's
+instruction): `depart_image()`'s new lines now carry the rationale explaining that
+`list_item_needs_separator = True` is NOT redundant with the trailing `"\n\n"` — the flag is what a
+following sibling reads to emit its own leading `"\n"` — so deleting it as cleanup would silently
+re-open `fail_04`. Comment-only: 14/0 numstat, parsed AST identical across the commit, so no Phase 62
+success criterion re-opens (see `62-RED-EVIDENCE.md`'s post-verification addendum, which also
+re-anchors IMG-10's "pure 9/0 insertion" figure to the verified tip `26595728`). **WR-01 stands
+open by decision** — the one-blank-line delta on the image-first-in-paragraph shape is the
+deliberately pinned `.pre_fix.typ` golden delta, not a defect. IN-01/IN-02 are two fixture
+combinations traced by hand as harmless and left uncovered.
 
 **[Phase 47] One open review Warning carried forward, doc-only: WR-02.**
 `47-REVIEW.md` closes at `status: issues_found` with CR-01 and WR-01 both verified-closed and one
@@ -1108,12 +1109,15 @@ into any milestone — third consecutive close at which that is true — and the
   produced no `62-SECURITY.md`. Run it before the milestone closes, or record an explicit decision
   not to.
 
-- **Two open code-review warnings from Phase 62 await disposition** (`62-REVIEW.md`, 0 blockers).
-  WR-02 is the one worth acting on: `depart_image()`'s new lines — the actual fix payload for the
-  block-image-in-list-item shape — carry no rationale comment, and the unconditional
-  `list_item_needs_separator = True` reads as redundant next to the trailing `"\n\n"`, making it a
-  plausible future "cleanup" target. WR-01 is the deliberately-pinned blank-line delta on the
-  image-first-in-paragraph shape, not a defect.
+- **Phase 62's code-review warnings are dispositioned.** WR-02 was fixed 2026-08-30 (`1adad07f`,
+  comment-only). WR-01 — the deliberately pinned one-blank-line delta on the image-first-in-paragraph
+  shape — is left standing as the recorded consequence of the pinning decision, not a defect.
+
+- **Check the SKIP count, not just the exit code, when running the suite for Phase 63.** The main
+  `.venv` was found re-synced with `--extra dev` only; `myst-parser` lives in the **`docs`** extra, so
+  `tests/test_changelog_page_gate.py`'s four cases skip silently (1543/5 instead of 1547/1). Restored
+  with `uv sync --extra dev --extra docs`. Phase 63 edits `CHANGELOG.md` — a dev-only venv would let
+  its own gate skip rather than fail.
 
 - **REL-09 was corrected, not carried verbatim.** The owner confirmed 2026-08-30 that its literal
   `v0.9.1` version token is rewritten to `0.9.2` — the obligations (curated entry, sole-literal
