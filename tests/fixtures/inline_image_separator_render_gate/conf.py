@@ -1,9 +1,9 @@
 # Phase 62 plan 02, D-01: the inline-image-separator real-compile gate
 # fixture, widened from plan 01's tracer 3-master subset to the FULL
-# matrix -- 17 masters after this task (index + 16 FAIL docs); task 2 adds
-# the 9 PASS docs under pass_parent to reach the final 18 masters / 27
-# documents (62-CONTEXT.md D-01, corrected count per 62-02-PLAN.md's
-# "Counting note").
+# matrix -- the final state is 18 masters (`index` + 16 FAIL docs +
+# `pass_parent`) and 27 documents total (62-CONTEXT.md D-01, corrected
+# count per 62-02-PLAN.md's "Counting note" -- D-01's own enumeration sums
+# to 27, not the "26" that appears once in CONTEXT.md's prose).
 #
 # Load-bearing properties -- do NOT touch any of these, or this fixture
 # silently stops exercising the phase's obligations:
@@ -11,7 +11,11 @@
 #     document, failing today only because Typst's `#include()` re-parses
 #     any one of the poisoned FAIL content files it toctrees in.
 #   - `pass_parent` is the POSITIVE CONTROL (D-03): it must stay green in
-#     the same RED build in which the 17 FAIL masters are red.
+#     the same RED build in which the 17 other masters are red.
+#   - `pass_parent`'s 9 children are toctree'd ONLY from `pass_parent`,
+#     never shared with `index` or any FAIL master -- that disjointness is
+#     what makes `pass_parent`'s green verdict independently attributable
+#     rather than an artefact of build ordering.
 #   - Every `typst_documents` target stem is the docname with an `-out`
 #     suffix (the Phase 47 de-collision rule -- a target equal to its own
 #     docname would resolve to the same physical path as that docname's own
@@ -22,11 +26,6 @@
 #     2026-08-14, `.planning/todos/pending/`). Named here by effect, not by
 #     directive spelling, so this warning itself never trips the phase's
 #     own repo-wide grep for that spelling.
-#   - Every FAIL document is its own master; every PASS document is
-#     toctree'd ONLY under `pass_parent`, never reachable from `index` or
-#     any FAIL master -- that disjointness is what makes `pass_parent`'s
-#     green verdict an independently attributable positive control (D-03)
-#     rather than an artefact of build ordering.
 
 project = "Inline Image Separator Render Gate"
 author = "Test Author"
@@ -137,10 +136,5 @@ typst_documents = [
         "Fail 16 - Image With Width Mid Sentence",
         "Test Author",
     ),
-    # `pass_parent` is intentionally NOT a master yet -- this task's own
-    # <verify> expects exactly 17 wrapper PDFs (index + 16 FAIL). Task 2
-    # re-adds `pass_parent` as the 18th entry once its 9-document PASS
-    # child set exists, per 62-02-PLAN.md's own task split. `pass_parent`
-    # stays toctree'd from `index.rst` in the meantime -- it is still
-    # compiled as an INCLUDED content file, just not its own master.
+    ("pass_parent", "pass_parent-out.typ", "Pass Parent", "Test Author"),
 ]
