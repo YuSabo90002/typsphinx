@@ -43,8 +43,11 @@ the install step.
   once forgot, producing a 45-test false alarm.
 - **Revert `tox-uv-bare` → `tox-uv`** in `pyproject.toml` and `tox.ini`. The QUA-04 constraint that
   forced `-bare` — the bundled `uv` wheel cannot exec on NixOS — is dissolved by the FHS wrapper.
-- **A `uv lock` regeneration workflow for dependabot PRs**, so the eleven `uv sync --locked` steps
-  stop refusing a stale lockfile. `--locked` and its reproducibility guarantee stay everywhere.
+- **Switch `.github/dependabot.yml` from `package-ecosystem: "pip"` to `"uv"`**, so dependabot
+  updates `pyproject.toml` and `uv.lock` together and the eleven `uv sync --locked` steps stop
+  refusing a stale lockfile. `--locked` and its reproducibility guarantee stay everywhere. **This
+  replaces the custom lockfile-regeneration workflow this milestone was originally scoped with — see
+  the AMENDED block below.**
 - **Dispose of the two stale dependabot PRs** (#123 `ruff <0.17`, open since 2026-07-27; #128
   `docutils <0.24`, open since 2026-08-03) — prove the fix on a real dependabot PR, then judge each
   bump on its merits rather than merging it because CI finally went green.
@@ -83,6 +86,49 @@ plan; none of them is inferred from prose.
 - `flake.nix` still receives no CI coverage — it is referenced nowhere in `.github/workflows/`. This
   is accepted deliberately as the consequence of leaving CI unchanged, and it is a new standing risk
   because this milestone makes `flake.nix` load-bearing.
+
+**AMENDED 2026-09-02 (before requirements were written) — the dependabot fix changed shape.** This
+milestone was scoped with a custom GitHub Actions workflow that would run `uv lock` on
+`dependabot[bot]` PRs and push the result onto the PR branch. Project research falsified that as the
+right mechanism, and the owner approved the replacement.
+
+*What was found, and independently re-verified by the operator rather than taken from the
+researchers' prose:* GitHub's own supported-ecosystems table carries a `uv` row — package manager
+`uv`, YAML value `uv`, supported versions **v0.11**, with Version updates, Security updates, Private
+repositories and Private registries all checked and Vendoring "Not applicable" (fetched and parsed
+from the live docs page). Astral's own `docs/guides/integration/dependabot.md`, read through the
+GitHub API rather than the JS-rendered docs site, states plainly: "Dependabot supports updating
+`uv.lock` files. To enable it, add the uv `package-ecosystem` to your `updates` list". Its
+"some use cases are not yet working" caveat points at `astral-sh/uv#2512`, which is **closed** (last
+updated 2026-04-23) — the caveat, not the support, is what looks stale.
+
+*Why this is not merely simpler.* Every failure mode the Pitfalls research found for the custom
+workflow is specific to that workflow and disappears with the ecosystem switch: a
+dependabot-triggered `pull_request` run gets a **forced read-only `GITHUB_TOKEN` regardless of any
+`permissions:` block**, so the push either silently fails or the workflow must move to
+`pull_request_target` (handling dependabot-branch content in a write-capable context) or carry a
+PAT; a `GITHUB_TOKEN`-authored push does not retrigger CI, so the workflow can report success while
+the PR's checks stay stale; and dependabot force-pushes over commits on its own branches unless the
+commit message carries `[dependabot skip]`, so a fix proven once can be clobbered on the next rebase
+cycle. Two of the four researchers surfaced the ecosystem switch independently, from different
+dimensions, without being prompted to look for it.
+
+*What this does not settle, and must be measured during planning:*
+- Dependabot's stated uv support is **v0.11**, while `ci.yml`'s eleven `astral-sh/setup-uv@v7` steps
+  are pinned to `version: "latest"`, which today resolves to 0.12.x. This repo's `uv.lock` is
+  `version = 1, revision = 3` and the local uv is 0.11.25. If a 0.12 uv writes a lock revision
+  dependabot's 0.11 cannot handle, the switch breaks. Measure it; do not assume it.
+- The existing `pip` section carries the `sphinx-typst-stack` group (`sphinx*`/`docutils*`/`typst*`,
+  excluding `sphinx-autodoc-typehints` and `sphinx-intl`), `labels`, and
+  `open-pull-requests-limit: 5`. Whether grouping behaves identically under the `uv` ecosystem is
+  unconfirmed, and neither #123 nor #128 exercises a grouped update.
+- #123 and #128 were opened under the `pip` ecosystem, and `@dependabot recreate` re-runs under the
+  ecosystem the PR was opened with. They will need closing so the `uv` ecosystem opens fresh ones —
+  and it is those fresh PRs, not the old ones, that satisfy the "prove it on a real dependabot PR"
+  constraint.
+
+The custom workflow is retained as a **fallback**, to be reached for only if the v0.11/v0.12 gap
+above turns out to bite.
 
 **Unverified, to be closed during planning:** `tox -e cov`, `docs-html`, `docs-pdf` (real typstpdf
 PDF generation), the full 1548-test suite, and FHS behaviour inside an executor's isolated worktree.
@@ -2075,8 +2121,10 @@ continues at **Phase 64**. Headline commitments below; the REQ-ID'd list is
       downloaded CPython all execute on this NixOS machine — retiring the manual per-worktree shim
       step rather than repairing one binary.
 - [ ] `tox-uv-bare` → `tox-uv` reverted in `pyproject.toml` and `tox.ini`.
-- [ ] A `uv lock` regeneration workflow for dependabot PRs, closing **CI-01**, proven on a real
-      dependabot PR rather than on a hand-made branch.
+- [ ] `.github/dependabot.yml` switched from `package-ecosystem: "pip"` to `"uv"`, closing
+      **CI-01**, proven on a real dependabot PR rather than on a hand-made branch. (Amended
+      2026-09-02 from a custom `uv lock` regeneration workflow — see the Current Milestone section's
+      AMENDED block.)
 - [ ] #123 and #128 disposed of on their merits, once the install step is observed passing.
 - [ ] `CLAUDE.md` / `tox.ini` / `flake.nix` documentation brought in line with the new mechanism.
 
