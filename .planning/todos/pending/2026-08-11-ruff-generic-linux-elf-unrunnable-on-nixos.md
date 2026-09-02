@@ -2,7 +2,7 @@
 created: 2026-08-11
 title: "`ruff` cannot run on this NixOS machine at all: `.venv/bin/ruff` is a generic-linux ELF the stub loader rejects, and no other `ruff` exists on PATH"
 area: toolchain, nixos
-resolves_phase: null
+resolves_phase: 64
 severity: warning
 source: 45.2 discussion (2026-08-10) D-03, reconfirmed live by 45.2-01 Step 1 and 45.2-04 Step 6
 files:

@@ -2,6 +2,7 @@
 created: 2026-08-16T13:40:00Z
 title: "Every dependabot PR dies before running a single test: it bumps `pyproject.toml` without regenerating `uv.lock`, and all eleven `uv sync --locked` steps refuse the stale lockfile"
 area: ci, tooling
+resolves_phase: 67
 severity: major
 files:
 
