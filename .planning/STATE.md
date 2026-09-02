@@ -1,31 +1,26 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.9.2
-milestone_name: Inline image blocker fix and release
-status: Awaiting next milestone
-stopped_at: Milestone v0.9.2 shipped and archived — 0.9.2 published to PyPI (release run 33318905691)
-last_updated: "2026-08-31T00:50:00.000Z"
-last_activity: 2026-08-31
-last_activity_desc: Milestone v0.9.2 completed, published to PyPI and archived
-state_head: 45962faad21520c72ac9f1e14c7f684050826bb6
+milestone: v0.9.3
+milestone_name: Toolchain and dependency-update repair
+status: planning
+last_updated: "2026-09-02T13:18:28.971Z"
+last_activity: 2026-09-02
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 10
-  completed_plans: 10
-  percent: 100
-current_phase: 63
-current_phase_name: v0.9.2 Release Prep (prep-only)
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-31 — full evolution review at the v0.9.2 close)
+See: .planning/PROJECT.md (updated 2026-09-02 — v0.9.3 milestone scoped)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** none — v0.9.2 shipped 2026-08-31; awaiting `/gsd-new-milestone`
+**Current focus:** v0.9.3 Toolchain and dependency-update repair — defining requirements. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`), but a PR to `main` is opened and merged. CI is deliberately unchanged.
 
 ## Shipped Milestone (v0.9.2 — archived, PUBLISHED)
 
@@ -158,10 +153,10 @@ land here.
 
 ## Current Position
 
-Phase: Milestone v0.9.2 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-08-31 — Milestone v0.9.2 completed and archived
+Status: Defining requirements
+Last activity: 2026-09-02 — Milestone v0.9.3 started
 
 ## Shipped Milestone (v0.9.0 — archived)
 
