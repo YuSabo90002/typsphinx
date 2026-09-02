@@ -124,33 +124,48 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| NIX-01 | TBD | Pending |
-| NIX-02 | TBD | Pending |
-| NIX-03 | TBD | Pending |
-| NIX-04 | TBD | Pending |
-| NIX-05 | TBD | Pending |
-| NIX-06 | TBD | Pending |
-| NIX-07 | TBD | Pending |
-| NIX-08 | TBD | Pending |
-| TOX-01 | TBD | Pending |
-| TOX-02 | TBD | Pending |
-| TOX-03 | TBD | Pending |
-| TOX-04 | TBD | Pending |
-| DEP-01 | TBD | Pending |
-| DEP-02 | TBD | Pending |
-| DEP-03 | TBD | Pending |
-| DEP-04 | TBD | Pending |
-| DEP-05 | TBD | Pending |
-| DOC-19 | TBD | Pending |
-| DOC-20 | TBD | Pending |
-| DOC-21 | TBD | Pending |
-| REL-12 | TBD | Pending |
+| NIX-01 | Phase 64 | Pending |
+| NIX-02 | Phase 64 | Pending |
+| NIX-03 | Phase 64 | Pending |
+| NIX-04 | Phase 64 | Pending |
+| NIX-05 | Phase 64 | Pending |
+| NIX-06 | Phase 64 | Pending |
+| NIX-07 | Phase 64 | Pending |
+| NIX-08 | Phase 64 | Pending |
+| TOX-01 | Phase 65 | Pending |
+| TOX-02 | Phase 65 | Pending |
+| TOX-03 | Phase 65 | Pending |
+| TOX-04 | Phase 65 | Pending |
+| DEP-01 | Phase 66 | Pending |
+| DEP-02 | Phase 67 | Pending |
+| DEP-03 | Phase 66 | Pending |
+| DEP-04 | Phase 66 | Pending |
+| DEP-05 | Phase 67 | Pending |
+| DOC-19 | Phase 68 | Pending |
+| DOC-20 | Phase 68 | Pending |
+| DOC-21 | Phase 68 | Pending |
+| REL-12 | Phase 69 | Pending |
 
 **Coverage:**
 - v1 requirements: 21 total
-- Mapped to phases: 0
-- Unmapped: 21 ⚠️
+- Mapped to phases: 21 ✓
+- Unmapped: 0
+
+**Phase distribution** (every v1 requirement maps to exactly one phase; no orphans, no duplicates):
+
+| Phase | Requirements | Count |
+|-------|--------------|-------|
+| 64 — FHS Wrapper and Command Shims in `flake.nix` | NIX-01, NIX-02, NIX-03, NIX-04, NIX-05, NIX-06, NIX-07, NIX-08 | 8 |
+| 65 — `tox-uv-bare` → `tox-uv` Revert, on the uv Path tox Actually Resolves | TOX-01, TOX-02, TOX-03, TOX-04 | 4 |
+| 66 — `.github/dependabot.yml` — `pip` → `uv` Ecosystem | DEP-01, DEP-03, DEP-04 | 3 |
+| 67 — Proof on a Real Dependabot PR, Then Disposal of #123 and #128 | DEP-02, DEP-05 | 2 |
+| 68 — Documentation Follow-Through — `CLAUDE.md`, `tox.ini`, `flake.nix` | DOC-19, DOC-20, DOC-21 | 3 |
+| 69 — v0.9.3 Close Prep (prep-only, unpublished) | REL-12 | 1 |
+
+**REL-12 is mapped to Phase 69 for coverage purposes only.** Like every REL requirement in this
+project it closes at `/gsd-complete-milestone`, not inside the phase; its checkbox is held at `[ ]`
+through every plan behind the SHA-256 fence described in ROADMAP.md constraint 14.
 
 ---
 *Requirements defined: 2026-09-02*
-*Last updated: 2026-09-02 after initial definition*
+*Last updated: 2026-09-02 — traceability populated at roadmap creation (Phases 64–69, 21/21 mapped)*

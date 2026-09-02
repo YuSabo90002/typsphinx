@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v0.9.3
 milestone_name: Toolchain and dependency-update repair
-status: planning
-last_updated: "2026-09-02T13:18:28.971Z"
+status: roadmapped
+last_updated: "2026-09-02T13:44:00.000Z"
 last_activity: 2026-09-02
 progress:
-  total_phases: 0
+  total_phases: 6
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,7 +20,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-02 — v0.9.3 milestone scoped)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** v0.9.3 Toolchain and dependency-update repair — defining requirements. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`), but a PR to `main` is opened and merged. CI is deliberately unchanged.
+**Current focus:** v0.9.3 Toolchain and dependency-update repair — **roadmapped, Phases 64–69, 21/21 v1 requirements mapped**. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`), but a PR to `main` is opened and merged at `/gsd-complete-milestone`. CI is deliberately unchanged. No change under `typsphinx/`. Next action: `/gsd-plan-phase 64` (or `66` — Track B is independent and can run in parallel).
 
 ## Shipped Milestone (v0.9.2 — archived, PUBLISHED)
 
@@ -153,10 +153,77 @@ land here.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 64 — FHS Wrapper and Command Shims in `flake.nix` (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-09-02 — Milestone v0.9.3 started
+Status: Roadmapped, awaiting phase planning
+Last activity: 2026-09-02 — v0.9.3 roadmap created (Phases 64–69, 21/21 requirements mapped)
+
+## Active Milestone (v0.9.3 — Toolchain and dependency-update repair)
+
+Full phase detail, the 15 binding constraints and every success criterion:
+[ROADMAP.md](ROADMAP.md) § "🚧 v0.9.3 — Toolchain and dependency-update repair (ACTIVE)".
+Requirements and traceability: [REQUIREMENTS.md](REQUIREMENTS.md). Research:
+`.planning/research/` (`SUMMARY.md`, `STACK.md`, `FEATURES.md`, `ARCHITECTURE.md`, `PITFALLS.md`).
+
+**Goal:** the gates that protect this project's core value must be runnable by the maintainer, and
+the dependency-update path that keeps the pinned ecosystem current must actually run tests. Neither
+is true today. **No product or runtime code changes** — nothing under `typsphinx/` is modified.
+
+**Six phases, in two independent tracks:**
+
+| Phase | Name | Requirements | Track |
+|-------|------|--------------|-------|
+| 64 | FHS Wrapper and Command Shims in `flake.nix` | NIX-01..NIX-08 (8) | A |
+| 65 | `tox-uv-bare` → `tox-uv` Revert, on the uv Path tox Actually Resolves | TOX-01..TOX-04 (4) | A |
+| 66 | `.github/dependabot.yml` — `pip` → `uv` Ecosystem | DEP-01, DEP-03, DEP-04 (3) | B |
+| 67 | Proof on a Real Dependabot PR, Then Disposal of #123 and #128 | DEP-02, DEP-05 (2) | B |
+| 68 | Documentation Follow-Through — `CLAUDE.md`, `tox.ini`, `flake.nix` | DOC-19, DOC-20, DOC-21 (3) | both |
+| 69 | v0.9.3 Close Prep (prep-only, unpublished) | REL-12 (1) | — |
+
+**Two hard orderings, and one deliberate non-ordering.** **64 → 65** is a real dependency: reverting
+the `tox-uv` pin before the FHS wrapper is proven reintroduces exactly the defect `tox-uv-bare` was
+chosen to avoid (QUA-04, Phase 45.2). **66 → 67** is a real dependency: the proof requires dependabot
+PRs that only exist once the ecosystem switch is live. **Track A and Track B share no file and no
+mechanism** — CI runs on GitHub-hosted runners and never touches NixOS — so 66/67 may be planned and
+executed in parallel with 64/65. Phase 68 is last on both tracks so the documentation describes what
+landed; 69 follows it.
+
+**Not published, decided up front.** No tag, no PyPI upload, no GitHub Release; `pyproject.toml`
+stays at `0.9.2`; CHANGELOG bullets go under `## [Unreleased]` with **no `## [0.9.3]` heading and no
+`[0.9.3]` tail link**. A PR to `main` **is** opened and merged — REL-12, which closes at
+`/gsd-complete-milestone`, not inside Phase 69.
+
+**CI is deliberately unchanged.** No `nix` job; `setup-uv`'s eleven `version: "latest"` steps are not
+pinned; `@v7` is not bumped to `@v10`. The only `.github/` file this milestone edits is
+`.github/dependabot.yml`, which is not a workflow.
+
+**Five items are genuinely unverified and close by measurement inside a phase, never by assumption:**
+`buildFHSEnv`'s `$HOME`/`TMPDIR`/`/etc`/locale passthrough for this project's actual invocation and
+its effect on the known locale-dependent CI-only defect class (NIX-08, P64); shim-PATH reachability
+in a fresh worktree before `direnv allow` (NIX-05, P64); the uv **v0.11-vs-0.12** lock-revision
+question (DEP-04, P66); grouped-update behaviour under the new ecosystem (DEP-03, P66); and an
+**isolated** outside-FHS control for the tox `uv` discovery path (TOX-03, P65) — the earlier control
+failed on `.venv/bin/python3` and isolated nothing.
+
+**Verification asserts exact versions, not exit codes.** NIX-01 requires `ruff` to report
+**0.15.20** (`uv.lock:1209-1210`), not nixpkgs' 0.15.14. **CI holds lint authority** — only CI
+reaches the Windows and macOS lanes, so TOX-04's green must come from a real dispatched CI run.
+
+**New standing risk, named rather than implicit:** `flake.nix` becomes load-bearing this milestone
+while keeping **zero CI coverage** (no workflow references `nix` or `flake`), and the darwin branch
+of the per-system guard cannot be exercised from a Linux machine. Accepted deliberately as the
+consequence of leaving CI unchanged (owner decision 2026-09-02). Bounded mitigation: `nix eval` must
+succeed for all four declared systems on the Linux evaluator (NIX-06), and DOC-21 states that darwin
+is unverified by construction.
+
+**Branch state at roadmap time — the decoy pair fired again, and this time deletion-first would lose
+work.** Canonical `gsd/v0.9.3-toolchain-and-dependency-update-repair` is at `efffd892` (`main` + 1);
+the decoy `gsd/v0.9.3-milestone` is at `7d1f4a70` (canonical + 3) and carries **HEAD**. They are
+strictly linear (`git merge-base --is-ancestor` confirms), so the safe sequence is fast-forward the
+canonical ref to `7d1f4a70`, re-point HEAD with `git symbolic-ref` (no checkout), **then** delete
+the decoy — deleting first would orphan three commits. Nothing matching `0.9.3` exists on `origin`.
+**The roadmapper did not perform this correction**; it is Phase 64's SC#5, together with milestone
+invariant #5's push and its completed 3-OS CI run.
 
 ## Shipped Milestone (v0.9.0 — archived)
 
@@ -847,6 +914,40 @@ evidence.
 
 ### Roadmap Evolution
 
+- **2026-09-02** — v0.9.3 roadmap created: **Phases 64–69**, 21/21 v1 requirements mapped, zero
+  orphans, zero duplicates, continuing numbering from v0.9.2's Phase 63. Six phases at
+  `granularity: standard` (nominally 4–6) — at the top of the range because the milestone contains
+  **two independent tracks**, and compressing across the track boundary would couple work sharing no
+  file and no mechanism. `research/SUMMARY.md`'s A1/A2/B1/B2/C structure was **adopted whole** as
+  Phases 64–68; no boundary was moved. Four decisions are baked in and should not be re-derived
+  during planning: **(a)** all eight NIX requirements are one phase — NIX-02/03/04 are the
+  *acceptance criteria* of the mechanism NIX-01 and NIX-05..08 deliver, and splitting them out would
+  manufacture a phase that is pure verification of another phase's work; **(b)** DEP-03 and DEP-04
+  map to Phase 66 rather than 67, because both ask whether the *configuration* behaves as intended
+  and DEP-04's answer can invalidate the approach before any PR is judged, with DEP-05 carrying the
+  grouped-update **coverage-gap record** so nothing is duplicated; **(c)** DOC-19..21 and REL-12 are
+  separate phases (68, 69) — beyond the nine-milestone prep-only convention, the whole-file SHA-256
+  fence on `.planning/REQUIREMENTS.md` only works in a phase where no other requirement checkbox is
+  meant to move, and DOC-19/20/21 legitimately move three; **(d)** the 3-OS CI matrix run and
+  milestone invariant #5 were again given **no REQ-ID**, carried instead in the success criteria of
+  the phases that need them (64 SC#5, 65 SC#4, 69 SC#3).
+
+- **2026-09-02** — The `#123`/`#128` ordering tension was resolved in the roadmap rather than left
+  to an executor. Research Pitfall 8 says do not close the stale PRs before the proof; PROJECT.md's
+  AMENDED block says they must close so fresh `uv`-ecosystem PRs can open, since
+  `@dependabot recreate` re-runs under the ecosystem a PR was *opened* with. Phase 67 SC#2 holds
+  both: **measure first** whether a `uv`-ecosystem PR can open while a `pip`-ecosystem PR for the
+  same dependency is open; if a close is required to unblock, it is recorded as a **mechanical
+  unblock** rather than as DEP-05's disposal on the merits, and the merit judgement is still taken
+  after DEP-02's proof, on whichever PR carries the bump.
+
+- **2026-09-02** — **The `gsd/v0.9.3-*` decoy pair is live and inverted, exactly as v0.9.2's was.**
+  Canonical `gsd/v0.9.3-toolchain-and-dependency-update-repair` at `efffd892`, decoy
+  `gsd/v0.9.3-milestone` at `7d1f4a70` (canonical + 3) carrying HEAD, strictly linear. Deleting the
+  decoy first — v0.9.1's correction — would orphan the AMENDED-block, research and requirements
+  commits. Fast-forward the canonical pointer first. This is now a **per-milestone recurrence**,
+  observed at v0.9.0, v0.9.2 and v0.9.3.
+
 - **2026-08-27** — v0.9.1 roadmap created: **Phases 58–61**, 11/11 v1 requirements mapped, zero
   orphans, continuing numbering from v0.9.0's Phase 57. Four phases at `granularity: standard`, each
   carrying an explicit `**UI hint**: no` override. Three structural decisions were baked in and
@@ -1070,7 +1171,9 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/63-v0-9-2-release-prep-prep-only/63-CONTEXT.md
+**Resume file:** .planning/ROADMAP.md § "🚧 v0.9.3 — Toolchain and dependency-update repair (ACTIVE)"
+— the v0.9.3 roadmap is written; the next action is `/gsd-plan-phase 64` (Track A) or
+`/gsd-plan-phase 66` (Track B, independent and parallelizable). No phase directory exists yet.
 Archived milestone phases live under `.planning/milestones/v0.9.1-phases/` (and the equivalent
 directory for each earlier milestone). v0.9.1's own inheritance record is
 `.planning/milestones/v0.9.1-phases/61-v0-9-1-release-prep-prep-only/61-HANDOFF.md` — **read it
@@ -1078,8 +1181,9 @@ before Phase 63 is planned, not after.** It is the only record of the three publ
 v0.9.1 close did not exercise, written with `vX.Y.Z` placeholders so no dead tag name can be copied
 out of it, and Phase 63's SC#5 handoff checklist inherits directly from it.
 
-Last session: 2026-08-30T09:46:50.495Z
-Stopped at: Phase 63 complete (UAT 25/25) — milestone v0.9.2 ready for /gsd-complete-milestone
+Last session: 2026-09-02
+Stopped at: v0.9.3 roadmap created — Phases 64–69, 21/21 v1 requirements mapped, zero orphans.
+(Prior session: 2026-08-30T09:46:50.495Z — Phase 63 complete, UAT 25/25, v0.9.2 shipped 2026-08-31.)
 
 **Nothing is owed forward from a publish, because there was no publish.** The three standing publish
 steps — the `typsphinx-doc-translations` pin advance via that repository's own `update-pin.yml`, the
@@ -1101,29 +1205,40 @@ into any milestone — third consecutive close at which that is true — and the
 
 ## Operator Next Steps
 
-- **Start the next milestone with `/gsd-new-milestone`.** v0.9.2 is shipped, archived and tagged;
-  `.planning/REQUIREMENTS.md` has been removed and a fresh one is written during that flow.
+- **Plan the first phase: `/gsd-plan-phase 64`.** Track B is independent of Track A, so
+  `/gsd-plan-phase 66` may be started in parallel — the two tracks share no file and no mechanism.
+  Do **not** start 65 before 64 is proven, or 67 before 66 is live; both are real dependencies, not
+  conventions.
 
-- **Read the Docs was not verified at this close.** `63-HANDOFF.md` § 5 (in
+- **Correct the `gsd/v0.9.3-*` decoy pair before anything is pushed.** Canonical
+  `gsd/v0.9.3-toolchain-and-dependency-update-repair` is at `efffd892`; the decoy
+  `gsd/v0.9.3-milestone` is at `7d1f4a70` and carries HEAD. Fast-forward the canonical ref to
+  `7d1f4a70`, re-point HEAD with `git symbolic-ref` (no checkout, so uncommitted files survive),
+  **then** delete the decoy — deleting first orphans three commits. Encoded as Phase 64's SC#5
+  together with milestone invariant #5's push and its completed 3-OS CI run.
+
+- **Read the Docs was not verified at the v0.9.2 close, and is still owed.** `63-HANDOFF.md` § 5 (in
   `.planning/milestones/v0.9.2-phases/`) carries the unauthenticated public-API procedure for both
-  the `en` (`typsphinx`) and `ja` (`typsphinx-ja`) projects: the root URL resolving to
-  `/en/stable/`, the `stable` version identifier matching `45962faa` for `en` and `fcf66da4` for
-  `ja`, both pages reporting `0.9.2`, and both PDFs served as `application/pdf`. Neither project's
-  Default Version has needed a re-flip since the v0.6.4 close, so this is expected to be a
-  confirmation, but it has not been taken.
+  the `en` (`typsphinx`) and `ja` (`typsphinx-ja`) projects: the root URL resolving to `/en/stable/`,
+  the `stable` version identifier matching `45962faa` for `en` and `fcf66da4` for `ja`, both pages
+  reporting `0.9.2`, and both PDFs served as `application/pdf`. v0.9.3 publishes nothing, so this
+  will not be discharged as a side effect of this milestone's close.
 
-- **No `### Known Limitations` decision was made — the fifth consecutive cycle to default rather
-  than decide.** `.planning/REQUIREMENTS.md` flagged this pattern as worth an explicit call at the
-  v0.9.1 close and it was carried again. It bites less now than it did then: the blocker that made
-  it urgent is fixed and published, and 0.9.0 users are told to upgrade in the release notes' own
-  intro paragraph. It is still an open question for the next release cycle, not a closed one.
+- **No `### Known Limitations` decision was made at the v0.9.2 close — the fifth consecutive cycle
+  to default rather than decide.** v0.9.3 does not force the question, because it publishes nothing;
+  it remains open for the next release cycle.
 
-- **`gsd/v0.9.2-inline-image-blocker-fix-and-release` was NOT deleted on merge**, unlike v0.9.1's,
-  which was. v0.7.0–v0.9.0's milestone branches are also still standing, locally and on `origin`.
-  The decoy pair (`gsd/v0.9.2-milestone`) did not re-appear during this close, but it is a
-  per-milestone recurrence — expect it again at the next `gsd-tools query commit`.
+- **Milestone branches are not deleted on merge in this project.** `gsd/v0.9.2-inline-image-blocker-fix-and-release`
+  and v0.7.0–v0.9.0's branches are all still standing, locally and on `origin`.
 
-- **7 pending todos carry forward** (`.planning/todos/pending/`), one fewer than at the last close:
-  the REL-04 `create-release` todo closed on this release's own evidence. NUM-01, CI-01, MSG-06,
-  WR-02, WR-03, QUA-08, QUA-09, QUA-10, DOC-18 and SEED-001/003/004 remain in the v2 set carried in
-  `milestones/v0.9.2-REQUIREMENTS.md`.
+- **7 pending todos, of which this milestone closes 2.** Promoted into v0.9.3:
+  `2026-08-11-ruff-generic-linux-elf-unrunnable-on-nixos` → Phase 64 (NIX-01..NIX-08) and
+  `2026-08-16-dependabot-prs-die-on-uv-lock-locked-mismatch` → Phases 66/67 (DEP-01..DEP-05). The
+  other five stay deferred and are listed in ROADMAP.md § Backlog; three of them
+  (MSG-06, NUM-01, the typing modernization) are **structurally out of reach** this milestone,
+  because they are changes under `typsphinx/` and a fourth (LNK-01) is a CI job — both classes
+  forbidden by the milestone's own scope.
+
+- **`SEED-003` is adjacent and must stay dormant.** Splitting the `dev` extra into PEP 735
+  `[dependency-groups]` (Future QUA-07) touches the same `tox.ini` Phases 65 and 68 edit. PROJECT.md
+  puts it explicitly out of scope; a phase touching `tox.ini` must not absorb it opportunistically.
