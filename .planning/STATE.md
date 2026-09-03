@@ -2,9 +2,14 @@
 gsd_state_version: 1.0
 milestone: v0.9.3
 milestone_name: Toolchain and dependency-update repair
+current_phase: 64
+current_phase_name: FHS Wrapper and Command Shims in `flake.nix`
 status: roadmapped
-last_updated: "2026-09-02T13:44:00.000Z"
-last_activity: 2026-09-02
+stopped_at: Phase 64 context gathered
+last_updated: "2026-09-03T13:27:33.965Z"
+last_activity: 2026-09-03
+last_activity_desc: Phase 64 context gathered — 7 decisions captured, 4 gray areas discussed
+state_head: 141680b0471860d925819174187222fa0a7e5bb7
 progress:
   total_phases: 6
   completed_phases: 0
@@ -1171,9 +1176,10 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/ROADMAP.md § "🚧 v0.9.3 — Toolchain and dependency-update repair (ACTIVE)"
-— the v0.9.3 roadmap is written; the next action is `/gsd-plan-phase 64` (Track A) or
-`/gsd-plan-phase 66` (Track B, independent and parallelizable). No phase directory exists yet.
+**Resume file:** .planning/phases/64-fhs-wrapper-and-command-shims-in-flake-nix/64-CONTEXT.md
+— Phase 64's context is captured; the next action is `/gsd-plan-phase 64` (Track A) or
+`/gsd-discuss-phase 66` (Track B, independent and parallelizable). Phase 64's directory exists with
+`64-CONTEXT.md` and `64-DISCUSSION-LOG.md`; no other phase directory does yet.
 Archived milestone phases live under `.planning/milestones/v0.9.1-phases/` (and the equivalent
 directory for each earlier milestone). v0.9.1's own inheritance record is
 `.planning/milestones/v0.9.1-phases/61-v0-9-1-release-prep-prep-only/61-HANDOFF.md` — **read it
@@ -1181,8 +1187,8 @@ before Phase 63 is planned, not after.** It is the only record of the three publ
 v0.9.1 close did not exercise, written with `vX.Y.Z` placeholders so no dead tag name can be copied
 out of it, and Phase 63's SC#5 handoff checklist inherits directly from it.
 
-Last session: 2026-09-02
-Stopped at: v0.9.3 roadmap created — Phases 64–69, 21/21 v1 requirements mapped, zero orphans.
+Last session: 2026-09-03T13:27:33.947Z
+Stopped at: Phase 64 context gathered
 (Prior session: 2026-08-30T09:46:50.495Z — Phase 63 complete, UAT 25/25, v0.9.2 shipped 2026-08-31.)
 
 **Nothing is owed forward from a publish, because there was no publish.** The three standing publish
