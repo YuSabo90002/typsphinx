@@ -41,8 +41,7 @@ nixos-unstable and referencing it hard-fails flake evaluation.
 
 ### Shim surface
 
-- **D-01: The shim roster is exactly seven command names — `uv`, `tox`, `ruff`, `black`, `mypy`,
-  `pytest`, `sphinx-build`.** This is `research/ARCHITECTURE.md` Pattern 1's six plus `sphinx-build`,
+- **D-01: The shim roster is exactly seven command names — `uv`, `tox`, `ruff`, `black`, `mypy`, `pytest`, `sphinx-build`.** This is `research/ARCHITECTURE.md` Pattern 1's six plus `sphinx-build`,
   which `CLAUDE.md:39-40` documents as a bare manual-exercise command
   (`sphinx-build -b typst source build/typst`) and which exists in `.venv/bin` (measured 2026-09-03:
   `sphinx-build 9.1.0`). The phase goal says "every documented bare command", so the roster is
@@ -50,8 +49,7 @@ nixos-unstable and referencing it hard-fails flake evaluation.
   enumeration. Pattern 2's namespace inheritance means nothing below these seven needs a shim.
   — **Reversibility:** reversible — adding or removing a name is one list entry in `flake.nix`.
 
-- **D-02: The `uv` shim resolves in two steps — `.venv/bin/uv` first, then the nixpkgs `uv` store
-  path — and enters the FHS sandbox either way.** Measured 2026-09-03: `.venv/bin/uv` **does not
+- **D-02: The `uv` shim resolves in two steps — `.venv/bin/uv` first, then the nixpkgs `uv` store path — and enters the FHS sandbox either way.** Measured 2026-09-03: `.venv/bin/uv` **does not
   exist today**; `tox-uv-bare` ships no `uv` wheel, so that path only appears after Phase 65's
   revert. Meanwhile `command -v uv` resolves to `/nix/store/…-uv-0.11.25/bin/uv`, a properly linked
   nix binary. A shim demanding `.venv/bin/uv` would therefore fail today and on every fresh clone.
@@ -62,8 +60,7 @@ nixos-unstable and referencing it hard-fails flake evaluation.
   — **Reversibility:** reversible — the fallback leg is a few lines and can be dropped once Phase 65
   guarantees `.venv/bin/uv` exists.
 
-- **D-03: The other six shims have no fallback at all — a missing `.venv/bin/<tool>` is a hard,
-  loud failure.** Print a message naming the tool and the directory the upward walk started from,
+- **D-03: The other six shims have no fallback at all — a missing `.venv/bin/<tool>` is a hard, loud failure.** Print a message naming the tool and the directory the upward walk started from,
   then exit non-zero. This is Pitfall 10 / ROADMAP constraint 6 in shim form: degrading to some other
   binary replaces "doesn't run" with "runs but disagrees with CI". `uv`'s two-step in D-02 is the
   single, deliberate, documented exception, and it falls back to a fixed store path rather than to
@@ -72,9 +69,7 @@ nixos-unstable and referencing it hard-fails flake evaluation.
 
 ### Verification locus
 
-- **D-04: NIX-01 through NIX-04 are measured in a freshly created git worktree, after the documented
-  provisioning line (`env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev`) — not in the
-  main tree.** Measured 2026-09-03 in the main checkout: `.venv/bin/ruff --version` → `ruff 0.15.20`,
+- **D-04: NIX-01 through NIX-04 are measured in a freshly created git worktree, after the documented provisioning line (`env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev`) — not in the main tree.** Measured 2026-09-03 in the main checkout: `.venv/bin/ruff --version` → `ruff 0.15.20`,
   and `black` / `mypy` / `pytest` / `tox` / `python3` / `sphinx-build` all exit 0, **with no shim
   present**. A main-tree run of SC#1 therefore passes before this phase changes anything. The hazard
   reproduces only where a fresh `uv sync` pulls the current wheels — PROJECT.md's Phase 57 lesson
@@ -83,8 +78,7 @@ nixos-unstable and referencing it hard-fails flake evaluation.
   worktree") and the project's standing worktree-isolated execution mode.
   — **Reversibility:** reversible.
 
-- **D-05: The NIX-07 rename test and the NIX-08 environment measurement are recorded verbatim in the
-  phase's evidence markdown, and nowhere else.** No new script under `scripts/`, no new `tests/`
+- **D-05: The NIX-07 rename test and the NIX-08 environment measurement are recorded verbatim in the phase's evidence markdown, and nowhere else.** No new script under `scripts/`, no new `tests/`
   file. Rationale: a pytest test would be permanently skipped on every CI runner (no `nix`, and the
   Windows/macOS lanes could never run it), adding an always-skipped test to the 1548-test suite; and
   a committed shell script is new repository surface this phase does not otherwise need. The project's
@@ -101,8 +95,7 @@ nixos-unstable and referencing it hard-fails flake evaluation.
   `~/.cache/typst`.
   — **Reversibility:** reversible.
 
-- **D-07: If `tox -e docs-pdf` cannot reach its `@preview` packages from inside the sandbox, it is
-  fixed inside Phase 64 — not deferred.** Confirm `$HOME` passthrough first, and add `cacert` to
+- **D-07: If `tox -e docs-pdf` cannot reach its `@preview` packages from inside the sandbox, it is fixed inside Phase 64 — not deferred.** Confirm `$HOME` passthrough first, and add `cacert` to
   `targetPkgs` if a cold cache turns out to need TLS. Measured 2026-09-03:
   `~/.cache/typst/packages/preview` already holds nine packages (`codly`, `codly-languages`,
   `mitex`, `gentle-clues`, `fontawesome`, `linguify`, `modern-cv`, `xarrow`, `charged-ieee`), so a
@@ -123,8 +116,7 @@ nixos-unstable and referencing it hard-fails flake evaluation.
 
 ### Worktree reachability (NIX-05)
 
-- **D-09: Reachability rests on session PATH inheritance, and the procedure gains a `command -v`
-  check at its head.** Measured 2026-09-03 in this session: `DIRENV_DIR=-/home/yuta/Documents/typsphinx`,
+- **D-09: Reachability rests on session PATH inheritance, and the procedure gains a `command -v` check at its head.** Measured 2026-09-03 in this session: `DIRENV_DIR=-/home/yuta/Documents/typsphinx`,
   `DIRENV_FILE=/home/yuta/Documents/typsphinx/.envrc`, `IN_NIX_SHELL=impure`, and the head of `PATH`
   carries the flake devShell's own store paths (`nodejs-24.16.0`, `pnpm-11.9.0`, `git-2.54.0`,
   `python3-3.13.13`, `uv-0.11.25` — exactly `flake.nix`'s `packages` list). The harness's
