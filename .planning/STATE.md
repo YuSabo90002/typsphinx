@@ -5,16 +5,16 @@ milestone_name: Toolchain and dependency-update repair
 current_phase: 64
 current_phase_name: FHS Wrapper and Command Shims in `flake.nix`
 status: executing
-stopped_at: Phase 64 wave 2 executing (64-02 + 64-03 dispatched to isolated worktrees) — session relaunched from a direnv-loaded shell
-last_updated: "2026-09-11T15:14:06.000Z"
+stopped_at: Phase 64 wave 2 complete (64-02 + 64-03 merged) — 64-02 Self-Check FAILED (NIX-02/03/04 unmet, libz.so.1 inside the FHS sandbox); owner decision pending before wave 3
+last_updated: "2026-09-11T15:46:00.000Z"
 last_activity: 2026-09-12
-last_activity_desc: Phase 64 wave 2 started — Claude Code relaunched from a direnv-loaded main-checkout shell (all seven shims on the session PATH carry typsphinx-fhs-run); 64-02 and 64-03 dispatched to isolated worktrees
+last_activity_desc: Phase 64 wave 2 merged — 64-03 NIX-07/NIX-08 complete (locale finding REPRODUCES); 64-02 NIX-01/NIX-05 met but NIX-02/03/04 unmet (py312, cov and the full suite fail on a sandbox-caused libz.so.1 ImportError under uv-managed interpreters); owner decision pending before wave 3
 state_head: 5d96d5832b7dd531c523a69adbe5cbb2d5a28d99
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 4
-  completed_plans: 1
+  completed_plans: 3
   percent: 0
 ---
 
@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-02 — v0.9.3 milestone scoped)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** v0.9.3 Toolchain and dependency-update repair — **roadmapped, Phases 64–69, 21/21 v1 requirements mapped**. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`), but a PR to `main` is opened and merged at `/gsd-complete-milestone`. CI is deliberately unchanged. No change under `typsphinx/`. **Phase 64 is executing**: wave 1 (64-01) is merged and Claude Code has been relaunched from a direnv-loaded shell in the main checkout; wave 2 (64-02 + 64-03) is running in isolated worktrees, then wave 3 (64-04) (Track B, `/gsd-plan-phase 66`, is independent and can run in parallel).
+**Current focus:** v0.9.3 Toolchain and dependency-update repair — **roadmapped, Phases 64–69, 21/21 v1 requirements mapped**. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`), but a PR to `main` is opened and merged at `/gsd-complete-milestone`. CI is deliberately unchanged. No change under `typsphinx/`. **Phase 64 is executing**: wave 1 (64-01) is merged and Claude Code has been relaunched from a direnv-loaded shell in the main checkout; wave 2 (64-02 + 64-03) is merged, but 64-02 found NIX-02/NIX-03/NIX-04 unmet (`libz.so.1` missing inside the FHS sandbox for uv-managed interpreters), so an owner decision between wave 3 (64-04) and a gap-closure plan is pending (Track B, `/gsd-plan-phase 66`, is independent and can run in parallel).
 
 ## Shipped Milestone (v0.9.2 — archived, PUBLISHED)
 
@@ -158,10 +158,10 @@ land here.
 
 ## Current Position
 
-Phase: 64 — FHS Wrapper and Command Shims in `flake.nix` (executing, wave 2 of 3)
-Plan: 1 of 4 complete (waves: 64-01 ✓ → relaunch Claude Code ✓ → 64-02 + 64-03 → 64-04)
-Status: Executing Phase 64 — wave 2 (64-02, 64-03) dispatched to isolated worktrees after the session relaunch
-Last activity: 2026-09-12 — Phase 64 wave 2 started: session relaunched from a direnv-loaded shell (`command -v ruff` → `/nix/store/…-ruff/bin/ruff`, all seven shims carry `typsphinx-fhs-run`); 64-02 and 64-03 dispatched
+Phase: 64 — FHS Wrapper and Command Shims in `flake.nix` (executing, wave 2 of 3 complete)
+Plan: 3 of 4 complete (waves: 64-01 ✓ → relaunch Claude Code ✓ → 64-02 ✓ (Self-Check FAILED) + 64-03 ✓ → 64-04)
+Status: Paused after wave 2 — owner decision needed: 64-02 recorded NIX-02/NIX-03/NIX-04 unmet on a sandbox-caused `libz.so.1` ImportError (a `flake.nix` gap); proceed to wave 3 (64-04 push + CI) or gap-close first
+Last activity: 2026-09-12 — Phase 64 wave 2 merged (`de9bd609`, `6f6e993f`); post-merge suite 1547 passed / 1 skipped on the main tree; 64-02 found `libz.so.1` missing inside the FHS sandbox for uv-managed interpreters (py312, cov, full suite fail; py313, lint, type, docs-html, docs-pdf OK)
 
 ## Active Milestone (v0.9.3 — Toolchain and dependency-update repair)
 
@@ -1188,7 +1188,7 @@ v0.9.1 close did not exercise, written with `vX.Y.Z` placeholders so no dead tag
 out of it, and Phase 63's SC#5 handoff checklist inherits directly from it.
 
 Last session: 2026-09-11T15:14:06.000Z
-Stopped at: Phase 64 wave 2 executing (64-02 + 64-03) — Claude Code relaunch done
+Stopped at: Phase 64 wave 2 complete — owner decision pending on 64-02's `libz.so.1` gap before wave 3
 (Prior session: 2026-08-30T09:46:50.495Z — Phase 63 complete, UAT 25/25, v0.9.2 shipped 2026-08-31.)
 
 **Nothing is owed forward from a publish, because there was no publish.** The three standing publish
