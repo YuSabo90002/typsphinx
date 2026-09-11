@@ -181,3 +181,87 @@ exit: 0
 ```
 
 `flake.lock` is unchanged and no reference to the removed `buildFHSEnvChroot` alias exists.
+
+## Roster expansion (DIAGNOSTIC)
+
+The single tracer shim was replaced with `venvShimNames = [ "tox" "ruff" "black" "mypy" "pytest"
+"sphinx-build" ]` mapped over `pkgs.writeShellScriptBin`, plus `uvShim` — D-02's sole exception
+with a second, fixed-store-path leg. `packages` on Linux became `[ uvShim ] ++ venvShims`; darwin
+kept its byte-identical `[ nodejs pnpm git python3 uv ]` list via
+`pkgs.lib.optionals (!pkgs.stdenv.hostPlatform.isLinux) [ pkgs.uv ]`.
+
+For each of the seven names, `command -v <name>`, `<name> --version`, and the xtrace `+ exec` line
+from `bash -x "$(command -v <name>)" --version 2>&1`:
+
+```
+== tox ==
+$ command -v tox
+/nix/store/s7rlc9zr6p3c03b9498jabqwjrhp13qz-tox/bin/tox
+$ tox --version
+4.56.1 from .../typsphinx/.claude/worktrees/agent-ab7ba88fa3bf417f2/.venv/lib/python3.13/site-packages/tox/__init__.py
+registered plugins:
+    tox-uv-bare-1.35.2 at .../tox_uv/plugin.py
++ exec /nix/store/dgddrdfkvigqsv48k563szqc8w7xlw2g-typsphinx-fhs-run/bin/typsphinx-fhs-run /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ab7ba88fa3bf417f2/.venv/bin/tox --version
+
+== ruff ==
+$ command -v ruff
+/nix/store/vp86ji36v1nyp4q8d85i49hpyz43zszq-ruff/bin/ruff
+$ ruff --version
+ruff 0.15.20
++ exec /nix/store/dgddrdfkvigqsv48k563szqc8w7xlw2g-typsphinx-fhs-run/bin/typsphinx-fhs-run /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ab7ba88fa3bf417f2/.venv/bin/ruff --version
+
+== black ==
+$ command -v black
+/nix/store/kl05v1f86vm0vwq00csz47rlbyxv1chg-black/bin/black
+$ black --version
+black, 26.5.1 (compiled: yes)
+Python (CPython) 3.13.13
++ exec /nix/store/dgddrdfkvigqsv48k563szqc8w7xlw2g-typsphinx-fhs-run/bin/typsphinx-fhs-run /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ab7ba88fa3bf417f2/.venv/bin/black --version
+
+== mypy ==
+$ command -v mypy
+/nix/store/4pwm7pb8jxk68wprgwicyc00mbn7vz4w-mypy/bin/mypy
+$ mypy --version
+mypy 2.1.0 (compiled: yes)
++ exec /nix/store/dgddrdfkvigqsv48k563szqc8w7xlw2g-typsphinx-fhs-run/bin/typsphinx-fhs-run /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ab7ba88fa3bf417f2/.venv/bin/mypy --version
+
+== pytest ==
+$ command -v pytest
+/nix/store/jmwmq21z24kqhbff4b3clpj4agixph5p-pytest/bin/pytest
+$ pytest --version
+pytest 9.1.1
++ exec /nix/store/dgddrdfkvigqsv48k563szqc8w7xlw2g-typsphinx-fhs-run/bin/typsphinx-fhs-run /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ab7ba88fa3bf417f2/.venv/bin/pytest --version
+
+== sphinx-build ==
+$ command -v sphinx-build
+/nix/store/0m5hj81l70ddxzkzjn643zyms08ccggm-sphinx-build/bin/sphinx-build
+$ sphinx-build --version
+sphinx-build 9.1.0
++ exec /nix/store/dgddrdfkvigqsv48k563szqc8w7xlw2g-typsphinx-fhs-run/bin/typsphinx-fhs-run /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ab7ba88fa3bf417f2/.venv/bin/sphinx-build --version
+
+== uv ==
+$ command -v uv
+/nix/store/f1y7m4b5vxrbwszkrni3yc2lv0x22zcj-uv/bin/uv
+$ uv --version
+uv 0.11.25 (x86_64-unknown-linux-gnu)
++ exec /nix/store/dgddrdfkvigqsv48k563szqc8w7xlw2g-typsphinx-fhs-run/bin/typsphinx-fhs-run /nix/store/cgvijxnmydknslkl368k4j4j43akvl8b-uv-0.11.25/bin/uv --version
+```
+
+Six xtrace lines name `<worktree>/.venv/bin/<tool>`; the `uv` line names a `/nix/store/…-uv-0.11.25/bin/uv`
+path, because `.venv/bin/uv` does not exist before Phase 65 (D-02) — the walk falls through to leg 2,
+the fixed store path.
+
+```
+$ nix develop . --command bash -c 'type -P uv'
+/nix/store/f1y7m4b5vxrbwszkrni3yc2lv0x22zcj-uv/bin/uv
+```
+
+`type -P uv` inside the devShell prints the shim's own unversioned store path
+(`/nix/store/f1y7m4b5vxrbwszkrni3yc2lv0x22zcj-uv/bin/uv`, no `-<version>` in the derivation name),
+not a `uv-0.11.25`-suffixed nixpkgs store path — this is the NIX-06 ordering edge: the shim is the
+first and only `uv` provider on the Linux devShell PATH.
+
+All seven versions match the `uv.lock` pins re-read at run time: `ruff 0.15.20` (`uv.lock:1210`),
+`black 26.5.1` (`uv.lock:95`), `mypy 2.1.0` (`uv.lock:727`), `pytest 9.1.1` (`uv.lock:1011`),
+`tox 4.56.1` (`uv.lock:1395`), `sphinx-build 9.1.0` (`uv.lock:1266`); `uv 0.11.25` matches the
+pinned nixpkgs store build (the session `uv` observed pre-edit).

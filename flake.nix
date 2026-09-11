@@ -67,11 +67,33 @@
               exit 127
             '';
 
-          # Tracer shim: proves one command name travels shim -> FHS
-          # passthrough -> this worktree's own .venv/bin/ruff.
-          ruffShim = pkgs.writeShellScriptBin "ruff" ''
+          # D-01: the full seven-name roster is these six strict venv shims
+          # plus `uv` (uvShim below, D-02's sole documented exception).
+          venvShimNames = [
+            "tox"
+            "ruff"
+            "black"
+            "mypy"
+            "pytest"
+            "sphinx-build"
+          ];
+          venvShims = map (
+            cmd:
+            pkgs.writeShellScriptBin cmd ''
+              set -eu
+              ${venvWalk cmd (venvShimOnStop cmd)}
+            ''
+          ) venvShimNames;
+
+          # D-02: `uv` resolves in two legs. Leg 1 is the same bounded upward
+          # walk for .venv/bin/uv (it does not exist until Phase 65's tox-uv
+          # revert installs it). Leg 2, the on-stop fragment, is the fixed
+          # nixpkgs store path -- fixed at flake-evaluation time and therefore
+          # un-shadowable. Both legs enter the sandbox, which is what makes
+          # `uv run <tool>` carry FHS into every downstream process.
+          uvShim = pkgs.writeShellScriptBin "uv" ''
             set -eu
-            ${venvWalk "ruff" (venvShimOnStop "ruff")}
+            ${venvWalk "uv" ''exec "${fhsRun}/bin/typsphinx-fhs-run" "${pkgs.uv}/bin/uv" "$@"''}
           '';
         in
         {
@@ -84,8 +106,8 @@
                 # Python toolchain: uv for fast dependency/venv management.
                 pkgs.python3
               ]
-              ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux [ ruffShim ]
-              ++ [ pkgs.uv ];
+              ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux ([ uvShim ] ++ venvShims)
+              ++ pkgs.lib.optionals (!pkgs.stdenv.hostPlatform.isLinux) [ pkgs.uv ];
           };
         }
       );
