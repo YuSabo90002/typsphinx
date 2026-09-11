@@ -5,8 +5,8 @@ milestone_name: Toolchain and dependency-update repair
 current_phase: 64
 current_phase_name: FHS Wrapper and Command Shims in `flake.nix`
 status: executing
-stopped_at: Phase 64 wave 3 executing (64-04 dispatched) — owner chose to run 64-04 before gap-closing 64-02's libz.so.1 finding
-last_updated: "2026-09-11T15:50:34.000Z"
+stopped_at: Phase 64 all 4 plans executed — branch on origin, CI run 34618719267 green (12/12); verification next, then gap-closure for 64-02's libz.so.1 finding
+last_updated: "2026-09-11T16:07:18.000Z"
 last_activity: 2026-09-12
 last_activity_desc: Phase 64 wave 2 merged — 64-03 NIX-07/NIX-08 complete (locale finding REPRODUCES); 64-02 NIX-01/NIX-05 met but NIX-02/03/04 unmet (py312, cov and the full suite fail on a sandbox-caused libz.so.1 ImportError under uv-managed interpreters); owner decision pending before wave 3
 state_head: 5d96d5832b7dd531c523a69adbe5cbb2d5a28d99
@@ -14,7 +14,7 @@ progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
   percent: 0
 ---
 
@@ -158,9 +158,9 @@ land here.
 
 ## Current Position
 
-Phase: 64 — FHS Wrapper and Command Shims in `flake.nix` (executing, wave 3 of 3)
-Plan: 3 of 4 complete (waves: 64-01 ✓ → relaunch Claude Code ✓ → 64-02 ✓ (Self-Check FAILED) + 64-03 ✓ → 64-04)
-Status: Executing Phase 64 — wave 3 (64-04) dispatched; owner decision 2026-09-12: run 64-04 now, gap-close 64-02's `libz.so.1` finding after verification
+Phase: 64 — FHS Wrapper and Command Shims in `flake.nix` (all 3 waves executed; verification pending)
+Plan: 4 of 4 complete (waves: 64-01 ✓ → relaunch Claude Code ✓ → 64-02 ✓ (Self-Check FAILED) + 64-03 ✓ → 64-04 ✓)
+Status: All plans executed — code review and phase verification next; 64-02's `libz.so.1` finding (NIX-02/03/04) to be gap-closed after verification (owner decision 2026-09-12)
 Last activity: 2026-09-12 — Phase 64 wave 2 merged (`de9bd609`, `6f6e993f`); post-merge suite 1547 passed / 1 skipped on the main tree; 64-02 found `libz.so.1` missing inside the FHS sandbox for uv-managed interpreters (py312, cov, full suite fail; py313, lint, type, docs-html, docs-pdf OK)
 
 ## Active Milestone (v0.9.3 — Toolchain and dependency-update repair)
@@ -1188,7 +1188,7 @@ v0.9.1 close did not exercise, written with `vX.Y.Z` placeholders so no dead tag
 out of it, and Phase 63's SC#5 handoff checklist inherits directly from it.
 
 Last session: 2026-09-11T15:14:06.000Z
-Stopped at: Phase 64 wave 3 executing (64-04) — gap-closure for `libz.so.1` follows verification
+Stopped at: Phase 64 all plans executed (64-04 merged `5784a3f4`; CI run 34618719267 12/12 green) — verification next, then `libz.so.1` gap-closure
 (Prior session: 2026-08-30T09:46:50.495Z — Phase 63 complete, UAT 25/25, v0.9.2 shipped 2026-08-31.)
 
 **Nothing is owed forward from a publish, because there was no publish.** The three standing publish

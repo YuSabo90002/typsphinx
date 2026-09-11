@@ -334,7 +334,7 @@ constraint 10's branch-to-`origin` invariant.
      > must re-measure rather than trust this note, and must expect the decoy to be re-created by any
      > later `commit` helper invocation — it has now fired twice within this one milestone.
 
-**Plans**: 3/4 plans executed (3 waves; a Claude Code session relaunch is required between wave 1 and wave 2)
+**Plans**: 4/4 plans executed (3 waves; a Claude Code session relaunch is required between wave 1 and wave 2)
 
 Plans:
 **Wave 1**
@@ -348,7 +348,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 64-04-PLAN.md — SC#5: re-measured branch census, canonical branch pushed with tracking, one CI dispatch observed to completion with all lanes transcribed
+- [x] 64-04-PLAN.md — SC#5: re-measured branch census, canonical branch pushed with tracking, one CI dispatch observed to completion with all lanes transcribed
 
 **UI hint**: no
 
@@ -631,7 +631,7 @@ below tracks the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 64. FHS Wrapper and Command Shims in `flake.nix` | v0.9.3 | 3/4 | In Progress | - |
+| 64. FHS Wrapper and Command Shims in `flake.nix` | v0.9.3 | 4/4 | In Progress | - |
 | 65. `tox-uv-bare` → `tox-uv` Revert, on the uv Path tox Actually Resolves | v0.9.3 | 0/? | Not started | - |
 | 66. `.github/dependabot.yml` — `pip` → `uv` Ecosystem | v0.9.3 | 0/? | Not started | - |
 | 67. Proof on a Real Dependabot PR, Then Disposal of #123 and #128 | v0.9.3 | 0/? | Not started | - |
