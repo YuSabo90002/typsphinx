@@ -4,12 +4,12 @@ milestone: v0.9.3
 milestone_name: Toolchain and dependency-update repair
 current_phase: 64
 current_phase_name: FHS Wrapper and Command Shims in `flake.nix`
-status: planning
+status: executing
 stopped_at: Phase 64 planned — 4 plans in 3 waves, verification passed
-last_updated: "2026-09-11T14:40:00.000Z"
+last_updated: "2026-09-11T14:47:22.000Z"
 last_activity: 2026-09-11
-last_activity_desc: Phase 64 planned — 4 plans / 3 waves / 10 tasks; plan-checker passed after one revision; Claude Code relaunch required between wave 1 and wave 2
-state_head: 96484915fb54720bbaf6c5644deba225389feed5
+last_activity_desc: Phase 64 execution started — wave 1 (64-01) dispatched to an isolated worktree; Claude Code relaunch required between wave 1 and wave 2
+state_head: 1ad290455612e0ce156af581a26b5de3a3f25bd1
 progress:
   total_phases: 6
   completed_phases: 0
@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-02 — v0.9.3 milestone scoped)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** v0.9.3 Toolchain and dependency-update repair — **roadmapped, Phases 64–69, 21/21 v1 requirements mapped**. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`), but a PR to `main` is opened and merged at `/gsd-complete-milestone`. CI is deliberately unchanged. No change under `typsphinx/`. Next action: `/gsd-execute-phase 64` (Track B, `/gsd-plan-phase 66`, is independent and can run in parallel). Phase 64 needs a Claude Code relaunch from a direnv-loaded shell in the main checkout after wave 1 (64-01) merges, then `/gsd-execute-phase 64` again.
+**Current focus:** v0.9.3 Toolchain and dependency-update repair — **roadmapped, Phases 64–69, 21/21 v1 requirements mapped**. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`), but a PR to `main` is opened and merged at `/gsd-complete-milestone`. CI is deliberately unchanged. No change under `typsphinx/`. **Phase 64 is executing**, wave 1 (64-01) first; it then needs a Claude Code relaunch from a direnv-loaded shell in the main checkout after wave 1 merges, then `/gsd-execute-phase 64` again for waves 2–3 (Track B, `/gsd-plan-phase 66`, is independent and can run in parallel).
 
 ## Shipped Milestone (v0.9.2 — archived, PUBLISHED)
 
@@ -158,10 +158,10 @@ land here.
 
 ## Current Position
 
-Phase: 64 — FHS Wrapper and Command Shims in `flake.nix` (planned, not started)
+Phase: 64 — FHS Wrapper and Command Shims in `flake.nix` (executing, wave 1 of 3)
 Plan: 0 of 4 complete (waves: 64-01 → relaunch Claude Code → 64-02 + 64-03 → 64-04)
-Status: Ready to execute — `/gsd-execute-phase 64`
-Last activity: 2026-09-11 — Phase 64 planned (4 plans, 3 waves, 10 tasks; plan-checker passed after one revision)
+Status: Executing Phase 64 — wave 1 (64-01) dispatched to an isolated worktree
+Last activity: 2026-09-11 — Phase 64 execution started (wave 1 of 3)
 
 ## Active Milestone (v0.9.3 — Toolchain and dependency-update repair)
 
