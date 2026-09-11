@@ -209,3 +209,220 @@ exit:127
 
 Still rejected at rc 127 with the stub-ld message, in this same worktree, on this same binary —
 confirming the shim (not some change to the file itself) is what makes `ruff` run.
+
+## NIX-01 — black, mypy, pytest, sphinx-build
+
+```
+$ black --check .
+All done! ✨ 🍰 ✨
+355 files would be left unchanged.
+$ echo "exit:$?"
+exit:0
+
+$ mypy typsphinx/
+Success: no issues found in 9 source files
+$ echo "exit:$?"
+exit:0
+
+$ sphinx-build --version
+sphinx-build 9.1.0
+$ echo "exit:$?"
+exit:0
+```
+
+All three exit 0 out of this worktree's `.venv`. The shim internal xtrace for each of the four
+remaining D-01 tools (`black`, `mypy`, `pytest`, `sphinx-build`), captured the same way as `ruff`
+above:
+
+```
+$ bash -x "$(command -v black)" --version 2>&1
++ set -eu
++ start=/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a5539e9d70a2734f2
++ dir=/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a5539e9d70a2734f2
++ :
++ '[' -x /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a5539e9d70a2734f2/.venv/bin/black ']'
++ exec /nix/store/dgddrdfkvigqsv48k563szqc8w7xlw2g-typsphinx-fhs-run/bin/typsphinx-fhs-run /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a5539e9d70a2734f2/.venv/bin/black --version
+black, 26.5.1 (compiled: yes)
+Python (CPython) 3.14.4
+
+$ bash -x "$(command -v mypy)" --version 2>&1
++ set -eu
++ start=/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a5539e9d70a2734f2
++ dir=/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a5539e9d70a2734f2
++ :
++ '[' -x /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a5539e9d70a2734f2/.venv/bin/mypy ']'
++ exec /nix/store/dgddrdfkvigqsv48k563szqc8w7xlw2g-typsphinx-fhs-run/bin/typsphinx-fhs-run /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a5539e9d70a2734f2/.venv/bin/mypy --version
+mypy 2.1.0 (compiled: yes)
+
+$ bash -x "$(command -v pytest)" --version 2>&1
++ set -eu
++ start=/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a5539e9d70a2734f2
++ dir=/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a5539e9d70a2734f2
++ :
++ '[' -x /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a5539e9d70a2734f2/.venv/bin/pytest ']'
++ exec /nix/store/dgddrdfkvigqsv48k563szqc8w7xlw2g-typsphinx-fhs-run/bin/typsphinx-fhs-run /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a5539e9d70a2734f2/.venv/bin/pytest --version
+pytest 9.1.1
+
+$ bash -x "$(command -v sphinx-build)" --version 2>&1
++ set -eu
++ start=/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a5539e9d70a2734f2
++ dir=/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a5539e9d70a2734f2
++ :
++ '[' -x /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a5539e9d70a2734f2/.venv/bin/sphinx-build ']'
++ exec /nix/store/dgddrdfkvigqsv48k563szqc8w7xlw2g-typsphinx-fhs-run/bin/typsphinx-fhs-run /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a5539e9d70a2734f2/.venv/bin/sphinx-build --version
+sphinx-build 9.1.0
+```
+
+Each `+ exec` line names `<this worktree>/.venv/bin/<tool>` — no `.venv/bin/uv` fallback leg
+needed for any of these four, since each has its own executable in this worktree's fresh
+`.venv/bin/` (D-03's six strict shims).
+
+## NIX-04 — full suite (one run, maintainer locale)
+
+One full-suite run through the bare `pytest` shim, no locale variable set anywhere in this task:
+
+```
+$ pytest -q -rs
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a5539e9d70a2734f2
+configfile: pyproject.toml
+testpaths: tests
+plugins: cov-7.1.0
+collected 1548 items
+...
+============ 1 failed, 1541 passed, 6 skipped in 128.95s (0:02:08) =============
+```
+
+**This does not match the carried-in baseline (1543 passed, 5 skipped).** 1548 collected still
+matches exactly. Recorded honestly, not adjusted to fit.
+
+**Interpreter identity — a second axis of difference from the baseline, recorded plainly, not
+resolved:**
+
+```
+$ cat .venv/pyvenv.cfg
+home = /home/yuta/.local/share/uv/python/cpython-3.14-linux-x86_64-gnu/bin
+implementation = CPython
+uv = 0.11.25
+version_info = 3.14
+include-system-site-packages = false
+prompt = typsphinx
+
+$ python --version
+Python 3.13.13
+```
+
+This worktree's own `.venv` (created by this task's `uv sync --extra dev`) carries a
+uv-managed, uv-downloaded `cpython-3.14` interpreter — not the devShell's nix-provided
+`python3-3.13.13` (which is what `python --version` prints on bare `PATH`, and what the
+carried-in 1543/5 baseline in `63-GREEN-TREE-EVIDENCE.md` was measured against, since that
+baseline was taken in the main checkout's own `.venv`). `pyproject.toml` requires
+`>=3.12` and declares no `.python-version`, so `uv sync` is free to resolve either. This
+measurement therefore differs from the baseline on **two** axes at once — sandboxed execution
+(this worktree's `.venv` runs entirely inside `typsphinx-fhs-run`) and interpreter version
+(3.14 here vs. 3.13.13 for the baseline) — and this evidence file does not disentangle which
+axis causes which part of the divergence below; both are stated as open, not resolved.
+
+**Every skip, itemised (six, one more than the five-skip baseline):**
+
+| # | Node / location | Reason |
+|---|---|---|
+| 1 | `tests/test_admonition_greyscale_pipeline.py:71` | Pillow and typst-py are both required for the greyscale pipeline |
+| 2 | `tests/test_changelog_page_gate.py:168` | myst-parser is required to build docs/source; it lives in the docs extra only (D-01), so a dev-only CI lane skips this class |
+| 3 | `tests/test_changelog_page_gate.py:177` | myst-parser is required to build docs/source; it lives in the docs extra only (D-01), so a dev-only CI lane skips this class |
+| 4 | `tests/test_changelog_page_gate.py:187` | myst-parser is required to build docs/source; it lives in the docs extra only (D-01), so a dev-only CI lane skips this class |
+| 5 | `tests/test_changelog_page_gate.py:219` | myst-parser is required to build the changelog include fixture; it lives in the docs extra only (D-01) |
+| 6 | `tests/test_corpus_gate.py:530` | SC#3 before/after measurement is env-gated -- set TYPSPHINX_CORPUS_REPORT=1 to run it (RESEARCH Open Question 1) |
+
+Skips 2-6 are the five carried-in baseline skips, unchanged. Skip 1
+(`test_admonition_greyscale_pipeline.py:71`) is the sixth, new skip — its own skip condition
+gates on Pillow importing successfully, and Pillow's import is exactly what fails for the one
+test below. This is very likely the same root cause as the failure, not an independent finding.
+
+**The one failure, its node id, and its first traceback frames** (transcribed from this single
+full-suite run's own captured output — not a second, separate re-run of the failing node):
+
+Node id: `tests/test_converted_image_collision_render_gate.py::TestConvertedImageCollisionRenderGate::test_pdf_embeds_both_distinctly_sized_images`
+
+```
+self = <test_converted_image_collision_render_gate.TestConvertedImageCollisionRenderGate object at 0x725a781849d0>
+...
+    reader = pypdf.PdfReader(str(pdf_output))
+    extracted_sizes = {
+        image_file.image.size
+        for page in reader.pages
+>       for image_file in page.images
+                          ^^^^^^^^^^^
+        if image_file.image is not None
+    }
+
+tests/test_converted_image_collision_render_gate.py:263:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+.venv/lib/python3.14/site-packages/pypdf/_page.py:500: in __iter__
+    yield self[i]
+.venv/lib/python3.14/site-packages/pypdf/_page.py:496: in __getitem__
+    return self.get_function(lst[index])
+.venv/lib/python3.14/site-packages/pypdf/_page.py:714: in _get_image
+    from .generic._image_xobject import _xobj_to_image  # noqa: PLC0415
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+.venv/lib/python3.14/site-packages/pypdf/generic/_image_xobject.py:27:
+>       from PIL import Image, UnidentifiedImageError
+.venv/lib/python3.14/site-packages/pypdf/generic/_image_xobject.py:29: in <module>
+    from PIL import Image, UnidentifiedImageError
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+.venv/lib/python3.14/site-packages/PIL/Image.py:95: in <module>
+    from . import _imaging as core
+>       from . import _imaging as core
+E       ImportError: libz.so.1: cannot open shared object file: No such file or directory
+```
+
+(then, chained inside `pypdf`'s own except-branch, a second `ImportError` re-raised as
+`"pillow is required to do image extraction. It can be installed via 'pip install pypdf[image]'"`
+— itself only a symptom of the first `ImportError` above, not a separate cause.)
+
+**Attribution: environment-caused, not product behaviour.** The test asserts real, embedded-image
+content of a PDF that `typsphinx`'s own `typstpdf` builder already produced correctly earlier in
+the same test (`result.returncode == 0` and `pdf_output.exists()` both passed) — the failure is
+entirely inside `pypdf`'s own lazy `PIL` import used only for the test's own assertion tooling,
+not inside anything `typsphinx` emits or controls. `PIL/Image.py`'s C extension `_imaging` fails
+to `dlopen` `libz.so.1` while running under `typsphinx-fhs-run` (this test's `pytest` process is
+one of the six shimmed D-01 tools, entered through the FHS sandbox). `flake.nix`'s `fhsRun`
+declares no `targetPkgs` today (Claude's Discretion note in `64-CONTEXT.md`: "start from the
+minimal `_: [ ]` shape ... add only what a failing measurement demands"), so `zlib` is not
+present inside the sandbox's FHS root — this reads as the same class of gap D-07 anticipated for
+`cacert`, just for a different package (`zlib`) discovered by a different gate (NIX-04, not
+NIX-03's `docs-pdf`). Whether the interpreter-version difference (3.14 here vs. 3.13.13 for the
+baseline) also contributes cannot be isolated from this evidence: this worktree's `.venv/bin/python`
+is itself a generic-linux ELF requiring the sandbox to run at all, so there is no way to test
+Pillow's import bare, outside the sandbox, without either a manual workaround (forbidden by
+NIX-05) or leaving the genuine D-09 shape this plan measures.
+
+**Gate result, stated plainly:** NIX-04 does not close on this measurement. The literal
+`1543 passed, 5 skipped` gate does not pass — 1 failure and a sixth skip, both traced to a
+`libz.so.1` load failure inside the FHS sandbox. Per the same pattern the plan documents for
+D-07's `docs-pdf`/`@preview` gap: `flake.nix` is not edited here (scope fence), the failing
+transcript is recorded above instead, and the fix (adding `zlib`, or whichever package actually
+provides `libz.so.1`, to `fhsRun`'s `targetPkgs`) belongs to a Phase 64 gap-closure plan
+(`/gsd-plan-phase 64 --gaps`), re-measured green in a session relaunched after that plan merges.
+The baseline itself is not adjusted to match this run.
+
+**CLAUDE.md's worktree idiom, independent of the above** (routes through `uv run`'s own second
+shim leg, not the bare `pytest` shim; unaffected by the failure above since
+`tests/test_extension.py` carries no Pillow/pypdf dependency):
+
+```
+$ uv run pytest tests/test_extension.py -q
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a5539e9d70a2734f2
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 6 items
+
+tests/test_extension.py ......                                           [100%]
+
+============================== 6 passed in 0.10s ===============================
+$ echo "exit:$?"
+exit:0
+```
