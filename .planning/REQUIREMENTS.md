@@ -19,7 +19,7 @@ requirements. That carried-forward item is **DEP-01** here.
 
 ### NixOS execution (NIX)
 
-- [ ] **NIX-01**: `ruff check .` runs to completion on the maintainer's NixOS machine and reports
+- [x] **NIX-01**: `ruff check .` runs to completion on the maintainer's NixOS machine and reports
       **0.15.20** — the `uv.lock` version, not nixpkgs' 0.15.14
 - [ ] **NIX-02**: `tox -e lint`, `tox -e type`, `tox -e py312` and `tox -e py313` each run to
       completion on that machine
@@ -124,7 +124,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| NIX-01 | Phase 64 | Pending |
+| NIX-01 | Phase 64 | Complete |
 | NIX-02 | Phase 64 | Pending |
 | NIX-03 | Phase 64 | Pending |
 | NIX-04 | Phase 64 | Pending |
