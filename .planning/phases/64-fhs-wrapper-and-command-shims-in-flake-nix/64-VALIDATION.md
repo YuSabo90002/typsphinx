@@ -43,6 +43,15 @@ created: "2026-09-03"
 - Waves 2 and 3 run only in a session the maintainer relaunched from a direnv-loaded shell in
   `/home/yuta/Documents/typsphinx` after 64-01 merged.
 - Plans 64-02 and 64-03 carry a `<precondition>` that halts at a blocking-human gate otherwise.
+- Wave 4 (64-05, gap closure) runs in the session relaunched after 64-01. Its shims embed the old
+  rootfs `/nix/store/dgddrdfkvigqsv48k563szqc8w7xlw2g-typsphinx-fhs-run`, which has no `libz.so.1`,
+  so they serve as the old side for RED and the BEFORE audit. Every shim run after 64-05's own edit
+  is a labelled `nix develop` DIAGNOSTIC.
+- Wave 5 (64-06, gap closure) runs only in a session the maintainer relaunched from a direnv-loaded
+  shell in `/home/yuta/Documents/typsphinx` after 64-05 merged. Every 64-06 task carries a
+  `<precondition>` that discriminates on what the fix changed: the rootfs embedded in `command -v
+  ruff`'s body must hold `/usr/lib/libz.so.1` and match 64-05's `New fhs-run:` line. "The shim
+  contains typsphinx-fhs-run" is true in both sessions and is not a discriminator.
 
 **Worktree note (CLAUDE.md, STANDING):** every executor runs
 `env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev` in its own worktree first. From
@@ -56,7 +65,10 @@ wave 2 on, that `uv` is the shim.
 | Full suite, dev extra | **1543 passed, 5 skipped** | `63-GREEN-TREE-EVIDENCE.md` | 64-02-T2 re-runs once; a sixth skip or any failure is itemised and attributed |
 | `docs-html` / `docs-pdf` warnings | **3 / 5** | `63-GREEN-TREE-EVIDENCE.md`, clean builds | 64-02-T3 compares from clean builds |
 | `ruff` pin | **0.15.20** | `uv.lock:1209-1210` | exact string, never exit code |
-| darwin drvPaths | x86_64-darwin `fclfls55m9lp06679x7zrw0qzjya834j`, aarch64-darwin `2m6y6pshri0vyw3jb5agczjnz9a92sxc` (`-nix-shell.drv`) | measured at planning, `flake.lock` unchanged | 64-01-T3 asserts byte identity after the edit |
+| darwin drvPaths | x86_64-darwin `fclfls55m9lp06679x7zrw0qzjya834j`, aarch64-darwin `2m6y6pshri0vyw3jb5agczjnz9a92sxc` (`-nix-shell.drv`) | measured at planning, `flake.lock` unchanged | 64-01-T3 asserts byte identity after the edit; 64-05-T3 re-asserts it after the zlib edit |
+| Interpreter provenance (gap closure) | worktree `.venv` → uv-managed cpython-3.14.4; `.tox/py312` → uv cpython-3.12.13; `.tox/py313` → nix python3-3.13.13. The 1543 / 5 baseline above was measured under nix python3-3.13.13 (the main checkout's `.venv`) | `64-NIX05-WORKTREE-EVIDENCE.md` § NIX-04; `64-LIBZ-DIAGNOSIS.md` § 3 | 64-05-T1 and 64-06-T1 record every `pyvenv.cfg` `home` and `version_info`; no plan pins the interpreter; a divergence attributable to cp3.14 is itemised, never normalised |
+| Residual unresolved sonames after zlib | {`libcrypt.so.1` ← cp3.12 `_crypt`; `libtcl9.0.so`, `libtcl9tk9.0.so` ← `_tkinter`}, over the main checkout's cp313 wheel set and the uv interpreter trees only | `64-LIBZ-DIAGNOSIS.md` § 5 (DIAGNOSTIC, scratch rootfs) | 64-05-T1/T2 re-measure BEFORE and AFTER over the environments they provision; 64-06-T3 re-measures in the genuine shape; each residual gets a FORCED or UNREACHED verdict |
+| x86_64-linux drvPath before the zlib edit | `vd4rms2m5kvjaazd3i78049k0s9a21g0-nix-shell.drv` (post-64-01) | `64-FLAKE-EVIDENCE.md` § NIX-06 | 64-05-T1 re-reads it into a `PRE_X86_LINUX:` line; 64-05-T3 asserts the final value differs |
 
 ---
 
@@ -69,8 +81,12 @@ wave 2 on, that `uv` is the shim.
   - wave 1: `nix flake check --all-systems --no-build`
   - wave 2: the full suite through the shim, plus the seven tox environments
   - wave 3: the CI run's job census
-- **Before `/gsd-verify-work`:** all five evidence files present; NIX-04's suite green; the CI run
-  completed and green.
+  - wave 4 (gap closure): `nix flake check --all-systems --no-build` on the final flake, the
+    BEFORE/AFTER residual sets, and the DIAGNOSTIC suite, `tox -e py312` and `tox -e cov`
+  - wave 5 (gap closure): the full suite through the shim, plus the seven tox environments, in the
+    session relaunched after 64-05 merged
+- **Before `/gsd-verify-work`:** all seven plan-authored evidence files present; 64-06's
+  `## Requirement closure` reads MET for NIX-01..NIX-05; the CI run completed and green.
 - **Max feedback latency:** about 2 min for the suite; tox provisioning and CI are the long poles.
 
 ---
@@ -92,6 +108,12 @@ block in shortened form; the PLAN file carries the full gate.
 | 64-03-T2 | 03 | 2 | NIX-08 / D-06 / D-08 / D-05 | T-64-10, T-64-13 | no secret reaches committed evidence; the finding is defined before it is measured | env measurement + targeted tests | `env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT "$FHS" /usr/bin/env` → 0 surviving lines; `$HOME` and `/tmp` device/inode identical inside; `TestNoLostDiagnostics` passes under the maintainer locale and under `LC_ALL=C`; definitions committed before the results (at least two commits); exactly one `**Finding:**`; no token-, key- or secret-shaped assignment | ✅ | ⬜ pending |
 | 64-04-T1 (tracer) | 04 | 3 | SC#5 (constraint 9, 10) / NIX-01 cross-check | T-64-14, T-64-15, T-64-16 | only the canonical ref is pushed; no decoy, no tag, no release workflow | git + gh | upstream = `origin/<canonical>`; origin SHA non-empty; no decoy on origin; the run's `headSha` = the pushed SHA, `workflowName` = `CI`, `event` = `workflow_dispatch`; no tag at the tip | ✅ `.github/workflows/ci.yml` | ⬜ pending |
 | 64-04-T2 | 04 | 3 | SC#5 / NIX-01 cross-check | T-64-16, T-64-17 | the green is observed on the pushed tip, never inherited | CI | run `completed` / `success`; at least 12 jobs, zero non-success; two windows-latest and two macos-latest jobs; `Lint and Format Check` success; the four lanes and `Run lint with tox` named in evidence; exactly one dispatch; no `release.yml` run at the SHA; the release-only lint step name absent | ✅ | ⬜ pending |
+| 64-05-T1 (tracer) | 05 | 4 | gap root cause for NIX-02/03/04 (CR-01) / D-04 / D-05 / D-06 / D-08 | T-64-18, T-64-19, T-64-20 | a GREEN counts only once the new rootfs is proven in use; the old sandbox is RED for all three interpreter builds | shell transcript + live re-check (DIAGNOSTIC after the edit) | exactly one `targetPkgs = p: [ p.zlib …];` line; NEW rootfs ≠ `dgddrdfk…`, holds `/usr/lib/libz.so.1`, while the old one lacks it; `python -S … import PIL._imaging` OK under NEW for `.venv`, `.tox/py312`, `.tox/py313`; `nix develop . --command pytest tests/test_converted_image_collision_render_gate.py`; `flake.lock` unchanged; evidence has `BEFORE = {…libz.so.1…}` and `PRE_X86_LINUX:` | ✅ `flake.nix`; evidence created by the task | ⬜ pending |
+| 64-05-T2 | 05 | 4 | NIX-02 / NIX-03 / NIX-04 (DIAGNOSTIC only, closes nothing) / D-08 | T-64-18, T-64-19 | no rootfs package without a failing gate; a second gap surfaces before a relaunch is requested | ldd audit + suite + tox (DIAGNOSTIC) | the last `AFTER = {…}` lacks libz.so.1; `## Residual verdicts`; two `scanned=` lines; collision-gate and greyscale-pipeline files pass with the Pillow-gated skip gone; `tox -e py312 -- <collision file>`; evidence shows `1543 passed, 5 skipped` or `## Baseline divergence`, plus `py312: OK` and `cov: OK` | ✅ | ⬜ pending |
+| 64-05-T3 | 05 | 4 | NIX-06 / NIX-07 / NIX-08 / D-06 / D-07 / D-09 | T-64-21, T-64-22 | darwin never forces the rootfs; the shipped shims are 64-03's shims modulo the rootfs path | nix eval + shim-body diff + env probe | `nix flake check --all-systems --no-build`; darwin drvPaths equal; x86_64-linux ≠ `PRE_X86_LINUX`; both censuses exact; seven normalised shim-body diffs empty with OLD≠NEW; no locale pin, env-clearing flag, ELF-patch tool or nixpkgs ruff in `flake.nix`; no workflow mentions nix or flake; relaunch section, `New fhs-run:` line, `--gaps-only`; the four REVIEW ids; committed paths only `flake.nix` and `.planning/` | ✅ | ⬜ pending |
+| 64-06-T1 (tracer) | 06 | 5 | NIX-05 / NIX-01 / D-04 / D-06 / D-09 | T-64-23, T-64-24 | measured only in the relaunched session; nothing measured against the main checkout | shell transcript + live re-check | the ruff shim's rootfs holds `/usr/lib/libz.so.1` and matches `New fhs-run:`; `pwd -P` under `.claude/worktrees/`; `ruff --version` = `ruff 0.15.20`; `ruff check .`; `typsphinx.__file__` inside the worktree; `uv run python -S … import PIL._imaging`; `pytest tests/test_converted_image_collision_render_gate.py`; evidence has the shape line, `version_info`, `Found RC` | ✅ N/A — evidence created by the task | ⬜ pending |
+| 64-06-T2 | 06 | 5 | NIX-04 / D-08 | T-64-25 | one run, maintainer locale, baseline gated literally | full suite | `pytest --collect-only -q` → `1548 tests collected`; greyscale-pipeline Pillow skip gone; evidence has `collected 1548 items` and `1543 passed, 5 skipped in` or `## Baseline divergence` | ✅ | ⬜ pending |
+| 64-06-T3 | 06 | 5 | NIX-02 / NIX-03 / NIX-05 / D-07 | T-64-26 | cold provisioning inside the fixed sandbox; a real PDF, never exit 0 alone | tox + file magic + ldd audit | live `tox -e lint`, `tox -e py312 -- <collision file>`, clean `tox -e docs-pdf`; `test -s` and `%PDF`; seven `<env>: OK` lines; `Python 3.12`; two clean-build commands; the last `GENUINE = {…}` lacks libz.so.1; `## Requirement closure` with no NOT MET row | ✅ | ⬜ pending |
 | _(verifier, post-phase)_ | — | post | NIX-06 (darwin execution) | T-64-04 | — | none possible | darwin execution is unverified by construction (ROADMAP constraint 8); evaluation is the bounded mitigation. Recorded, not claimed | — | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
@@ -114,6 +136,7 @@ scaffolding.
 | The Claude Code session is relaunched after 64-01 merges, from a shell where direnv loaded the new devShell | NIX-05 / D-09 (enables every wave-2 and wave-3 measurement) | The session PATH is frozen at launch, and no automation inside a running session can refresh it (orchestrator note 3) | Open a terminal in `/home/yuta/Documents/typsphinx`; confirm `command -v ruff` prints `/nix/store/…-ruff/bin/ruff`; launch Claude Code from that shell; run `/gsd-execute-phase 64`. The 64-02 and 64-03 preconditions confirm it mechanically |
 | The NIX-08 consequence paragraph says what the finding means for the maintainer's workflow | NIX-08 / D-08 | Whether the prose draws the right workflow consequence is a judgment; the gate checks only that one finding exists | Read `64-NIX08-ENV-EVIDENCE.md` § Consequence against the four-cell matrix and the committed definitions |
 | The CI run is this phase's own, on the pushed tip, started during this phase | SC#5 | Recency and identity beyond the `headSha` gate | Open the recorded run URL; confirm the head SHA, the start time and that the `Lint and Format Check` log shows `ruff check .` executing |
+| The Claude Code session is relaunched after 64-05 merges, from a shell where direnv loaded the zlib-carrying devShell | NIX-02 / NIX-03 / NIX-04 re-measurement (enables every wave-5 task) | The session PATH is frozen at launch; the session that runs 64-05 predates 64-05's own edit, and no automation inside a running session can refresh it | Open a terminal in `/home/yuta/Documents/typsphinx`; set FHS to the `typsphinx-fhs-run` path grepped from `command -v ruff`'s body and confirm `"$FHS" /bin/sh -c 'test -e /usr/lib/libz.so.1'` exits 0 (it matches the `New fhs-run:` line in `64-LIBZ-FIX-EVIDENCE.md`); launch Claude Code from that shell; run `/gsd-execute-phase 64 --gaps-only`. The 64-06 preconditions confirm it mechanically |
 
 ---
 
@@ -126,22 +149,28 @@ plan-authored evidence set is:
 - `64-NIX07-RENAME-EVIDENCE.md`
 - `64-NIX08-ENV-EVIDENCE.md`
 - `64-CI-EVIDENCE.md`
+- `64-LIBZ-FIX-EVIDENCE.md` (64-05, gap closure)
+- `64-GAP-REMEASURE-EVIDENCE.md` (64-06, gap closure)
 
-`COVERAGE.md` is the planner's plan-time external-API declaration.
+The gap-closure plans never append to the first five files: their failing transcripts stay
+byte-unchanged, and the re-measurement is a new record. `64-LIBZ-DIAGNOSIS.md` is the plan-phase
+orchestrator's pre-planning DIAGNOSTIC, not a plan output, and closes nothing.
+
+`COVERAGE.md` is the planner's plan-time external-API declaration, with a dated gap-closure addendum.
 
 ---
 
 ## Validation Sign-Off
 
-The checked items are properties of the four authored plans, verified at plan time. The unchecked
+The checked items are properties of the six authored plans, verified at plan time. The unchecked
 item is `/gsd-validate-phase`'s to set.
 
-- [x] All tasks have `<automated>` verify, each followed by a `<fails_when>`: 10/10 tasks across the four plans
+- [x] All tasks have `<automated>` verify, each followed by a `<fails_when>`: 16/16 tasks across the six plans (10 in 64-01..64-04, 6 in the gap-closure plans 64-05 and 64-06)
 - [x] Sampling continuity: no 3 consecutive tasks without automated verify, because every task has one
 - [x] Wave 0 covers all MISSING references: none; existing infrastructure suffices
 - [x] No watch-mode flags: `gh run watch --exit-status` is a one-shot wait-for-completion with a 90-minute cap, not a watch loop
-- [x] Diagnostics and genuine observations are separated: wave 1's `nix develop` runs are labelled DIAGNOSTIC; waves 2-3 run only behind the session precondition
-- [x] Evidence producers precede their consumer: 64-04 (wave 3) depends on 64-02 and 64-03 (wave 2), which depend on 64-01 (wave 1)
+- [x] Diagnostics and genuine observations are separated: the `nix develop` runs of waves 1 and 4 are labelled DIAGNOSTIC; waves 2-3 run only behind 64-01's session precondition, and wave 5 only behind 64-05's libz discriminator
+- [x] Evidence producers precede their consumer: 64-04 (wave 3) depends on 64-02 and 64-03 (wave 2), which depend on 64-01 (wave 1); 64-05 (wave 4) depends on 64-01..64-04; 64-06 (wave 5) depends on 64-05
 - [x] No plan writes `64-VERIFICATION.md`
 - [ ] `nyquist_compliant: true` set in frontmatter: set by `/gsd-validate-phase`, not at plan time
 

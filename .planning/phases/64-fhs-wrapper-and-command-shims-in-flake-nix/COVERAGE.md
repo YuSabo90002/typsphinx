@@ -37,3 +37,25 @@ package-legitimacy checkpoint is owed.
 ---
 *Phase: 64-fhs-wrapper-and-command-shims-in-flake-nix*
 *Written by the planner at plan time (2026-09-11)*
+
+---
+
+## Addendum — gap-closure plans 64-05 and 64-06 (2026-09-12)
+
+The declaration above is unchanged, and the gap-closure plans still integrate no external API.
+- 64-05 adds one attribute of the already-pinned nixpkgs input (`zlib`) to the FHS sandbox's
+  `targetPkgs` in `flake.nix`, and re-runs the project's own tooling as diagnostics.
+- 64-06 re-measures that tooling in a relaunched session.
+- Neither plan pushes, dispatches a workflow or calls a third-party service. `zlib` is not a registry
+  package, so no package-legitimacy checkpoint is owed.
+
+Detector re-run, 2026-09-12, over the same scope the seal-time gate uses: the concatenated bodies of
+`64-01-PLAN.md` through `64-06-PLAN.md`, plus the ROADMAP Phase 64 section
+(`roadmap.get-phase 64 --pick section`, 8513 characters, which includes the new wave-4 and wave-5
+plan lines). Output, verbatim:
+
+```json
+{"detected":false,"signals":[],"terms":{"verbs":["integrate","integrates","integrating","integration","wrap","wraps","wrapping","connect","connects","connecting","consume","consumes","consuming","wire","wires","wiring","onboard","onboarding","adopt","adopts","adopting"],"nouns":["api","apis","sdk","sdks","rest","graphql","grpc","endpoint","endpoints","oauth","oauth2","webhook","webhooks","mcp"]}}
+```
+
+*Addendum written by the planner at gap-closure plan time (2026-09-12)*

@@ -334,7 +334,7 @@ constraint 10's branch-to-`origin` invariant.
      > must re-measure rather than trust this note, and must expect the decoy to be re-created by any
      > later `commit` helper invocation — it has now fired twice within this one milestone.
 
-**Plans**: 4/4 plans executed (3 waves; a Claude Code session relaunch is required between wave 1 and wave 2)
+**Plans**: 4/6 plans executed (5 waves; a Claude Code session relaunch is required between wave 1 and wave 2, and again between wave 4 and wave 5)
 
 Plans:
 **Wave 1**
@@ -349,6 +349,14 @@ Plans:
 **Wave 3** *(blocked on Wave 2 completion)*
 
 - [x] 64-04-PLAN.md — SC#5: re-measured branch census, canonical branch pushed with tracking, one CI dispatch observed to completion with all lanes transcribed
+
+**Wave 4** *(gap closure; blocked on Wave 3 completion)*
+
+- [ ] 64-05-PLAN.md — flake.nix: zlib in fhsRun's targetPkgs (CR-01), gated by a DT_NEEDED residual audit before and after, an import-order-independent RED→GREEN on three interpreter builds, a DIAGNOSTIC second-gap sweep, and NIX-06/07/08 re-bound on the final flake
+
+**Wave 5** *(gap closure; blocked on Wave 4 completion and a Claude Code session relaunch)*
+
+- [ ] 64-06-PLAN.md — genuine D-09 re-measurement after the fix in a fresh nested worktree: NIX-01 regression, the path that failed, NIX-04 full suite, all seven tox environments (NIX-02/NIX-03) with a real PDF, and the residual audit over what it provisions
 
 **UI hint**: no
 
