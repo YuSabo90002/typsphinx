@@ -27,7 +27,7 @@ requirements. That carried-forward item is **DEP-01** here.
       `docs-pdf` producing a real PDF
 - [ ] **NIX-04**: the full test suite (1548 tests at milestone start) runs on that machine with no
       environment-caused failures
-- [ ] **NIX-05**: an executor in a freshly created git worktree can run the documented provisioning
+- [x] **NIX-05**: an executor in a freshly created git worktree can run the documented provisioning
       line and then every gate, with no manual `ln -sf` or `patchelf` step anywhere
 - [x] **NIX-06**: `flake.nix` evaluates successfully on all four declared systems, including the two
       darwin ones
@@ -128,7 +128,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | NIX-02 | Phase 64 | Pending |
 | NIX-03 | Phase 64 | Pending |
 | NIX-04 | Phase 64 | Pending |
-| NIX-05 | Phase 64 | Pending |
+| NIX-05 | Phase 64 | Complete |
 | NIX-06 | Phase 64 | Complete |
 | NIX-07 | Phase 64 | Complete |
 | NIX-08 | Phase 64 | Complete |
