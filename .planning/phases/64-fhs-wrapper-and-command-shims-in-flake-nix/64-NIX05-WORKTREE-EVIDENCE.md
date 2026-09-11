@@ -426,3 +426,213 @@ tests/test_extension.py ......                                           [100%]
 $ echo "exit:$?"
 exit:0
 ```
+
+## NIX-02 — tox lint / type / py312 / py313
+
+```
+$ test ! -e .tox; echo "exit:$?"
+exit:0
+```
+
+`.tox` is absent before the first tox run — every environment below is provisioned cold inside
+the sandbox.
+
+Four environments, run in the fixed order, each in its own invocation:
+
+```
+$ tox -e lint
+lint: venv> /nix/store/f1y7m4b5vxrbwszkrni3yc2lv0x22zcj-uv/bin/uv venv -p .../.venv/bin/python --allow-existing '--prompt=agent-a5539e9d70a2734f2[lint]' --python-preference system .../.tox/lint
+lint: uv-sync> /nix/store/f1y7m4b5vxrbwszkrni3yc2lv0x22zcj-uv/bin/uv sync --locked --python-preference system --extra dev -p .../.venv/bin/python
+lint: commands[0]> black --check .
+All done! ✨ 🍰 ✨
+355 files would be left unchanged.
+lint: commands[1]> ruff check .
+All checks passed!
+  lint: OK (0.46=setup[0.17]+cmd[0.27,0.02] seconds)
+  congratulations :) (0.61 seconds)
+exit:0
+
+$ tox -e type
+type: venv> /nix/store/f1y7m4b5vxrbwszkrni3yc2lv0x22zcj-uv/bin/uv venv -p .../.venv/bin/python --allow-existing '--prompt=agent-a5539e9d70a2734f2[type]' --python-preference system .../.tox/type
+type: uv-sync> /nix/store/f1y7m4b5vxrbwszkrni3yc2lv0x22zcj-uv/bin/uv sync --locked --python-preference system --extra dev -p .../.venv/bin/python
+type: commands[0]> mypy typsphinx/
+Success: no issues found in 9 source files
+  type: OK (0.31=setup[0.15]+cmd[0.16] seconds)
+  congratulations :) (0.45 seconds)
+exit:0
+
+$ tox -e py312
+py312: venv> /nix/store/f1y7m4b5vxrbwszkrni3yc2lv0x22zcj-uv/bin/uv venv -p cpython3.12 --allow-existing '--prompt=agent-a5539e9d70a2734f2[py312]' --python-preference system .../.tox/py312
+py312: uv-sync> /nix/store/f1y7m4b5vxrbwszkrni3yc2lv0x22zcj-uv/bin/uv sync --locked --python-preference system --extra dev -p cpython3.12
+py312: commands[0]> pytest tests/
+============================= test session starts ==============================
+platform linux -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- .../.tox/py312/bin/python3
+collecting ... collected 1548 items
+...
+=========================== short test summary info ============================
+FAILED tests/test_converted_image_collision_render_gate.py::TestConvertedImageCollisionRenderGate::test_pdf_embeds_both_distinctly_sized_images
+============ 1 failed, 1541 passed, 6 skipped in 120.72s (0:02:00) =============
+py312: exit 1 (121.31 seconds)
+  py312: FAIL code 1 (121.56=setup[0.26]+cmd[121.31] seconds)
+  evaluation failed :( (121.70 seconds)
+exit:1
+
+$ tox -e py313
+py313: venv> /nix/store/f1y7m4b5vxrbwszkrni3yc2lv0x22zcj-uv/bin/uv venv -p cpython3.13 --allow-existing '--prompt=agent-a5539e9d70a2734f2[py313]' --python-preference system .../.tox/py313
+py313: uv-sync> /nix/store/f1y7m4b5vxrbwszkrni3yc2lv0x22zcj-uv/bin/uv sync --locked --python-preference system --extra dev -p cpython3.13
+py313: commands[0]> pytest tests/
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- .../.tox/py313/bin/python3
+collecting ... collected 1548 items
+...
+================= 1543 passed, 5 skipped in 133.74s (0:02:13) ==================
+  py313: OK (134.60=setup[0.18]+cmd[134.42] seconds)
+  congratulations :) (134.73 seconds)
+exit:0
+```
+
+`test -d .tox/py312`, `test -d .tox/py313`, `test -d .tox/lint`, `test -d .tox/type` all exit 0
+after this sequence — all four environments were provisioned. `lint: OK` and `type: OK` pass
+clean, no `flake.nix` fix needed for either.
+
+**`py312: FAIL code 1`, not OK.** Its pytest header names `Python 3.12.13`, satisfying the
+"pytest header naming Python 3.12" acceptance item, but the run itself fails with the identical
+`libz.so.1` `ImportError` already recorded under NIX-04 — same node id
+(`tests/test_converted_image_collision_render_gate.py::TestConvertedImageCollisionRenderGate::test_pdf_embeds_both_distinctly_sized_images`),
+same first traceback frame (`PIL/Image.py:95: from . import _imaging as core`), same
+`1 failed, 1541 passed, 6 skipped` shape. This is not treated as a new, separate finding — it is
+the same environment-caused defect, reproduced a second time under `tox`'s own subprocess tree
+(a nested sandbox entry: `tox` itself is one of the six D-01 shims, and its `uv venv`/`uv sync`
+calls re-enter `typsphinx-fhs-run` a second time, matching 64-01's proven nested-entry mechanism).
+
+Outside-sandbox control on `.tox/py312`'s own interpreter, bare:
+
+```
+$ .tox/py312/bin/python --version
+Could not start dynamically linked executable: .tox/py312/bin/python
+NixOS cannot run dynamically linked executables intended for generic
+linux environments out of the box. For more information, see:
+https://nix.dev/permalink/stub-ld
+$ echo "exit:$?"
+exit:127
+```
+
+Expected: `.tox/py312`'s interpreter is itself a `uv`-downloaded generic-linux CPython 3.12
+build (the same class of binary D-04's RED reproduced for `ruff`), rejected bare at rc 127.
+
+**`py313: OK` — a sharper attribution than NIX-04's alone.** `py313`'s pytest header names
+`Python 3.13.13` — the exact same interpreter version as the carried-in baseline (measured in the
+main checkout's nix-provided `python3-3.13.13`) — and its summary line reads
+`1543 passed, 5 skipped`, an exact match. Three data points now exist: the bare `pytest` shim
+(cpython-3.14, `uv`-downloaded) fails; `tox -e py312` (cpython-3.12, `uv`-downloaded) fails
+identically; `tox -e py313` (cpython-3.13, `uv`-downloaded, but matching the baseline's own
+version) passes clean. All three run inside the identical `typsphinx-fhs-run` sandbox with the
+identical `targetPkgs` (none declared). If the sandbox uniformly lacked `zlib`, all three should
+fail alike — they do not. This evidence therefore does not point cleanly at a sandbox-wide
+`targetPkgs` gap alone; it correlates instead with which Python build resolves Pillow's `_imaging`
+extension (the `cp312`/`cp314` wheel resolution vs. the `cp313` one), a distinction this plan's
+evidence records but does not resolve. Either way, `flake.nix` is not edited here (scope fence);
+whatever the eventual fix, it belongs to a Phase 64 gap-closure plan.
+
+## NIX-03 — tox cov / docs-html / docs-pdf
+
+```
+$ tox -e cov
+...
+TOTAL                             2806    333    88%
+Coverage HTML written to dir htmlcov
+=========================== short test summary info ============================
+FAILED tests/test_converted_image_collision_render_gate.py::TestConvertedImageCollisionRenderGate::test_pdf_embeds_both_distinctly_sized_images
+============ 1 failed, 1541 passed, 6 skipped in 116.84s (0:01:56) =============
+cov: exit 1 (117.66 seconds)
+  cov: FAIL code 1 (117.79=setup[0.13]+cmd[117.66] seconds)
+  evaluation failed :( (117.92 seconds)
+exit:1
+```
+
+`cov: FAIL code 1`, not OK — its pytest header names `Python 3.14.4` (the same `uv`-downloaded
+build as the bare `pytest` shim), and it fails with the same node id and same first traceback
+frame as NIX-04 and `py312` above. A third reproduction of the identical environment-caused
+defect, consistent with the version correlation noted above (3.14 fails, matching 3.12; 3.13
+passes). `test -d .tox/cov` exits 0 — the environment was provisioned; only the test run inside
+it failed.
+
+```
+$ rm -rf docs/_build
+$ tox -e docs-html
+...
+build succeeded, 3 warnings.
+HTMLページは_build/htmlにあります。
+  docs-html: OK (3.35=setup[0.11]+cmd[3.24] seconds)
+  congratulations :) (3.48 seconds)
+exit:0
+```
+
+`docs-html: OK`, `build succeeded, 3 warnings` — exact match against the carried-in baseline of
+3. (Output is in the maintainer's own `ja_JP.UTF-8` locale, per D-08 — Sphinx's own progress
+messages print in Japanese; this is the maintainer's real, unmodified locale, not a test
+artifact.)
+
+```
+$ ls "$HOME/.cache/typst/packages/preview" | wc -l
+9
+$ rm -rf docs/_build
+$ tox -e docs-pdf
+...
+typst: wrote 1 wrapper file(s) -- compile these: typsphinx.typ
+Compiling 1 master document(s) to PDF...
+Generated PDF: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a5539e9d70a2734f2/docs/_build/pdf/typsphinx.pdf
+build succeeded, 5 warnings.
+  docs-pdf: OK (4.07=setup[0.13]+cmd[3.94] seconds)
+  congratulations :) (4.20 seconds)
+exit:0
+
+$ ls "$HOME/.cache/typst/packages/preview" | wc -l
+9
+
+$ test -s docs/_build/pdf/typsphinx.pdf; echo "exit:$?"
+exit:0
+$ head -c 4 docs/_build/pdf/typsphinx.pdf
+%PDF
+$ stat -c %s docs/_build/pdf/typsphinx.pdf
+2776960
+```
+
+`docs-pdf: OK`, `build succeeded, 5 warnings` — exact match against the carried-in baseline of 5.
+The `@preview` package cache count is unchanged (9 before, 9 after) — the warm cache already held
+everything `docs-pdf` needed, exactly as 64-01 found; D-07 closes again with no gap and no
+`flake.nix` change required for this build. `docs/_build/pdf/typsphinx.pdf` is non-empty
+(2,776,960 bytes), and its first four bytes are the `%PDF` magic — a real, compiled PDF, not an
+`exit 0` alone. Each docs build command above begins with its own `rm -rf docs/_build`, since
+`docs-html` and `docs-pdf` share that directory (the NIX-03 adjacency edge) — two separate clean
+starts are recorded, not one shared preamble.
+
+## NIX-05 — procedure summary
+
+This worktree — `/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a5539e9d70a2734f2`, a
+freshly created git worktree nested inside the main checkout — ran the full NIX-05 procedure end
+to end in the genuine D-09 shape: the head check first (`.venv`/`.tox` absent, both `ruff` and
+`uv` resolving to `/nix/store/…` shims carrying `typsphinx-fhs-run` purely by inheritance from
+the launching session, `direnv status` confirming this worktree's own `.envrc` was never
+individually allowed), then the single documented provisioning line
+(`env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev`), then every gate: the bare
+D-01 commands (NIX-01, all seven names resolving by absolute path inside this worktree, `ruff`
+matching `uv.lock`'s exact `0.15.20` pin), one full-suite run through the bare `pytest` shim
+(NIX-04), four `tox` environments (`lint`, `type`, `py312`, `py313` — NIX-02), and three more
+(`cov`, `docs-html`, `docs-pdf` — NIX-03), with `docs-pdf` producing a real, non-empty PDF
+beginning with the `%PDF` magic bytes. No manual symlink, no ELF-patching tool, no system-wide
+loader shim, and no `nixpkgs.ruff` package appeared anywhere in this procedure — every tool ran
+through the one documented shim mechanism (`typsphinx-fhs-run`), and the only fallback exercised
+was D-02's own documented `uv` two-leg resolution.
+
+**Not every gate closed clean.** `lint`, `type`, `py313`, `docs-html`, and `docs-pdf` all read
+`OK` and match their respective baselines exactly. `NIX-04` (the bare-shim full suite), `py312`,
+and `cov` all reproduce the identical environment-caused defect — a `libz.so.1` `ImportError`
+inside `pypdf`'s own lazy `PIL` import, itself used only by one test's own PDF-image-extraction
+assertion tooling, never by anything `typsphinx` emits — correlated with which Python interpreter
+`uv` resolves (the `cp312`/`cp314` `uv`-downloaded builds fail identically; `cp313`, matching the
+baseline's own nix-provided interpreter, passes clean). This plan's scope fence forbids editing
+`flake.nix`; per the same handling the plan documents for D-07's `docs-pdf`/`@preview` class of
+gap, the fix belongs to a Phase 64 gap-closure plan, and NIX-02/NIX-03's `py312`/`cov` and
+NIX-04 must be re-measured green in a session relaunched after that plan merges. The 1543/5 and
+3/5 baselines are not adjusted to match any of these three runs.
