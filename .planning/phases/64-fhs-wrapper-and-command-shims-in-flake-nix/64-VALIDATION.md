@@ -12,6 +12,18 @@ created: "2026-09-03"
 # Phase 64 — Validation Strategy
 
 > Per-phase validation contract for feedback sampling during execution.
+>
+> Seeded by plan-phase from `64-RESEARCH.md` § "Validation Architecture". This phase changes no
+> `typsphinx/` behaviour and adds no test. D-05 routes every NIX-07/NIX-08 proof into evidence
+> markdown, because a pytest test would be permanently skipped on every CI runner. What it validates
+> instead:
+> - (a) `flake.nix` builds a working, Linux-guarded FHS passthrough and seven absolute-path shims
+> - (b) the documented commands and every tox environment run through them in a fresh worktree
+> - (c) the sandbox's environment behaviour is measured rather than assumed
+> - (d) the branch reaches `origin` with a completed 3-OS CI run
+>
+> **The unit of proof is a recorded observation.** Most rows are shell transcripts in phase evidence
+> files, gated by commands that re-run the decisive check live, not by a test exit code alone.
 
 ---
 
@@ -19,28 +31,68 @@ created: "2026-09-03"
 
 | Property | Value |
 |----------|-------|
-| **Framework** | {pytest 7.x / jest 29.x / vitest / go test / other} |
-| **Config file** | {path or "none — Wave 0 installs"} |
-| **Quick run command** | `{quick command}` |
-| **Full suite command** | `{full command}` |
-| **Estimated runtime** | ~64 seconds |
+| **Framework** | pytest (config in `pyproject.toml`), orchestrated by `tox` (`uv-venv-lock-runner`); the `nix` CLI (2.34) for flake evaluation and `nix develop` diagnostics; `gh` for the CI dispatch |
+| **Config file** | `pyproject.toml`, `tox.ini`, `flake.nix` |
+| **Quick run command** | `ruff --version` and `bash -x "$(command -v ruff)" --version` through the shim (seconds; wave 2+ only), or `nix develop . --command ruff --version` (wave 1 diagnostic) |
+| **Full suite command** | `pytest -q -rs` through the pytest shim in a fresh worktree (NIX-04): 1548 collected, baseline 1543 passed / 5 skipped |
+| **Estimated runtime** | full suite about 2 min · seven tox environments cold about 10-15 min (py312 includes a CPython download, unmeasured before this phase) · one CI dispatch about 7 min wall clock |
+
+**Session boundary (STANDING for this phase):** the Claude Code session PATH is frozen at launch.
+- Wave 1 (64-01) runs in a session that predates the `flake.nix` edit, so every shim run there is a
+  labelled `nix develop` DIAGNOSTIC.
+- Waves 2 and 3 run only in a session the maintainer relaunched from a direnv-loaded shell in
+  `/home/yuta/Documents/typsphinx` after 64-01 merged.
+- Plans 64-02 and 64-03 carry a `<precondition>` that halts at a blocking-human gate otherwise.
+
+**Worktree note (CLAUDE.md, STANDING):** every executor runs
+`env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev` in its own worktree first. From
+wave 2 on, that `uv` is the shim.
+
+### Baselines carried in (re-measured, never inherited)
+
+| Baseline | Value | Source | Obligation |
+|----------|-------|--------|------------|
+| Tests collected | **1548** | `--collect-only` at planning, 2026-09-11; no `tests/` or `typsphinx/` diff since `v0.9.2` | 64-02-T2 re-counts |
+| Full suite, dev extra | **1543 passed, 5 skipped** | `63-GREEN-TREE-EVIDENCE.md` | 64-02-T2 re-runs once; a sixth skip or any failure is itemised and attributed |
+| `docs-html` / `docs-pdf` warnings | **3 / 5** | `63-GREEN-TREE-EVIDENCE.md`, clean builds | 64-02-T3 compares from clean builds |
+| `ruff` pin | **0.15.20** | `uv.lock:1209-1210` | exact string, never exit code |
+| darwin drvPaths | x86_64-darwin `fclfls55m9lp06679x7zrw0qzjya834j`, aarch64-darwin `2m6y6pshri0vyw3jb5agczjnz9a92sxc` (`-nix-shell.drv`) | measured at planning, `flake.lock` unchanged | 64-01-T3 asserts byte identity after the edit |
 
 ---
 
 ## Sampling Rate
 
-- **After every task commit:** Run `{quick run command}`
-- **After every plan wave:** Run `{full suite command}`
-- **Before `/gsd-verify-work`:** Full suite must be green
-- **Max feedback latency:** 64 seconds
+- **After every task commit:** the task's own `<automated>` block. Each one re-runs its decisive
+  check live: a shim resolution, a version string, an xtrace `+ exec` path, an evaluation, a PDF's
+  magic bytes, or a `gh run view` field.
+- **After every plan wave:**
+  - wave 1: `nix flake check --all-systems --no-build`
+  - wave 2: the full suite through the shim, plus the seven tox environments
+  - wave 3: the CI run's job census
+- **Before `/gsd-verify-work`:** all five evidence files present; NIX-04's suite green; the CI run
+  completed and green.
+- **Max feedback latency:** about 2 min for the suite; tox provisioning and CI are the long poles.
 
 ---
 
 ## Per-Task Verification Map
 
+Task IDs are `64-{plan}-T{task}`. Every row's command is transcribed from the task's own `<automated>`
+block in shortened form; the PLAN file carries the full gate.
+
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 64-01-01 | 01 | 1 | REQ-{XX} | T-64-01 / — | {expected secure behavior or "N/A"} | unit | `{command}` | ✅ / ❌ W0 | ⬜ pending |
+| 64-01-T1 (tracer) | 01 | 1 | NIX-01 (diagnostic) / D-03 / D-04 / D-06 | T-64-01, T-64-02 | a shim resolves only an absolute `.venv/bin/ruff` inside its own checkout | shell transcript + live re-check | `nix develop . --command ruff --version` = `ruff 0.15.20` from the root and from `docs/`; the xtrace `+ exec` line names `<worktree>/.venv/bin/ruff`; the chroot builder is absent; `flake.lock` unchanged; RED text or labelled non-reproduction in evidence | ✅ `flake.nix` exists; evidence created by the task | ⬜ pending |
+| 64-01-T2 | 01 | 1 | D-01 / D-02 / D-03 | T-64-01 | seven names; six strict, `uv` with a store-path second leg | shell transcript + live re-check | inside `nix develop .`: six xtrace lines under `$PWD/.venv/bin/`, uv's under `/nix/store/…-uv-…/bin/uv`, `type -P uv` = the unversioned shim, version substrings match `uv.lock` | ✅ | ⬜ pending |
+| 64-01-T3 | 01 | 1 | NIX-06 / D-07 / D-08 | T-64-04, T-64-05 | darwin never forces `buildFHSEnv`; tox's subprocess tree runs inside the sandbox | nix eval + tox + file magic | `nix flake check --all-systems --no-build`; darwin drvPaths equal the planning values; x86_64-linux and darwin censuses equal the stated arrays; `nix develop . --command tox -e lint`; PDF begins `%PDF`; no locale variable, env-clearing flag, ELF-patch tool or nixpkgs ruff in `flake.nix` | ✅ | ⬜ pending |
+| 64-02-T1 (tracer) | 02 | 2 | NIX-05 / NIX-01 / D-04 / D-09 / D-02 / D-06 | T-64-06, T-64-07 | the shim PATH is inherited, never simulated; nothing measured against the main checkout | shell transcript + live re-check | `pwd -P` under `.claude/worktrees/`; both shim bodies contain `typsphinx-fhs-run`; `ruff --version` = `ruff 0.15.20`; xtrace path inside the worktree; `ruff check .`; `typsphinx.__file__` inside the worktree; evidence carries the measured-shape line and the direnv RC lines | ✅ N/A — evidence created by the task | ⬜ pending |
+| 64-02-T2 | 02 | 2 | NIX-01 / NIX-04 / D-08 | T-64-07, T-64-08 | one full-suite run, maintainer locale, baseline gated literally | full suite + lint/type | `black --check .`; `mypy typsphinx/`; four xtrace paths inside the worktree; `pytest -q` → `1543 passed, 5 skipped`, zero `failed`; `uv run pytest tests/test_extension.py -q` | ✅ | ⬜ pending |
+| 64-02-T3 | 02 | 2 | NIX-02 / NIX-03 / NIX-05 / D-07 | T-64-09 | cold provisioning inside the sandbox; a real PDF, never exit 0 alone | tox + file magic | re-run `tox -e lint` and a clean `tox -e docs-pdf`; `test -s` and `%PDF`; `.tox/{py312,py313,cov}` exist; seven `<env>: OK` lines, a `Python 3.12` header and two clean-build commands in evidence | ✅ | ⬜ pending |
+| 64-03-T1 (tracer) | 03 | 2 | NIX-07 / D-02 / D-03 / D-05 / D-09 | T-64-11, T-64-12 | a missing target fails loud (127), never hangs, recurses or escapes | rename experiment, live | the six venv targets renamed and restored in turn, each `timeout 30` run → rc 127, a `typsphinx-shim:` line, empty stdout; ruff restored to `0.15.20`; no `.venv/bin/uv` left; uv xtrace → store path; no shim body performs a PATH lookup; evidence has the positive control, the leg-1 probe and the INNER result | ✅ N/A — evidence created by the task | ⬜ pending |
+| 64-03-T2 | 03 | 2 | NIX-08 / D-06 / D-08 / D-05 | T-64-10, T-64-13 | no secret reaches committed evidence; the finding is defined before it is measured | env measurement + targeted tests | `env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT "$FHS" /usr/bin/env` → 0 surviving lines; `$HOME` and `/tmp` device/inode identical inside; `TestNoLostDiagnostics` passes under the maintainer locale and under `LC_ALL=C`; definitions committed before the results (at least two commits); exactly one `**Finding:**`; no token-, key- or secret-shaped assignment | ✅ | ⬜ pending |
+| 64-04-T1 (tracer) | 04 | 3 | SC#5 (constraint 9, 10) / NIX-01 cross-check | T-64-14, T-64-15, T-64-16 | only the canonical ref is pushed; no decoy, no tag, no release workflow | git + gh | upstream = `origin/<canonical>`; origin SHA non-empty; no decoy on origin; the run's `headSha` = the pushed SHA, `workflowName` = `CI`, `event` = `workflow_dispatch`; no tag at the tip | ✅ `.github/workflows/ci.yml` | ⬜ pending |
+| 64-04-T2 | 04 | 3 | SC#5 / NIX-01 cross-check | T-64-16, T-64-17 | the green is observed on the pushed tip, never inherited | CI | run `completed` / `success`; at least 12 jobs, zero non-success; two windows-latest and two macos-latest jobs; `Lint and Format Check` success; the four lanes and `Run lint with tox` named in evidence; exactly one dispatch; no `release.yml` run at the SHA; the release-only lint step name absent | ✅ | ⬜ pending |
+| _(verifier, post-phase)_ | — | post | NIX-06 (darwin execution) | T-64-04 | — | none possible | darwin execution is unverified by construction (ROADMAP constraint 8); evaluation is the bounded mitigation. Recorded, not claimed | — | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -48,11 +100,10 @@ created: "2026-09-03"
 
 ## Wave 0 Requirements
 
-- [ ] `{tests/test_file.py}` — stubs for REQ-{XX}
-- [ ] `{tests/conftest.py}` — shared fixtures
-- [ ] `{framework install}` — if no framework detected
-
-*If none: "Existing infrastructure covers all phase requirements."*
+**None. Existing infrastructure covers every phase requirement.** The full pytest suite, the tox
+environments, `ci.yml`'s 3-OS matrix, the `nix` CLI and `gh` are all in place. D-05 deliberately adds
+no test file and no script. The evidence markdown files are each task's own deliverable, not Wave 0
+scaffolding.
 
 ---
 
@@ -60,19 +111,38 @@ created: "2026-09-03"
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| {behavior} | REQ-{XX} | {reason} | {steps} |
+| The Claude Code session is relaunched after 64-01 merges, from a shell where direnv loaded the new devShell | NIX-05 / D-09 (enables every wave-2 and wave-3 measurement) | The session PATH is frozen at launch, and no automation inside a running session can refresh it (orchestrator note 3) | Open a terminal in `/home/yuta/Documents/typsphinx`; confirm `command -v ruff` prints `/nix/store/…-ruff/bin/ruff`; launch Claude Code from that shell; run `/gsd-execute-phase 64`. The 64-02 and 64-03 preconditions confirm it mechanically |
+| The NIX-08 consequence paragraph says what the finding means for the maintainer's workflow | NIX-08 / D-08 | Whether the prose draws the right workflow consequence is a judgment; the gate checks only that one finding exists | Read `64-NIX08-ENV-EVIDENCE.md` § Consequence against the four-cell matrix and the committed definitions |
+| The CI run is this phase's own, on the pushed tip, started during this phase | SC#5 | Recency and identity beyond the `headSha` gate | Open the recorded run URL; confirm the head SHA, the start time and that the `Lint and Format Check` log shows `ruff check .` executing |
 
-*If none: "All phase behaviors have automated verification."*
+---
+
+## Evidence-file naming constraint
+
+`64-VERIFICATION.md` is `gsd-verifier`'s reserved output name, and no plan writes it. The
+plan-authored evidence set is:
+- `64-FLAKE-EVIDENCE.md`
+- `64-NIX05-WORKTREE-EVIDENCE.md`
+- `64-NIX07-RENAME-EVIDENCE.md`
+- `64-NIX08-ENV-EVIDENCE.md`
+- `64-CI-EVIDENCE.md`
+
+`COVERAGE.md` is the planner's plan-time external-API declaration.
 
 ---
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 64s
-- [ ] `nyquist_compliant: true` set in frontmatter
+The checked items are properties of the four authored plans, verified at plan time. The unchecked
+item is `/gsd-validate-phase`'s to set.
 
-**Approval:** {pending / approved YYYY-MM-DD}
+- [x] All tasks have `<automated>` verify, each followed by a `<fails_when>`: 10/10 tasks across the four plans
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify, because every task has one
+- [x] Wave 0 covers all MISSING references: none; existing infrastructure suffices
+- [x] No watch-mode flags: `gh run watch --exit-status` is a one-shot wait-for-completion with a 90-minute cap, not a watch loop
+- [x] Diagnostics and genuine observations are separated: wave 1's `nix develop` runs are labelled DIAGNOSTIC; waves 2-3 run only behind the session precondition
+- [x] Evidence producers precede their consumer: 64-04 (wave 3) depends on 64-02 and 64-03 (wave 2), which depend on 64-01 (wave 1)
+- [x] No plan writes `64-VERIFICATION.md`
+- [ ] `nyquist_compliant: true` set in frontmatter: set by `/gsd-validate-phase`, not at plan time
+
+**Approval:** pending (`status: draft` until `/gsd-validate-phase` runs)

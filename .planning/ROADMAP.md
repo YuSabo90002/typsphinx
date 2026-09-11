@@ -334,7 +334,21 @@ constraint 10's branch-to-`origin` invariant.
      > must re-measure rather than trust this note, and must expect the decoy to be re-created by any
      > later `commit` helper invocation — it has now fired twice within this one milestone.
 
-**Plans**: TBD
+**Plans**: 4 plans (3 waves; a Claude Code session relaunch is required between wave 1 and wave 2)
+
+Plans:
+**Wave 1**
+
+- [ ] 64-01-PLAN.md — flake.nix: one Linux-guarded buildFHSEnv passthrough plus the seven D-01 shims; ruff RED→GREEN tracer, tox shakeout (nested entry, D-07), NIX-06 on all four systems with darwin byte-identical
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 64-02-PLAN.md — NIX-05 in the genuine D-09 shape: fresh nested worktree, head check, the one provisioning line, then NIX-01 bare commands, NIX-04 full suite and NIX-02/NIX-03 tox environments with a real PDF
+- [ ] 64-03-PLAN.md — NIX-07 rename proof from a nested worktree with an escape positive control, and NIX-08 environment and locale measurement against terms committed before measuring
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 64-04-PLAN.md — SC#5: re-measured branch census, canonical branch pushed with tracking, one CI dispatch observed to completion with all lanes transcribed
 
 **UI hint**: no
 
