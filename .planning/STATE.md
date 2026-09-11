@@ -5,16 +5,16 @@ milestone_name: Toolchain and dependency-update repair
 current_phase: 64
 current_phase_name: FHS Wrapper and Command Shims in `flake.nix`
 status: executing
-stopped_at: Phase 64 planned — 4 plans in 3 waves, verification passed
-last_updated: "2026-09-11T14:47:22.000Z"
-last_activity: 2026-09-11
-last_activity_desc: Phase 64 execution started — wave 1 (64-01) dispatched to an isolated worktree; Claude Code relaunch required between wave 1 and wave 2
+stopped_at: Phase 64 wave 1 complete (64-01 merged) — Claude Code relaunch required before wave 2
+last_updated: "2026-09-11T15:00:26.000Z"
+last_activity: 2026-09-12
+last_activity_desc: Phase 64 wave 1 complete — 64-01 (flake.nix FHS passthrough + seven shims) merged; Claude Code relaunch from a direnv-loaded main-checkout shell required before wave 2
 state_head: 1ad290455612e0ce156af581a26b5de3a3f25bd1
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 4
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
 ---
 
@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-02 — v0.9.3 milestone scoped)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** v0.9.3 Toolchain and dependency-update repair — **roadmapped, Phases 64–69, 21/21 v1 requirements mapped**. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`), but a PR to `main` is opened and merged at `/gsd-complete-milestone`. CI is deliberately unchanged. No change under `typsphinx/`. **Phase 64 is executing**, wave 1 (64-01) first; it then needs a Claude Code relaunch from a direnv-loaded shell in the main checkout after wave 1 merges, then `/gsd-execute-phase 64` again for waves 2–3 (Track B, `/gsd-plan-phase 66`, is independent and can run in parallel).
+**Current focus:** v0.9.3 Toolchain and dependency-update repair — **roadmapped, Phases 64–69, 21/21 v1 requirements mapped**. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`), but a PR to `main` is opened and merged at `/gsd-complete-milestone`. CI is deliberately unchanged. No change under `typsphinx/`. **Phase 64 is executing**: wave 1 (64-01) is merged; the next step is a Claude Code relaunch from a direnv-loaded shell in the main checkout, then `/gsd-execute-phase 64` again for waves 2–3 (Track B, `/gsd-plan-phase 66`, is independent and can run in parallel).
 
 ## Shipped Milestone (v0.9.2 — archived, PUBLISHED)
 
@@ -158,10 +158,10 @@ land here.
 
 ## Current Position
 
-Phase: 64 — FHS Wrapper and Command Shims in `flake.nix` (executing, wave 1 of 3)
-Plan: 0 of 4 complete (waves: 64-01 → relaunch Claude Code → 64-02 + 64-03 → 64-04)
-Status: Executing Phase 64 — wave 1 (64-01) dispatched to an isolated worktree
-Last activity: 2026-09-11 — Phase 64 execution started (wave 1 of 3)
+Phase: 64 — FHS Wrapper and Command Shims in `flake.nix` (executing, wave 1 of 3 complete)
+Plan: 1 of 4 complete (waves: 64-01 ✓ → relaunch Claude Code → 64-02 + 64-03 → 64-04)
+Status: Paused at the designed wave-1/wave-2 boundary — relaunch Claude Code from a direnv-loaded shell in `/home/yuta/Documents/typsphinx` (confirm `command -v ruff` prints a `/nix/store/…-ruff/bin/ruff` path), then `/gsd-execute-phase 64`
+Last activity: 2026-09-12 — Phase 64 wave 1 complete: 64-01 merged (`a7c8ac98`); D-04 RED reproduced, `tox -e lint` / `tox -e docs-pdf` green through the sandbox, NIX-06 all four systems with darwin byte-identical
 
 ## Active Milestone (v0.9.3 — Toolchain and dependency-update repair)
 
@@ -1188,7 +1188,7 @@ v0.9.1 close did not exercise, written with `vX.Y.Z` placeholders so no dead tag
 out of it, and Phase 63's SC#5 handoff checklist inherits directly from it.
 
 Last session: 2026-09-03T13:27:33.947Z
-Stopped at: Phase 64 context gathered
+Stopped at: Phase 64 wave 1 complete — relaunch Claude Code before `/gsd-execute-phase 64` (waves 2–3)
 (Prior session: 2026-08-30T09:46:50.495Z — Phase 63 complete, UAT 25/25, v0.9.2 shipped 2026-08-31.)
 
 **Nothing is owed forward from a publish, because there was no publish.** The three standing publish

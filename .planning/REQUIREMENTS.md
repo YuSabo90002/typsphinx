@@ -147,7 +147,6 @@ Which phases cover which requirements. Populated during roadmap creation.
 | REL-12 | Phase 69 | Pending |
 
 **Coverage:**
-
 - v1 requirements: 21 total
 - Mapped to phases: 21 ✓
 - Unmapped: 0

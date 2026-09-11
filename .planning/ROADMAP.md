@@ -334,12 +334,12 @@ constraint 10's branch-to-`origin` invariant.
      > must re-measure rather than trust this note, and must expect the decoy to be re-created by any
      > later `commit` helper invocation — it has now fired twice within this one milestone.
 
-**Plans**: 4 plans (3 waves; a Claude Code session relaunch is required between wave 1 and wave 2)
+**Plans**: 1/4 plans executed (3 waves; a Claude Code session relaunch is required between wave 1 and wave 2)
 
 Plans:
 **Wave 1**
 
-- [ ] 64-01-PLAN.md — flake.nix: one Linux-guarded buildFHSEnv passthrough plus the seven D-01 shims; ruff RED→GREEN tracer, tox shakeout (nested entry, D-07), NIX-06 on all four systems with darwin byte-identical
+- [x] 64-01-PLAN.md — flake.nix: one Linux-guarded buildFHSEnv passthrough plus the seven D-01 shims; ruff RED→GREEN tracer, tox shakeout (nested entry, D-07), NIX-06 on all four systems with darwin byte-identical
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -631,7 +631,7 @@ below tracks the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 64. FHS Wrapper and Command Shims in `flake.nix` | v0.9.3 | 0/? | Not started | - |
+| 64. FHS Wrapper and Command Shims in `flake.nix` | v0.9.3 | 1/4 | In Progress | - |
 | 65. `tox-uv-bare` → `tox-uv` Revert, on the uv Path tox Actually Resolves | v0.9.3 | 0/? | Not started | - |
 | 66. `.github/dependabot.yml` — `pip` → `uv` Ecosystem | v0.9.3 | 0/? | Not started | - |
 | 67. Proof on a Real Dependabot PR, Then Disposal of #123 and #128 | v0.9.3 | 0/? | Not started | - |
