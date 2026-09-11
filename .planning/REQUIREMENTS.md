@@ -31,9 +31,9 @@ requirements. That carried-forward item is **DEP-01** here.
       line and then every gate, with no manual `ln -sf` or `patchelf` step anywhere
 - [x] **NIX-06**: `flake.nix` evaluates successfully on all four declared systems, including the two
       darwin ones
-- [ ] **NIX-07**: each shim resolves its target by absolute path and cannot recurse into itself,
+- [x] **NIX-07**: each shim resolves its target by absolute path and cannot recurse into itself,
       proven by a check that would catch bare-name resolution
-- [ ] **NIX-08**: the FHS sandbox's `$HOME`, `/etc` and locale behaviour is measured for this
+- [x] **NIX-08**: the FHS sandbox's `$HOME`, `/etc` and locale behaviour is measured for this
       project's actual invocation, and its effect on the project's known locale-dependent test class
       is recorded
 
@@ -130,8 +130,8 @@ Which phases cover which requirements. Populated during roadmap creation.
 | NIX-04 | Phase 64 | Pending |
 | NIX-05 | Phase 64 | Pending |
 | NIX-06 | Phase 64 | Complete |
-| NIX-07 | Phase 64 | Pending |
-| NIX-08 | Phase 64 | Pending |
+| NIX-07 | Phase 64 | Complete |
+| NIX-08 | Phase 64 | Complete |
 | TOX-01 | Phase 65 | Pending |
 | TOX-02 | Phase 65 | Pending |
 | TOX-03 | Phase 65 | Pending |
@@ -147,6 +147,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | REL-12 | Phase 69 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 21 total
 - Mapped to phases: 21 ✓
 - Unmapped: 0
