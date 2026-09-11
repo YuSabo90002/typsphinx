@@ -265,3 +265,190 @@ All seven versions match the `uv.lock` pins re-read at run time: `ruff 0.15.20` 
 `black 26.5.1` (`uv.lock:95`), `mypy 2.1.0` (`uv.lock:727`), `pytest 9.1.1` (`uv.lock:1011`),
 `tox 4.56.1` (`uv.lock:1395`), `sphinx-build 9.1.0` (`uv.lock:1266`); `uv 0.11.25` matches the
 pinned nixpkgs store build (the session `uv` observed pre-edit).
+
+## tox subprocess tree through the sandbox (DIAGNOSTIC)
+
+Nested-entry and namespace-inheritance shakeout: `tox` runs inside the sandbox; `tox-uv-bare`
+resolves `uv` from PATH, which is now the `uv` shim; that shim enters the sandbox again — a nested
+entry (the wrapper exec'ing the wrapper).
+
+```
+$ test ! -e .tox && echo NO_TOX_DIR
+NO_TOX_DIR
+
+$ nix develop . --command tox -e lint
+lint: venv> /nix/store/f1y7m4b5vxrbwszkrni3yc2lv0x22zcj-uv/bin/uv venv -p .../.venv/bin/python --allow-existing '--prompt=agent-ab7ba88fa3bf417f2[lint]' --python-preference system .../.tox/lint
+lint: uv-sync> /nix/store/f1y7m4b5vxrbwszkrni3yc2lv0x22zcj-uv/bin/uv sync --locked --python-preference system --extra dev -p .../.venv/bin/python
+lint: commands[0]> black --check .
+All done! ✨ 🍰 ✨
+355 files would be left unchanged.
+lint: commands[1]> ruff check .
+All checks passed!
+  lint: OK (1.14=setup[0.18]+cmd[0.94,0.03] seconds)
+  congratulations :) (1.26 seconds)
+```
+
+`tox -e lint` completed cleanly through the sandbox on the first attempt: `venv>` and `uv-sync>`
+show `tox-uv-bare` invoking the `uv` shim's own resolved store path
+(`/nix/store/f1y7m4b5vxrbwszkrni3yc2lv0x22zcj-uv/bin/uv`, the same unversioned shim path `type -P
+uv` reported earlier) to create and sync `.tox/lint` — a nested entry into `typsphinx-fhs-run`
+that worked without any change to `flake.nix`. Both `black --check .` and `ruff check .` ran and
+passed, ending in `lint: OK` and `congratulations :)`. No design defect surfaced; no fix was
+needed in this task.
+
+## D-07
+
+```
+$ ls "$HOME/.cache/typst/packages/preview"
+charged-ieee
+codly
+codly-languages
+fontawesome
+gentle-clues
+linguify
+mitex
+modern-cv
+xarrow
+
+$ rm -rf docs/_build && nix develop . --command tox -e docs-pdf
+...
+typst: wrote 1 wrapper file(s) -- compile these: typsphinx.typ
+Compiling 1 master document(s) to PDF...
+Generated PDF: .../docs/_build/pdf/typsphinx.pdf
+build succeeded, 5 warnings.
+  docs-pdf: OK (4.32=setup[0.10]+cmd[4.22] seconds)
+  congratulations :) (4.44 seconds)
+
+$ test -s docs/_build/pdf/typsphinx.pdf && echo NON_EMPTY
+NON_EMPTY
+
+$ head -c 4 docs/_build/pdf/typsphinx.pdf
+%PDF
+
+$ ls "$HOME/.cache/typst/packages/preview"
+charged-ieee
+codly
+codly-languages
+fontawesome
+gentle-clues
+linguify
+mitex
+modern-cv
+xarrow
+```
+
+`docs-pdf` produced a real PDF through the sandbox on the first attempt (nine packages already
+warm in `~/.cache/typst/packages/preview`, unchanged before and after — no new fetch occurred).
+The warm cache did all the work: the cold-cache TLS path stayed unexercised, so `pkgs.cacert` was
+**not** added to `fhsRun`'s `targetPkgs` — D-07's investigation found no gap to fix. `$HOME`
+reaching the sandbox is implied by the cache being read from `~/.cache/typst` at all; the build's
+own success is the positive proof.
+
+## NIX-06 — all four systems
+
+Run on the FINAL `flake.nix` content (no step-1 or step-2 fix was needed):
+
+```
+$ nix flake check --all-systems --no-build
+evaluating flake...
+checking flake output 'devShells'...
+checking derivation devShells.x86_64-linux.default...
+derivation evaluated to /nix/store/vd4rms2m5kvjaazd3i78049k0s9a21g0-nix-shell.drv
+checking derivation devShells.aarch64-linux.default...
+derivation evaluated to /nix/store/gm6k80436paqz5hbr66cph11mrfhlnid-nix-shell.drv
+checking derivation devShells.x86_64-darwin.default...
+evaluation warning: Nixpkgs 26.05 will be the last release to support x86_64-darwin; see https://nixos.org/manual/nixpkgs/unstable/release-notes#x86_64-darwin-26.05
+derivation evaluated to /nix/store/fclfls55m9lp06679x7zrw0qzjya834j-nix-shell.drv
+checking derivation devShells.aarch64-darwin.default...
+derivation evaluated to /nix/store/2m6y6pshri0vyw3jb5agczjnz9a92sxc-nix-shell.drv
+all checks passed!
+$ echo "exit: $?"
+exit: 0
+
+$ nix flake show --all-systems
+git+file:///home/yuta/Documents/typsphinx/.claude/worktrees/agent-ab7ba88fa3bf417f2?ref=refs/heads/worktree-agent-ab7ba88fa3bf417f2&rev=350108b70e0694261bcbd5f67c869247b253fedf
+└───devShells
+    ├───aarch64-darwin
+    │   └───default: development environment 'nix-shell'
+    ├───aarch64-linux
+    │   └───default: development environment 'nix-shell'
+    ├───x86_64-darwin
+    │   └───default: development environment 'nix-shell'
+    └───x86_64-linux
+        └───default: development environment 'nix-shell'
+```
+
+Both all-systems commands exit 0 and list all four systems' `devShells`.
+
+```
+$ nix eval --raw .#devShells.x86_64-linux.default.drvPath
+/nix/store/vd4rms2m5kvjaazd3i78049k0s9a21g0-nix-shell.drv
+$ nix eval --raw .#devShells.aarch64-linux.default.drvPath
+/nix/store/gm6k80436paqz5hbr66cph11mrfhlnid-nix-shell.drv
+$ nix eval --raw .#devShells.x86_64-darwin.default.drvPath
+/nix/store/fclfls55m9lp06679x7zrw0qzjya834j-nix-shell.drv
+$ nix eval --raw .#devShells.aarch64-darwin.default.drvPath
+/nix/store/2m6y6pshri0vyw3jb5agczjnz9a92sxc-nix-shell.drv
+```
+
+Both darwin values are byte-identical to Task 1's pre-edit values and to the planning-time values
+(`fclfls55m9lp06679x7zrw0qzjya834j-nix-shell.drv`, `2m6y6pshri0vyw3jb5agczjnz9a92sxc-nix-shell.drv`)
+— the NIX-06 empty edge: the Linux-only additions are the empty list on darwin. Both Linux values
+differ from their pre-edit values (`xbhqkzmnak21qk9j8ph0f00b8w65jr9l` → `vd4rms2m5kvjaazd3i78049k0s9a21g0`
+for x86_64-linux; `z9yf853g0b6yfk5zf0x0jzvankdn9l34` → `gm6k80436paqz5hbr66cph11mrfhlnid` for
+aarch64-linux) — the shims landed.
+
+```
+$ nix eval --json .#devShells.x86_64-linux.default.nativeBuildInputs --apply 'map (p: p.name)'
+["nodejs-24.16.0","pnpm-11.9.0","git-2.54.0","python3-3.13.13","uv","tox","ruff","black","mypy","pytest","sphinx-build"]
+
+$ nix eval --json .#devShells.x86_64-darwin.default.nativeBuildInputs --apply 'map (p: p.name)'
+["nodejs-24.16.0","pnpm-11.9.0","git-2.54.0","python3-3.13.13","uv-0.11.25"]
+
+$ nix eval --json .#devShells.aarch64-darwin.default.nativeBuildInputs --apply 'map (p: p.name)'
+["nodejs-24.16.0","pnpm-11.9.0","git-2.54.0","python3-3.13.13","uv-0.11.25"]
+```
+
+`x86_64-linux` reads exactly the eleven-name array `nodejs-24.16.0, pnpm-11.9.0, git-2.54.0,
+python3-3.13.13, uv, tox, ruff, black, mypy, pytest, sphinx-build` — one `uv`, no `uv-<version>`
+entry (the NIX-06 adjacency edge). Both darwin systems read exactly the pre-edit five-name array,
+byte-for-byte.
+
+```
+$ grep -c 'LC_ALL' flake.nix
+0
+$ grep -c 'clearenv' flake.nix
+0
+$ grep -c 'patchelf' flake.nix
+0
+$ grep -c 'pkgs.ruff' flake.nix
+0
+$ git diff --quiet HEAD -- flake.lock
+$ echo "exit: $?"
+exit: 0
+```
+
+No locale variable, env-clearing flag, ELF-patch tool, or nixpkgs' own `ruff` package appears
+anywhere in `flake.nix`; `flake.lock` remains unchanged — no flake input was added.
+
+**Darwin verification status, stated plainly:** darwin *evaluation* is proven here — both drvPaths
+are byte-identical to the pre-edit baseline and both package censuses are unchanged — but darwin
+*execution* (actually running `nix develop` or the shims on a darwin machine) is unverified by
+construction, per ROADMAP constraint 8. This repository has zero CI coverage for `nix`/`flake`, and
+no darwin machine is available to this phase. Phase 68's DOC-21 writes this up; this plan adds no
+documentation comments to `flake.nix` beyond what the code needs.
+
+## Session relaunch required before wave 2
+
+The Claude Code session that ran this plan predates the `flake.nix` edit, and its PATH carries no
+shim (orchestrator note 3) — every shim invocation recorded in this evidence file was routed
+through `nix develop . --command …` and labelled DIAGNOSTIC for exactly this reason.
+
+After this plan merges into the main checkout, the maintainer should open a terminal in
+`/home/yuta/Documents/typsphinx` so direnv re-evaluates the flake. The maintainer then confirms
+that `command -v ruff` prints a `/nix/store/…-ruff/bin/ruff` path, launches Claude Code from that
+same shell, and re-runs `/gsd-execute-phase 64`.
+
+Plans 64-02 and 64-03 carry a precondition that halts otherwise. No per-worktree `direnv allow` and
+no `nix develop --command` wrapper around the provisioning line is involved; D-09 rejects both.
+
