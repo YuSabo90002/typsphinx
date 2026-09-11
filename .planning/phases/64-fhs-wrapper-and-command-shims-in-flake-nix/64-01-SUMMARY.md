@@ -203,6 +203,17 @@ proven by plans 64-02 and 64-03 in the genuine D-09 session-inheritance shape, n
 Claude Code session relaunch above has happened. No blockers; the only concern is procedural (the
 relaunch itself must actually occur before wave 2 is dispatched).
 
+## Self-Check: PASSED
+
+- `flake.nix` — FOUND
+- `.planning/phases/64-fhs-wrapper-and-command-shims-in-flake-nix/64-FLAKE-EVIDENCE.md` — FOUND
+- `.planning/phases/64-fhs-wrapper-and-command-shims-in-flake-nix/64-01-SUMMARY.md` — FOUND
+- Commit `493a0b82` (Task 1) — FOUND in `git log --oneline --all`
+- Commit `350108b7` (Task 2) — FOUND in `git log --oneline --all`
+- Commit `26e53041` (Task 3) — FOUND in `git log --oneline --all`
+- All three tasks' automated `<verify>` blocks re-ran clean; the plan-level `<verification>` block's
+  four items all confirmed above.
+
 ---
 *Phase: 64-fhs-wrapper-and-command-shims-in-flake-nix*
 *Plan: 01*
