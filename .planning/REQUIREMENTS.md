@@ -29,7 +29,7 @@ requirements. That carried-forward item is **DEP-01** here.
       environment-caused failures
 - [ ] **NIX-05**: an executor in a freshly created git worktree can run the documented provisioning
       line and then every gate, with no manual `ln -sf` or `patchelf` step anywhere
-- [ ] **NIX-06**: `flake.nix` evaluates successfully on all four declared systems, including the two
+- [x] **NIX-06**: `flake.nix` evaluates successfully on all four declared systems, including the two
       darwin ones
 - [ ] **NIX-07**: each shim resolves its target by absolute path and cannot recurse into itself,
       proven by a check that would catch bare-name resolution
@@ -129,7 +129,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | NIX-03 | Phase 64 | Pending |
 | NIX-04 | Phase 64 | Pending |
 | NIX-05 | Phase 64 | Pending |
-| NIX-06 | Phase 64 | Pending |
+| NIX-06 | Phase 64 | Complete |
 | NIX-07 | Phase 64 | Pending |
 | NIX-08 | Phase 64 | Pending |
 | TOX-01 | Phase 65 | Pending |
@@ -147,6 +147,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | REL-12 | Phase 69 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 21 total
 - Mapped to phases: 21 ✓
 - Unmapped: 0
