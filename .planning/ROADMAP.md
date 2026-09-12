@@ -643,6 +643,20 @@ here.
      *are* reachable in a fresh worktree, the section says so and still keeps the provisioning
      recipe mandatory (constraint 11, Pitfall 3).
 
+     > **AMENDED 2026-09-12 (Phase 68 discuss, owner-approved).** "Unaffected and unassisted by
+     > `flake.nix`" is false on the maintainer's NixOS machine, measured by Phase 64's NIX-05
+     > (`64-NIX05-WORKTREE-EVIDENCE.md`, `64-GAP-REMEASURE-EVIDENCE.md`). A fresh worktree's
+     > `uv sync` builds `.venv` on uv-managed CPython, a generic-linux ELF NixOS refuses outside FHS
+     > (rc 127), so `uv run …` in a worktree works only because the `uv` shim enters the FHS sandbox.
+     > The shims reach the worktree solely through `PATH` inherited from a session launched in the
+     > direnv-loaded main checkout (the worktree's own `.envrc` is never allowed). What stays
+     > binding: the provisioning recipe is unchanged and mandatory, `flake.nix` does not substitute
+     > for it, and `CLAUDE.md` states that boundary explicitly — now as "the recipe itself runs
+     > through the shims, which arrive by inheritance, not by direnv". Separately, the manual
+     > `ln -sf` / `patchelf` guidance was never in `CLAUDE.md` (`git log -S` finds zero commits for
+     > either term), so its retirement is satisfied vacuously and is evidenced, not edited. The
+     > verifier reports the literal and amended readings separately. See `68-CONTEXT.md` D-01..D-03.
+
   2. **`tox.ini`'s rationale comment describes the pin that is actually there.** The `tox-uv-bare`
      rationale block — the one explaining that the bundled `uv` wheel's generic-linux ELF cannot
      exec on NixOS — is replaced by one describing the current `tox-uv` pin and why the revert is now
