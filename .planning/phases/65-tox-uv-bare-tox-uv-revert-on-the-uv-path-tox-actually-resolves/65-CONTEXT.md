@@ -104,6 +104,21 @@ anything under `typsphinx/` (constraint 13).
   installs it") is DOC-21's. Their staleness between Phase 65 and Phase 68 is an accepted,
   same-milestone interval. Evidence/planning files under `.planning/` are unrestricted.
 
+  > **AMENDED 2026-09-12 (Phase 65 plan-phase, owner-approved — option 1).** `65-RESEARCH.md`
+  > § Decision Conflicts, Conflict 1, measured that D-06's three-file footprint and constraint 13
+  > ("every phase closes green on the full pytest suite") cannot both hold: the Phase 45.2 static gate
+  > `tests/test_toolchain_config_gate.py::test_dev_extra_pins_tox_uv_bare_not_tox_uv` asserts the
+  > inverse of this phase's mandate and fails deterministically on the swapped tree (scratch full
+  > suite: `1 failed, 1542 passed, 5 skipped`, that test only). The footprint is therefore widened by
+  > exactly one file: `tests/test_toolchain_config_gate.py`, where the gate is **inverted, not
+  > deleted** — the dev extra MUST name `tox-uv` and MUST NOT name `tox-uv-bare` directly (both on
+  > the normalized distribution name, keeping the existing `canonicalize_name` mechanism) — and its
+  > function docstring and the module docstring's G5 paragraph are rewritten to describe the Phase 65
+  > revert (the stub-ld defect is dissolved by the Phase 64 FHS shims). The test edit lands in the
+  > **same commit** as `pyproject.toml` + `tox.ini` + `uv.lock`, so the tree is never red between
+  > commits. The other three tests in that file are untouched. Everything else in D-06 stands: the
+  > `tox.ini:4-10` comment, `CLAUDE.md` and `flake.nix` stay for Phase 68.
+
 ### Carried forward (not re-decided)
 
 - Worktree isolation is the standing execution mode; every executor provisions with
