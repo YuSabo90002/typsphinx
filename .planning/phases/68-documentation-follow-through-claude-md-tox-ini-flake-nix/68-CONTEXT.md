@@ -98,7 +98,7 @@ it", but the main checkout now has `.venv/bin/uv` and `uv --version` reports `uv
   stays, the falsified alternatives, and namespace inheritance go in `flake.nix` (D-09), referenced
   by one pointer.
 
-- **D-08: CLAUDE.md:11 and :77 are rewritten to the landed `tox-uv`.** Line 11: `tox` (with
+- **D-08 — CLAUDE.md:11 and :77 are rewritten to the landed `tox-uv`.** Line 11: `tox` (with
   `tox-uv`). Line 77: `tox.ini` pins `tox-uv~=1.35`, keeping the ini-parser explanation (a single-line
   `requires` is split on commas, so `>=1.35,<2` breaks tox's startup; `~=1.35` is the comma-free
   equivalent), plus a short note that the earlier `tox-uv-bare` pin was needed only because the
