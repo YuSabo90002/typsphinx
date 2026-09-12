@@ -89,12 +89,19 @@
             ''
           ) venvShimNames;
 
-          # D-02: `uv` resolves in two legs. Leg 1 is the same bounded upward
-          # walk for .venv/bin/uv (it does not exist until Phase 65's tox-uv
-          # revert installs it). Leg 2, the on-stop fragment, is the fixed
-          # nixpkgs store path -- fixed at flake-evaluation time and therefore
-          # un-shadowable. Both legs enter the sandbox, which is what makes
-          # `uv run <tool>` carry FHS into every downstream process.
+          # `uv` resolves in two legs, described here by role rather than by
+          # version. Leg 1 is the same bounded upward walk used by the strict
+          # shims above, ending at the tree's own .venv/bin/uv -- the uv that
+          # uv.lock pins, present once `uv sync` has provisioned the tree.
+          # Leg 2, the on-stop fragment, resolves to nixpkgs' own uv at a
+          # store path fixed at evaluation time, which is why it cannot be
+          # shadowed. It is the bootstrap for a fresh clone or worktree that
+          # has no .venv yet, before its first uv sync -- without it such a
+          # tree could not provision itself, so it must not be removed as
+          # cleanup. Both legs enter the sandbox, which is what makes
+          # `uv run <tool>` carry FHS into every downstream process. This is
+          # the only fallback in this file, deliberately: the six strict
+          # shims above must never gain one.
           uvShim = pkgs.writeShellScriptBin "uv" ''
             set -eu
             ${venvWalk "uv" ''exec "${fhsRun}/bin/typsphinx-fhs-run" "${pkgs.uv}/bin/uv" "$@"''}
