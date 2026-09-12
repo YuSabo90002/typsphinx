@@ -63,11 +63,11 @@ requirements. That carried-forward item is **DEP-01** here.
 
 ### Documentation (DOC — continues from DOC-18)
 
-- [ ] **DOC-19**: `CLAUDE.md`'s NixOS / worktree-provisioning section describes the landed mechanism
+- [x] **DOC-19**: `CLAUDE.md`'s NixOS / worktree-provisioning section describes the landed mechanism
       and no longer instructs a manual shim step
-- [ ] **DOC-20**: `tox.ini`'s `tox-uv-bare` rationale comment is replaced by one describing the
+- [x] **DOC-20**: `tox.ini`'s `tox-uv-bare` rationale comment is replaced by one describing the
       current pin, keeping the `~=` ini-parser constraint stated
-- [ ] **DOC-21**: `flake.nix` carries notes explaining the FHS wrapper, which commands are shimmed
+- [x] **DOC-21**: `flake.nix` carries notes explaining the FHS wrapper, which commands are shimmed
       and why, and the darwin guard
 
 ### Release (REL — continues from REL-11)
@@ -141,9 +141,9 @@ Which phases cover which requirements. Populated during roadmap creation.
 | DEP-03 | Phase 66 | Complete |
 | DEP-04 | Phase 66 | Complete |
 | DEP-05 | Phase 67 | Complete |
-| DOC-19 | Phase 68 | Pending |
-| DOC-20 | Phase 68 | Pending |
-| DOC-21 | Phase 68 | Pending |
+| DOC-19 | Phase 68 | Complete |
+| DOC-20 | Phase 68 | Complete |
+| DOC-21 | Phase 68 | Complete |
 | REL-12 | Phase 69 | Pending |
 
 **Coverage:**
