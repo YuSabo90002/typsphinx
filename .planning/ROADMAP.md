@@ -583,6 +583,18 @@ closing anything.**
      grouped PR failing at resolution is recognized as an uncovered case rather than misread as a
      regression of this fix (DEP-05, Pitfall 7).
 
+     > **AMENDED 2026-09-12 (Phase 67 discuss, owner-approved).** The premise "neither #123 nor #128
+     > is a grouped bump" is falsified by measurement: #128 **is** a `sphinx-typst-stack` group PR
+     > (branch `dependabot/pip/sphinx-typst-stack-12b5b89b5a`, title "…in the sphinx-typst-stack
+     > group across 1 directory"). The conclusion is unchanged: under `uv` no group PR opened,
+     > because the group's `docutils` member failed with `dependency_file_not_resolvable` (Sphinx
+     > 9.1.0 caps `docutils<0.23`; `66-DEPENDABOT-EVIDENCE.md` § uv update job conclusion) — itself
+     > a live instance of the "genuinely unresolvable dependency graph" named above — and the PR
+     > carrying this milestone's proof (#138, `ruff`) is not grouped. So the proof still does not
+     > cover a grouped `uv` update, and the phase still states that gap in writing.
+     > `REQUIREMENTS.md` DEP-05 is unchanged (its text is correct). See `67-CONTEXT.md` D-06. The
+     > verifier reports the literal and the amended reading separately.
+
 **Plans**: TBD
 
 **UI hint**: no

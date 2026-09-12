@@ -122,6 +122,13 @@ dimensions, without being prompted to look for it.
   excluding `sphinx-autodoc-typehints` and `sphinx-intl`), `labels`, and
   `open-pull-requests-limit: 5`. Whether grouping behaves identically under the `uv` ecosystem is
   unconfirmed, and neither #123 nor #128 exercises a grouped update.
+
+  > **AMENDED 2026-09-12 (Phase 67 discuss, owner-approved).** #128 **is** a `sphinx-typst-stack`
+  > group PR (branch `dependabot/pip/sphinx-typst-stack-12b5b89b5a`). Under `uv` no group PR
+  > opened — the group's `docutils` member hit `dependency_file_not_resolvable` because Sphinx
+  > 9.1.0 caps `docutils<0.23` — and the PR carrying the proof (#138, `ruff`) is not grouped, so
+  > the milestone's proof still does not cover a grouped `uv` update. See Phase 67 `67-CONTEXT.md`
+  > D-06.
 - #123 and #128 were opened under the `pip` ecosystem, and `@dependabot recreate` re-runs under the
   ecosystem the PR was opened with. They will need closing so the `uv` ecosystem opens fresh ones —
   and it is those fresh PRs, not the old ones, that satisfy the "prove it on a real dependabot PR"
