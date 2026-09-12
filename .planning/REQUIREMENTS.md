@@ -45,7 +45,7 @@ requirements. That carried-forward item is **DEP-01** here.
 - [x] **TOX-03**: the `uv` binary tox actually resolves is observed from inside a real tox run, with
       an isolated outside-FHS control proving the failure is the uv path rather than something that
       fails earlier
-- [ ] **TOX-04**: CI is green on the revert across every lane, CI being the authority
+- [x] **TOX-04**: CI is green on the revert across every lane, CI being the authority
 
 ### Dependency updates (DEP)
 
@@ -135,7 +135,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | TOX-01 | Phase 65 | Complete |
 | TOX-02 | Phase 65 | Complete |
 | TOX-03 | Phase 65 | Complete |
-| TOX-04 | Phase 65 | Pending |
+| TOX-04 | Phase 65 | Complete |
 | DEP-01 | Phase 66 | Pending |
 | DEP-02 | Phase 67 | Pending |
 | DEP-03 | Phase 66 | Pending |

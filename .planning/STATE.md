@@ -2,20 +2,20 @@
 gsd_state_version: 1.0
 milestone: v0.9.3
 milestone_name: Toolchain and dependency-update repair
-current_phase: 65
-current_phase_name: "`tox-uv-bare` → `tox-uv` Revert, on the uv Path tox Actually Resolves"
-status: executing
-stopped_at: Phase 65 planned — 2 plans in 2 waves, verification passed
-last_updated: "2026-09-12T08:11:11.000Z"
+current_phase: 66
+current_phase_name: "`.github/dependabot.yml` — `pip` → `uv` Ecosystem"
+status: planning
+stopped_at: Phase 65 complete, ready to plan Phase 66
+last_updated: "2026-09-12T08:18:25.906Z"
 last_activity: 2026-09-12
-last_activity_desc: Phase 65 both waves merged — TOX-01..TOX-04 MET (CI run 34681968010, 12/12 success); main checkout re-synced to uv 0.12.13; verification next
-state_head: 9faadec8eee752e53a1265e2f4e2b23d028c2c11
+last_activity_desc: Phase 65 complete, transitioned to Phase 66
+state_head: cfaa9a770d757df3d43b62008efa5fcc80c35f6c
 progress:
   total_phases: 6
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 8
   completed_plans: 8
-  percent: 17
+  percent: 33
 ---
 
 # Project State
@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-02 — v0.9.3 milestone scoped)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** v0.9.3 Toolchain and dependency-update repair — **roadmapped, Phases 64–69, 21/21 v1 requirements mapped**. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`), but a PR to `main` is opened and merged at `/gsd-complete-milestone`. CI is deliberately unchanged. No change under `typsphinx/`. **Phase 64 is complete** (2026-09-12, re-verified 9/9): wave 1 (64-01) is merged and Claude Code has been relaunched from a direnv-loaded shell in the main checkout; wave 2 (64-02 + 64-03) is merged, but 64-02 found NIX-02/NIX-03/NIX-04 unmet (`libz.so.1` missing inside the FHS sandbox for uv-managed interpreters), wave 3 (64-04: push + one CI run) is merged, verification found gaps_found (6/9), and gap-closure plans 64-05 (wave 4, `flake.nix` zlib fix) and 64-06 (wave 5, re-measurement after another Claude Code relaunch) were planned; 64-05 is merged (`94b99bd1`), the relaunch is done, and 64-06 is merged (`cf1f516e`) with NIX-01..NIX-05 re-measured MET, and re-verification passed 9/9 with NIX-01..NIX-08 complete. **Phase 65 is executing** (2026-09-12): 65-01 (wave 1) lands the four-file revert commit — `pyproject.toml`, `tox.ini`, `uv.lock` and the Phase 45.2 gate in `tests/test_toolchain_config_gate.py` inverted per D-06 AMENDED — and closes TOX-01..TOX-03 by observation; 65-02 (wave 2) pushes the post-revert tip and dispatches one CI run for TOX-04. After 65-02 merges and before phase verification, the orchestrator re-syncs the main checkout once with `env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev`, recording `uv --version` and `pyvenv.cfg` `home` before/after. Both waves are merged: 65-01 (`d517aae4`; revert commit `d32eb5db`; TOX-01..TOX-03 MET) and 65-02 (`48bb023a`; `d9c75553` pushed as a fast-forward, CI run `34681968010` completed 12/12 success, TOX-04 MET); the main checkout is re-synced onto the lock-pinned uv 0.12.13 (D-05, `1adf9b9a`); phase verification is next; Track B (`/gsd-plan-phase 66`) is independent and can run in parallel.
+**Current focus:** v0.9.3 Toolchain and dependency-update repair — **roadmapped, Phases 64–69, 21/21 v1 requirements mapped**. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`), but a PR to `main` is opened and merged at `/gsd-complete-milestone`. CI is deliberately unchanged. No change under `typsphinx/`. **Phase 64 is complete** (2026-09-12, re-verified 9/9): wave 1 (64-01) is merged and Claude Code has been relaunched from a direnv-loaded shell in the main checkout; wave 2 (64-02 + 64-03) is merged, but 64-02 found NIX-02/NIX-03/NIX-04 unmet (`libz.so.1` missing inside the FHS sandbox for uv-managed interpreters), wave 3 (64-04: push + one CI run) is merged, verification found gaps_found (6/9), and gap-closure plans 64-05 (wave 4, `flake.nix` zlib fix) and 64-06 (wave 5, re-measurement after another Claude Code relaunch) were planned; 64-05 is merged (`94b99bd1`), the relaunch is done, and 64-06 is merged (`cf1f516e`) with NIX-01..NIX-05 re-measured MET, and re-verification passed 9/9 with NIX-01..NIX-08 complete. **Phase 65 is complete** (2026-09-12, verified 8/8): 65-01 (wave 1) lands the four-file revert commit — `pyproject.toml`, `tox.ini`, `uv.lock` and the Phase 45.2 gate in `tests/test_toolchain_config_gate.py` inverted per D-06 AMENDED — and closes TOX-01..TOX-03 by observation; 65-02 (wave 2) pushes the post-revert tip and dispatches one CI run for TOX-04. After 65-02 merges and before phase verification, the orchestrator re-syncs the main checkout once with `env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev`, recording `uv --version` and `pyvenv.cfg` `home` before/after. Both waves are merged: 65-01 (`d517aae4`; revert commit `d32eb5db`; TOX-01..TOX-03 MET) and 65-02 (`48bb023a`; `d9c75553` pushed as a fast-forward, CI run `34681968010` completed 12/12 success, TOX-04 MET); the main checkout is re-synced onto the lock-pinned uv 0.12.13 (D-05, `1adf9b9a`); code review found 0 critical / 0 warning (2 info) and verification passed 8/8 with TOX-01..TOX-04 complete. Next: Phase 66 (`/gsd-plan-phase 66`, Track B); Phase 68 follows once both tracks land.
 
 ## Shipped Milestone (v0.9.2 — archived, PUBLISHED)
 
@@ -158,10 +158,10 @@ land here.
 
 ## Current Position
 
-Phase: 65 — `tox-uv-bare` → `tox-uv` Revert, on the uv Path tox Actually Resolves (executing, verification next)
-Plan: 2 of 2 complete (waves: 65-01 ✓ → 65-02 ✓)
-Status: Executing Phase 65 — both waves merged; code review and verification next
-Last activity: 2026-09-12 — Phase 65 wave 2 (65-02) merged; CI green on all 12 jobs; main checkout re-synced
+Phase: 66 — `.github/dependabot.yml` — `pip` → `uv` Ecosystem
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-09-12 — Phase 65 complete, transitioned to Phase 66
 
 ## Active Milestone (v0.9.3 — Toolchain and dependency-update repair)
 
@@ -1188,8 +1188,8 @@ before Phase 63 is planned, not after.** It is the only record of the three publ
 v0.9.1 close did not exercise, written with `vX.Y.Z` placeholders so no dead tag name can be copied
 out of it, and Phase 63's SC#5 handoff checklist inherits directly from it.
 
-Last session: 2026-09-12T06:12:00.280Z
-Stopped at: Phase 65 context gathered
+Last session: 2026-09-12T08:19:01.000Z
+Stopped at: Phase 65 complete, ready to plan Phase 66
 (Prior session: 2026-08-30T09:46:50.495Z — Phase 63 complete, UAT 25/25, v0.9.2 shipped 2026-08-31.)
 
 **Nothing is owed forward from a publish, because there was no publish.** The three standing publish

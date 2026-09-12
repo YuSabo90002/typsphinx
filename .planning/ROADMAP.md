@@ -254,7 +254,7 @@ takes zero irreversible action and the merge executes at `/gsd-complete-mileston
 therefore mapped to Phase 69 for coverage purposes only.
 
 - [x] **Phase 64: FHS Wrapper and Command Shims in `flake.nix`** - Every documented bare command and every tox environment runs to completion on the maintainer's NixOS machine through Linux-guarded `buildFHSEnv` shims that resolve the project's own `.venv` binaries by absolute path, with the sandbox's environment behaviour measured rather than assumed (completed 2026-09-12)
-- [ ] **Phase 65: `tox-uv-bare` → `tox-uv` Revert, on the uv Path tox Actually Resolves** - The upstream `tox-uv` package returns to `pyproject.toml` and `tox.ini` with `uv.lock` regenerated in lockstep, gated on observing which `uv` binary a real tox run resolves and on a CI run that is green across every lane
+- [x] **Phase 65: `tox-uv-bare` → `tox-uv` Revert, on the uv Path tox Actually Resolves** - The upstream `tox-uv` package returns to `pyproject.toml` and `tox.ini` with `uv.lock` regenerated in lockstep, gated on observing which `uv` binary a real tox run resolves and on a CI run that is green across every lane (completed 2026-09-12)
 - [ ] **Phase 66: `.github/dependabot.yml` — `pip` → `uv` Ecosystem** - Dependabot maintains `uv.lock` alongside `pyproject.toml` in one commit, with the v0.11/v0.12 lock-revision question and the `sphinx-typst-stack` grouping measured against live sources rather than inferred
 - [ ] **Phase 67: Proof on a Real Dependabot PR, Then Disposal of #123 and #128** - The install step is observed succeeding and the test / lint / type jobs observed running on a real dependabot PR, after which each stale bump is judged on its merits and the grouped-update coverage gap is recorded rather than passed over
 - [ ] **Phase 68: Documentation Follow-Through — `CLAUDE.md`, `tox.ini`, `flake.nix`** - The three documentation surfaces describe the mechanism that actually landed, retire the manual shim instruction, and state both boundaries that would otherwise be inferred wrongly: worktree executors are unassisted by `flake.nix`, and darwin is unverified by construction
@@ -676,7 +676,7 @@ below tracks the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 64. FHS Wrapper and Command Shims in `flake.nix` | v0.9.3 | 6/6 | Complete    | 2026-09-12 |
-| 65. `tox-uv-bare` → `tox-uv` Revert, on the uv Path tox Actually Resolves | v0.9.3 | 2/2 | In Progress | - |
+| 65. `tox-uv-bare` → `tox-uv` Revert, on the uv Path tox Actually Resolves | v0.9.3 | 2/2 | Complete    | 2026-09-12 |
 | 66. `.github/dependabot.yml` — `pip` → `uv` Ecosystem | v0.9.3 | 0/? | Not started | - |
 | 67. Proof on a Real Dependabot PR, Then Disposal of #123 and #128 | v0.9.3 | 0/? | Not started | - |
 | 68. Documentation Follow-Through — `CLAUDE.md`, `tox.ini`, `flake.nix` | v0.9.3 | 0/? | Not started | - |
