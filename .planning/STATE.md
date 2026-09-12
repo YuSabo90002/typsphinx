@@ -5,11 +5,11 @@ milestone_name: Toolchain and dependency-update repair
 current_phase: 65
 current_phase_name: "`tox-uv-bare` → `tox-uv` Revert, on the uv Path tox Actually Resolves"
 status: planning
-stopped_at: Phase 64 complete, ready to plan Phase 65
-last_updated: "2026-09-12T05:06:09.103Z"
+stopped_at: Phase 65 context gathered
+last_updated: "2026-09-12T06:12:00.301Z"
 last_activity: 2026-09-12
-last_activity_desc: Phase 64 complete, transitioned to Phase 65
-state_head: f70cca55aa5c731ef5a18cd24683fcef1c786c7c
+last_activity_desc: Phase 65 context gathered (4 decisions + SC#3/constraint 12 AMENDED)
+state_head: 6c50f1987e3b63fd4607e36956cd6a07a3435651
 progress:
   total_phases: 6
   completed_phases: 1
@@ -1176,10 +1176,11 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/64-fhs-wrapper-and-command-shims-in-flake-nix/64-CONTEXT.md
-— Phase 64's context is captured; the next action is `/gsd-plan-phase 64` (Track A) or
-`/gsd-discuss-phase 66` (Track B, independent and parallelizable). Phase 64's directory exists with
-`64-CONTEXT.md` and `64-DISCUSSION-LOG.md`; no other phase directory does yet.
+**Resume file:** .planning/phases/65-tox-uv-bare-tox-uv-revert-on-the-uv-path-tox-actually-resolves/65-CONTEXT.md
+— Phase 64 is complete (9/9). Phase 65's context is captured (`65-CONTEXT.md` D-01..D-06; ROADMAP
+SC#3 and constraint 12 carry owner-approved AMENDED blocks, commit `6c50f198`). The revert itself has
+NOT happened yet — the tree still declares `tox-uv-bare`. Next action: `/gsd-plan-phase 65`
+(Track A); `/gsd-discuss-phase 66` (Track B) remains independent and parallelizable.
 Archived milestone phases live under `.planning/milestones/v0.9.1-phases/` (and the equivalent
 directory for each earlier milestone). v0.9.1's own inheritance record is
 `.planning/milestones/v0.9.1-phases/61-v0-9-1-release-prep-prep-only/61-HANDOFF.md` — **read it
@@ -1187,8 +1188,8 @@ before Phase 63 is planned, not after.** It is the only record of the three publ
 v0.9.1 close did not exercise, written with `vX.Y.Z` placeholders so no dead tag name can be copied
 out of it, and Phase 63's SC#5 handoff checklist inherits directly from it.
 
-Last session: 2026-09-12T05:10:00.000Z
-Stopped at: Phase 64 complete, ready to plan Phase 65
+Last session: 2026-09-12T06:12:00.280Z
+Stopped at: Phase 65 context gathered
 (Prior session: 2026-08-30T09:46:50.495Z — Phase 63 complete, UAT 25/25, v0.9.2 shipped 2026-08-31.)
 
 **Nothing is owed forward from a publish, because there was no publish.** The three standing publish
