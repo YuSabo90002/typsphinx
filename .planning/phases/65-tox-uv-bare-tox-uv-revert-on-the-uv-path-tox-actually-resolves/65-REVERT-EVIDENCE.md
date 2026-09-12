@@ -168,7 +168,7 @@ Updated tox-uv-bare v1.35.2 -> v1.36.0
 Added uv v0.12.13
 ```
 
-`LOCK_REGENERATED_BY = uv 0.11.25 (x86_64-unknown-linux-gnu)`
+LOCK_REGENERATED_BY = uv 0.11.25 (x86_64-unknown-linux-gnu)
 
 ```
 $ sed -n 1,3p uv.lock
@@ -368,6 +368,76 @@ tox.ini
 uv.lock
 ```
 
-`REVERT_SHA = d32eb5db6219bf4917ab820a44562ba479e5fe71`
+REVERT_SHA = d32eb5db6219bf4917ab820a44562ba479e5fe71
 
 `git show --name-only` lists exactly the four files: `pyproject.toml`, `tests/test_toolchain_config_gate.py`, `tox.ini`, `uv.lock`. `git diff --diff-filter=D --name-only HEAD~1 HEAD` is empty — no deletions.
+
+## TOX-03 D-02 observation inside FHS
+
+```
+$ printenv TOX_UV_PATH; echo "exit:$?"
+exit:1
+
+$ P="$(pwd -P)"
+$ echo "$P"
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a3ca8472e956ebe27
+
+$ V="$(grep -A1 '^name = "uv"$' uv.lock | sed -n 's/^version = "\(.*\)"$/\1/p')"
+$ echo "$V"
+0.12.13
+
+$ ls .tox 2>&1
+CACHEDIR.TAG
+py312
+```
+
+One cold `tox -vv -e py312 -r` was run through the shim, in the foreground, timeout 600000ms,
+output redirected to a scratchpad log (never inside the tree):
+
+```
+$ tox -vv -e py312 -r > "$LOG" 2>&1; echo "exit:$?"
+exit:0
+$ wc -l "$LOG"
+2021 <LOG>
+$ sha256sum "$LOG"
+9fa39170f58c764939d57b78168ac206ab3bfb5f47fb6b2372dfae75b2ec9ce4  <LOG>
+```
+
+Decisive lines, grepped verbatim from the log:
+
+```
+py312: 87 D using bundled uv from: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a3ca8472e956ebe27/.venv/bin/uv [tox_uv/_venv.py:237]
+py312: 165 W venv> .venv/bin/uv venv -p cpython3.12 --allow-existing '--prompt=agent-a3ca8472e956ebe27[py312]' -v --python-preference system /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a3ca8472e956ebe27/.tox/py312 [tox/tox_env/api.py:485]
+DEBUG uv 0.12.13 (x86_64-unknown-linux-gnu)
+py312: 185 W uv-sync> .venv/bin/uv sync --locked --python-preference system --extra dev --reinstall -v -p cpython3.12 [tox/tox_env/api.py:485]
+DEBUG uv 0.12.13 (x86_64-unknown-linux-gnu)
+platform linux -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a3ca8472e956ebe27/.tox/py312/bin/python3
+collecting ... collected 1548 items
+================= 1543 passed, 5 skipped in 108.34s (0:01:48) ==================
+  py312: OK (109.46=setup[0.57]+cmd[108.89] seconds)
+```
+
+```
+$ grep -oE 'DEBUG uv [0-9]+\.[0-9]+\.[0-9]+' "$LOG" | sort -u
+DEBUG uv 0.12.13
+
+$ cat .tox/py312/pyvenv.cfg
+home = /home/yuta/.local/share/uv/python/cpython-3.12-linux-x86_64-gnu/bin
+implementation = CPython
+uv = 0.12.13
+version_info = 3.12
+include-system-site-packages = false
+prompt = agent-a3ca8472e956ebe27[py312]
+```
+
+Judgment against D-02:
+- (a) The bundled-branch discovery line for `py312` names `$P/.venv/bin/uv` exactly
+  (`/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a3ca8472e956ebe27/.venv/bin/uv`) — MET.
+- (b) Zero lines for the `py312` environment matching either of the two non-bundled discovery
+  branches or tox's own self-provisioning path — MET (the log's other environments, e.g.
+  `.tox/lint`, are out of scope for this observation, but py312's own lines carry none of those
+  branches).
+- (c) The unique DEBUG banner set for this run is exactly `DEBUG uv 0.12.13`, equal to `$V` — MET.
+- (d) `py312: OK`, Python 3.12 pytest header, `collected 1548 items`, `1543 passed, 5 skipped` — MET.
+
+**CONFIRMED — no DIVERGENT result.** Contrast with the pre-revert run (`64-GAP-REMEASURE-EVIDENCE.md:255`), whose `venv>` line named the nixpkgs uv through the non-bundled PATH-fallback discovery branch (`tox-uv-bare` pulls in no bundled `uv` package, so `find_uv_bin()` failed and tox fell back to `shutil.which()` resolution on PATH); this run's `venv>`/`uv-sync>` lines instead name this worktree's own `.venv/bin/uv` through the bundled branch, at exactly the `uv.lock` version — the mechanism this revert restores.
