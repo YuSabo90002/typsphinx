@@ -679,9 +679,9 @@ here.
 Plans:
 **Wave 1**
 
-- [ ] 68-01-PLAN.md — D-01..D-08: CLAUDE.md line 11 and the Conventions bullet name the landed `tox-uv~=1.35` pin; a new `### NixOS development shell` subsection (shims, launch prerequisite and shim check, no manual step, locale, interpreters); a boundary paragraph above the byte-identical provisioning recipe; D-02 vacuity evidenced at base
-- [ ] 68-02-PLAN.md — D-13/D-14/D-16: `tox.ini`'s `requires` comment rewritten (pin, ini-parser constraint in full, why `tox-uv` is safe, one-line history, equivalence re-measured) and the two test files' stale prose moved to the post-Phase-68 state, text only (masked AST hash unchanged)
-- [ ] 68-03-PLAN.md — D-09..D-12: `flake.nix` header notes (FHS wrapper and the two falsified alternatives, shimmed commands and namespace inheritance, darwin unverified by construction, archive-stable sources) and per-element notes, comments only (four drvPaths byte-identical)
+- [x] 68-01-PLAN.md — D-01..D-08: CLAUDE.md line 11 and the Conventions bullet name the landed `tox-uv~=1.35` pin; a new `### NixOS development shell` subsection (shims, launch prerequisite and shim check, no manual step, locale, interpreters); a boundary paragraph above the byte-identical provisioning recipe; D-02 vacuity evidenced at base
+- [x] 68-02-PLAN.md — D-13/D-14/D-16: `tox.ini`'s `requires` comment rewritten (pin, ini-parser constraint in full, why `tox-uv` is safe, one-line history, equivalence re-measured) and the two test files' stale prose moved to the post-Phase-68 state, text only (masked AST hash unchanged)
+- [x] 68-03-PLAN.md — D-09..D-12: `flake.nix` header notes (FHS wrapper and the two falsified alternatives, shimmed commands and namespace inheritance, darwin unverified by construction, archive-stable sources) and per-element notes, comments only (four drvPaths byte-identical)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -766,7 +766,7 @@ below tracks the active milestone only.
 | 65. `tox-uv-bare` → `tox-uv` Revert, on the uv Path tox Actually Resolves | v0.9.3 | 2/2 | Complete    | 2026-09-12 |
 | 66. `.github/dependabot.yml` — `pip` → `uv` Ecosystem | v0.9.3 | 4/4 | Complete    | 2026-09-12 |
 | 67. Proof on a Real Dependabot PR, Then Disposal of #123 and #128 | v0.9.3 | 5/5 | Complete    | 2026-09-12 |
-| 68. Documentation Follow-Through — `CLAUDE.md`, `tox.ini`, `flake.nix` | v0.9.3 | 0/4 | Not started | - |
+| 68. Documentation Follow-Through — `CLAUDE.md`, `tox.ini`, `flake.nix` | v0.9.3 | 3/4 | In Progress | - |
 | 69. v0.9.3 Close Prep (prep-only, unpublished) | v0.9.3 | 0/? | Not started | - |
 
 ## Roadmap Evolution
