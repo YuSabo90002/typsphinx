@@ -160,4 +160,51 @@ tests/test_converted_image_collision_render_gate.py ...                  [100%]
 ```
 
 The exact node that failed in 64-02 with the `libz.so.1` ImportError now shows 3 passed, 0 failed, through the bare `pytest` shim in the genuine D-09 shape.
+
+## NIX-04 — full suite (one run, maintainer locale)
+
+One full-suite run, through the bare `pytest` shim, under the maintainer's own locale — no locale variable set anywhere in this command (D-08):
+
+```
+$ pytest -q -rs
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a86b68cdd93e9624b
+configfile: pyproject.toml
+testpaths: tests
+plugins: cov-7.1.0
+collected 1548 items
+
+tests/test_abbr_pep_separator_render_gate.py ..                          [  0%]
+...
+tests/test_admonition_greyscale_pipeline.py ..                           [  1%]
+...
+tests/test_xref_whole_document_guard_render_gate.py ........             [100%]
+
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_changelog_page_gate.py:168: myst-parser is required to build docs/source; it lives in the docs extra only (D-01), so a dev-only CI lane skips this class
+SKIPPED [1] tests/test_changelog_page_gate.py:177: myst-parser is required to build docs/source; it lives in the docs extra only (D-01), so a dev-only CI lane skips this class
+SKIPPED [1] tests/test_changelog_page_gate.py:187: myst-parser is required to build docs/source; it lives in the docs extra only (D-01), so a dev-only CI lane skips this class
+SKIPPED [1] tests/test_changelog_page_gate.py:219: myst-parser is required to build the changelog include fixture; it lives in the docs extra only (D-01)
+SKIPPED [1] tests/test_corpus_gate.py:530: SC#3 before/after measurement is env-gated -- set TYPSPHINX_CORPUS_REPORT=1 to run it (RESEARCH Open Question 1)
+================= 1543 passed, 5 skipped in 113.00s (0:01:53) ==================
+```
+
+`collected 1548 items` (the expected count) and the summary reads exactly **1543 passed, 5 skipped** — the carried-in baseline, byte-for-byte, under the same platform header the session's `.venv` interpreter produces (`Python 3.14.4`).
+
+**Skip itemisation (5 total, verbatim reasons):**
+
+| # | Node | Reason |
+|---|------|--------|
+| 1 | `tests/test_changelog_page_gate.py:168` | myst-parser is required to build docs/source; it lives in the docs extra only (D-01), so a dev-only CI lane skips this class |
+| 2 | `tests/test_changelog_page_gate.py:177` | myst-parser is required to build docs/source; it lives in the docs extra only (D-01), so a dev-only CI lane skips this class |
+| 3 | `tests/test_changelog_page_gate.py:187` | myst-parser is required to build docs/source; it lives in the docs extra only (D-01), so a dev-only CI lane skips this class |
+| 4 | `tests/test_changelog_page_gate.py:219` | myst-parser is required to build the changelog include fixture; it lives in the docs extra only (D-01) |
+| 5 | `tests/test_corpus_gate.py:530` | SC#3 before/after measurement is env-gated -- set TYPSPHINX_CORPUS_REPORT=1 to run it (RESEARCH Open Question 1) |
+
+Four are the myst-parser docs-extra gap (`test_changelog_page_gate.py`), one is the env-gated corpus report (`test_corpus_gate.py`) — exactly matching the carried-in baseline's itemisation.
+
+**Pillow-gated skip confirmed gone.** `tests/test_admonition_greyscale_pipeline.py` shows `..` (2 passed, 0 skipped) in the live run above — the skip recorded at `tests/test_admonition_greyscale_pipeline.py:71` (row 1 of 64-02's six-skip table, caused by the same `libz.so.1` failure) does not appear anywhere in the short test summary. A sixth skip would have been a finding; none occurred.
+
+No `## Baseline divergence` section follows: the summary read exactly `1543 passed, 5 skipped`, matching the carried-in baseline with no differing node. No locale variable was set in any command of this task.
 <!-- gsd:write-continue -->
