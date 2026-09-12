@@ -460,3 +460,268 @@ commented on, labeled, or sent an `@dependabot` command by this phase.
 *Task 3 complete. `D03_BRANCH = config-push`; `UV_RUN_ACCEPTED = yes`; `OWNER_TAB_ANNOTATION` and
 `OWNER_TAB_CONFIG_ERROR = none` recorded from the owner's Task 2 reply; #123/#128 unchanged
 post-merge; five open `dependabot/uv/` PRs (#138–#142) available as 66-04's candidates.*
+
+---
+
+# 66-04: SC#1 same-commit read, D-05 legs 1–2, D-06, requirement closure
+
+executor worktree, provisioned with the CLAUDE.md line; git and gh only; the main checkout is never
+touched.
+
+SC1_PR = 138
+SC1_SHA = 88088071e02a7411800f504e06b1ded9d6891cc7
+
+## Head check and provisioning
+
+```
+$ test -f .git; echo "exit:$?"
+exit:0
+
+$ pwd -P
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a6b565b111054d94c
+```
+
+`pwd -P` lies under `/home/yuta/Documents/typsphinx/.claude/worktrees/`.
+
+```
+$ env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev
+Using CPython 3.14.4
+Creating virtual environment at: .venv
+Resolved 91 packages in 0.58ms
+   Building typsphinx @ file:///home/yuta/Documents/typsphinx/.claude/worktrees/agent-a6b565b111054d94c
+      Built typsphinx @ file:///home/yuta/Documents/typsphinx/.claude/worktrees/agent-a6b565b111054d94c
+Prepared 1 package in 455ms
+Installed 81 packages in 51ms
+ ... (81 packages, including uv==0.12.13, tox==4.56.1, pytest==9.1.1)
+```
+
+Provisioning ran verbatim (CLAUDE.md, "Worktree-isolated execution"). Task 2 runs `uv` from this
+worktree's own `.venv`.
+
+## Wave-3 gate
+
+```
+$ sed -n 's/^UV_PR_CANDIDATES = //p' .planning/phases/66-github-dependabot-yml-pip-uv-ecosystem/66-DEPENDABOT-EVIDENCE.md
+138 139 140 141 142
+
+$ sed -n 's/^UV_RUN_ID = //p' .planning/phases/66-github-dependabot-yml-pip-uv-ecosystem/66-DEPENDABOT-EVIDENCE.md
+34688990228
+
+$ sed -n 's/^UPDATER_UV_IMAGE = //p' .planning/phases/66-github-dependabot-yml-pip-uv-ecosystem/66-DEPENDABOT-EVIDENCE.md
+ghcr.io/dependabot/dependabot-updater-uv:ebbc4f6acba15d63b83f2211074ddc74e979fcfd
+
+$ sed -n 's/^D03_BRANCH = //p' .planning/phases/66-github-dependabot-yml-pip-uv-ecosystem/66-DEPENDABOT-EVIDENCE.md
+config-push
+
+$ grep -c '^OWNER_TAB_ANNOTATION = ' .planning/phases/66-github-dependabot-yml-pip-uv-ecosystem/66-DEPENDABOT-EVIDENCE.md
+1
+
+$ grep -c '^## HALT' .planning/phases/66-github-dependabot-yml-pip-uv-ecosystem/66-DEPENDABOT-EVIDENCE.md
+0
+
+$ grep -c '^## HALT' .planning/phases/66-github-dependabot-yml-pip-uv-ecosystem/66-MAIN-PR-EVIDENCE.md
+0
+```
+
+All five keys present and non-empty (`UV_PR_CANDIDATES`, `UV_RUN_ID`, `UPDATER_UV_IMAGE`,
+`D03_BRANCH`, `OWNER_TAB_ANNOTATION`), and neither evidence file carries a `## HALT` heading. Gate
+holds.
+
+## Same-commit classification
+
+Re-listed with 66-03's own query — no `dependabot/uv/` PR is new since 66-03; the five candidates
+are exactly `UV_PR_CANDIDATES`:
+
+```
+$ gh pr list --state all --author app/dependabot --limit 50 --json number,title,headRefName,headRefOid,state,labels,createdAt,closedAt
+```
+
+(full JSON recorded; the five open `dependabot/uv/` rows are #138–#142, unchanged from 66-03's
+census; #123 and #128 remain the only other open dependabot PRs, both `pip`-ecosystem, both
+unaffected by this task.)
+
+For each open `dependabot/uv/` PR, ascending, `gh pr view` (verbatim JSON), `git fetch
+origin refs/pull/<n>/head` with a `FETCH_HEAD` == `headRefOid` assertion, then `git show
+--name-only --format='%H%n%an <%ae>%n%s'` on the head commit:
+
+### #138 — `dependabot/uv/ruff-0.16.6`
+
+```
+$ gh pr view 138 --json number,title,state,author,headRefName,headRefOid,baseRefName,createdAt,labels,commits,files
+{"author":{"is_bot":true,"login":"app/dependabot"},"baseRefName":"main","commits":[{"authoredDate":"2026-09-12T10:39:48Z","oid":"88088071e02a7411800f504e06b1ded9d6891cc7", ...}],"createdAt":"2026-09-12T10:39:49Z","files":[{"path":"pyproject.toml","additions":1,"deletions":1,"changeType":"MODIFIED"},{"path":"uv.lock","additions":22,"deletions":22,"changeType":"MODIFIED"}],"headRefName":"dependabot/uv/ruff-0.16.6","headRefOid":"88088071e02a7411800f504e06b1ded9d6891cc7","labels":[],"number":138,"state":"OPEN","title":"chore(deps): bump ruff from 0.15.20 to 0.16.6"}
+
+$ git fetch origin refs/pull/138/head
+ * branch              refs/pull/138/head -> FETCH_HEAD
+
+$ git rev-parse FETCH_HEAD
+88088071e02a7411800f504e06b1ded9d6891cc7
+```
+
+`FETCH_HEAD` equals `headRefOid`.
+
+```
+$ git show --name-only --format='%H%n%an <%ae>%n%s' 88088071e02a7411800f504e06b1ded9d6891cc7
+88088071e02a7411800f504e06b1ded9d6891cc7
+dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+chore(deps): bump ruff from 0.15.20 to 0.16.6
+
+pyproject.toml
+uv.lock
+```
+
+Name list: `pyproject.toml`, `uv.lock` — **class BOTH**. One commit.
+
+### #139 — `dependabot/uv/tox-4.61.4`
+
+```
+$ gh pr view 139 --json ... commits,files
+headRefOid = 49235270a04daaef43c9ec713b73862f5039592e, files: [uv.lock only]
+
+$ git fetch origin refs/pull/139/head; git rev-parse FETCH_HEAD
+49235270a04daaef43c9ec713b73862f5039592e   (equals headRefOid)
+
+$ git show --name-only --format='%H%n%an <%ae>%n%s' 49235270a04daaef43c9ec713b73862f5039592e
+49235270a04daaef43c9ec713b73862f5039592e
+dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+chore(deps): bump tox from 4.56.1 to 4.61.4
+
+uv.lock
+```
+
+Name list: exactly `uv.lock` — **class LOCK-ONLY**. One commit.
+
+### #140 — `dependabot/uv/sphinx-intl-2.4.0`
+
+```
+$ gh pr view 140 --json ... commits,files
+headRefOid = f3ba32992b7e1b5fd128b40897e8b56fe4d09be9, files: [uv.lock only]
+
+$ git fetch origin refs/pull/140/head; git rev-parse FETCH_HEAD
+f3ba32992b7e1b5fd128b40897e8b56fe4d09be9   (equals headRefOid)
+
+$ git show --name-only --format='%H%n%an <%ae>%n%s' f3ba32992b7e1b5fd128b40897e8b56fe4d09be9
+f3ba32992b7e1b5fd128b40897e8b56fe4d09be9
+dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+chore(deps): bump sphinx-intl from 2.3.2 to 2.4.0
+
+uv.lock
+```
+
+Name list: exactly `uv.lock` — **class LOCK-ONLY**. One commit.
+
+### #141 — `dependabot/uv/pre-commit-4.6.2`
+
+```
+$ gh pr view 141 --json ... commits,files
+headRefOid = e94498a515b17047cdc9579c66afee56d7ccb5ab, files: [uv.lock only]
+
+$ git fetch origin refs/pull/141/head; git rev-parse FETCH_HEAD
+e94498a515b17047cdc9579c66afee56d7ccb5ab   (equals headRefOid)
+
+$ git show --name-only --format='%H%n%an <%ae>%n%s' e94498a515b17047cdc9579c66afee56d7ccb5ab
+e94498a515b17047cdc9579c66afee56d7ccb5ab
+dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+chore(deps): bump pre-commit from 4.6.0 to 4.6.2
+
+uv.lock
+```
+
+Name list: exactly `uv.lock` — **class LOCK-ONLY**. One commit.
+
+### #142 — `dependabot/uv/mypy-2.3.1`
+
+```
+$ gh pr view 142 --json ... commits,files
+headRefOid = 7f8737cb0b29985b20aac97a1fe07a8d6d8378b2, files: [uv.lock only]
+
+$ git fetch origin refs/pull/142/head; git rev-parse FETCH_HEAD
+7f8737cb0b29985b20aac97a1fe07a8d6d8378b2   (equals headRefOid)
+
+$ git show --name-only --format='%H%n%an <%ae>%n%s' 7f8737cb0b29985b20aac97a1fe07a8d6d8378b2
+7f8737cb0b29985b20aac97a1fe07a8d6d8378b2
+dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+chore(deps): bump mypy from 2.1.0 to 2.3.1
+
+uv.lock
+```
+
+Name list: exactly `uv.lock` — **class LOCK-ONLY**. One commit.
+
+### Classification table
+
+| # | Title | Branch | Head SHA | Commits | Files | Class |
+|---|-------|--------|----------|---------|-------|-------|
+| 138 | bump ruff 0.15.20→0.16.6 | dependabot/uv/ruff-0.16.6 | 88088071e02a7411800f504e06b1ded9d6891cc7 | 1 | pyproject.toml, uv.lock | BOTH |
+| 139 | bump tox 4.56.1→4.61.4 | dependabot/uv/tox-4.61.4 | 49235270a04daaef43c9ec713b73862f5039592e | 1 | uv.lock | LOCK-ONLY |
+| 140 | bump sphinx-intl 2.3.2→2.4.0 | dependabot/uv/sphinx-intl-2.4.0 | f3ba32992b7e1b5fd128b40897e8b56fe4d09be9 | 1 | uv.lock | LOCK-ONLY |
+| 141 | bump pre-commit 4.6.0→4.6.2 | dependabot/uv/pre-commit-4.6.2 | e94498a515b17047cdc9579c66afee56d7ccb5ab | 1 | uv.lock | LOCK-ONLY |
+| 142 | bump mypy 2.1.0→2.3.1 | dependabot/uv/mypy-2.3.1 | 7f8737cb0b29985b20aac97a1fe07a8d6d8378b2 | 1 | uv.lock | LOCK-ONLY |
+
+Every open `dependabot/uv/` PR carries exactly one commit; SC#1 reads the head commit for the one
+BOTH-class PR. No PR had more than one commit, so the "when a PR has more than one commit" note in
+the plan does not apply here.
+
+## SC#1 selection (D-04)
+
+```
+SC1_PR = 138
+SC1_SHA = 88088071e02a7411800f504e06b1ded9d6891cc7
+```
+
+`SC1_PR` #138 is the lowest-numbered (and only) BOTH PR. Its branch `dependabot/uv/ruff-0.16.6`
+starts with `dependabot/uv/`; its author login `app/dependabot` matches `dependabot`; its base is
+`main`; it carries exactly one commit, which is `SC1_SHA` itself.
+
+```
+$ gh pr view 138 --json headRefName -q '.headRefName | startswith("dependabot/uv/")'
+true
+
+$ gh pr view 138 --json author -q '.author.login | test("dependabot")'
+true
+
+$ gh pr view 138 --json baseRefName -q .baseRefName
+main
+
+$ gh pr view 138 --json commits -q '.commits[].oid'
+88088071e02a7411800f504e06b1ded9d6891cc7
+```
+
+`SC1_SHA` is the PR's sole commit.
+
+```
+$ git show --stat 88088071e02a7411800f504e06b1ded9d6891cc7
+commit 88088071e02a7411800f504e06b1ded9d6891cc7
+Author: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+Date:   Sat Sep 12 10:39:48 2026 +0000
+
+    chore(deps): bump ruff from 0.15.20 to 0.16.6
+    ...
+
+ pyproject.toml |  2 +-
+ uv.lock        | 44 ++++++++++++++++++++++----------------------
+ 2 files changed, 23 insertions(+), 23 deletions(-)
+
+$ git show 88088071e02a7411800f504e06b1ded9d6891cc7 -- pyproject.toml
+diff --git a/pyproject.toml b/pyproject.toml
+index 9ac02823..fc25883f 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -37,7 +37,7 @@ dev = [
+     "tox>=4.56,<5",
+     "tox-uv-bare>=1.35,<2",
+     "black>=26,<27",
+-    "ruff>=0.15,<0.16",
++    "ruff>=0.15,<0.17",
+     "mypy>=1.13,<3.0",
+     "pre-commit>=3.0",
+     "types-docutils>=0.21",
+```
+
+The range widened from `<0.16` to `<0.17` (D-06 range-behaviour material). The context lines still
+show `tox-uv-bare>=1.35,<2` — `main` has not received Phase 65's `tox-uv-bare` → `tox-uv` revert
+yet (that lands only at REL-12, per ROADMAP's two-independent-track design; Track A and Track B
+share no file). Recorded, not touched.
+
+No `gh pr checkout`, `git switch` or `git checkout` was run against any dependabot head in this
+worktree; every read above went through `git show`/`git fetch` only, on this worktree's own
+detached-fetch objects, with HEAD never moving off the worktree's own branch.
