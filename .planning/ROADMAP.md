@@ -437,12 +437,12 @@ pin before the sandbox is proven reintroduces exactly the defect `-bare` was cho
      satisfy this criterion — only CI reaches the Windows and macOS lanes, which have caught real
      defects at three consecutive closes (TOX-04).
 
-**Plans**: 2 plans (2 waves; wave 2 pushes the post-revert tip and dispatches CI only after wave 1's SC#3 evidence reads MET)
+**Plans**: 1/2 plans executed (2 waves; wave 2 pushes the post-revert tip and dispatches CI only after wave 1's SC#3 evidence reads MET)
 
 Plans:
 **Wave 1**
 
-- [ ] 65-01-PLAN.md — the four-file revert commit (pyproject, tox.ini, uv.lock, the Phase 45.2 gate inverted RED→GREEN) with a tox-uv tracer, then the D-02 observation inside FHS (cold tox -vv -e py312 -r, full suite) and the D-03 nix-interpreter control outside FHS
+- [x] 65-01-PLAN.md — the four-file revert commit (pyproject, tox.ini, uv.lock, the Phase 45.2 gate inverted RED→GREEN) with a tox-uv tracer, then the D-02 observation inside FHS (cold tox -vv -e py312 -r, full suite) and the D-03 nix-interpreter control outside FHS
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -676,7 +676,7 @@ below tracks the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 64. FHS Wrapper and Command Shims in `flake.nix` | v0.9.3 | 6/6 | Complete    | 2026-09-12 |
-| 65. `tox-uv-bare` → `tox-uv` Revert, on the uv Path tox Actually Resolves | v0.9.3 | 0/2 | Planned | - |
+| 65. `tox-uv-bare` → `tox-uv` Revert, on the uv Path tox Actually Resolves | v0.9.3 | 1/2 | In Progress | - |
 | 66. `.github/dependabot.yml` — `pip` → `uv` Ecosystem | v0.9.3 | 0/? | Not started | - |
 | 67. Proof on a Real Dependabot PR, Then Disposal of #123 and #128 | v0.9.3 | 0/? | Not started | - |
 | 68. Documentation Follow-Through — `CLAUDE.md`, `tox.ini`, `flake.nix` | v0.9.3 | 0/? | Not started | - |
