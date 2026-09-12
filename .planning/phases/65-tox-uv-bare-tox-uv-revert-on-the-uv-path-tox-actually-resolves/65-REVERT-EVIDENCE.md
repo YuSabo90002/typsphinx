@@ -398,9 +398,9 @@ output redirected to a scratchpad log (never inside the tree):
 $ tox -vv -e py312 -r > "$LOG" 2>&1; echo "exit:$?"
 exit:0
 $ wc -l "$LOG"
-2021 <LOG>
+2021 /tmp/claude-1000/-home-yuta-Documents-typsphinx/61c1d12e-cf56-434d-829e-1f7fb406a3a1/scratchpad/tox-vv-py312-cold.log
 $ sha256sum "$LOG"
-9fa39170f58c764939d57b78168ac206ab3bfb5f47fb6b2372dfae75b2ec9ce4  <LOG>
+9fa39170f58c764939d57b78168ac206ab3bfb5f47fb6b2372dfae75b2ec9ce4  /tmp/claude-1000/-home-yuta-Documents-typsphinx/61c1d12e-cf56-434d-829e-1f7fb406a3a1/scratchpad/tox-vv-py312-cold.log
 ```
 
 Decisive lines, grepped verbatim from the log:
@@ -441,3 +441,182 @@ Judgment against D-02:
 - (d) `py312: OK`, Python 3.12 pytest header, `collected 1548 items`, `1543 passed, 5 skipped` — MET.
 
 **CONFIRMED — no DIVERGENT result.** Contrast with the pre-revert run (`64-GAP-REMEASURE-EVIDENCE.md:255`), whose `venv>` line named the nixpkgs uv through the non-bundled PATH-fallback discovery branch (`tox-uv-bare` pulls in no bundled `uv` package, so `find_uv_bin()` failed and tox fell back to `shutil.which()` resolution on PATH); this run's `venv>`/`uv-sync>` lines instead name this worktree's own `.venv/bin/uv` through the bundled branch, at exactly the `uv.lock` version — the mechanism this revert restores.
+
+## TOX-03 D-03 isolated control outside FHS
+
+CTRL_VENV = /tmp/claude-1000/-home-yuta-Documents-typsphinx/61c1d12e-cf56-434d-829e-1f7fb406a3a1/scratchpad/ctrl-venv
+
+```
+$ case "$CTRL" in "$(pwd -P)"/*) echo INSIDE ;; *) echo OUTSIDE ;; esac
+OUTSIDE
+```
+
+### Interpreter provenance
+
+```
+$ PY="$(command -v python3)"
+$ echo "$PY"
+/nix/store/l9k0anq0z7zz81zcwy035jfwap9ga6rl-python3-3.13.13/bin/python3
+$ readlink -f "$PY"
+/nix/store/l9k0anq0z7zz81zcwy035jfwap9ga6rl-python3-3.13.13/bin/python3.13
+
+$ "$PY" -m venv "$CTRL"
+$ echo "exit:$?"
+exit:0
+
+$ cat "$CTRL/pyvenv.cfg"
+home = /nix/store/l9k0anq0z7zz81zcwy035jfwap9ga6rl-python3-3.13.13/bin
+include-system-site-packages = false
+version = 3.13.13
+executable = /nix/store/l9k0anq0z7zz81zcwy035jfwap9ga6rl-python3-3.13.13/bin/python3.13
+command = /nix/store/l9k0anq0z7zz81zcwy035jfwap9ga6rl-python3-3.13.13/bin/python3 -m venv /tmp/claude-1000/-home-yuta-Documents-typsphinx/61c1d12e-cf56-434d-829e-1f7fb406a3a1/scratchpad/ctrl-venv
+```
+
+The interpreter is a nix store path (not this worktree's `.venv`, not a uv-managed CPython), and
+`pyvenv.cfg`'s `home` is under `/nix/store/` — the control is valid.
+
+### Lock-pinned installs
+
+```
+$ grep -A1 '^name = "tox"$' uv.lock
+name = "tox"
+version = "4.56.1"
+$ grep -A1 '^name = "tox-uv"$' uv.lock
+name = "tox-uv"
+version = "1.36.0"
+$ grep -A1 '^name = "tox-uv-bare"$' uv.lock
+name = "tox-uv-bare"
+version = "1.36.0"
+$ grep -A1 '^name = "uv"$' uv.lock
+name = "uv"
+version = "0.12.13"
+
+$ uv pip install --python "$CTRL/bin/python" "tox==4.56.1" "tox-uv==1.36.0" "tox-uv-bare==1.36.0" "uv==0.12.13"
+Using Python 3.13.13 environment at: /tmp/claude-1000/-home-yuta-Documents-typsphinx/61c1d12e-cf56-434d-829e-1f7fb406a3a1/scratchpad/ctrl-venv
+Resolved 15 packages in 258ms
+Installed 15 packages in 6ms
+ + tox==4.56.1
+ + tox-uv==1.36.0
+ + tox-uv-bare==1.36.0
+ + uv==0.12.13
+ ... (11 more transitive packages)
+
+$ uv pip list --python "$CTRL/bin/python" | grep -E '^(tox|tox-uv|tox-uv-bare|uv) '
+tox              4.56.1
+tox-uv           1.36.0
+tox-uv-bare      1.36.0
+uv               0.12.13
+
+$ file "$CTRL/bin/uv"
+/tmp/claude-1000/-home-yuta-Documents-typsphinx/61c1d12e-cf56-434d-829e-1f7fb406a3a1/scratchpad/ctrl-venv/bin/uv: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 2.6.32, BuildID[sha1]=26e8aa879683dd1454dd519591fbbc7fa4b91357, stripped
+```
+
+All four packages installed at exactly their `uv.lock` versions. `$CTRL/bin/uv` is a
+dynamically-linked generic-linux ELF.
+
+### Outside-FHS proof, same shell as the run
+
+```
+$ test -e /usr/lib/libz.so.1; echo "fhs-probe exit:$?"
+fhs-probe exit:1
+
+$ "$CTRL/bin/python" -c 'import sys;print(sys.executable, sys.version.split()[0])'
+/tmp/claude-1000/-home-yuta-Documents-typsphinx/61c1d12e-cf56-434d-829e-1f7fb406a3a1/scratchpad/ctrl-venv/bin/python 3.13.13
+```
+
+The shell lacks `/usr/lib/libz.so.1` (outside FHS), and the control interpreter itself runs
+successfully there — this is exactly what the earlier (invalid) control failed on
+(`.venv/bin/python3`, a uv-managed generic-linux CPython), so it is proven not to fail here.
+
+### The control run, by absolute path, no shim
+
+```
+$ grep -n '^requires' tox.ini
+11:requires = tox-uv~=1.35
+
+$ env -u TOX_UV_PATH PATH=/usr/bin:/bin "$CTRL/bin/python" -m tox -vv -e py312 --workdir "$CW" -r > "$S/ctrl.log" 2>&1
+$ echo "exit:$?"
+exit:127
+
+$ head -n 5 "$S/ctrl.log"
+ROOT: 306 D setup logging to DEBUG on pid 933992 [tox/report.py:229]
+py312: 329 D using bundled uv from: /tmp/claude-1000/-home-yuta-Documents-typsphinx/61c1d12e-cf56-434d-829e-1f7fb406a3a1/scratchpad/ctrl-venv/bin/uv [tox_uv/_venv.py:237]
+py313: 329 D using bundled uv from: /tmp/claude-1000/-home-yuta-Documents-typsphinx/61c1d12e-cf56-434d-829e-1f7fb406a3a1/scratchpad/ctrl-venv/bin/uv [tox_uv/_venv.py:237]
+lint: 330 D using bundled uv from: /tmp/claude-1000/-home-yuta-Documents-typsphinx/61c1d12e-cf56-434d-829e-1f7fb406a3a1/scratchpad/ctrl-venv/bin/uv [tox_uv/_venv.py:237]
+type: 330 D using bundled uv from: /tmp/claude-1000/-home-yuta-Documents-typsphinx/61c1d12e-cf56-434d-829e-1f7fb406a3a1/scratchpad/ctrl-venv/bin/uv [tox_uv/_venv.py:237]
+
+$ grep -nE 'using bundled uv from|using system uv from PATH|using uv from TOX_UV_PATH|automatically provisioned|venv> |Could not start dynamically linked executable|exit [0-9]+ \(|py312: (OK|FAIL)' "$S/ctrl.log"
+2:py312: 329 D using bundled uv from: /tmp/claude-1000/-home-yuta-Documents-typsphinx/61c1d12e-cf56-434d-829e-1f7fb406a3a1/scratchpad/ctrl-venv/bin/uv [tox_uv/_venv.py:237]
+...
+10:py312: 334 W venv> /tmp/claude-1000/-home-yuta-Documents-typsphinx/61c1d12e-cf56-434d-829e-1f7fb406a3a1/scratchpad/ctrl-venv/bin/uv venv -p cpython3.12 --allow-existing '--prompt=agent-a3ca8472e956ebe27[py312]' -v --python-preference system /tmp/claude-1000/-home-yuta-Documents-typsphinx/61c1d12e-cf56-434d-829e-1f7fb406a3a1/scratchpad/ctrl-tox-workdir/py312 [tox/tox_env/api.py:485]
+11:Could not start dynamically linked executable: /tmp/claude-1000/-home-yuta-Documents-typsphinx/61c1d12e-cf56-434d-829e-1f7fb406a3a1/scratchpad/ctrl-venv/bin/uv
+15:py312: 335 C exit 127 (0.00 seconds) /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a3ca8472e956ebe27> /tmp/claude-1000/-home-yuta-Documents-typsphinx/61c1d12e-cf56-434d-829e-1f7fb406a3a1/scratchpad/ctrl-venv/bin/uv venv ... pid=934024 [tox/execute/api.py:308]
+17:  py312: FAIL code 127 (0.00 seconds)
+
+$ ls "$CW"
+CACHEDIR.TAG
+py312
+
+$ git status --porcelain
+(empty)
+```
+
+### Judgment against D-03
+
+- tox started — the bundled discovery line appears at all (line 2 onward) — MET.
+- The bundled line names `$CTRL/bin/uv` exactly — MET.
+- The first `exit [0-9]+ (` line (line 15) is the `$CTRL/bin/uv venv …` call — MET.
+- `Could not start dynamically linked executable: $CTRL/bin/uv` is present (line 11), and
+  `py312: FAIL code 127` (line 17) — MET.
+- No non-bundled discovery branch or self-provisioning line appears anywhere in the `py312`
+  transcript — MET.
+
+**CLOSED — the control isolated the uv path.** Nothing failed before the `uv venv` exec: the
+interpreter ran, tox started, environment resolution completed, and the FIRST subprocess
+execution — `uv venv` — is what failed, immediately, on the binary itself. The tree is untouched
+(`git status --porcelain` empty; `$CW` holds only the control's own side-car files).
+
+## SC#3 literal and amended readings
+
+**Literal reading (D-01).** SC#3's original text holds that `uv.find_uv_bin()` is "a different
+function on a different code path" from the shimmed/`.venv` binary, and that the "bundled wheel"
+and the "shimmed/`.venv` binary" compete for which `uv` a tox run resolves. Both clauses are
+falsified by this file's own observations: `tox_uv/_venv.py`'s bundled step is literally
+`from uv import find_uv_bin; return find_uv_bin()` — no binary ships inside the `tox-uv` wheel;
+"bundled" means the PyPI `uv` dependency's own script. `find_uv_bin()` returns the CALLING
+interpreter's own `bin/uv` — inside this worktree that is `.venv/bin/uv`, the exact same file the
+Phase 64 `uv` shim's first leg resolves. There is no second, competing "shimmed/`.venv`" binary;
+both mechanisms name one file. The dichotomy the literal text poses does not exist.
+
+**Amended reading (D-01, per `65-CONTEXT.md`'s AMENDED block).** What separates a shell-level
+`find_uv_bin()` probe from a real tox run is only the calling process — the substantive
+requirement is to observe the branch, path and version from **inside** a real tox run, plus an
+isolated outside-FHS control proving the failure is the uv path and nothing earlier. Under this
+reading:
+- **Branch fired:** the bundled branch (`tox_uv/_venv.py:237`'s `using bundled uv from:` line), in
+  both the D-02 observation and the D-03 control — never the `TOX_UV_PATH` branch, never the
+  PATH-fallback branch.
+- **Resolved path:** `<this worktree>/.venv/bin/uv` inside FHS (D-02); `/tmp/claude-1000/-home-yuta-Documents-typsphinx/61c1d12e-cf56-434d-829e-1f7fb406a3a1/scratchpad/ctrl-venv/bin/uv` outside FHS
+  (D-03) — each the calling interpreter's own `bin/uv`, per `find_uv_bin()`'s contract.
+- **Version:** `uv 0.12.13`, exactly the `uv.lock` `uv` version, observed from uv's own `-v` banner
+  inside the `tox -vv` transcript (D-02).
+- **Environment outcome:** inside FHS, `py312: OK`, `1543 passed, 5 skipped` at the established
+  baseline (D-02). Outside FHS, `py312: FAIL code 127` on the `uv venv` exec itself, with nothing
+  earlier failing (D-03).
+- **Control isolation:** the D-03 control resolves the SAME bundled branch to a generic-linux ELF
+  the host cannot start — isolating exactly the uv-exec failure, unlike the earlier (invalid)
+  control that died on the interpreter itself.
+
+**Verdict (amended reading): SC#3 is MET.** No `TOX_UV_PATH` was set anywhere in this plan
+(`git grep` over tracked files outside `.planning/` finds no match; `printenv TOX_UV_PATH` was
+unset throughout). No DIVERGENT result occurred at either D-02 or D-03.
+
+## Requirement closure
+
+| Requirement | Status | Deciding section |
+|---|---|---|
+| TOX-01 | MET | `## TOX-01 lock regeneration`, `## D-05 uv before and after`, `## Revert commit` |
+| TOX-02 | MET | `## TOX-02 tox starts` |
+| TOX-03 | MET | `## TOX-03 D-02 observation inside FHS`, `## TOX-03 D-03 isolated control outside FHS`, `## SC#3 literal and amended readings` |
+
+TOX-04 belongs to plan 65-02 and carries no row here.
