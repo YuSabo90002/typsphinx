@@ -515,7 +515,7 @@ with Phases 64–65.
      dependabot's own behaviour or its documented ecosystem support, not assumed from the YAML being
      syntactically identical (DEP-03).
 
-**Plans**: 3/4 plans executed (4 sequential waves; 66-02 carries the D-01 owner merge checkpoint, 66-03 the D-03 owner action on the Dependabot tab)
+**Plans**: 4/4 plans executed (4 sequential waves; 66-02 carries the D-01 owner merge checkpoint, 66-03 the D-03 owner action on the Dependabot tab)
 
 Plans:
 **Wave 1**
@@ -532,7 +532,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 66-04-PLAN.md — SC#1 from a real `uv` PR's head commit, D-05 legs 1 and 2 (HALT on leg-2 failure), D-06 observations, DEP-01/DEP-03/DEP-04 closure table
+- [x] 66-04-PLAN.md — SC#1 from a real `uv` PR's head commit, D-05 legs 1 and 2 (HALT on leg-2 failure), D-06 observations, DEP-01/DEP-03/DEP-04 closure table
 
 **UI hint**: no
 
@@ -709,7 +709,7 @@ below tracks the active milestone only.
 |-------|-----------|----------------|--------|-----------|
 | 64. FHS Wrapper and Command Shims in `flake.nix` | v0.9.3 | 6/6 | Complete    | 2026-09-12 |
 | 65. `tox-uv-bare` → `tox-uv` Revert, on the uv Path tox Actually Resolves | v0.9.3 | 2/2 | Complete    | 2026-09-12 |
-| 66. `.github/dependabot.yml` — `pip` → `uv` Ecosystem | v0.9.3 | 3/4 | In Progress | - |
+| 66. `.github/dependabot.yml` — `pip` → `uv` Ecosystem | v0.9.3 | 4/4 | In Progress | - |
 | 67. Proof on a Real Dependabot PR, Then Disposal of #123 and #128 | v0.9.3 | 0/? | Not started | - |
 | 68. Documentation Follow-Through — `CLAUDE.md`, `tox.ini`, `flake.nix` | v0.9.3 | 0/? | Not started | - |
 | 69. v0.9.3 Close Prep (prep-only, unpublished) | v0.9.3 | 0/? | Not started | - |
