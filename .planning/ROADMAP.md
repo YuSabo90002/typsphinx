@@ -334,7 +334,7 @@ constraint 10's branch-to-`origin` invariant.
      > must re-measure rather than trust this note, and must expect the decoy to be re-created by any
      > later `commit` helper invocation — it has now fired twice within this one milestone.
 
-**Plans**: 4/6 plans executed (5 waves; a Claude Code session relaunch is required between wave 1 and wave 2, and again between wave 4 and wave 5)
+**Plans**: 5/6 plans executed (5 waves; a Claude Code session relaunch is required between wave 1 and wave 2, and again between wave 4 and wave 5)
 
 Plans:
 **Wave 1**
@@ -352,7 +352,7 @@ Plans:
 
 **Wave 4** *(gap closure; blocked on Wave 3 completion)*
 
-- [ ] 64-05-PLAN.md — flake.nix: zlib in fhsRun's targetPkgs (CR-01), gated by a DT_NEEDED residual audit before and after, an import-order-independent RED→GREEN on three interpreter builds, a DIAGNOSTIC second-gap sweep, and NIX-06/07/08 re-bound on the final flake
+- [x] 64-05-PLAN.md — flake.nix: zlib in fhsRun's targetPkgs (CR-01), gated by a DT_NEEDED residual audit before and after, an import-order-independent RED→GREEN on three interpreter builds, a DIAGNOSTIC second-gap sweep, and NIX-06/07/08 re-bound on the final flake
 
 **Wave 5** *(gap closure; blocked on Wave 4 completion and a Claude Code session relaunch)*
 
@@ -639,7 +639,7 @@ below tracks the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 64. FHS Wrapper and Command Shims in `flake.nix` | v0.9.3 | 4/4 | In Progress | - |
+| 64. FHS Wrapper and Command Shims in `flake.nix` | v0.9.3 | 5/6 | In Progress | - |
 | 65. `tox-uv-bare` → `tox-uv` Revert, on the uv Path tox Actually Resolves | v0.9.3 | 0/? | Not started | - |
 | 66. `.github/dependabot.yml` — `pip` → `uv` Ecosystem | v0.9.3 | 0/? | Not started | - |
 | 67. Proof on a Real Dependabot PR, Then Disposal of #123 and #128 | v0.9.3 | 0/? | Not started | - |

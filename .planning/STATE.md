@@ -5,16 +5,16 @@ milestone_name: Toolchain and dependency-update repair
 current_phase: 64
 current_phase_name: FHS Wrapper and Command Shims in `flake.nix`
 status: executing
-stopped_at: Phase 64 gap-closure planned — 64-05 (wave 4, zlib in fhsRun targetPkgs) and 64-06 (wave 5, re-measure after a session relaunch), plan-checker PASSED; next /gsd-execute-phase 64 --gaps-only
-last_updated: "2026-09-11T22:36:26.000Z"
+stopped_at: Phase 64 wave 4 (64-05, zlib in fhsRun targetPkgs) merged; wave 5 (64-06) halted at its session precondition — relaunch Claude Code from a direnv-loaded shell in the main checkout, then /gsd-execute-phase 64 --gaps-only
+last_updated: "2026-09-12T01:10:00.000Z"
 last_activity: 2026-09-12
-last_activity_desc: Phase 64 gap-closure plans 64-05/64-06 created and checker-verified; 64-LIBZ-DIAGNOSIS.md measured targetPkgs = [ zlib ] as sufficient for all three interpreter builds (tox -e py313's pass is import-order dependent, not a sandbox-health control)
-state_head: c56cc7f2f1326ff53da16f67690b602680507abb
+last_activity_desc: 64-05 merged (94b99bd1) — fhsRun targetPkgs = [ zlib ]; DIAGNOSTIC sweep in the worktree read 1543 passed / 5 skipped, py312 OK, cov OK; new fhs-run /nix/store/99fm4lqkp4kab20d3blfbwajnprmlbfx-typsphinx-fhs-run; this session still carries the old rootfs, so 64-06 awaits a relaunch
+state_head: 01b51ded
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 6
-  completed_plans: 4
+  completed_plans: 5
   percent: 0
 ---
 
@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-02 — v0.9.3 milestone scoped)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** v0.9.3 Toolchain and dependency-update repair — **roadmapped, Phases 64–69, 21/21 v1 requirements mapped**. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`), but a PR to `main` is opened and merged at `/gsd-complete-milestone`. CI is deliberately unchanged. No change under `typsphinx/`. **Phase 64 is executing**: wave 1 (64-01) is merged and Claude Code has been relaunched from a direnv-loaded shell in the main checkout; wave 2 (64-02 + 64-03) is merged, but 64-02 found NIX-02/NIX-03/NIX-04 unmet (`libz.so.1` missing inside the FHS sandbox for uv-managed interpreters), wave 3 (64-04: push + one CI run) is merged, verification found gaps_found (6/9), and gap-closure plans 64-05 (wave 4, `flake.nix` zlib fix) and 64-06 (wave 5, re-measurement after another Claude Code relaunch) are planned (Track B, `/gsd-plan-phase 66`, is independent and can run in parallel).
+**Current focus:** v0.9.3 Toolchain and dependency-update repair — **roadmapped, Phases 64–69, 21/21 v1 requirements mapped**. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`), but a PR to `main` is opened and merged at `/gsd-complete-milestone`. CI is deliberately unchanged. No change under `typsphinx/`. **Phase 64 is executing**: wave 1 (64-01) is merged and Claude Code has been relaunched from a direnv-loaded shell in the main checkout; wave 2 (64-02 + 64-03) is merged, but 64-02 found NIX-02/NIX-03/NIX-04 unmet (`libz.so.1` missing inside the FHS sandbox for uv-managed interpreters), wave 3 (64-04: push + one CI run) is merged, verification found gaps_found (6/9), and gap-closure plans 64-05 (wave 4, `flake.nix` zlib fix) and 64-06 (wave 5, re-measurement after another Claude Code relaunch) were planned; 64-05 is merged (`94b99bd1`) and 64-06 awaits that relaunch (Track B, `/gsd-plan-phase 66`, is independent and can run in parallel).
 
 ## Shipped Milestone (v0.9.2 — archived, PUBLISHED)
 
@@ -158,10 +158,11 @@ land here.
 
 ## Current Position
 
-Phase: 64 — FHS Wrapper and Command Shims in `flake.nix` (waves 1–3 executed; gap-closure waves 4–5 planned)
-Plan: 4 of 6 complete (waves: 64-01 ✓ → relaunch Claude Code ✓ → 64-02 ✓ (Self-Check FAILED) + 64-03 ✓ → 64-04 ✓ → 64-05 ○ → relaunch Claude Code → 64-06 ○)
-Status: Gap closure planned, plan-checker PASSED — 64-05 adds `zlib` to `fhsRun`'s `targetPkgs` (64-REVIEW.md CR-01) for NIX-02/NIX-03/NIX-04; 64-06 re-measures in a relaunched session. Next: `/gsd-execute-phase 64 --gaps-only` in this session (runs 64-05; 64-06's precondition halts), then relaunch Claude Code from a direnv-loaded shell in the main checkout and run it again
-Last activity: 2026-09-12 — gap-closure plans 64-05/64-06 created (`c56cc7f2`); `64-LIBZ-DIAGNOSIS.md` measured `targetPkgs = [ zlib ]` as sufficient for uv cp3.12/cp3.14 and nix cp3.13 (py313's earlier pass is import-order dependent)
+Phase: 64 — FHS Wrapper and Command Shims in `flake.nix` (waves 1–4 executed; gap-closure wave 5 awaits a session relaunch)
+Plan: 5 of 6 complete (waves: 64-01 ✓ → relaunch Claude Code ✓ → 64-02 ✓ (Self-Check FAILED) + 64-03 ✓ → 64-04 ✓ → 64-05 ✓ → relaunch Claude Code ○ → 64-06 ○)
+Status: Wave 4 done — 64-05 merged (`94b99bd1`): `targetPkgs = p: [ p.zlib ]` in `fhsRun`; post-merge gate on the main tree 1547 passed / 1 skipped. 64-06's precondition is false in this session (the `ruff` shim still embeds `dgddrdfk…-typsphinx-fhs-run`, no `/usr/lib/libz.so.1`), so wave 5 was not dispatched. Next: open a terminal in `/home/yuta/Documents/typsphinx`, confirm the libz discriminator in `64-LIBZ-FIX-EVIDENCE.md` § Session relaunch required before wave 5 exits 0 (new root `99fm4lqk…`), relaunch Claude Code from that shell, run `/gsd-execute-phase 64 --gaps-only`
+Last activity: 2026-09-12 — 64-05 executed and merged; the executor's NIX-06/07/08 checkbox flip was reverted (`01b51ded`) per `4e130c80`'s rule that phase-64 requirements stay unchecked until the phase completes
+
 
 ## Active Milestone (v0.9.3 — Toolchain and dependency-update repair)
 
@@ -1187,8 +1188,8 @@ before Phase 63 is planned, not after.** It is the only record of the three publ
 v0.9.1 close did not exercise, written with `vX.Y.Z` placeholders so no dead tag name can be copied
 out of it, and Phase 63's SC#5 handoff checklist inherits directly from it.
 
-Last session: 2026-09-11T15:14:06.000Z
-Stopped at: Phase 64 gap-closure planned (64-05, 64-06) — next `/gsd-execute-phase 64 --gaps-only`, with a Claude Code relaunch between 64-05 and 64-06
+Last session: 2026-09-12T01:10:00.000Z
+Stopped at: Phase 64 wave 4 (64-05) merged; wave 5 (64-06) needs a Claude Code relaunch from a direnv-loaded shell, then `/gsd-execute-phase 64 --gaps-only`
 (Prior session: 2026-08-30T09:46:50.495Z — Phase 63 complete, UAT 25/25, v0.9.2 shipped 2026-08-31.)
 
 **Nothing is owed forward from a publish, because there was no publish.** The three standing publish
