@@ -474,7 +474,7 @@ the head SHA fresh immediately before, per Pitfall 3, rather than hardcoding thi
 
 **If this table is empty:** N/A — table is non-empty; see above.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Exact wording of the two close comments**
    - What we know: CONTEXT.md D-03 and D-05 give draft shapes ("Superseded by #138.", and a
@@ -484,6 +484,14 @@ the head SHA fresh immediately before, per Pitfall 3, rather than hardcoding thi
    - Recommendation: The plan should present the draft text verbatim at the checkpoint and let the
      owner edit or approve it live; do not hardcode the final string into the plan file itself as
      if it were already approved.
+   - **RESOLVED:** Settled at execution time by the owner, as recommended. 67-03 Task 1 and 67-04
+     Task 1 record `DRAFT_COMMENT_128` / `DRAFT_COMMENT_123` as drafts, not yet approved. 67-03
+     Task 2 (#128, D-05) and 67-04 Task 2 (#123, D-03) are the `checkpoint:decision` gates. Each
+     shows its draft verbatim and accepts only `close as drafted`, `close with: <one line>` or
+     `hold`. Task 3 of each plan writes `APPROVED_COMMENT_*` verbatim and commits it before
+     posting, then posts it by reading the evidence key with `sed`, so the text is never
+     retyped. 67-02 Task 2 (the merge checkpoint for #138) does not apply here: it is a
+     `merge`/`hold` go-ahead and carries no comment text.
 
 2. **Whether `gh pr close --comment` is supported by the exact `gh` version this project's
    worktrees provision**
@@ -494,6 +502,12 @@ the head SHA fresh immediately before, per Pitfall 3, rather than hardcoding thi
    - Recommendation: The executing plan's own worktree should run `gh pr close --help` (a read-only
      command) as a pre-flight check before drafting the exact close invocation; fall back to `gh pr
      comment <n> --body "..."` followed by `gh pr close <n>` if `--comment` is unsupported.
+   - **RESOLVED:** Supported. At planning time `gh version 2.100.0` listed `-c, --comment` (67-03
+     environment table), and a re-read on 2026-09-12 matched. 67-03 Task 1 step 7 and 67-04 Task 1
+     step 6 record `gh pr close --help | grep -n -- '--comment'` as a pre-flight. Both Task 1
+     `<automated>` verifies fail on "`gh pr close` lacking `--comment`". The recommended
+     fallback is carried in 67-03 Task 3 step 5 and 67-04 Task 3 step 4: `gh pr comment <n>
+     --body` with the same key read, then `gh pr close <n>`.
 
 3. **Ordering of the two close actions (#123 vs #128) relative to each other**
    - What we know: CONTEXT.md orders "merge #138 first, then close #123" for the ruff track, and
@@ -504,6 +518,13 @@ the head SHA fresh immediately before, per Pitfall 3, rather than hardcoding thi
    - Recommendation: Sequential is simpler to verify and matches Phase 66's plan-per-track
      convention; parallelizing is not prohibited but adds no measurable benefit here since both
      actions are near-instant `gh` calls, not long-running work.
+   - **RESOLVED:** The plans use one plan per track, each with its own checkpoint. 67-03 (#128,
+     D-05) is wave 2 and depends only on 67-01. 67-04 (#123, D-03) is wave 3 and depends on
+     67-02, so it closes #123 only after #138 has merged. Because waves run in sequence, #128's
+     close lands before #123's, but only as a side effect of scheduling. No plan requires or
+     checks an order between `CLOSED_AT_128` and `CLOSED_AT_123`. The only binding orders are the
+     ones 67-05 Task 2 checks: `DEP02_PROOF_AT` before `DECIDED_AT_138` and `DECIDED_AT_128`
+     (D-02), and `MERGED_AT_138` before `CLOSED_AT_123` (D-03).
 
 ## Environment Availability
 
