@@ -5,10 +5,10 @@ milestone_name: Toolchain and dependency-update repair
 current_phase: 68
 current_phase_name: Documentation Follow-Through — `CLAUDE.md`, `tox.ini`, `flake.nix`
 status: planning
-stopped_at: Phase 67 complete, ready to plan Phase 68
+stopped_at: Phase 68 context gathered
 last_updated: "2026-09-12T14:15:16.225Z"
 last_activity: 2026-09-12
-last_activity_desc: Phase 67 complete, transitioned to Phase 68
+last_activity_desc: Phase 68 context gathered
 state_head: 07d72ca79f4ac559b8dd71178dd4986314bc5fa7
 progress:
   total_phases: 6
@@ -160,8 +160,8 @@ land here.
 
 Phase: 68 — Documentation Follow-Through — `CLAUDE.md`, `tox.ini`, `flake.nix`
 Plan: Not started
-Status: Ready to plan
-Last activity: 2026-09-12 — Phase 67 complete, transitioned to Phase 68
+Status: Ready to plan (context gathered — `68-CONTEXT.md`, D-01..D-16; ROADMAP SC#1 carries an owner-approved AMENDED block)
+Last activity: 2026-09-12 — Phase 68 context gathered
 
 ## Active Milestone (v0.9.3 — Toolchain and dependency-update repair)
 
