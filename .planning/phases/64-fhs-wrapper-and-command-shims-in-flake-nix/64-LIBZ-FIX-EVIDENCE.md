@@ -511,3 +511,242 @@ under both the bare pytest shim and `tox -e py312`.
 
 No forced package and no baseline divergence occurred in this task; `flake.nix` is unchanged from
 Task 1's edit (still exactly the one `targetPkgs = p: [ p.zlib ];` line).
+
+## NIX-06 — final flake, all four systems
+
+Run on the FINAL `flake.nix` (Task 2 forced no package, so this is identical content to Task 1's
+edit):
+
+```
+$ nix flake check --all-systems --no-build
+evaluating flake...
+checking flake output 'devShells'...
+checking derivation devShells.x86_64-linux.default...
+derivation evaluated to /nix/store/jnbia2810h255l78mn8k26sic5xqvb9p-nix-shell.drv
+checking derivation devShells.aarch64-linux.default...
+derivation evaluated to /nix/store/8qqw29d5k2jp4w9pcc4zyhk418fmdv4m-nix-shell.drv
+checking derivation devShells.x86_64-darwin.default...
+evaluation warning: Nixpkgs 26.05 will be the last release to support x86_64-darwin; ...
+derivation evaluated to /nix/store/fclfls55m9lp06679x7zrw0qzjya834j-nix-shell.drv
+checking derivation devShells.aarch64-darwin.default...
+derivation evaluated to /nix/store/2m6y6pshri0vyw3jb5agczjnz9a92sxc-nix-shell.drv
+all checks passed!
+$ echo "exit: $?"
+exit: 0
+
+$ nix flake show --all-systems
+git+file:///home/yuta/Documents/typsphinx/.claude/worktrees/agent-affb732be8707b0ce?ref=refs/heads/worktree-agent-affb732be8707b0ce&rev=1f9266a968bc94091377e9dea0f0c14681813f59
+└───devShells
+    ├───aarch64-darwin
+    │   └───default: development environment 'nix-shell'
+    ├───aarch64-linux
+    │   └───default: development environment 'nix-shell'
+    ├───x86_64-darwin
+    │   └───default: development environment 'nix-shell'
+    └───x86_64-linux
+        └───default: development environment 'nix-shell'
+```
+
+Final drvPaths:
+
+| System | drvPath | vs. carried-in / `PRE_X86_LINUX` |
+|--------|---------|-----------------------------------|
+| `x86_64-darwin` | `/nix/store/fclfls55m9lp06679x7zrw0qzjya834j-nix-shell.drv` | equal to the carried-in value — darwin unchanged |
+| `aarch64-darwin` | `/nix/store/2m6y6pshri0vyw3jb5agczjnz9a92sxc-nix-shell.drv` | equal to the carried-in value — darwin unchanged |
+| `x86_64-linux` | `/nix/store/jnbia2810h255l78mn8k26sic5xqvb9p-nix-shell.drv` | differs from `PRE_X86_LINUX: /nix/store/vd4rms2m5kvjaazd3i78049k0s9a21g0-nix-shell.drv` — the fix landed |
+| `aarch64-linux` (old → new) | `/nix/store/gm6k80436paqz5hbr66cph11mrfhlnid-nix-shell.drv` → `/nix/store/8qqw29d5k2jp4w9pcc4zyhk418fmdv4m-nix-shell.drv` | changed, as expected (Linux-only `targetPkgs` addition) |
+
+Both darwin drvPaths are byte-identical to their pre-edit and planning-time values — the NIX-06
+empty edge holds: the Linux-only `targetPkgs` addition is never evaluated on darwin, because
+`fhsRun` is reached only through the `isLinux` guard.
+
+```
+$ nix eval --json .#devShells.x86_64-linux.default.nativeBuildInputs --apply 'map (p: p.name)'
+["nodejs-24.16.0","pnpm-11.9.0","git-2.54.0","python3-3.13.13","uv","tox","ruff","black","mypy","pytest","sphinx-build"]
+
+$ nix eval --json .#devShells.x86_64-darwin.default.nativeBuildInputs --apply 'map (p: p.name)'
+["nodejs-24.16.0","pnpm-11.9.0","git-2.54.0","python3-3.13.13","uv-0.11.25"]
+
+$ nix eval --json .#devShells.aarch64-darwin.default.nativeBuildInputs --apply 'map (p: p.name)'
+["nodejs-24.16.0","pnpm-11.9.0","git-2.54.0","python3-3.13.13","uv-0.11.25"]
+```
+
+All three censuses match the stated arrays exactly, in order — the NIX-06 adjacency edge (the
+x86_64-linux census stays the same eleven names, one `uv`) and ordering edge (the darwin census
+stays `nodejs-24.16.0, pnpm-11.9.0, git-2.54.0, python3-3.13.13, uv-0.11.25`) both hold.
+
+```
+$ git diff --quiet 4e130c80 HEAD -- flake.lock; echo "exit=$?"
+exit=0
+```
+
+`flake.lock` is unchanged since `4e130c80`.
+
+**Darwin verification status, stated plainly:** darwin *evaluation* is proven here — both drvPaths
+and the census are byte-identical to the pre-edit baseline — but darwin *execution* (actually
+running `nix develop` or the shims on a darwin machine) is unverified by construction, per ROADMAP
+constraint 8. This repository has zero CI coverage for `nix`/`flake`, and no darwin machine is
+available to this phase or this plan.
+
+## NIX-07 carry-over
+
+For each of `uv tox ruff black mypy pytest sphinx-build`, OLD is this session's `command -v <name>`
+(unchanged since 64-01/64-03 — still `dgddrdfkvigqsv48k563szqc8w7xlw2g-typsphinx-fhs-run` embedded),
+NEW is `nix develop . --command bash -c 'command -v <name>'`:
+
+| Tool | OLD | NEW | Normalised diff |
+|------|-----|-----|-------------------|
+| `uv` | `/nix/store/f1y7m4b5vxrbwszkrni3yc2lv0x22zcj-uv/bin/uv` | `/nix/store/3vpzk25whpm7s8zq5flpk8gbpkggj9np-uv/bin/uv` | empty |
+| `tox` | `/nix/store/s7rlc9zr6p3c03b9498jabqwjrhp13qz-tox/bin/tox` | `/nix/store/r70g13f57bbrw66k56dlqk9bbbcpch33-tox/bin/tox` | empty |
+| `ruff` | `/nix/store/vp86ji36v1nyp4q8d85i49hpyz43zszq-ruff/bin/ruff` | `/nix/store/vxcr1f2x7ywkyvwli0sykhgwsmkg800k-ruff/bin/ruff` | empty |
+| `black` | `/nix/store/kl05v1f86vm0vwq00csz47rlbyxv1chg-black/bin/black` | `/nix/store/axxz4wqgrh8dwvv1qd3j3v9668qp8l4a-black/bin/black` | empty |
+| `mypy` | `/nix/store/4pwm7pb8jxk68wprgwicyc00mbn7vz4w-mypy/bin/mypy` | `/nix/store/4yaxrcdb3y2gwi9wjxpblikg3jypa9x1-mypy/bin/mypy` | empty |
+| `pytest` | `/nix/store/jmwmq21z24kqhbff4b3clpj4agixph5p-pytest/bin/pytest` | `/nix/store/7q7lwxpw3xlz4h5rwka4nq0rjk1191yh-pytest/bin/pytest` | empty |
+| `sphinx-build` | `/nix/store/0m5hj81l70ddxzkzjn643zyms08ccggm-sphinx-build/bin/sphinx-build` | `/nix/store/3w4dy4lickl14insmwl48fhxbq0vxi4s-sphinx-build/bin/sphinx-build` | empty |
+
+Each `diff` is taken after `sed -E 's#/nix/store/[a-z0-9]{32}-typsphinx-fhs-run#FHS#g'` on both
+bodies; all seven are empty, and every NEW path differs from its OLD path (a new derivation was
+built for each shim, since the embedded rootfs changed). This proves the D-01 roster, D-02's two
+legs and D-03's strict fragment are textually unchanged — the shipped shims are 64-03's shims
+modulo the rootfs path.
+
+```
+$ grep -o '/nix/store/[a-z0-9]*-uv-0\.11\.25/bin/uv' /nix/store/3vpzk25whpm7s8zq5flpk8gbpkggj9np-uv/bin/uv
+/nix/store/cgvijxnmydknslkl368k4j4j43akvl8b-uv-0.11.25/bin/uv
+```
+
+The `uv` shim's leg-2 path is unchanged: `/nix/store/cgvijxnmydknslkl368k4j4j43akvl8b-uv-0.11.25/bin/uv`.
+
+**New shim paths:**
+
+| Tool | New path |
+|------|----------|
+| `uv` | `/nix/store/3vpzk25whpm7s8zq5flpk8gbpkggj9np-uv/bin/uv` |
+| `tox` | `/nix/store/r70g13f57bbrw66k56dlqk9bbbcpch33-tox/bin/tox` |
+| `ruff` | `/nix/store/vxcr1f2x7ywkyvwli0sykhgwsmkg800k-ruff/bin/ruff` |
+| `black` | `/nix/store/axxz4wqgrh8dwvv1qd3j3v9668qp8l4a-black/bin/black` |
+| `mypy` | `/nix/store/4yaxrcdb3y2gwi9wjxpblikg3jypa9x1-mypy/bin/mypy` |
+| `pytest` | `/nix/store/7q7lwxpw3xlz4h5rwka4nq0rjk1191yh-pytest/bin/pytest` |
+| `sphinx-build` | `/nix/store/3w4dy4lickl14insmwl48fhxbq0vxi4s-sphinx-build/bin/sphinx-build` |
+
+Plan 64-06's head check compares the relaunched session's `command -v <tool>` against this table.
+No diff was non-empty, so the rename test is not re-run — the bodies 64-03's rename evidence
+exercised are the bodies that ship, modulo the rootfs path.
+
+## NIX-08 carry-over
+
+```
+$ diff <("$OLD_FHS" /bin/cat /etc/profile) <("$NEW_FHS" /bin/cat /etc/profile)
+$ echo "exit=$?"
+exit=0
+```
+
+Empty — `/etc/profile` inside the new rootfs is byte-identical to the old one.
+
+```
+$ VIRTUAL_ENV=/nix08-probe UV_PROJECT_ENVIRONMENT=/nix08-probe \
+    env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT "$NEW_FHS" /usr/bin/env \
+    | grep -cE '^(VIRTUAL_ENV|UV_PROJECT_ENVIRONMENT)='
+0
+```
+
+Zero lines — the D-06 `env -u` unsets survive into the new sandbox exactly as they did in the old
+one.
+
+Environment-name diff (host vs. inside the new sandbox, names only):
+
+- **Added (in sandbox, not host):** `ACLOCAL_PATH`, `GST_PLUGIN_SYSTEM_PATH_1_0`,
+  `NIX_CFLAGS_LINK`, `PKG_CONFIG_PATH`
+- **Removed (in host, not sandbox):** none (real) — a `comm` line naming `_` appeared, which is
+  bash's own last-executed-argument bookkeeping variable, not a real environment variable; the
+  carried-in evidence file flagged the identical noise class from its own trailing-blank-line
+  artifact.
+
+**Measured divergence from the carried-in five-name set, stated plainly:** the carried-in set also
+names `TZDIR` as added. In *this* execution context `TZDIR=/etc/zoneinfo` is already present on the
+**host** side (this agent's own shell environment sets it, unlike the maintainer's original
+interactive terminal session that produced `64-NIX08-ENV-EVIDENCE.md`, where the host had no
+`TZDIR`), so `TZDIR` does not appear as "added" here — it is present on both sides. This is an
+artifact of which host shell the measurement runs in, not a sandbox behaviour change: the four
+names that genuinely originate from the FHS wrapper's own closure (`ACLOCAL_PATH`,
+`GST_PLUGIN_SYSTEM_PATH_1_0`, `NIX_CFLAGS_LINK`, `PKG_CONFIG_PATH`) are unchanged from the carried-in
+measurement, and `removed` is empty in both runs.
+
+```
+$ echo "HOST HOME=$HOME LANG=$LANG"
+HOST HOME=/home/yuta LANG=ja_JP.UTF-8
+$ "$NEW_FHS" /bin/sh -c 'echo "SANDBOX HOME=$HOME LANG=$LANG"'
+SANDBOX HOME=/home/yuta LANG=ja_JP.UTF-8
+```
+
+`HOME` and `LANG` are identical host-side and inside the new sandbox — matching the old sandbox's
+measurement exactly. No other value is written here (T-64-10).
+
+**Why the four-cell locale matrix is not re-run:** the rootfs change adds files under `/usr/lib`
+only (the `zlib` symlinks) and `/etc/profile` is proven byte-identical above, so nothing on the
+locale-resolution path (`LANG`, `LOCALE_ARCHIVE`, `/etc/localtime`, `/etc/nsswitch.conf`) changed
+between the old and new sandbox.
+
+## REVIEW dispositions
+
+| Finding | Disposition | Reason |
+|---------|-------------|--------|
+| **CR-01** | Fixed | Task 1's `targetPkgs = p: [ p.zlib ];`. See the RED section (all three interpreter builds failed under the old rootfs), the BEFORE audit (`libz.so.1` present), the GREEN section (all three probes succeed under the new rootfs, the previously failing node passes), and the AFTER audit (`libz.so.1` absent). |
+| **WR-01** | Deferred | No gate in this plan failed on TLS, so D-07's own condition ("add `cacert` if a cold cache turns out to need TLS") did not fire: the `@preview` cache holds nine warm packages, and `docs-pdf` passed cleanly in both 64-01 and 64-02 against that warm cache. CONTEXT § Deferred Ideas explicitly routes cold-cache `docs-pdf` behaviour to record-only follow-up; that item stays outside this plan's scope fence (`flake.nix` and `64-LIBZ-FIX-EVIDENCE.md` only). |
+| **IN-01** | Not actioned | Info-level, no failing measurement: the shim walk's `dirname` call resolved correctly in every shim run across 64-01 through 64-03 and in this plan (Task 1's roster expansion, Task 2's sweep, Task 3's carry-over all ran the walk without incident). Declaring `pkgs.coreutils` in `packages` would also change the NIX-06 census this plan just re-proved unchanged. |
+| **IN-02** | Not actioned | Info-level, message-wording only. Rewording `venvShimOnStop` to distinguish the `.git`-found vs. hit-`/` stop conditions would change the text of all six strict shim bodies, which would invalidate this task's NIX-07 carry-over (the seven empty normalised diffs) and force the 64-03 rename test to be re-run from scratch. No failing gate forces the change. |
+
+## No-dispatch record
+
+```
+$ grep -rliE 'nix|flake' .github/workflows/
+$ echo "exit: $?"
+exit: 1
+```
+
+Empty output, exit 1 — no workflow file references `nix` or `flake`. CI never evaluates
+`flake.nix`, so this plan involves no push and no workflow dispatch, and run `34618719267`
+(`64-CI-EVIDENCE.md`) remains the pre-revert CI baseline Phase 65 compares against.
+
+## Scope record
+
+```
+$ git diff --name-only 4e130c80 HEAD
+.planning/ROADMAP.md
+.planning/STATE.md
+.planning/phases/64-fhs-wrapper-and-command-shims-in-flake-nix/64-05-PLAN.md
+.planning/phases/64-fhs-wrapper-and-command-shims-in-flake-nix/64-06-PLAN.md
+.planning/phases/64-fhs-wrapper-and-command-shims-in-flake-nix/64-LIBZ-DIAGNOSIS.md
+.planning/phases/64-fhs-wrapper-and-command-shims-in-flake-nix/64-LIBZ-FIX-EVIDENCE.md
+.planning/phases/64-fhs-wrapper-and-command-shims-in-flake-nix/64-VALIDATION.md
+.planning/phases/64-fhs-wrapper-and-command-shims-in-flake-nix/COVERAGE.md
+flake.nix
+```
+
+Apart from this phase's own planning files, only `flake.nix` and this evidence file are listed —
+exactly the plan's declared `files_modified`.
+
+## Session relaunch required before wave 5
+
+This session predates the edit. Its shims embed the old rootfs
+(`/nix/store/dgddrdfkvigqsv48k563szqc8w7xlw2g-typsphinx-fhs-run`), so every shim observation above
+that runs after the edit is a `nix develop . --command …` **DIAGNOSTIC**, not a genuine
+session-inherited observation. Nothing in this file closes NIX-02, NIX-03 or NIX-04.
+
+```
+New fhs-run: /nix/store/99fm4lqkp4kab20d3blfbwajnprmlbfx-typsphinx-fhs-run
+```
+
+After this plan merges into the main checkout at `/home/yuta/Documents/typsphinx`, the maintainer:
+
+1. Opens a terminal in `/home/yuta/Documents/typsphinx` so direnv re-evaluates the flake.
+2. Confirms the discriminator: set `FHS` to the `typsphinx-fhs-run` path grepped from `command -v
+   ruff`'s body, and check that `"$FHS" /bin/sh -c 'test -e /usr/lib/libz.so.1'` exits 0. This must
+   match the `New fhs-run:` line above. In the pre-relaunch session it exits non-zero. "The shim
+   contains `typsphinx-fhs-run`" is true in both sessions and discriminates nothing — the store hash
+   after `typsphinx-fhs-run` and the `libz.so.1` presence test are what tell the two sessions apart.
+3. Launches Claude Code from that same shell and runs `/gsd-execute-phase 64 --gaps-only`. Plan
+   64-06's precondition halts otherwise.
+
+No per-worktree `direnv allow` and no `nix develop --command` wrapper around the provisioning line
+is involved anywhere in this procedure (D-09).
