@@ -595,7 +595,25 @@ closing anything.**
      > `REQUIREMENTS.md` DEP-05 is unchanged (its text is correct). See `67-CONTEXT.md` D-06. The
      > verifier reports the literal and the amended reading separately.
 
-**Plans**: TBD
+**Plans**: 5 plans (4 waves; 67-02 and 67-03 run in parallel in wave 2; 67-02, 67-03 and 67-04 each carry one owner checkpoint:decision immediately before a one-way GitHub action)
+
+Plans:
+**Wave 1**
+
+- [ ] 67-01-PLAN.md — D-01/D-02: DEP-02 read from #138's own CI run `34689041575` (job census, check runs, per-step reads of every Lint/Type/Test job), Phase 66 snapshots cited, #123/#128 re-snapshotted read-only after the proof
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 67-02-PLAN.md — D-03/D-04: #138 pre-merge gate and SC#3 merits (dev-extra scope, FHS `ruff check .` of the milestone tip, REL-12 simulation with a lock check, NIX-01 interaction), owner go-ahead, two-parent merge into `main`; the milestone branch does not absorb `main`
+- [ ] 67-03-PLAN.md — D-05: Sphinx's `docutils` cap re-measured on PyPI (HALT if relaxed), #128 merits and whole-thread read, owner-approved comment, cap re-checked immediately before closing #128
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 67-04-PLAN.md — D-03: #123 closed as superseded by the merged #138, after its thread is read and the owner approves the exact comment
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 67-05-PLAN.md — D-06: SC#4 grouped-update coverage gap in its literal and amended readings, ordering proof, deferred-PR and todo checks, DEP-02/DEP-05 closure table
 
 **UI hint**: no
 
