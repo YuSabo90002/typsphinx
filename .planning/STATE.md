@@ -5,15 +5,15 @@ milestone_name: Toolchain and dependency-update repair
 current_phase: 67
 current_phase_name: "Proof on a Real Dependabot PR, Then Disposal of #123 and #128"
 status: planning
-stopped_at: Phase 67 context gathered
-last_updated: "2026-09-12T12:05:41.975Z"
+stopped_at: Phase 67 planned (5 plans, 4 waves)
+last_updated: "2026-09-12T13:07:20.000Z"
 last_activity: 2026-09-12
-last_activity_desc: Phase 67 context gathered (67-CONTEXT.md D-01..D-06)
-state_head: 7801f0653c2289e846c90c082f6452bf592e1713
+last_activity_desc: Phase 67 planned — 5 plans in 4 waves (67-02 and 67-03 parallel in wave 2; 67-02, 67-03 and 67-04 each carry one owner checkpoint:decision); plan-checker passed after 1 revision, decision coverage 6/6
+state_head: 47d8a2e1ad1c502ca3d344524836333ad57c1df8
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 12
+  total_plans: 17
   completed_plans: 12
   percent: 50
 ---
@@ -159,9 +159,9 @@ land here.
 ## Current Position
 
 Phase: 67 — Proof on a Real Dependabot PR, Then Disposal of #123 and #128
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-09-12 — Phase 67 context gathered (`67-CONTEXT.md` D-01..D-06; SC#4 premise AMENDED in ROADMAP/PROJECT)
+Plan: 0 of 5 (67-01..67-05, waves 1–4; 67-02 has the D-03 merge checkpoint, 67-03 and 67-04 the D-05 / D-03 close-comment checkpoints)
+Status: Ready to execute
+Last activity: 2026-09-12 — Phase 67 planned (research, validation strategy, pattern map, 5 plans; plan-checker passed after 1 revision)
 
 ## Active Milestone (v0.9.3 — Toolchain and dependency-update repair)
 
