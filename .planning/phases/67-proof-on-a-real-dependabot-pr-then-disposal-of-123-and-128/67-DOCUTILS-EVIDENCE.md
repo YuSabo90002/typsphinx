@@ -435,3 +435,164 @@ APPROVED_COMMENT_128 = Sphinx 9.1.0 caps docutils<0.23,>=0.21, so this range can
 ```
 
 This is committed before posting, so the text is on record first.
+
+## Idempotency check (DEP-05)
+
+```
+$ gh api user --jq .login
+YuSabo90002
+```
+
+```
+ME = YuSabo90002
+```
+
+```
+$ gh pr view 128 --json state,closedAt,comments --jq '{state, closedAt, mine: [.comments[] | select(.author.login == "YuSabo90002") | .body]}'
+{"state":"OPEN","closedAt":null,"mine":[]}
+```
+
+`#128` is OPEN with zero owner-authored comments — the "Otherwise" branch.
+
+```
+ALREADY_CLOSED_128 = no
+```
+
+## Pre-close PyPI re-measurement
+
+Repeats the Task 1 latest-release and in-range evaluation immediately before posting (Pitfall 4).
+
+```
+$ date -u +%FT%TZ
+2026-09-12T13:37:16Z
+```
+
+```
+PRECLOSE_PYPI_AT = 2026-09-12T13:37:16Z
+```
+
+```
+$ curl -fsS https://pypi.org/pypi/sphinx/json | uv run python -c 'import json,sys; from packaging.requirements import Requirement; i=json.load(sys.stdin)["info"]; rs=[Requirement(x) for x in i["requires_dist"] if Requirement(x).name.lower()=="docutils"]; print(i["version"], "admits" if any(r.specifier.contains("0.23") for r in rs) else "excludes")'
+9.1.0 excludes
+```
+
+```
+$ uv run python -c "
+import json
+with open(sphinx_preclose_json) as f:
+    d = json.load(f)
+from packaging.version import Version, InvalidVersion
+from packaging.specifiers import SpecifierSet
+spec = SpecifierSet('>=9.1,<10')
+in_range = []
+for v in d['releases'].keys():
+    try:
+        pv = Version(v)
+    except InvalidVersion:
+        continue
+    if pv.is_prerelease:
+        continue
+    if pv in spec:
+        in_range.append(pv)
+in_range.sort()
+print('PRECLOSE_SPHINX_IN_RANGE =', ' '.join(str(v) for v in in_range))
+"
+PRECLOSE_SPHINX_IN_RANGE = 9.1.0
+```
+
+Still only `9.1.0` in range, and it still excludes `0.23`.
+
+```
+D05_CAP_RELAXED_PRECLOSE = no
+```
+
+## #128 re-assertion
+
+```
+$ gh pr view 128 --json state,headRefOid,comments
+{"comments":[{"id":"IC_kwDOQBRmjM8AAAABM56Sgw","author":{"login":"dependabot"}, ... "createdAt":"2026-08-03T00:06:15Z", ...}],"headRefOid":"000859f7e07167a8be8b6d3beceea44bca26fa4f","state":"OPEN"}
+```
+
+OPEN, at `HEAD128` (`000859f7e07167a8be8b6d3beceea44bca26fa4f`), unchanged. The only comment is
+still dependabot's own automated notice created `2026-08-03T00:06:15Z`, well before
+`PYPI_READ_AT`. No new comment by any non-dependabot author since the draft.
+
+## Close (#128)
+
+```
+$ date -u +%FT%TZ
+2026-09-12T13:37:36Z
+```
+
+The sandbox refused a command that combined `gh` with shell command substitution (`$(sed …)` /
+`$(cat …)`) as "too complex to verify it stays inside the worktree." Per RESEARCH A2's documented
+fallback (used here not because `--comment` is unsupported — it is — but because the sandbox
+blocked the substitution form of invoking it), the approved text was extracted from
+`APPROVED_COMMENT_128` to a plain file with `sed` (no `gh`/`git` in that command), then posted via
+`gh pr comment --body-file`, which reads the file directly with no shell substitution and no
+retyping:
+
+```
+$ sed -n 's/^APPROVED_COMMENT_128 = //p' .planning/phases/67-proof-on-a-real-dependabot-pr-then-disposal-of-123-and-128/67-DOCUTILS-EVIDENCE.md | head -n 1 > /tmp/.../approved_comment_128.txt
+
+$ cat -A /tmp/.../approved_comment_128.txt
+Sphinx 9.1.0 caps docutils<0.23,>=0.21, so this range can't be exercised yet (uv resolution fails). Closing; dependabot will re-propose once Sphinx relaxes the cap.$
+
+$ gh pr comment 128 --body-file /tmp/.../approved_comment_128.txt
+https://github.com/YuSabo90002/typsphinx/pull/128#issuecomment-5646230678
+
+$ gh pr close 128
+✓ Closed pull request YuSabo90002/typsphinx#128 (chore(deps): update docutils requirement from <0.23,>=0.21 to >=0.21,<0.24 in the sphinx-typst-stack group across 1 directory)
+```
+
+No `--delete-branch` was passed. The scratch file was removed immediately after use.
+
+## Post-close record
+
+```
+$ gh pr view 128 --json state,closed,closedAt,mergedAt,comments
+{"closed":true,"closedAt":"2026-09-12T13:38:31Z","comments":[{"id":"IC_kwDOQBRmjM8AAAABM56Sgw","author":{"login":"dependabot"}, ... },{"id":"IC_kwDOQBRmjM8AAAABUIqklg","author":{"login":"YuSabo90002"},"authorAssociation":"OWNER","body":"Sphinx 9.1.0 caps docutils<0.23,>=0.21, so this range can't be exercised yet (uv resolution fails). Closing; dependabot will re-propose once Sphinx relaxes the cap.\n","createdAt":"2026-09-12T13:38:27Z","url":"https://github.com/YuSabo90002/typsphinx/pull/128#issuecomment-5646230678", ...},{"id":"IC_kwDOQBRmjM8AAAABUIqmUg","author":{"login":"dependabot"}, "body":"This pull request was built based on a group rule. Closing it will not ignore any of these versions in future pull requests. ...", "createdAt":"2026-09-12T13:38:32Z", ...}],"mergedAt":null,"state":"CLOSED"}
+```
+
+```
+CLOSED_AT_128 = 2026-09-12T13:38:31Z
+```
+
+```
+$ gh pr view 128 --json comments -q '[.comments[] | select(.author.login == "YuSabo90002")] | length'
+1
+
+$ gh pr view 128 --json comments -q '.comments[] | select(.author.login == "YuSabo90002") | .body'
+Sphinx 9.1.0 caps docutils<0.23,>=0.21, so this range can't be exercised yet (uv resolution fails). Closing; dependabot will re-propose once Sphinx relaxes the cap.
+```
+
+Exactly one owner-authored comment, its body equal to `APPROVED_COMMENT_128`. `mergedAt` is `null`
+— `#128` is CLOSED, not merged. A second, automated comment from `dependabot` (its own group-rule
+notice) was posted by GitHub after the close and is not an owner comment.
+
+```
+CLOSE_COMMENT_URL_128 = https://github.com/YuSabo90002/typsphinx/pull/128#issuecomment-5646230678
+```
+
+```
+$ gh api --paginate repos/YuSabo90002/typsphinx/issues/128/events --jq '.[] | select(.event == "closed") | [.actor.login, .created_at] | @tsv'
+YuSabo90002	2026-09-12T13:38:31Z
+```
+
+The last (only) `closed` event's actor is `YuSabo90002` — `ME`, the owner account.
+
+## #128 disposition (D-05)
+
+The decision is closed-with-reason, taken on the merits: Sphinx `9.1.0`'s measured
+`docutils<0.23,>=0.21` cap (re-measured at Task 1 and again immediately before posting, both
+`D05_CAP_RELAXED* = no`), the `uv` updater's own `dependency_file_not_resolvable` resolution
+failure on this exact bump, and the `pyproject.toml`-only shape that would reintroduce the
+`--locked` failure on `main` (already observed on `#128`'s own CI run `33343567900`). It was not
+taken on CI state — `#128`'s CI was red at the install step throughout, and that redness is not
+what drove the close.
+
+The PR was a `sphinx-typst-stack` group PR (`GROUPED_128 = yes`); this observation is carried to
+`67-05`'s D-06 write-up on the milestone's grouped-update coverage gap.
+
+A future docutils `0.23` adoption is its own work, to be triggered by dependabot re-proposing the
+bump once Sphinx relaxes the cap — a deferred idea, not undertaken in this phase.
