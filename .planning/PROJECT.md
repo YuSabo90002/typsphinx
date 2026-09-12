@@ -2119,6 +2119,8 @@ commit dump rather than the curated CHANGELOG section (todo filed, D-11).
 
 - ✓ Dependabot's `uv` updates are proven on a real dependabot PR, and the two stale `pip` bumps were disposed of on their merits — v0.9.3 Phase 67 (DEP-02, DEP-05): DEP-02 was read, with no rerun and no `@dependabot` command, from #138's own CI run `34689041575` (attempt 1, all 12 jobs `success`; on all eight Lint / Type / Test lanes `Install dependencies` — `uv sync --extra dev --locked` — succeeded and the following tox step ran to a conclusion). #138 (`ruff` 0.15.20 → 0.16.6, `pyproject.toml` + `uv.lock` in one dependabot commit) was merged into `main` on the owner's go-ahead as two-parent `cf3305ce`, with the milestone branch deliberately not absorbing it until REL-12 (D-04); #123 was then closed as superseded by it, and #128 (`docutils <0.24`, a `sphinx-typst-stack` group PR) was closed with a reason, because Sphinx 9.1.0 still caps `docutils<0.23` (re-measured immediately before posting) and the `uv` updater's own attempt failed with `dependency_file_not_resolvable`. Both public comments carry exactly the owner-approved text. The grouped-`uv`-update coverage gap is recorded rather than passed over (SC#4, literal and amended readings) — Validated in Phase 67
 
+- ✓ The three documentation surfaces describe the mechanism that actually landed — v0.9.3 Phase 68 (DOC-19, DOC-20, DOC-21): `CLAUDE.md` names the `tox-uv~=1.35` pin (with `tox-uv-bare` kept only as history) and gained a `### NixOS development shell` subsection (the seven FHS shims, the launch prerequisite and `grep -q typsphinx-fhs-run "$(command -v uv)"` check, no manual step, locale and interpreter cautions) plus a boundary paragraph above the byte-identical worktree provisioning recipe; `tox.ini`'s `requires` comment states the landed pin, the ini-parser `~=` constraint in full and why `tox-uv` is safe now; `flake.nix` gained header notes (why `mkShell` stays, the two falsified alternatives, namespace inheritance, darwin unverified by construction) with all four devShell drvPaths byte-identical. SC#1 was closed on its owner-approved AMENDED reading (worktree executors depend on the inherited shims); the literal reading is PARTIAL by design. 25 surviving `tox-uv-bare` hits were classified 14 historical / 11 test-named / 0 presented as current.
+
 ### Active
 
 <!-- Cleared 2026-08-31 at the v0.9.2 close. `.planning/REQUIREMENTS.md` is the authoritative,
@@ -2139,7 +2141,7 @@ continues at **Phase 64**. Headline commitments below; the REQ-ID'd list is
       2026-09-02 from a custom `uv lock` regeneration workflow — see the Current Milestone section's
       AMENDED block.)
 - [x] #123 and #128 disposed of on their merits, once the install step is observed passing.
-- [ ] `CLAUDE.md` / `tox.ini` / `flake.nix` documentation brought in line with the new mechanism.
+- [x] `CLAUDE.md` / `tox.ini` / `flake.nix` documentation brought in line with the new mechanism.
 
 Not published: no tag, no PyPI upload, no GitHub Release, `pyproject.toml` stays at `0.9.2`. A PR to
 `main` is opened and merged.
@@ -2481,6 +2483,8 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
+*Last updated: 2026-09-13 — **Phase 68 (Documentation Follow-Through — `CLAUDE.md`, `tox.ini`, `flake.nix`) complete and verified 9/9**, 4 plans in 2 waves (three parallel doc edits in isolated worktrees, then a merged-tree closure plan). DOC-19..DOC-21 complete; code review 0 critical / 1 warning / 2 info (advisory, not fixed in-phase); post-merge full suite 1547 passed / 1 skipped. Next: Phase 69.*
+
 *Last updated: 2026-09-12 — **Phase 67 (Proof on a Real Dependabot PR, Then Disposal of #123 and #128) complete and verified 7/7**, 5 plans in 4 waves, three of them behind owner `checkpoint:decision`s (merge #138, close #128, close #123). DEP-02 and DEP-05 complete; code review had no source file in scope (evidence-only phase). The one repository change the phase caused is on `main` (`cf3305ce`, #138); the milestone branch carries evidence only and reaches `main` at REL-12. The Current Milestone section's claim that #123/#128 "will need closing so the `uv` ecosystem opens fresh ones" is superseded by measurement (#138 opened while #123 was open) and is left for the milestone-close update, as `67-CONTEXT.md` recorded.*
 
 *Last updated: 2026-09-12 — **Phase 65 (`tox-uv-bare` → `tox-uv` Revert, on the uv Path tox Actually Resolves) complete and verified 8/8**, 2 plans in 2 waves. TOX-01..TOX-04 complete; code review 0 critical / 0 warning / 2 info. SC#3 was closed under both its literal and its AMENDED reading (D-01): the bundled branch and the Phase 64 shim's first leg name one file, `.venv/bin/uv`. The maintainer machine now runs the lock-pinned `uv 0.12.13` after the orchestrator's main-checkout re-sync (D-05); the shim's nixpkgs leg stays as the bootstrap. `tox.ini:4-10`, `CLAUDE.md` and `flake.nix` still narrate `tox-uv-bare` until Phase 68 (D-06). Next: Phase 66 (Track B).*
