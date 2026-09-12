@@ -568,3 +568,11 @@ SC#1's literal reading is reported separately above (`## SC#1 literal reading`,
 own verdict is distinct from `SC1_AMENDED_VERDICT = MET`, which is what DOC-19's closure
 above relies on, per D-01 (Phase 65 D-01 precedent: literal and amended readings are never
 folded into one verdict).
+
+## Orchestrator addendum — post-verification WR-01 fix (2026-09-13)
+
+Added after phase verification; the measurements above are left as recorded (they were correct for the tree they measured). Code review WR-01 was fixed by `98b05fb1` (`fix(68): WR-01 add toolchain-pin sync hazard callout to CLAUDE.md`), a one-line CLAUDE.md addition. Re-measured on the main checkout after the fix:
+
+- `git grep -n tox-uv-bare -- ':!.planning' ':!uv.lock' | wc -l` → 26 (was 25). The one new hit is `CLAUDE.md:78`, a maintenance instruction that names `tox-uv-bare` only as the contrasted value ("The `tox-uv` (vs. `tox-uv-bare`) rationale is restated in multiple places that must move together") — class C1, not C3. C3 stays 0; SC#2 stays MET.
+- `awk '/^When operating inside a worktree, provision/{f=1} f' CLAUDE.md | sha256sum` → `2c39540d38d94116d19ee5c2552cc5c105b0ef1228932713c082cdb8041a9b9a` (unchanged); `grep -c '^## Conventions & gotchas$' CLAUDE.md` → 1.
+- `git diff --stat f7cbf64a 98b05fb1` → `CLAUDE.md | 1 +` only. `uv run pytest tests/test_toolchain_config_gate.py -q` → 4 passed.
