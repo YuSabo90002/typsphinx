@@ -299,9 +299,10 @@ def test_dev_extra_pins_tox_uv_not_tox_uv_bare():
     transitive presence is expected and is not what this gate forbids; it forbids the
     `dev` extra naming `tox-uv-bare` directly as a literal entry.
 
-    CLAUDE.md's own "Conventions & gotchas" sentence still names `tox-uv-bare` as
-    deliberate — that sentence goes stale as of this revert and is rewritten in
-    Phase 68 (DOC-19/DOC-20), not here (D-06).
+    CLAUDE.md's own "Conventions & gotchas" sentence named `tox-uv-bare` as
+    deliberate when Phase 65's revert landed. Phase 65 left that rewrite for
+    Phase 68; Phase 68 (DOC-19/DOC-20) rewrote it to describe the
+    `tox-uv~=1.35` pin, keeping `tox-uv-bare` only as history.
 
     See
     `.planning/phases/65-tox-uv-bare-tox-uv-revert-on-the-uv-path-tox-actually-resolves/65-REVERT-EVIDENCE.md`
@@ -364,8 +365,8 @@ def test_dev_extra_pins_tox_uv_not_tox_uv_bare():
         "transitive dependency in uv.lock, which is expected and not what this assertion "
         "forbids -- it forbids the dev extra naming tox-uv-bare as a literal entry in "
         "pyproject.toml. See 65-REVERT-EVIDENCE.md for the lock regeneration proof "
-        "(TOX-01, D-04) and CLAUDE.md 'Conventions & gotchas', which still names "
-        "tox-uv-bare as deliberate until Phase 68 (DOC-19/DOC-20) rewrites it."
+        "(TOX-01, D-04). CLAUDE.md 'Conventions & gotchas' was rewritten in "
+        "Phase 68 (DOC-19/DOC-20) to describe the tox-uv pin."
     )
 
 
