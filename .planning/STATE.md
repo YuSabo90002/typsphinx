@@ -2,20 +2,20 @@
 gsd_state_version: 1.0
 milestone: v0.9.3
 milestone_name: Toolchain and dependency-update repair
-current_phase: 64
-current_phase_name: FHS Wrapper and Command Shims in `flake.nix`
-status: executing
-stopped_at: Phase 64 wave 5 (64-06, genuine-shape re-measurement) merged; NIX-01..NIX-05 re-measured MET in the relaunched session; phase verification next
-last_updated: "2026-09-12T05:45:00.000Z"
+current_phase: 65
+current_phase_name: "`tox-uv-bare` → `tox-uv` Revert, on the uv Path tox Actually Resolves"
+status: planning
+stopped_at: Phase 64 complete, ready to plan Phase 65
+last_updated: "2026-09-12T05:06:09.103Z"
 last_activity: 2026-09-12
-last_activity_desc: 64-06 merged (cf1f516e) in the relaunched session (libz discriminator exit 0 on 99fm4lqk…) — genuine D-09 shape: ruff 0.15.20, full suite 1543 passed / 5 skipped, seven tox environments OK cold, docs-pdf %PDF 2776960 B, GENUINE residual without libz.so.1; post-merge gate on the main tree 1547 passed / 1 skipped
-state_head: cf1f516e
+last_activity_desc: Phase 64 complete, transitioned to Phase 65
+state_head: f70cca55aa5c731ef5a18cd24683fcef1c786c7c
 progress:
   total_phases: 6
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 6
   completed_plans: 6
-  percent: 0
+  percent: 17
 ---
 
 # Project State
@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-02 — v0.9.3 milestone scoped)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** v0.9.3 Toolchain and dependency-update repair — **roadmapped, Phases 64–69, 21/21 v1 requirements mapped**. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`), but a PR to `main` is opened and merged at `/gsd-complete-milestone`. CI is deliberately unchanged. No change under `typsphinx/`. **Phase 64 is executing**: wave 1 (64-01) is merged and Claude Code has been relaunched from a direnv-loaded shell in the main checkout; wave 2 (64-02 + 64-03) is merged, but 64-02 found NIX-02/NIX-03/NIX-04 unmet (`libz.so.1` missing inside the FHS sandbox for uv-managed interpreters), wave 3 (64-04: push + one CI run) is merged, verification found gaps_found (6/9), and gap-closure plans 64-05 (wave 4, `flake.nix` zlib fix) and 64-06 (wave 5, re-measurement after another Claude Code relaunch) were planned; 64-05 is merged (`94b99bd1`), the relaunch is done, and 64-06 is merged (`cf1f516e`) with NIX-01..NIX-05 re-measured MET; phase verification is next (Track B, `/gsd-plan-phase 66`, is independent and can run in parallel).
+**Current focus:** v0.9.3 Toolchain and dependency-update repair — **roadmapped, Phases 64–69, 21/21 v1 requirements mapped**. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`), but a PR to `main` is opened and merged at `/gsd-complete-milestone`. CI is deliberately unchanged. No change under `typsphinx/`. **Phase 64 is complete** (2026-09-12, re-verified 9/9): wave 1 (64-01) is merged and Claude Code has been relaunched from a direnv-loaded shell in the main checkout; wave 2 (64-02 + 64-03) is merged, but 64-02 found NIX-02/NIX-03/NIX-04 unmet (`libz.so.1` missing inside the FHS sandbox for uv-managed interpreters), wave 3 (64-04: push + one CI run) is merged, verification found gaps_found (6/9), and gap-closure plans 64-05 (wave 4, `flake.nix` zlib fix) and 64-06 (wave 5, re-measurement after another Claude Code relaunch) were planned; 64-05 is merged (`94b99bd1`), the relaunch is done, and 64-06 is merged (`cf1f516e`) with NIX-01..NIX-05 re-measured MET, and re-verification passed 9/9 with NIX-01..NIX-08 complete. Next: Phase 65 (`/gsd-plan-phase 65`); Track B (`/gsd-plan-phase 66`) is independent and can run in parallel.
 
 ## Shipped Milestone (v0.9.2 — archived, PUBLISHED)
 
@@ -158,11 +158,10 @@ land here.
 
 ## Current Position
 
-Phase: 64 — FHS Wrapper and Command Shims in `flake.nix` (all 5 waves executed; phase verification next)
-Plan: 6 of 6 complete (waves: 64-01 ✓ → relaunch Claude Code ✓ → 64-02 ✓ (Self-Check FAILED) + 64-03 ✓ → 64-04 ✓ → 64-05 ✓ → relaunch Claude Code ✓ → 64-06 ✓)
-Status: Wave 5 done — Claude Code relaunched from a direnv-loaded shell (libz discriminator exit 0: the `ruff` shim embeds `99fm4lqk…-typsphinx-fhs-run`, matching `64-LIBZ-FIX-EVIDENCE.md:737`; all seven shims equal its `New shim paths` table); 64-06 merged (`cf1f516e`) with `64-GAP-REMEASURE-EVIDENCE.md` closing NIX-01..NIX-05 MET in the genuine D-09 shape; post-merge gate on the main tree 1547 passed / 1 skipped. Next: phase verification (re-verify of the 6/9 gaps_found report)
-Last activity: 2026-09-12 — 64-06 executed and merged; its executor left REQUIREMENTS.md untouched per `4e130c80`'s rule
-
+Phase: 65 — `tox-uv-bare` → `tox-uv` Revert, on the uv Path tox Actually Resolves
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-09-12 — Phase 64 complete, transitioned to Phase 65
 
 ## Active Milestone (v0.9.3 — Toolchain and dependency-update repair)
 
@@ -1188,8 +1187,8 @@ before Phase 63 is planned, not after.** It is the only record of the three publ
 v0.9.1 close did not exercise, written with `vX.Y.Z` placeholders so no dead tag name can be copied
 out of it, and Phase 63's SC#5 handoff checklist inherits directly from it.
 
-Last session: 2026-09-12T01:10:00.000Z
-Stopped at: Phase 64 wave 4 (64-05) merged; wave 5 (64-06) needs a Claude Code relaunch from a direnv-loaded shell, then `/gsd-execute-phase 64 --gaps-only`
+Last session: 2026-09-12T05:10:00.000Z
+Stopped at: Phase 64 complete, ready to plan Phase 65
 (Prior session: 2026-08-30T09:46:50.495Z — Phase 63 complete, UAT 25/25, v0.9.2 shipped 2026-08-31.)
 
 **Nothing is owed forward from a publish, because there was no publish.** The three standing publish

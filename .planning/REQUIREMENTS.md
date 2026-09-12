@@ -19,21 +19,21 @@ requirements. That carried-forward item is **DEP-01** here.
 
 ### NixOS execution (NIX)
 
-- [ ] **NIX-01**: `ruff check .` runs to completion on the maintainer's NixOS machine and reports
+- [x] **NIX-01**: `ruff check .` runs to completion on the maintainer's NixOS machine and reports
       **0.15.20** — the `uv.lock` version, not nixpkgs' 0.15.14
-- [ ] **NIX-02**: `tox -e lint`, `tox -e type`, `tox -e py312` and `tox -e py313` each run to
+- [x] **NIX-02**: `tox -e lint`, `tox -e type`, `tox -e py312` and `tox -e py313` each run to
       completion on that machine
-- [ ] **NIX-03**: `tox -e cov`, `tox -e docs-html` and `tox -e docs-pdf` each run to completion, with
+- [x] **NIX-03**: `tox -e cov`, `tox -e docs-html` and `tox -e docs-pdf` each run to completion, with
       `docs-pdf` producing a real PDF
-- [ ] **NIX-04**: the full test suite (1548 tests at milestone start) runs on that machine with no
+- [x] **NIX-04**: the full test suite (1548 tests at milestone start) runs on that machine with no
       environment-caused failures
-- [ ] **NIX-05**: an executor in a freshly created git worktree can run the documented provisioning
+- [x] **NIX-05**: an executor in a freshly created git worktree can run the documented provisioning
       line and then every gate, with no manual `ln -sf` or `patchelf` step anywhere
-- [ ] **NIX-06**: `flake.nix` evaluates successfully on all four declared systems, including the two
+- [x] **NIX-06**: `flake.nix` evaluates successfully on all four declared systems, including the two
       darwin ones
-- [ ] **NIX-07**: each shim resolves its target by absolute path and cannot recurse into itself,
+- [x] **NIX-07**: each shim resolves its target by absolute path and cannot recurse into itself,
       proven by a check that would catch bare-name resolution
-- [ ] **NIX-08**: the FHS sandbox's `$HOME`, `/etc` and locale behaviour is measured for this
+- [x] **NIX-08**: the FHS sandbox's `$HOME`, `/etc` and locale behaviour is measured for this
       project's actual invocation, and its effect on the project's known locale-dependent test class
       is recorded
 
@@ -124,14 +124,14 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| NIX-01 | Phase 64 | Pending |
-| NIX-02 | Phase 64 | Gaps Found |
-| NIX-03 | Phase 64 | Gaps Found |
-| NIX-04 | Phase 64 | Gaps Found |
-| NIX-05 | Phase 64 | Pending |
-| NIX-06 | Phase 64 | Pending |
-| NIX-07 | Phase 64 | Pending |
-| NIX-08 | Phase 64 | Pending |
+| NIX-01 | Phase 64 | Complete |
+| NIX-02 | Phase 64 | Complete |
+| NIX-03 | Phase 64 | Complete |
+| NIX-04 | Phase 64 | Complete |
+| NIX-05 | Phase 64 | Complete |
+| NIX-06 | Phase 64 | Complete |
+| NIX-07 | Phase 64 | Complete |
+| NIX-08 | Phase 64 | Complete |
 | TOX-01 | Phase 65 | Pending |
 | TOX-02 | Phase 65 | Pending |
 | TOX-03 | Phase 65 | Pending |
