@@ -685,7 +685,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 68-04-PLAN.md — D-15: repository-wide `tox-uv-bare` grep on the merged tree with every hit classified, SC#1 literal and amended readings, SC#3 with merged-tree drvPaths, cross-file consistency, full suite plus black and ruff, DOC-19..DOC-21 closure
+- [x] 68-04-PLAN.md — D-15: repository-wide `tox-uv-bare` grep on the merged tree with every hit classified, SC#1 literal and amended readings, SC#3 with merged-tree drvPaths, cross-file consistency, full suite plus black and ruff, DOC-19..DOC-21 closure
 
 **UI hint**: no
 
@@ -766,7 +766,7 @@ below tracks the active milestone only.
 | 65. `tox-uv-bare` → `tox-uv` Revert, on the uv Path tox Actually Resolves | v0.9.3 | 2/2 | Complete    | 2026-09-12 |
 | 66. `.github/dependabot.yml` — `pip` → `uv` Ecosystem | v0.9.3 | 4/4 | Complete    | 2026-09-12 |
 | 67. Proof on a Real Dependabot PR, Then Disposal of #123 and #128 | v0.9.3 | 5/5 | Complete    | 2026-09-12 |
-| 68. Documentation Follow-Through — `CLAUDE.md`, `tox.ini`, `flake.nix` | v0.9.3 | 3/4 | In Progress | - |
+| 68. Documentation Follow-Through — `CLAUDE.md`, `tox.ini`, `flake.nix` | v0.9.3 | 4/4 | In Progress | - |
 | 69. v0.9.3 Close Prep (prep-only, unpublished) | v0.9.3 | 0/? | Not started | - |
 
 ## Roadmap Evolution
