@@ -750,9 +750,9 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 69-03-PLAN.md — D-06: full suite twice (once under LC_ALL=C), black, mypy, ruff, the version-sync family, the changelog page gate with 0 skipped, both docs environments clean against the baseline
-- [ ] 69-04-PLAN.md — D-13/D-14: decoy re-check, fast-forward push of the canonical branch, one CI dispatch, 12-job census with both windows-latest and macos-latest lanes, ruff from Lint and Format Check
-- [ ] 69-05-PLAN.md — D-07/D-08/D-10: non-committing trial merge of origin/main, merged lock and merged-tree lint, main protection and merge-method census, dependabot PR census
+- [x] 69-03-PLAN.md — D-06: full suite twice (once under LC_ALL=C), black, mypy, ruff, the version-sync family, the changelog page gate with 0 skipped, both docs environments clean against the baseline
+- [x] 69-04-PLAN.md — D-13/D-14: decoy re-check, fast-forward push of the canonical branch, one CI dispatch, 12-job census with both windows-latest and macos-latest lanes, ruff from Lint and Format Check
+- [x] 69-05-PLAN.md — D-07/D-08/D-10: non-committing trial merge of origin/main, merged lock and merged-tree lint, main protection and merge-method census, dependabot PR census
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -787,7 +787,7 @@ below tracks the active milestone only.
 | 66. `.github/dependabot.yml` — `pip` → `uv` Ecosystem | v0.9.3 | 4/4 | Complete    | 2026-09-12 |
 | 67. Proof on a Real Dependabot PR, Then Disposal of #123 and #128 | v0.9.3 | 5/5 | Complete    | 2026-09-12 |
 | 68. Documentation Follow-Through — `CLAUDE.md`, `tox.ini`, `flake.nix` | v0.9.3 | 4/4 | Complete    | 2026-09-13 |
-| 69. v0.9.3 Close Prep (prep-only, unpublished) | v0.9.3 | 2/6 | In Progress | - |
+| 69. v0.9.3 Close Prep (prep-only, unpublished) | v0.9.3 | 5/6 | In Progress | - |
 
 ## Roadmap Evolution
 
