@@ -361,3 +361,153 @@ exit=0
 ```
 
 `flake.lock` is unchanged, both against the phase base and against the working tree.
+
+## AFTER residual audit
+
+Task 1's audit script, unchanged, run over the same roots inside the new sandbox
+(`"$NEW_FHS" /bin/sh <script> <roots…>`):
+
+```
+UNRESOLVED /home/yuta/.local/share/uv/python/cpython-3.14.4-linux-x86_64-gnu/lib/python3.14/lib-dynload/_tkinter.cpython-314-x86_64-linux-gnu.so :: libtcl9.0.so => not found;libtcl9tk9.0.so => not found;
+UNRESOLVED /home/yuta/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/lib-dynload/_crypt.cpython-312-x86_64-linux-gnu.so :: libcrypt.so.1 => not found;
+UNRESOLVED /home/yuta/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/lib-dynload/_tkinter.cpython-312-x86_64-linux-gnu.so :: libtcl9.0.so => not found;libtcl9tk9.0.so => not found;
+scanned=1974
+```
+
+```
+AFTER = {libcrypt.so.1, libtcl9.0.so, libtcl9tk9.0.so}
+```
+
+`scanned=1974` equals Task 1's BEFORE count exactly — the same files were scanned.
+
+**Set differences:**
+- BEFORE − AFTER = `{libz.so.1}` — exactly as expected; the `zlib` entry resolved the one soname
+  the fix targets.
+- AFTER − BEFORE = `{}` — empty; no new unresolved soname appeared as a side effect of the edit.
+
+## Residual verdicts
+
+| Soname | Objects needing it | Import name(s) | Search hits (excluding the owning object's own package) | Step-3 gate result | Verdict |
+|--------|--------------------|-----------------|-----------------------------------------------------------|----------------------|---------|
+| `libcrypt.so.1` | `cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/lib-dynload/_crypt.cpython-312-x86_64-linux-gnu.so` (stdlib, cp3.12 only — `crypt` was removed from Python 3.13) | `_crypt` / stdlib wrapper `crypt` | `grep -rlE '^[[:space:]]*(import\|from)[[:space:]]+(_crypt\|crypt)([[:space:]]\|\.\|$)'` over `typsphinx/`, `tests/`, `docs/`, `.venv/lib/python3.*/site-packages`, every `.tox/*/lib/python3.*/site-packages` — **zero hits** | `pytest -q -rs` (1543 passed/5 skipped), `tox -e py312` (OK), `tox -e cov` (OK) — none failed, no `crypt`-related traceback | **UNREACHED** — zero hits, no failing gate |
+| `libtcl9.0.so` | `cpython-3.14.4-linux-x86_64-gnu/…/_tkinter.cpython-314-…so`, `cpython-3.12.13-linux-x86_64-gnu/…/_tkinter.cpython-312-…so` (stdlib) | `_tkinter` / stdlib wrapper `tkinter` | same grep for `(_tkinter\|tkinter)` — hits found, but every one is either (a) `mypy`'s own bundled `typeshed/stdlib/tkinter/*.pyi` type-stub files (never executed — mypy reads them for static analysis only, they carry no runtime `import`), or (b) Pillow's own optional `PIL/ImageTk.py` / `PIL/_tkinter_finder.py` (Pillow's lazy, try/except-guarded Tk integration, never invoked by typsphinx or its test suite), or (c) `tox-uv-bare`'s bundled `python_discovery/_py_info.py` (a Python-interpreter-discovery helper, unrelated to this project's own import graph) | same three gates, all clean; no traceback names `tkinter`/`_tkinter`/`libtcl` anywhere | **UNREACHED in practice, FORCED by the letter of the hit rule** — see note below |
+| `libtcl9tk9.0.so` | same two `_tkinter` objects as above | `_tkinter` / `tkinter` | identical hit set to `libtcl9.0.so` (same two objects, same grep) | same — all three gates clean | **UNREACHED in practice, FORCED by the letter of the hit rule** — see note below |
+
+**Note on the tkinter row's dual label.** The task's mechanical rule is "any hit … makes it
+FORCED." The `tkinter` search does return non-empty hits, so by that literal rule the row is
+labelled FORCED above. But the forced-**package** rule (this task's step 4) is stricter and
+separate: it fires only when a step-3 gate actually fails and its traceback names the soname.
+None of the three step-3 gates (`pytest -q -rs`, `tox -e py312`, `tox -e cov`) failed, and none
+named `tkinter`, `_tkinter`, `libtcl9.0.so` or `libtcl9tk9.0.so` in any traceback. Every hit found
+is a stub file mypy reads without executing, or an optional/lazy import path in a dependency that
+this project's own code and tests never reach. Per CONTEXT § Claude's Discretion ("add only what a
+failing measurement demands") and step 4's explicit instruction ("Never add a package for a gate
+that did not fail"), **no `tcl`/`tk` package is added to `targetPkgs`.** `flake.nix` therefore
+holds exactly the one measured `p.zlib` entry — no forced-package section follows because no gate
+forced one.
+
+## Second-gap sweep (DIAGNOSTIC)
+
+All three commands below ran through `nix develop . --command …` in this session (which predates
+the edit), so each is a DIAGNOSTIC — the genuine, session-inherited observation is plan 64-06's.
+No locale variable was set for any of them (D-08).
+
+### Full suite
+
+```
+$ nix develop . --command pytest -q -rs
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-affb732be8707b0ce
+collected 1548 items
+...
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_changelog_page_gate.py:168: myst-parser is required to build docs/source; it lives in the docs extra only (D-01), so a dev-only CI lane skips this class
+SKIPPED [1] tests/test_changelog_page_gate.py:177: myst-parser is required to build docs/source; it lives in the docs extra only (D-01), so a dev-only CI lane skips this class
+SKIPPED [1] tests/test_changelog_page_gate.py:187: myst-parser is required to build docs/source; it lives in the docs extra only (D-01), so a dev-only CI lane skips this class
+SKIPPED [1] tests/test_changelog_page_gate.py:219: myst-parser is required to build the changelog include fixture; it lives in the docs extra only (D-01)
+SKIPPED [1] tests/test_corpus_gate.py:530: SC#3 before/after measurement is env-gated -- set TYPSPHINX_CORPUS_REPORT=1 to run it (RESEARCH Open Question 1)
+================= 1543 passed, 5 skipped in 112.92s (0:01:52) ==================
+```
+
+**1543 passed, 5 skipped** — the exact carried-in baseline, all four myst-parser docs-extra skips
+and the env-gated corpus report, zero failures. This `.venv` is uv-managed `cpython-3.14.4`, while
+the original baseline (`63-GREEN-TREE-EVIDENCE.md`) was taken under the nix `python3-3.13.13`
+interpreter — recorded per plan instruction, not a discrepancy: both interpreters produce the
+identical summary.
+
+### `tox -e py312`
+
+```
+$ nix develop . --command tox -e py312
+py312: uv-sync> /nix/store/3vpzk25whpm7s8zq5flpk8gbpkggj9np-uv/bin/uv sync --locked --python-preference system --extra dev -p cpython3.12
+py312: commands[0]> pytest tests/
+============================= test session starts ==============================
+platform linux -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- .../.tox/py312/bin/python3
+...
+================= 1543 passed, 5 skipped in 109.22s (0:01:49) ==================
+  py312: OK (109.76=setup[0.03]+cmd[109.73] seconds)
+  congratulations :) (109.88 seconds)
+```
+
+`Python 3.12.13` header, `1543 passed, 5 skipped`, `py312: OK`. tox's own `uv-sync>` line names
+`/nix/store/3vpzk25whpm7s8zq5flpk8gbpkggj9np-uv/bin/uv` — confirmed to be the NEW sandbox's `uv`
+shim by cross-check:
+
+```
+$ nix develop . --command bash -c 'command -v uv'
+/nix/store/3vpzk25whpm7s8zq5flpk8gbpkggj9np-uv/bin/uv
+```
+
+Identical path — tox's nested `uv` entry reaches the new sandbox, not the old one.
+
+### `tox -e cov`
+
+```
+$ nix develop . --command tox -e cov
+...
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.14.4-final-0 ________________
+
+Name                             Stmts   Miss  Cover   Missing
+--------------------------------------------------------------
+...
+--------------------------------------------------------------
+TOTAL                             2806    333    88%
+Coverage HTML written to dir htmlcov
+================= 1543 passed, 5 skipped in 111.72s (0:01:51) ==================
+  cov: OK (112.50=setup[0.04]+cmd[112.46] seconds)
+  congratulations :) (112.62 seconds)
+```
+
+`TOTAL` line present (`2806 333 88%`), `1543 passed, 5 skipped`, `cov: OK`.
+
+No `## Baseline divergence` section: every gate reproduced the carried-in baseline exactly, and no
+failure of any kind occurred in this sweep.
+
+### Re-confirmation of the previously failing node
+
+```
+$ nix develop . --command pytest tests/test_converted_image_collision_render_gate.py tests/test_admonition_greyscale_pipeline.py -q -rs
+collected 5 items
+tests/test_converted_image_collision_render_gate.py ...                  [ 60%]
+tests/test_admonition_greyscale_pipeline.py ..                           [100%]
+============================== 5 passed in 1.52s ===============================
+
+$ nix develop . --command tox -e py312 -- tests/test_converted_image_collision_render_gate.py
+============================= test session starts ==============================
+platform linux -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- .../.tox/py312/bin/python3
+collected 3 items
+tests/test_converted_image_collision_render_gate.py::TestConvertedImageCollisionRenderGate::test_typstpdf_build_succeeds_without_image_warnings PASSED [ 33%]
+tests/test_converted_image_collision_render_gate.py::TestConvertedImageCollisionRenderGate::test_content_documents_emit_distinct_image_paths PASSED [ 66%]
+tests/test_converted_image_collision_render_gate.py::TestConvertedImageCollisionRenderGate::test_pdf_embeds_both_distinctly_sized_images PASSED [100%]
+================================== 3 passed in 0.85s ===================================
+  py312: OK (1.03=setup[0.03]+cmd[0.99] seconds)
+  congratulations :) (1.15 seconds)
+```
+
+Zero `failed`; no `Pillow and typst-py are both required` message. The 64-02 failure class is gone
+under both the bare pytest shim and `tox -e py312`.
+
+No forced package and no baseline divergence occurred in this task; `flake.nix` is unchanged from
+Task 1's edit (still exactly the one `targetPkgs = p: [ p.zlib ];` line).
