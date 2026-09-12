@@ -49,13 +49,13 @@ requirements. That carried-forward item is **DEP-01** here.
 
 ### Dependency updates (DEP)
 
-- [ ] **DEP-01**: `.github/dependabot.yml` uses `package-ecosystem: "uv"`, and dependabot opens PRs
+- [x] **DEP-01**: `.github/dependabot.yml` uses `package-ecosystem: "uv"`, and dependabot opens PRs
       updating `pyproject.toml` and `uv.lock` in the same commit
 - [ ] **DEP-02**: on a real dependabot PR, the `uv sync --locked` step succeeds and the test / lint /
       type jobs actually run — observed, not inferred from a hand-made branch
-- [ ] **DEP-03**: the `sphinx-typst-stack` grouping, `labels` and `open-pull-requests-limit` are
+- [x] **DEP-03**: the `sphinx-typst-stack` grouping, `labels` and `open-pull-requests-limit` are
       confirmed to behave as before under the new ecosystem, or the divergence is recorded
-- [ ] **DEP-04**: dependabot's supported uv version (`v0.11`) is measured against the uv that CI
+- [x] **DEP-04**: dependabot's supported uv version (`v0.11`) is measured against the uv that CI
       installs (`setup-uv` with `version: "latest"`, currently 0.12.x) and against this repo's lock
       `revision = 3`, and the result recorded
 - [ ] **DEP-05**: #123 and #128 are disposed of on their merits **after** DEP-02, with the
@@ -136,10 +136,10 @@ Which phases cover which requirements. Populated during roadmap creation.
 | TOX-02 | Phase 65 | Complete |
 | TOX-03 | Phase 65 | Complete |
 | TOX-04 | Phase 65 | Complete |
-| DEP-01 | Phase 66 | Pending |
+| DEP-01 | Phase 66 | Complete |
 | DEP-02 | Phase 67 | Pending |
-| DEP-03 | Phase 66 | Pending |
-| DEP-04 | Phase 66 | Pending |
+| DEP-03 | Phase 66 | Complete |
+| DEP-04 | Phase 66 | Complete |
 | DEP-05 | Phase 67 | Pending |
 | DOC-19 | Phase 68 | Pending |
 | DOC-20 | Phase 68 | Pending |
