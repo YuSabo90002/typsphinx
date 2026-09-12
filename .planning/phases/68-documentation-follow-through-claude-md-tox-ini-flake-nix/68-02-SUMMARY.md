@@ -144,6 +144,21 @@ None - no external service configuration required.
 - `tox.ini` and both test files now carry post-Phase-68 rationale; `68-04` re-runs the repository-wide `git grep -n tox-uv-bare -- ':!.planning' ':!uv.lock'` classification on the merged wave-1 tree (this plan plus `68-01`'s `CLAUDE.md` edit and `68-03`'s `flake.nix` edit) to confirm the "rationale presented as current" class is empty.
 - No blockers. `68-TOX-EVIDENCE.md` carries `BASE_68_02`, `SPECIFIER_EQUIV`, `TWO_FILE_RESULT_BEFORE`/`AFTER`, `COLLECT_BEFORE_68_02`/`AFTER_68_02`, and `PYVENV_HOME_68_02`/`PYVENV_VERSION_68_02` for `68-04`'s cross-check.
 
+## Self-Check: PASSED
+
+- `tox.ini`, `tests/test_toolchain_config_gate.py`, `tests/test_pdf_render_gate.py`,
+  `68-TOX-EVIDENCE.md`, and this `68-02-SUMMARY.md` all exist on disk.
+- All four commits (`c8df5e8d`, `ec5506ff`, `3865e953`, `4353f5a1`) are present in
+  `git log --oneline`.
+- All task-level `<acceptance_criteria>` re-verified passing at Task 3 close (masked
+  AST hashes equal base, two-file pytest result and full-suite collect count
+  unchanged, black/ruff clean, diff footprint limited to this plan's files).
+- Plan-level `<verification>` re-run: `tox.ini`'s comment states the current pin, the
+  parser constraint, why `tox-uv` is safe, and short history with an unchanged
+  `requires` read-back; both test files' stale self-references describe the
+  post-Phase-68 state with unchanged executable content; pass/skip summary and
+  collect count unchanged in this worktree.
+
 ---
 *Phase: 68-documentation-follow-through-claude-md-tox-ini-flake-nix*
 *Completed: 2026-09-12*
