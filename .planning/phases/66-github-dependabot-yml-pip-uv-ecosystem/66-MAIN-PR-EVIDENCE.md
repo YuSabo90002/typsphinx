@@ -322,3 +322,171 @@ The main-bound PR (#137, `chore/dependabot-uv-ecosystem` at `PR_COMMIT` `7cc85d2
 is OPEN and unmerged. All six required checks are green, `mergeStateStatus` is `CLEAN`. It awaits
 the owner's merge decision (D-01, one-way) in 66-02. There are no non-required findings to carry
 forward.
+
+---
+
+# 66-02: Owner-gated merge to `main`
+
+executor worktree, provisioned with the CLAUDE.md line; git and gh only; the main checkout is never
+touched.
+
+## Head check and provisioning
+
+```
+$ test -f .git; echo "exit:$?"
+exit:0
+
+$ pwd -P
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-aa58d8d64f16d0afe
+
+$ env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev
+Using CPython 3.14.4
+Creating virtual environment at: .venv
+Resolved 91 packages in 0.59ms
+... (81 packages installed, including uv==0.12.13, tox==4.56.1, pytest==9.1.1)
+
+$ gh auth status
+github.com
+  ✓ Logged in to github.com account YuSabo90002 (/home/yuta/.config/gh/hosts.yml)
+  - Active account: true
+```
+
+Both checks pass; the worktree is provisioned; `gh` is authenticated.
+
+## Wave-1 gate
+
+All nine evidence keys are present in this file:
+
+```
+BASE_SHA = 6181768f64b4cee62a77ac4e26c60c3c976cbb6e
+MILESTONE_COMMIT = e8c0e56f07a189adc8b3e021a9caaa5e0fcb6931
+CONFIG_BLOB = a58ea1e25254138ff6967438feb948c1a0cc7064
+PR_BRANCH = chore/dependabot-uv-ecosystem
+PR_COMMIT = 7cc85d28c6946434aa4fb14a0b9b5555d29275ef
+PUSH_AT = 2026-09-12T10:18:32Z
+PR_NUMBER = 137
+PR_URL = https://github.com/YuSabo90002/typsphinx/pull/137
+PR_RUN_ID = 34688116389
+```
+
+```
+$ git merge-base --is-ancestor e8c0e56f07a189adc8b3e021a9caaa5e0fcb6931 HEAD; echo "exit:$?"
+exit:0
+
+$ grep -c '^## HALT' .planning/phases/66-github-dependabot-yml-pip-uv-ecosystem/66-MAIN-PR-EVIDENCE.md
+0
+
+$ git log --oneline -1
+b2fa457f docs(phase-66): update tracking after wave 1, mark wave 2 executing
+```
+
+`MILESTONE_COMMIT` is an ancestor of this worktree's HEAD; the evidence file carries no HALT
+heading.
+
+## Pre-merge gate
+
+```
+$ git fetch origin main chore/dependabot-uv-ecosystem
+From https://github.com/YuSabo90002/typsphinx
+ * branch              main       -> FETCH_HEAD
+ * branch              chore/dependabot-uv-ecosystem -> FETCH_HEAD
+
+$ git rev-parse origin/main
+6181768f64b4cee62a77ac4e26c60c3c976cbb6e
+```
+
+`origin/main` still equals `BASE_SHA` (`6181768f64b4cee62a77ac4e26c60c3c976cbb6e`) — `main` has not
+moved since 66-01.
+
+```
+$ gh pr view 137 --json state,headRefOid,mergeable,mergeStateStatus
+{"headRefOid":"7cc85d28c6946434aa4fb14a0b9b5555d29275ef","mergeStateStatus":"CLEAN","mergeable":"MERGEABLE","state":"OPEN"}
+```
+
+PR #137 is `OPEN`, `headRefOid` equals `PR_COMMIT`, `mergeStateStatus: CLEAN`.
+
+```
+$ gh pr view 137 --json statusCheckRollup --jq '.statusCheckRollup[] | [.name, .conclusion] | @tsv'
+Test Python 3.12 on ubuntu-latest	SUCCESS
+build-docs	SUCCESS
+Repo-wide link check (advisory)	SUCCESS
+Repo-wide link check (advisory)	SUCCESS
+Test Python 3.13 on ubuntu-latest	SUCCESS
+Test Python 3.12 on windows-latest	SUCCESS
+Test Python 3.13 on windows-latest	SUCCESS
+Test Python 3.12 on macos-latest	SUCCESS
+Test Python 3.13 on macos-latest	SUCCESS
+Lint and Format Check	SUCCESS
+Type Check	SUCCESS
+Code Coverage	SUCCESS
+Build Package	SUCCESS
+Integration Test - basic	SUCCESS
+Integration Test - advanced	SUCCESS
+```
+
+The six required contexts, tabulated:
+
+| Required context | Conclusion |
+|-------------------|------------|
+| Test Python 3.12 on ubuntu-latest | SUCCESS |
+| Test Python 3.13 on ubuntu-latest | SUCCESS |
+| Lint and Format Check | SUCCESS |
+| Type Check | SUCCESS |
+| Code Coverage | SUCCESS |
+| Build Package | SUCCESS |
+
+All six required contexts read `SUCCESS`.
+
+```
+$ git rev-parse HEAD:.github/dependabot.yml
+a58ea1e25254138ff6967438feb948c1a0cc7064
+
+$ git rev-parse 7cc85d28c6946434aa4fb14a0b9b5555d29275ef:.github/dependabot.yml
+a58ea1e25254138ff6967438feb948c1a0cc7064
+
+$ git diff --stat 7cc85d28c6946434aa4fb14a0b9b5555d29275ef HEAD -- .github/dependabot.yml
+(empty)
+```
+
+Both blobs equal `CONFIG_BLOB` (`a58ea1e25254138ff6967438feb948c1a0cc7064`); the DEP-03 encoding
+edge holds as a blob-identity comparison, not a YAML comparison. The diff between `PR_COMMIT` and
+HEAD for the file is empty.
+
+## REL-12 merge simulation
+
+```
+$ git merge-tree --write-tree --name-only 7cc85d28c6946434aa4fb14a0b9b5555d29275ef HEAD; echo "exit:$?"
+0fa1506209cceed8abc5d574dc0a919058d17d3c
+exit:0
+```
+
+`exit:0` — no conflict. With strict branch protection, the merge commit's tree will equal
+`PR_COMMIT`'s tree, so this is a faithful simulation of REL-12's later merge of the milestone
+branch into `main`.
+
+## Dependabot runs before the merge
+
+```
+$ date -u +%FT%TZ
+2026-09-12T10:34:57Z
+
+$ gh run list --workflow "Dependabot Updates" --limit 10 --json databaseId,displayTitle,headSha,status,conclusion,createdAt
+[{"conclusion":"success","createdAt":"2026-09-07T00:07:01Z","databaseId":34068767739,"displayTitle":"pip in / for docutils - Update #1559879891","headSha":"6181768f64b4cee62a77ac4e26c60c3c976cbb6e","status":"completed"},{"conclusion":"success","createdAt":"2026-09-07T00:07:00Z","databaseId":34068767503,"displayTitle":"pip in /. - Update #1559879825","headSha":"6181768f64b4cee62a77ac4e26c60c3c976cbb6e","status":"completed"},{"conclusion":"success","createdAt":"2026-09-01T09:58:35Z","databaseId":33495005626,"displayTitle":"github_actions in /. - Update #1549284100","headSha":"6181768f64b4cee62a77ac4e26c60c3c976cbb6e","status":"completed"},{"conclusion":"success","createdAt":"2026-08-31T00:05:23Z","databaseId":33343519833,"displayTitle":"pip in / for docutils - Update #1545802480","headSha":"6181768f64b4cee62a77ac4e26c60c3c976cbb6e","status":"completed"},{"conclusion":"success","createdAt":"2026-08-31T00:05:23Z","databaseId":33343519757,"displayTitle":"pip in /. - Update #1545802413","headSha":"6181768f64b4cee62a77ac4e26c60c3c976cbb6e","status":"completed"},{"conclusion":"success","createdAt":"2026-08-30T15:11:54Z","databaseId":33318960633,"displayTitle":"pip in / for docutils - Update #1545558216","headSha":"45962faad21520c72ac9f1e14c7f684050826bb6","status":"completed"},{"conclusion":"success","createdAt":"2026-08-24T00:05:26Z","databaseId":32675547354,"displayTitle":"pip in / for docutils - Update #1537079597","headSha":"d65a612230342068d7bfb97aeb197e4e40af4988","status":"completed"},{"conclusion":"success","createdAt":"2026-08-24T00:05:26Z","databaseId":32675547213,"displayTitle":"pip in /. - Update #1537079538","headSha":"d65a612230342068d7bfb97aeb197e4e40af4988","status":"completed"},{"conclusion":"success","createdAt":"2026-08-22T07:46:38Z","databaseId":32560506401,"displayTitle":"pip in / for docutils - Update #1536102730","headSha":"68b92e24e6ca3df410ca0435d226629ef7ef1e2e","status":"completed"},{"conclusion":"success","createdAt":"2026-08-17T00:07:02Z","databaseId":31981028372,"displayTitle":"pip in /. - Update #1527324717","headSha":"aed773c9807ab871468b1b2a7e1ec36b54e82907","status":"completed"}]
+
+$ gh pr list --state open --author app/dependabot --json number,title,headRefName,labels,createdAt,updatedAt
+[{"createdAt":"2026-08-03T00:06:14Z","headRefName":"dependabot/pip/sphinx-typst-stack-12b5b89b5a","labels":[],"number":128,"title":"chore(deps): update docutils requirement from <0.23,>=0.21 to >=0.21,<0.24 in the sphinx-typst-stack group across 1 directory","updatedAt":"2026-09-07T00:07:47Z"},{"createdAt":"2026-07-27T00:07:03Z","headRefName":"dependabot/pip/ruff-gte-0.15-and-lt-0.17","labels":[],"number":123,"title":"chore(deps-dev): update ruff requirement from <0.16,>=0.15 to >=0.15,<0.17","updatedAt":"2026-08-03T20:09:21Z"}]
+```
+
+All ten listed Dependabot Updates runs pre-date the merge and all target `pip`/`github_actions`
+ecosystems (the last two `pip` runs both `headSha` `6181768f`, from 2026-09-07). No `uv`-ecosystem
+run exists yet. Both open dependabot PRs (#123, #128) are unchanged from the planning-time census —
+same `headRefName`, same `updatedAt`.
+
+## Non-required job findings (restated from 66-01)
+
+None. 66-01 found all six non-required jobs (`Integration Test - basic`, `Integration Test -
+advanced`, `Test Python 3.12 on windows-latest`, `Test Python 3.13 on windows-latest`, `Test Python
+3.12 on macos-latest`, `Test Python 3.13 on macos-latest`) `success`, and the fresh
+`statusCheckRollup` read above confirms the same for every non-required context queried this task
+(`build-docs`, `Repo-wide link check (advisory)` ×2, `Integration Test - basic`, `Integration Test -
+advanced`). There is nothing to carry to the checkpoint beyond "all green".
