@@ -407,3 +407,31 @@ It names no person and blames no one. It is a draft only — nothing has been po
 The docutils merit premise is re-measured and holds (`D05_CAP_RELAXED = no`), the whole `#128`
 thread was read (no non-dependabot comment exists), and a draft waits for the owner. `#128` is
 untouched — no comment, no close, no label, no `@dependabot` command was issued by this task.
+
+## Owner decision (#128)
+
+The owner's reply, relayed verbatim by the coordinator: "close as drafted"
+
+```
+$ date -u +%FT%TZ
+2026-09-12T13:36:46Z
+```
+
+```
+OWNER_DECISION_128 = close
+DECIDED_AT_128 = 2026-09-12T13:36:46Z
+```
+
+On close: the approved text is the committed `DRAFT_COMMENT_128`, read back from this evidence
+file (not retyped):
+
+```
+$ sed -n 's/^DRAFT_COMMENT_128 = //p' .planning/phases/67-proof-on-a-real-dependabot-pr-then-disposal-of-123-and-128/67-DOCUTILS-EVIDENCE.md | head -n 1
+Sphinx 9.1.0 caps docutils<0.23,>=0.21, so this range can't be exercised yet (uv resolution fails). Closing; dependabot will re-propose once Sphinx relaxes the cap.
+```
+
+```
+APPROVED_COMMENT_128 = Sphinx 9.1.0 caps docutils<0.23,>=0.21, so this range can't be exercised yet (uv resolution fails). Closing; dependabot will re-propose once Sphinx relaxes the cap.
+```
+
+This is committed before posting, so the text is on record first.
