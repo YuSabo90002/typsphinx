@@ -746,3 +746,17 @@ $ gh pr close --help | grep -n -- '--comment'
 DRAFT_COMMENT_123 = Superseded by #138.
 
 One English line, per D-03's shape. Nothing has been posted; #123 remains untouched by this task.
+
+## Owner decision (#123)
+
+The owner's reply to the Task 2 `checkpoint:decision` (`gate="blocking-human"`), relayed verbatim
+by the coordinator, was: `close as drafted`
+
+OWNER_DECISION_123 = close
+DECIDED_AT_123 = 2026-09-12T13:51:28Z
+
+Per the reply, the approved text is `DRAFT_COMMENT_123` unedited:
+
+APPROVED_COMMENT_123 = Superseded by #138.
+
+This section is committed before any posting.
