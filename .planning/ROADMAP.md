@@ -756,7 +756,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 69-06-PLAN.md — D-08..D-13: SC#1 observation 2, phase-scoped typsphinx/ diff, close-time fence re-verification, and the negative-first standalone 69-HANDOFF.md
+- [x] 69-06-PLAN.md — D-08..D-13: SC#1 observation 2, phase-scoped typsphinx/ diff, close-time fence re-verification, and the negative-first standalone 69-HANDOFF.md
 
 **Cross-cutting constraints:**
 
@@ -787,7 +787,7 @@ below tracks the active milestone only.
 | 66. `.github/dependabot.yml` — `pip` → `uv` Ecosystem | v0.9.3 | 4/4 | Complete    | 2026-09-12 |
 | 67. Proof on a Real Dependabot PR, Then Disposal of #123 and #128 | v0.9.3 | 5/5 | Complete    | 2026-09-12 |
 | 68. Documentation Follow-Through — `CLAUDE.md`, `tox.ini`, `flake.nix` | v0.9.3 | 4/4 | Complete    | 2026-09-13 |
-| 69. v0.9.3 Close Prep (prep-only, unpublished) | v0.9.3 | 5/6 | In Progress | - |
+| 69. v0.9.3 Close Prep (prep-only, unpublished) | v0.9.3 | 6/6 | In Progress | - |
 
 ## Roadmap Evolution
 
