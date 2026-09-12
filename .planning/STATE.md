@@ -5,16 +5,16 @@ milestone_name: Toolchain and dependency-update repair
 current_phase: 64
 current_phase_name: FHS Wrapper and Command Shims in `flake.nix`
 status: executing
-stopped_at: Phase 64 wave 4 (64-05, zlib in fhsRun targetPkgs) merged; wave 5 (64-06) halted at its session precondition — relaunch Claude Code from a direnv-loaded shell in the main checkout, then /gsd-execute-phase 64 --gaps-only
-last_updated: "2026-09-12T01:10:00.000Z"
+stopped_at: Phase 64 wave 5 (64-06, genuine-shape re-measurement) merged; NIX-01..NIX-05 re-measured MET in the relaunched session; phase verification next
+last_updated: "2026-09-12T05:45:00.000Z"
 last_activity: 2026-09-12
-last_activity_desc: 64-05 merged (94b99bd1) — fhsRun targetPkgs = [ zlib ]; DIAGNOSTIC sweep in the worktree read 1543 passed / 5 skipped, py312 OK, cov OK; new fhs-run /nix/store/99fm4lqkp4kab20d3blfbwajnprmlbfx-typsphinx-fhs-run; this session still carries the old rootfs, so 64-06 awaits a relaunch
-state_head: 01b51ded
+last_activity_desc: 64-06 merged (cf1f516e) in the relaunched session (libz discriminator exit 0 on 99fm4lqk…) — genuine D-09 shape: ruff 0.15.20, full suite 1543 passed / 5 skipped, seven tox environments OK cold, docs-pdf %PDF 2776960 B, GENUINE residual without libz.so.1; post-merge gate on the main tree 1547 passed / 1 skipped
+state_head: cf1f516e
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
   percent: 0
 ---
 
@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-02 — v0.9.3 milestone scoped)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** v0.9.3 Toolchain and dependency-update repair — **roadmapped, Phases 64–69, 21/21 v1 requirements mapped**. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`), but a PR to `main` is opened and merged at `/gsd-complete-milestone`. CI is deliberately unchanged. No change under `typsphinx/`. **Phase 64 is executing**: wave 1 (64-01) is merged and Claude Code has been relaunched from a direnv-loaded shell in the main checkout; wave 2 (64-02 + 64-03) is merged, but 64-02 found NIX-02/NIX-03/NIX-04 unmet (`libz.so.1` missing inside the FHS sandbox for uv-managed interpreters), wave 3 (64-04: push + one CI run) is merged, verification found gaps_found (6/9), and gap-closure plans 64-05 (wave 4, `flake.nix` zlib fix) and 64-06 (wave 5, re-measurement after another Claude Code relaunch) were planned; 64-05 is merged (`94b99bd1`) and 64-06 awaits that relaunch (Track B, `/gsd-plan-phase 66`, is independent and can run in parallel).
+**Current focus:** v0.9.3 Toolchain and dependency-update repair — **roadmapped, Phases 64–69, 21/21 v1 requirements mapped**. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`), but a PR to `main` is opened and merged at `/gsd-complete-milestone`. CI is deliberately unchanged. No change under `typsphinx/`. **Phase 64 is executing**: wave 1 (64-01) is merged and Claude Code has been relaunched from a direnv-loaded shell in the main checkout; wave 2 (64-02 + 64-03) is merged, but 64-02 found NIX-02/NIX-03/NIX-04 unmet (`libz.so.1` missing inside the FHS sandbox for uv-managed interpreters), wave 3 (64-04: push + one CI run) is merged, verification found gaps_found (6/9), and gap-closure plans 64-05 (wave 4, `flake.nix` zlib fix) and 64-06 (wave 5, re-measurement after another Claude Code relaunch) were planned; 64-05 is merged (`94b99bd1`), the relaunch is done, and 64-06 is merged (`cf1f516e`) with NIX-01..NIX-05 re-measured MET; phase verification is next (Track B, `/gsd-plan-phase 66`, is independent and can run in parallel).
 
 ## Shipped Milestone (v0.9.2 — archived, PUBLISHED)
 
@@ -158,10 +158,10 @@ land here.
 
 ## Current Position
 
-Phase: 64 — FHS Wrapper and Command Shims in `flake.nix` (waves 1–4 executed; gap-closure wave 5 awaits a session relaunch)
-Plan: 5 of 6 complete (waves: 64-01 ✓ → relaunch Claude Code ✓ → 64-02 ✓ (Self-Check FAILED) + 64-03 ✓ → 64-04 ✓ → 64-05 ✓ → relaunch Claude Code ○ → 64-06 ○)
-Status: Wave 4 done — 64-05 merged (`94b99bd1`): `targetPkgs = p: [ p.zlib ]` in `fhsRun`; post-merge gate on the main tree 1547 passed / 1 skipped. 64-06's precondition is false in this session (the `ruff` shim still embeds `dgddrdfk…-typsphinx-fhs-run`, no `/usr/lib/libz.so.1`), so wave 5 was not dispatched. Next: open a terminal in `/home/yuta/Documents/typsphinx`, confirm the libz discriminator in `64-LIBZ-FIX-EVIDENCE.md` § Session relaunch required before wave 5 exits 0 (new root `99fm4lqk…`), relaunch Claude Code from that shell, run `/gsd-execute-phase 64 --gaps-only`
-Last activity: 2026-09-12 — 64-05 executed and merged; the executor's NIX-06/07/08 checkbox flip was reverted (`01b51ded`) per `4e130c80`'s rule that phase-64 requirements stay unchecked until the phase completes
+Phase: 64 — FHS Wrapper and Command Shims in `flake.nix` (all 5 waves executed; phase verification next)
+Plan: 6 of 6 complete (waves: 64-01 ✓ → relaunch Claude Code ✓ → 64-02 ✓ (Self-Check FAILED) + 64-03 ✓ → 64-04 ✓ → 64-05 ✓ → relaunch Claude Code ✓ → 64-06 ✓)
+Status: Wave 5 done — Claude Code relaunched from a direnv-loaded shell (libz discriminator exit 0: the `ruff` shim embeds `99fm4lqk…-typsphinx-fhs-run`, matching `64-LIBZ-FIX-EVIDENCE.md:737`; all seven shims equal its `New shim paths` table); 64-06 merged (`cf1f516e`) with `64-GAP-REMEASURE-EVIDENCE.md` closing NIX-01..NIX-05 MET in the genuine D-09 shape; post-merge gate on the main tree 1547 passed / 1 skipped. Next: phase verification (re-verify of the 6/9 gaps_found report)
+Last activity: 2026-09-12 — 64-06 executed and merged; its executor left REQUIREMENTS.md untouched per `4e130c80`'s rule
 
 
 ## Active Milestone (v0.9.3 — Toolchain and dependency-update repair)
