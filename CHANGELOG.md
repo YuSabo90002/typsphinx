@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Contributor tooling returns to `tox-uv` from `tox-uv-bare` (TOX-01, TOX-02, TOX-03, TOX-04).**
+  The `dev` extra and `tox.ini`'s `requires` line once again name `tox-uv`, with `uv.lock`
+  regenerated in the same change. This has no effect on installing or using typsphinx. A CI run
+  dispatched against the branch carrying this change was green across the Linux, Windows and
+  macOS test lanes.
+
 ### Planned for Future Releases
 - BibTeX/bibliography support
 - Glossary generation
