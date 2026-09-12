@@ -329,3 +329,139 @@ All six build classes ran — none skipped. A skip here would mean the docs extr
 section), the gate executed against the tree carrying this milestone's three CHANGELOG bullets,
 including `TestChangelogIncludeCompilesToPdf::test_included_changelog_reaches_the_pdf`, which drives
 the PDF build class end to end.
+
+## Docs builds on the merged tree
+
+Re-ran the head check and the provisioning line at the start of this task:
+
+```
+$ env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev --extra docs
+Resolved 91 packages in 0.67ms
+Checked 90 packages in 0.43ms
+```
+
+No drift from Tasks 1-2's sync.
+
+```
+$ rm -rf docs/_build && uv run tox -e docs-html
+...
+build succeeded, 3 warnings.
+
+HTMLページは_build/htmlにあります。
+  docs-html: OK (3.22=setup[0.10]+cmd[3.12] seconds)
+  congratulations :) (3.25 seconds)
+```
+
+`WARNING` lines (identical set to `69-CHANGELOG-EVIDENCE.md`'s pre-edit and post-edit baselines — the
+four pre-existing `visit_toctree` docstring warnings, unrelated to `CHANGELOG.md`):
+
+```
+21::21: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+43::21: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+417::6: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+444:/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a69047240a759c44b/typsphinx/translator.py:docstring of typsphinx.translator.TypstTranslator.visit_toctree:6: WARNING: Block quote ends without a blank line; unexpected unindent. [docutils]
+```
+
+DOCS_HTML_WARN_FINAL = 3
+
+```
+$ rm -rf docs/_build && uv run tox -e docs-pdf
+...
+typst: wrote 1 wrapper file(s) -- compile these: typsphinx.typ
+Compiling 1 master document(s) to PDF...
+Generated PDF: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a69047240a759c44b/docs/_build/pdf/typsphinx.pdf
+build succeeded, 5 warnings.
+  docs-pdf: OK (3.84=setup[0.08]+cmd[3.75] seconds)
+  congratulations :) (3.86 seconds)
+```
+
+`WARNING` lines (identical set to the baseline — the same four docstring warnings plus the two
+pre-existing `doctest_block` unknown-node-type warnings):
+
+```
+22::21: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+44::21: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+418::6: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+445:/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a69047240a759c44b/typsphinx/translator.py:docstring of typsphinx.translator.TypstTranslator.visit_toctree:6: WARNING: Block quote ends without a blank line; unexpected unindent. [docutils]
+456:WARNING: unknown node type: <doctest_block classes="doctest" xml:space="preserve">>>> compute_content_include_path("", "index.typ")
+462:WARNING: unknown node type: <doctest_block classes="doctest" xml:space="preserve">>>> compute_template_import_path("typst", "base.typ")
+```
+
+DOCS_PDF_WARN_FINAL = 5
+
+```
+$ head -c 5 docs/_build/pdf/typsphinx.pdf
+%PDF-
+```
+
+PDF_MAGIC = %PDF-
+
+```
+$ ls -l docs/_build/pdf/typsphinx.pdf
+-rw-r--r-- 1 yuta users 2786762  9月 13 07:54 docs/_build/pdf/typsphinx.pdf
+```
+
+`DOCS_HTML_WARN_BASE` and `DOCS_PDF_WARN_BASE` read from `69-CHANGELOG-EVIDENCE.md`:
+
+```
+$ grep '^DOCS_HTML_WARN_BASE = ' 69-CHANGELOG-EVIDENCE.md
+DOCS_HTML_WARN_BASE = 3
+
+$ grep '^DOCS_PDF_WARN_BASE = ' 69-CHANGELOG-EVIDENCE.md
+DOCS_PDF_WARN_BASE = 5
+```
+
+Both final counts equal their clean pre-edit baselines exactly (3 = 3, 5 = 5), and the `WARNING`
+lines are the same sets in each case. No interpreter-traced drift occurred — both this worktree's
+build and `69-CHANGELOG-EVIDENCE.md`'s build ran on uv-managed CPython 3.14 (this file's own § "Tree
+identity" and `69-CHANGELOG-EVIDENCE.md`'s § "Head check and provisioning" both record
+`version_info = 3.14`), so there is no interpreter boundary crossed by this comparison and no basis
+to attribute any difference to interpreter drift — because there is no difference to attribute.
+
+## Division of authority
+
+Three evidence files, each authoritative for a different slice of SC#3 and the merged tree's health:
+
+- **`69-CHANGELOG-EVIDENCE.md`** (plan 69-01) is authoritative for the pre-edit versus post-edit docs
+  warning-count comparison taken inside one tree, at the moment `CHANGELOG.md` was actually edited.
+- **This file (`69-GREEN-TREE-EVIDENCE.md`, plan 69-03)** is authoritative for the full pytest suite
+  (twice, once under `LC_ALL=C`), format/type/lint, the version-sync family, the changelog page gate,
+  and the final-tree clean docs builds compared against 69-01's baseline.
+- **`69-CI-EVIDENCE.md`** (plan 69-04, running in parallel in wave 2) is authoritative for the
+  three-OS CI matrix and the lint verdict, since CI holds lint authority on this project.
+
+This file does not read 69-04's results — plan 69-06 (wave 3) sets the two side by side.
+
+## Executed versus skipped
+
+| Gate | Outcome |
+|------|---------|
+| Full pytest suite (`uv run pytest -q -rs`) | Executed — green: 1547 passed, 1 skipped, 0 failed |
+| Full pytest suite under `LC_ALL=C` | Executed — green: 1547 passed, 1 skipped, 0 failed |
+| `uv run black --check .` | Executed — green (355 files unchanged) |
+| `uv run mypy typsphinx/` | Executed — green (no issues, 9 source files) |
+| `uv run ruff check .` | Executed — green (`All checks passed!`, local ruff 0.15.20; CI's `Lint and Format Check` job holds lint authority per ROADMAP constraint 7, read by 69-04) |
+| `tests/test_readme_version_sync.py` + `tests/test_preview_version_sync.py` | Executed — green (4 passed) |
+| `tests/test_extension.py::test_version_matches_pyproject_toml` | Executed — green (1 passed) |
+| `tests/test_changelog_page_gate.py` (docs extra present) | Executed — green (6 passed, 0 skipped) |
+| `uv run tox -e docs-html` (clean build) | Executed — green (3 warnings, equals baseline) |
+| `uv run tox -e docs-pdf` (clean build) | Executed — green (5 warnings, equals baseline; PDF starts `%PDF-`) |
+| CI 3-OS matrix and lint verdict | Not executed here by design — authoritative source is `69-CI-EVIDENCE.md` (plan 69-04), read together in plan 69-06 |
+
+Nothing in this table is implied: every gate this plan attempted ran to completion, and the one gate
+this plan deliberately does not own (the CI matrix) is named with its actual owner rather than left
+silent.
+
+## SC#3 local verdict
+
+Checking every condition:
+
+- `FULL_FAILED` = 0, `LCALLC_FAILED` = 0
+- `BLACK_EXIT` = 0, `MYPY_EXIT` = 0, `RUFF_LOCAL_EXIT` = 0
+- `CHANGELOG_GATE_SKIPPED` = 0
+- `DOCS_HTML_WARN_FINAL` (3) = `DOCS_HTML_WARN_BASE` (3); `DOCS_PDF_WARN_FINAL` (5) = `DOCS_PDF_WARN_BASE` (5)
+- `PDF_MAGIC` = `%PDF-`
+
+All conditions hold.
+
+SC3_LOCAL_VERDICT = MET
