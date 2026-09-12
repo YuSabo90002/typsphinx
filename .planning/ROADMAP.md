@@ -743,12 +743,24 @@ checkbox stays `[ ]` through every plan, and constraint 14's checksum fence is w
 **Plans**: 6 plans (3 waves; 69-01 and 69-02 run in parallel in wave 1; 69-03, 69-04 and 69-05 run in parallel in wave 2, 69-04 being the phase's only push and CI dispatch; 69-06 closes the fence and writes the handoff in wave 3; no checkpoints)
 
 Plans:
+**Wave 1**
+
 - [ ] 69-01-PLAN.md — D-01..D-05: three `### Changed` bullets (TOX, DEP, NIX) under the existing `## [Unreleased]`, pure addition, both docs environments built clean before and after the edit
 - [ ] 69-02-PLAN.md — D-12: phase-head REQUIREMENTS.md checksum guard naming both transition entry points; SC#1 observation 1 with a positive control on every remote probe; the no-external-API COVERAGE.md
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 69-03-PLAN.md — D-06: full suite twice (once under LC_ALL=C), black, mypy, ruff, the version-sync family, the changelog page gate with 0 skipped, both docs environments clean against the baseline
 - [ ] 69-04-PLAN.md — D-13/D-14: decoy re-check, fast-forward push of the canonical branch, one CI dispatch, 12-job census with both windows-latest and macos-latest lanes, ruff from Lint and Format Check
 - [ ] 69-05-PLAN.md — D-07/D-08/D-10: non-committing trial merge of origin/main, merged lock and merged-tree lint, main protection and merge-method census, dependabot PR census
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 69-06-PLAN.md — D-08..D-13: SC#1 observation 2, phase-scoped typsphinx/ diff, close-time fence re-verification, and the negative-first standalone 69-HANDOFF.md
+
+**Cross-cutting constraints:**
+
+- REL-12 is cited for coverage only; SUMMARY requirements-completed: [].
 
 **UI hint**: no
 
