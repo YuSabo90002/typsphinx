@@ -202,6 +202,20 @@ questions):
     the recovery if the bundled binary wins is low-cost and known: set `TOX_UV_PATH`, or revert to
     `tox-uv-bare`.
 
+    > **AMENDED 2026-09-12 (Phase 65 discuss, owner-approved).** Measured against the installed
+    > source and a scratch probe, "which is not the same function" is false. `tox-uv`'s middle step
+    > *is* `uv.find_uv_bin()` — `from uv import find_uv_bin; return find_uv_bin()`
+    > (`tox_uv/_venv.py:232-238`; the `tox_uv` module ships in `tox-uv-bare`, and `tox-uv` adds only
+    > the `uv` dependency). No binary ships inside the `tox-uv` wheel: "bundled" means the PyPI `uv`
+    > package's script, which `find_uv_bin()` returns as `<tox's own env>/bin/uv` — the outer
+    > `.venv/bin/uv`, the same file the Phase 64 `uv` shim's first leg resolves. What separates the
+    > scoping measurement from a real tox run is the calling process, not the function. Probe
+    > (`tox-uv 1.36.0` in a nix `python3-3.13.13` venv): inside FHS, `tox -vv -e type` logs
+    > `using bundled uv from: …/.venv/bin/uv [tox_uv/_venv.py:237]` and passes; outside FHS the same
+    > run starts, resolves the same path and fails exec'ing it (`Could not start dynamically linked
+    > executable`, exit 127). The recovery above therefore does not apply: inside FHS the bundled
+    > binary *is* the intended `.venv/bin/uv`, and it executes. See `65-CONTEXT.md` D-01..D-03.
+
 13. **Standing invariants carried forward:** **no change under `typsphinx/`** — this is a toolchain
     milestone by construction, and any diff there is an over-reach signal, not routine work; zero
     new runtime dependencies and no new third-party GitHub Action (`tox-uv` and `tox-uv-bare` release
@@ -401,6 +415,19 @@ pin before the sandbox is proven reintroduces exactly the defect `-bare` was cho
      isolated nothing. If the bundled binary wins, the recorded recovery is `TOX_UV_PATH` or a
      return to `tox-uv-bare` — either outcome closes this criterion, an unmeasured "it passed" does
      not (TOX-03).
+
+     > **AMENDED 2026-09-12 (Phase 65 discuss, owner-approved).** Two phrases above are falsified
+     > by measurement; the substantive requirement stands. (a) "not from `uv.find_uv_bin()`, which
+     > is a different function on a different code path": `tox-uv`'s bundled step *calls*
+     > `uv.find_uv_bin()` (`tox_uv/_venv.py:234-236`); the binding distinction is that the path is
+     > observed from inside the tox process, not from a shell. (b) "whether `tox-uv`'s bundled wheel
+     > or the shimmed/`.venv` binary won": these are the same file, `<env>/bin/uv`, so the
+     > observation records which of `_venv.py`'s three branches fired (`TOX_UV_PATH` / bundled /
+     > `PATH`) plus the resolved path and version. A bundled resolution, inside FHS, to the tree's own
+     > `.venv/bin/uv` with the environment passing **closes** this criterion without `TOX_UV_PATH`
+     > (`65-CONTEXT.md` D-02); the isolated control runs from a nix-interpreter venv so that the only
+     > thing left to fail is the uv exec (D-03). The verifier reports the literal and the amended
+     > reading separately.
 
   4. **CI is green on the revert across every lane, and CI is the authority.** One run dispatched
      with `gh workflow run CI --ref <branch>` on the post-revert tip has **completed**, with every
