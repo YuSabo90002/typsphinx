@@ -203,6 +203,96 @@ $ git status --porcelain .planning/REQUIREMENTS.md
 Byte-unchanged. REL-12 remains `- [ ]` and Pending, exactly as recorded in § "The lines under
 guard" above.
 
+## Re-verification at phase close
+
+Run inside plan 69-06's own isolated worktree (`worktree-agent-a6a7396dafbb4f7c5`), immediately
+after Task 1's commit (`2a37ca9d`), running exactly the commands this file's own
+§ "Re-verification protocol (phase close)" names.
+
+```
+$ date -u +"%Y-%m-%dT%H:%M:%SZ"
+2026-09-12T23:05:00Z
+```
+
+```
+CLOSE_AT = 2026-09-12T23:05:00Z
+```
+
+```
+$ sha256sum .planning/REQUIREMENTS.md
+02cb9deb614af2bd89e33adc5d0b640a489f85e616ba74aa1eb419e5b92a232a  .planning/REQUIREMENTS.md
+```
+
+```
+REQ_SHA256_CLOSE = 02cb9deb614af2bd89e33adc5d0b640a489f85e616ba74aa1eb419e5b92a232a
+```
+
+| Digest | Value |
+|---|---|
+| `REQ_SHA256_BASE` | `02cb9deb614af2bd89e33adc5d0b640a489f85e616ba74aa1eb419e5b92a232a` |
+| `REQ_SHA256_CLOSE` | `02cb9deb614af2bd89e33adc5d0b640a489f85e616ba74aa1eb419e5b92a232a` |
+
+**MATCH.**
+
+```
+$ wc -l < .planning/REQUIREMENTS.md
+172
+```
+
+```
+REQ_LINES_CLOSE = 172
+```
+
+Equal to `REQ_LINES_BASE` (172). **MATCH.**
+
+```
+$ git diff --name-only -- .planning/REQUIREMENTS.md
+(no output)
+```
+
+Empty. **MATCH.**
+
+```
+$ git log --oneline 2db4e803d36d5f7a5db0a92b08cac4988fa88957..HEAD -- .planning/REQUIREMENTS.md
+(no output)
+```
+
+No commit in the phase touched the file since `PHASE_BASE_SHA`. **MATCH.**
+
+```
+$ grep -n 'REL-12' .planning/REQUIREMENTS.md
+75:- [ ] **REL-12**: the milestone is merged to `main` via a PR, with no tag, no PyPI upload and no
+147:| REL-12 | Phase 69 | Pending |
+164:| 69 — v0.9.3 Close Prep (prep-only, unpublished) | REL-12 | 1 |
+166:**REL-12 is mapped to Phase 69 for coverage purposes only.** Like every REL requirement in this
+```
+
+Byte-identical to § "The lines under guard" above, line for line (75, 147, 164, 166). **MATCH.**
+
+| Comparison | Verdict |
+|---|---|
+| `REQ_SHA256_CLOSE` vs `REQ_SHA256_BASE` | MATCH |
+| `REQ_LINES_CLOSE` vs `REQ_LINES_BASE` | MATCH |
+| `git diff --name-only -- .planning/REQUIREMENTS.md` | MATCH (empty) |
+| `git log` over the file since `PHASE_BASE_SHA` | MATCH (empty) |
+| `grep -n 'REL-12'` line-by-line | MATCH |
+
+```
+REQ_VERDICT_CLOSE = MATCH
+```
+
+Every comparison holds. REL-12's checkbox, read directly from the file, is `- [ ]`
+(`.planning/REQUIREMENTS.md:75`) and its Traceability row is `Pending`
+(`.planning/REQUIREMENTS.md:147`) — never inferred from any SUMMARY frontmatter. Every plan of this
+phase declares `requirements-completed: []`.
+
+No divergence occurred, so § "Divergence detected and reverted" does not apply and is omitted.
+
+**§ "For the operator running phase.complete" is present and unedited** (verified by re-reading it
+above this section, unchanged from Plan 02's authoring). The decisive third observation runs after
+this plan, outside any plan's reach, and `69-HANDOFF.md` reproduces this section in full so the
+operator reaches it without opening this file separately.
+
 ---
 *Phase: 69-v0-9-3-close-prep-prep-only-unpublished*
-*Plan: 02*
+*Plan: 02, 06*
