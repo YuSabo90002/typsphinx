@@ -328,3 +328,188 @@ job, while the local worktree shim reports SHIM_RUFF_VERSION (0.15.20) because t
 `uv.lock` is still the milestone's own, unmerged lock. That divergence is recorded here, not fixed.
 No `origin/main` merge into the milestone branch and no main-checkout re-sync happen in this phase.
 REL-12's own CI run, in a later phase, is where the merged tree is linted for real (constraint 7).
+
+## Owner decision (#138)
+
+The owner's reply to the Task 2 `checkpoint:decision`, relayed by the coordinator, was the literal
+word: `merge`
+
+OWNER_DECISION_138 = merge
+DECIDED_AT_138 = 2026-09-12T13:36:41Z
+
+## Idempotency (DEP-05)
+
+```
+$ gh pr view 138 --json state,mergeCommit,mergedAt,headRefOid
+{"headRefOid":"88088071e02a7411800f504e06b1ded9d6891cc7","mergeCommit":null,"mergedAt":null,"state":"OPEN"}
+```
+
+State is OPEN, not MERGED — this is not a resumed run.
+
+ALREADY_MERGED_138 = no
+
+## Gate re-asserted after the decision
+
+```
+$ git fetch origin main
+$ git rev-parse origin/main
+293f0c2684641f5d4b2f5ed021b565656e38d48c
+```
+
+`origin/main` still equals MAIN_BEFORE_138.
+
+```
+$ gh pr view 138 --json state,headRefOid,mergeStateStatus
+{"headRefOid":"88088071e02a7411800f504e06b1ded9d6891cc7","mergeStateStatus":"CLEAN","state":"OPEN"}
+```
+
+State OPEN, head still HEAD138, `mergeStateStatus` still CLEAN.
+
+```
+$ gh api "repos/YuSabo90002/typsphinx/commits/88088071e02a7411800f504e06b1ded9d6891cc7/check-runs?per_page=100" --jq '.check_runs[] | [.name, .status, .conclusion] | @tsv'
+Test Python 3.12 on macos-latest	completed	success
+Test Python 3.13 on windows-latest	completed	success
+Test Python 3.13 on ubuntu-latest	completed	success
+build-docs	completed	success
+Test Python 3.12 on windows-latest	completed	success
+Build Package	completed	success
+Test Python 3.13 on macos-latest	completed	success
+Lint and Format Check	completed	success
+Test Python 3.12 on ubuntu-latest	completed	success
+Integration Test - advanced	completed	success
+Code Coverage	completed	success
+Integration Test - basic	completed	success
+Repo-wide link check (advisory)	completed	success
+Type Check	completed	success
+Repo-wide link check (advisory)	completed	success
+```
+
+All six required contexts still `success`. No difference from Task 1's gate — the merge proceeds.
+
+## Merge (#138)
+
+MERGE_STARTED_AT_138 = 2026-09-12T13:36:56Z
+
+```
+$ gh pr merge 138 --merge --match-head-commit "88088071e02a7411800f504e06b1ded9d6891cc7"
+(no output; exit 0)
+```
+
+No `--admin`, `--auto`, `--squash`, `--rebase` or `--delete-branch` flag was passed.
+
+## Main after the merge
+
+```
+$ gh pr view 138 --json state,mergeCommit,mergedAt,headRefOid
+{"headRefOid":"88088071e02a7411800f504e06b1ded9d6891cc7","mergeCommit":{"oid":"cf3305ce52b72bb8ca3fa8f9d78fd12a50a3564a"},"mergedAt":"2026-09-12T13:37:03Z","state":"MERGED"}
+```
+
+MERGE_SHA_138 = cf3305ce52b72bb8ca3fa8f9d78fd12a50a3564a
+MERGED_AT_138 = 2026-09-12T13:37:03Z
+
+```
+$ git fetch origin main
+   293f0c26..cf3305ce  main       -> origin/main
+$ git rev-list --parents -n 1 cf3305ce52b72bb8ca3fa8f9d78fd12a50a3564a
+cf3305ce52b72bb8ca3fa8f9d78fd12a50a3564a 293f0c2684641f5d4b2f5ed021b565656e38d48c 88088071e02a7411800f504e06b1ded9d6891cc7
+```
+
+Parents are exactly `MERGE_SHA_138 MAIN_BEFORE_138 HEAD138` — a two-parent merge commit.
+
+```
+$ git rev-parse origin/main
+cf3305ce52b72bb8ca3fa8f9d78fd12a50a3564a
+```
+
+`origin/main` now points at MERGE_SHA_138.
+
+```
+$ git diff --name-only 293f0c2684641f5d4b2f5ed021b565656e38d48c cf3305ce52b72bb8ca3fa8f9d78fd12a50a3564a
+pyproject.toml
+uv.lock
+```
+
+Exactly `pyproject.toml` and `uv.lock` changed.
+
+```
+$ git show cf3305ce52b72bb8ca3fa8f9d78fd12a50a3564a:uv.lock | awk '/^name = "ruff"$/{getline; print; exit}'
+version = "0.16.6"
+```
+
+The merged `uv.lock` pins ruff at RUFF_VERSION_138 (0.16.6).
+
+**D-04 checks:**
+
+```
+$ git merge-base --is-ancestor cf3305ce52b72bb8ca3fa8f9d78fd12a50a3564a HEAD; echo "exit:$?"
+exit:1
+```
+
+`exit:1` — MERGE_SHA_138 is NOT an ancestor of the milestone branch HEAD. The milestone branch did
+not absorb `main`.
+
+```
+$ git diff --stat 6a687ca9e854d6f4aad16df78585855d85209de5 HEAD -- pyproject.toml uv.lock
+(empty)
+```
+
+The milestone branch's own `pyproject.toml`/`uv.lock` are unchanged since BASE_67_02.
+
+```
+$ git merge-tree --write-tree --name-only origin/main HEAD; echo "exit:$?"
+7419042a89d54461f94ed109714e5b90ae97406a
+exit:0
+```
+
+REL12_POSTMERGE_EXIT = 0
+
+## Dependabot after the merge
+
+Snapshot taken at 2026-09-12T13:37:30Z, read-only — nothing acted on.
+
+```
+$ gh pr list --state open --author app/dependabot --json number,title,headRefName,headRefOid,createdAt,updatedAt
+[{"number":142,"title":"chore(deps): bump mypy from 2.1.0 to 2.3.1", ...},
+ {"number":141,"title":"chore(deps): bump pre-commit from 4.6.0 to 4.6.2", ...},
+ {"number":140,"title":"chore(deps): bump sphinx-intl from 2.3.2 to 2.4.0", ...},
+ {"number":139,"title":"chore(deps): bump tox from 4.56.1 to 4.61.4", ...},
+ {"number":128,"title":"chore(deps): update docutils requirement from <0.23,>=0.21 to >=0.21,<0.24 in the sphinx-typst-stack group across 1 directory", "headRefOid":"000859f7e07167a8be8b6d3beceea44bca26fa4f", "updatedAt":"2026-09-07T00:07:47Z"},
+ {"number":123,"title":"chore(deps-dev): update ruff requirement from <0.16,>=0.15 to >=0.15,<0.17", "headRefOid":"1c905bb80d388465e57280dc104cbd117442e28a", "updatedAt":"2026-08-03T20:09:21Z"}]
+```
+
+#138 no longer appears (correctly merged and dropped from the open list). #123 and #128 are both
+still present, unchanged from their prior snapshots.
+
+```
+$ gh run list --workflow "Dependabot Updates" --limit 10 --json databaseId,displayTitle,status,conclusion,createdAt
+[{"conclusion":"success","createdAt":"2026-09-12T10:38:38Z","databaseId":34688990474, ...},
+ {"conclusion":"failure","createdAt":"2026-09-12T10:38:38Z","databaseId":34688990228, ...},
+ ... (8 more rows, all createdAt before MERGED_AT_138)]
+```
+
+No Dependabot Updates run was created after MERGED_AT_138 (2026-09-12T13:37:03Z) at the time of
+this snapshot.
+
+```
+$ gh run list --workflow=ci.yml --branch main --event push --limit 5 --json databaseId,headSha,status,conclusion
+[{"conclusion":"","databaseId":34696925079,"headSha":"cf3305ce52b72bb8ca3fa8f9d78fd12a50a3564a","status":"in_progress"}, ...]
+```
+
+MERGE_SHA_138's own push-triggered CI run (`34696925079`) is `in_progress` at snapshot time.
+Observational only — not waited on.
+
+```
+$ gh pr view 123 --json state,headRefOid,updatedAt
+{"headRefOid":"1c905bb80d388465e57280dc104cbd117442e28a","state":"OPEN","updatedAt":"2026-08-03T20:09:21Z"}
+$ gh pr view 128 --json state,headRefOid,updatedAt
+{"headRefOid":"000859f7e07167a8be8b6d3beceea44bca26fa4f","state":"OPEN","updatedAt":"2026-09-07T00:07:47Z"}
+```
+
+Both #123 and #128 remain OPEN with unchanged `headRefOid`/`updatedAt`. 67-04 and 67-03 re-snapshot
+before acting on either.
+
+## Handoff to 67-04
+
+#138 is merged into `main` at MERGE_SHA_138 = cf3305ce52b72bb8ca3fa8f9d78fd12a50a3564a. 67-04 closes
+#123 as superseded behind its own `checkpoint:decision`, after reading #123's whole thread. Nothing
+in this plan closed, commented on or `@dependabot`-commanded #123, #128 or #139–#142.
