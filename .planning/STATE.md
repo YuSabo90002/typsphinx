@@ -1176,7 +1176,7 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/67-proof-on-a-real-dependabot-pr-then-disposal-of-123-and-128/67-CONTEXT.md
+**Resume file:** None
 — Phases 64 and 65 are complete. Phase 66's context is captured (`66-CONTEXT.md` D-01..D-06,
 commit `b45674e9`): dependabot reads `dependabot.yml` only from `main`, so Phase 66 opens and merges
 a separate `dependabot.yml`-only PR to `main` (ROADMAP constraint 2 carries an owner-approved
