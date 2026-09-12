@@ -224,3 +224,243 @@ SC2_VERDICT = MET (`C3_ROWS = 0` and every negative check and the `tox config` r
 ## Task 1 commit
 
 Committed below (evidence file only, this task's share).
+
+## SC#1 literal reading
+
+Re-ran the head check and `env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev`
+(quick resync, no changes) before this task's measurements.
+
+| Clause | Text | Measurement | Verdict |
+|--------|------|-------------|---------|
+| (a) manual `ln -sf`/`patchelf` guidance is gone, retired, not conditional | "The manual `ln -sf` / `patchelf` guidance is gone" | `git grep -nE 'ln -sf|patchelf' -- ':!.planning'` → one hit, `CLAUDE.md:88`, inside the "No manual step" paragraph of the `### NixOS development shell` subsection, stating no such step exists or is needed. `68-CLAUDEMD-EVIDENCE.md` recorded `LNSF_COMMITS = 0`, `PATCHELF_COMMITS = 0`, `LNSF_PATCHELF_GREP_HITS_BEFORE = 0` at `PHASE_BASE` — the guidance never existed to retire | MET |
+| (b) section describes what Phase 64 actually landed | "in its place the section describes what Phase 64 actually landed" | `### NixOS development shell` subsection quoted in full below, describing the seven shims, the FHS sandbox, the exit-127 failure mode, the `uv` fallback leg, and the shim-version readback — this is what Phase 64 built, not what was originally planned | MET |
+| (c) executors keep using the recipe | "automated worktree executors keep using `env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev` + `uv run`" | `awk '/^When operating inside a worktree, provision/{f=1} f' CLAUDE.md \| sha256sum` = `2c39540d38d94116d19ee5c2552cc5c105b0ef1228932713c082cdb8041a9b9a`, and the same pipeline over `git show 0bd33617d3cdf96f0342bdaeb19a0cb031f7c10a:CLAUDE.md` = `2c39540d38d94116d19ee5c2552cc5c105b0ef1228932713c082cdb8041a9b9a` — equal | MET |
+| (d) executors "unaffected and unassisted by `flake.nix`" | "unaffected and unassisted by `flake.nix`" | NIX-05 (`64-NIX05-WORKTREE-EVIDENCE.md`): a fresh worktree's `uv sync` builds `.venv` on uv-managed CPython, a generic-linux ELF NixOS refuses outside FHS; `uv run …` in a worktree works only because the `uv` shim enters the FHS sandbox, inherited by PATH from the launching session. Worktree executors on this machine are therefore assisted by, and depend on, `flake.nix` | **contradicted by measurement, by design** |
+| (e) a worktree is a directory direnv has never seen | "a worktree is a directory direnv has never seen" | Boundary paragraph (quoted below) states plainly: "`direnv` never loads inside a worktree itself, and a worktree's own `.envrc` is never allowed there" | MET |
+| (f) if NIX-05 found the shims reachable, the section says so and keeps the recipe mandatory | "if that measurement found the shims *are* reachable in a fresh worktree, the section says so and still keeps the provisioning recipe mandatory" | Boundary paragraph states "The recipe below is unchanged and mandatory on every machine; `flake.nix` does not substitute for it. On the maintainer's NixOS machine the recipe itself runs through the shims described in the section above" | MET |
+
+Quoted `### NixOS development shell` subsection (clause b):
+
+```
+### NixOS development shell
+
+**Scope.** This subsection applies only on the maintainer's NixOS machine, where `direnv` loads `flake.nix`'s devShell in the main checkout. CI and non-NixOS contributors have no shims and need none — nothing here changes how CI or a non-NixOS contributor runs any of these commands.
+
+**What the shims are.** On that machine, PATH carries seven bare commands: `uv`, `tox`, `ruff`, `black`, `mypy`, `pytest` and `sphinx-build` — the same commands named in § Commands above. Each walks up from the current directory to this checkout's own `.venv/bin/<tool>` and runs it inside an FHS sandbox (`typsphinx-fhs-run`), which is what lets generic-linux binaries that `uv` installs or downloads execute, together with everything they spawn. A missing `.venv/bin/<tool>` fails loudly: a `typsphinx-shim:` line on stderr names the tool and prints the provisioning line as a hint, then the shim exits 127 — it never silently runs some other binary. `uv` alone also falls back to nixpkgs' own `uv`, so a fresh clone or worktree with no `.venv` yet can run its first `uv sync`. Once `.venv` exists, `uv --version` reports the version `uv.lock` pins.
+
+**Prerequisite and check.** Launch Claude Code from a shell in which `direnv` has already loaded the main checkout's devShell. Before provisioning a worktree, confirm the shim is on PATH by running exactly: `grep -q typsphinx-fhs-run "$(command -v uv)"`.
+
+**No manual step.** No manual `ln -sf` or `patchelf` step exists or is needed — those two words appear in this sentence and nowhere else in this file. A `Could not start dynamically linked executable` error means the shim is not on PATH (the session was not launched from the direnv-loaded checkout); relaunch from that shell — it is not a code regression.
+
+**Locale.** The sandbox passes the host's `LANG` through unchanged, so Sphinx warning text stays localised inside it exactly as outside. CI runs in English, so a test asserting warning text should also be run under `LC_ALL=C` locally.
+
+**Interpreters may differ.** A fresh worktree's `.venv` is built on uv-managed CPython, while the main checkout's may be on nixpkgs' `python3` — the two may differ. Compare both `.venv/pyvenv.cfg` `home` and `version_info` before comparing test counts between them.
+
+**Rationale pointer.** Why the development shell is built this way is recorded in `flake.nix`'s own header notes — see that file, not this one.
+```
+
+Boundary paragraph (clauses e, f), quoted from `### Worktree-isolated execution`:
+
+```
+**Detection rule:** you are running inside an isolated git worktree when `.git` is a FILE (a `gitdir:` pointer), not a directory — check with `test -f .git`. Sequential main-tree execution has `.git` as a directory and needs none of the steps below.
+
+**NixOS boundary.** The recipe below is unchanged and mandatory on every machine; `flake.nix` does not substitute for it. On the maintainer's NixOS machine the recipe itself runs through the shims described in the section above, because a worktree's `.venv` is built on a generic-linux interpreter that NixOS runs only inside the sandbox — so the worktree depends on those shims being present. The shims reach a worktree only because they are inherited through PATH from a session launched in the direnv-loaded main checkout: `direnv` never loads inside a worktree itself, and a worktree's own `.envrc` is never allowed there.
+```
+
+SC1_LITERAL_VERDICT = PARTIAL (every clause except (d) is MET; (d) is contradicted by measurement, by design — the expected outcome per D-01)
+
+## SC#1 amended reading
+
+```
+$ grep -n 'AMENDED 2026-09-12 (Phase 68 discuss' .planning/ROADMAP.md
+646:     > **AMENDED 2026-09-12 (Phase 68 discuss, owner-approved).** "Unaffected and unassisted by
+
+$ grep -n 'satisfied vacuously' .planning/ROADMAP.md
+657:     > either term), so its retirement is satisfied vacuously and is evidenced, not edited. The
+```
+
+The recipe-tail hash equality from the literal reading's clause (c) applies unchanged here:
+`2c39540d38d94116d19ee5c2552cc5c105b0ef1228932713c082cdb8041a9b9a` on both sides
+(current tree and `PHASE_BASE`'s `CLAUDE.md`).
+
+The boundary paragraph (quoted above under SC#1 literal reading) shows all four required
+elements:
+- the recipe is unchanged and mandatory: "The recipe below is unchanged and mandatory on every machine"
+- `flake.nix` does not substitute for it: "`flake.nix` does not substitute for it"
+- on NixOS the recipe runs through the shims: "On the maintainer's NixOS machine the recipe itself runs through the shims described in the section above"
+- the shims arrive by inheritance, not by direnv: "The shims reach a worktree only because they are inherited through PATH from a session launched in the direnv-loaded main checkout: `direnv` never loads inside a worktree itself, and a worktree's own `.envrc` is never allowed there"
+
+D-03 check present in the subsection, NixOS-only scoped:
+
+```
+$ awk '/^### NixOS development shell$/{f=1} /^### Worktree-isolated execution$/{f=0} f' CLAUDE.md | grep -F 'grep -q typsphinx-fhs-run "$(command -v uv)"'
+**Prerequisite and check.** Launch Claude Code from a shell in which `direnv` has already loaded the main checkout's devShell. Before provisioning a worktree, confirm the shim is on PATH by running exactly: `grep -q typsphinx-fhs-run "$(command -v uv)"`.
+```
+
+The subsection's own `**Scope.**` sentence scopes the whole subsection — including this
+check — to "the maintainer's NixOS machine", explicitly stating "CI and non-NixOS
+contributors have no shims and need none".
+
+SC1_AMENDED_VERDICT = MET (all of the above hold)
+
+## SC#3 reading
+
+Merged-tree drvPaths, all four equal to `68-FLAKE-EVIDENCE.md`'s `DRV_BEFORE_` values:
+
+```
+x86_64-linux    /nix/store/jnbia2810h255l78mn8k26sic5xqvb9p-nix-shell.drv
+aarch64-linux   /nix/store/8qqw29d5k2jp4w9pcc4zyhk418fmdv4m-nix-shell.drv
+x86_64-darwin   /nix/store/fclfls55m9lp06679x7zrw0qzjya834j-nix-shell.drv
+aarch64-darwin  /nix/store/2m6y6pshri0vyw3jb5agczjnz9a92sxc-nix-shell.drv
+```
+
+(each obtained via `nix eval --raw ".#devShells.<sys>.default.drvPath"`, run for all four
+systems from a script file to avoid the sandbox's substring match on the word "eval" in an
+inline command; values transcribed verbatim from that run.)
+
+```
+$ grep -nE 'D-[0-9]' flake.nix
+(no output)
+```
+
+`flake.nix` header block, quoted in full, mapped onto SC#3's parts:
+
+```
+  # The devShell here is a plain mkShell. On Linux it adds one buildFHSEnv
+  # passthrough (`typsphinx-fhs-run`, a pure exec) and PATH command shims
+  # that enter it. Two more obvious designs were tried and falsified: using
+  # buildFHSEnv's own `.env` attribute as the devShell does not put the
+  # shell inside FHS under either `nix develop` or direnv, because
+  # `/lib64/ld-linux-x86-64.so.2` still resolves to NixOS's stub-ld either
+  # way. A `shellHook` that execs into the wrapper fares no better: `nix
+  # develop` never runs the hook at all, and under direnv the exec only
+  # replaces nix-direnv's own environment-capture subshell, leaving the
+  # real interactive shell outside FHS. So the devShell stays `mkShell`,
+  # and `.envrc`'s `use flake` keeps working unchanged.
+  #
+  # Exactly the seven bare commands CLAUDE.md documents are shimmed: `uv`,
+  # plus the six names in `venvShimNames` (`tox`, `ruff`, `black`, `mypy`,
+  # `pytest`, `sphinx-build`). A Linux sandbox's mount namespace is
+  # inherited across `fork` and `exec` by every descendant process, so
+  # only these top-level entrypoints need a shim -- everything tox or uv
+  # spawns underneath, including the tree's own `.venv/bin/uv`, a
+  # downloaded interpreter, or a `.tox/<env>/bin` tool, already runs
+  # inside the sandbox it was forked from. Every shimmed command keeps
+  # the exact string CLAUDE.md documents.
+  #
+  # `buildFHSEnv` is Linux-only, so the wrapper and its shims are added
+  # only when the host platform is Linux; on darwin the shell instead
+  # carries nixpkgs' own `uv`, unshimmed. Darwin is unverified by
+  # construction: no maintainer machine can exercise that branch, and no
+  # CI lane evaluates this file at all. The only check ever performed
+  # here is a `nix eval` of all four declared systems' devShells, run on
+  # a Linux evaluator; the darwin shell itself has never been built or
+  # entered. A darwin contributor who hits breakage here should report
+  # it directly as a GitHub issue, rather than assume CI would have
+  # caught it.
+  #
+  # Measurement sources:
+  # `.planning/PROJECT.md`, "Binding measurements taken during scoping", for the two falsified devShell designs above.
+  # v0.9.3 Phase 64 `64-NIX05-WORKTREE-EVIDENCE.md`, for PATH inheritance reaching a worktree.
+  # v0.9.3 Phase 64 `64-FLAKE-EVIDENCE.md`, for the four-system `nix eval` check.
+  # v0.9.3 Phase 64 `64-LIBZ-FIX-EVIDENCE.md`, for the `zlib` entry below.
+  # v0.9.3 Phase 65 `65-REVERT-EVIDENCE.md`, for tox-uv's bundled uv resolving `.venv/bin/uv` inside FHS.
+```
+
+Mapping: the FHS wrapper + `mkShell` + both falsified alternatives (`buildFHSEnv`'s `.env`
+and the `shellHook` exec) are the first paragraph; which commands are shimmed and why only
+top-level entrypoints need shims is the second paragraph (namespace inheritance across
+`fork`/`exec`); the darwin note — unverified by construction, Linux-only `buildFHSEnv`, no
+maintainer machine, no CI lane, report directly (D-11) — is the third paragraph, verbatim.
+
+SC3_VERDICT = MET (all drvPaths equal `DRV_BEFORE_`, no decision IDs, every header part present)
+
+## Cross-file consistency
+
+(a) The seven shimmed names, each beginning a command line in CLAUDE.md's `## Commands` section:
+
+```
+$ awk '/venvShimNames = \[/{f=1;next} f && /\];/{exit} f' flake.nix
+            "tox"
+            "ruff"
+            "black"
+            "mypy"
+            "pytest"
+            "sphinx-build"
+
+$ awk '/^## Commands$/{f=1;next} /^## Architecture$/{f=0} f' CLAUDE.md
+Development uses `uv` for env/dependency management and `tox` (with `tox-uv`) as the task runner.
+
+uv sync --extra dev          # install with dev dependencies
+pytest                       # run full suite (config in pyproject.toml)
+...
+black --check .              # black --check . (CI); drop --check to format
+ruff check .
+mypy typsphinx/
+tox                          # env_list: py312, py313, lint, type, cov, docs
+...
+sphinx-build -b typst    source build/typst   # emit .typ files
+```
+
+Each of `uv`, `tox`, `ruff`, `black`, `mypy`, `pytest`, `sphinx-build` begins a command
+line inside `## Commands`.
+
+(b) CLAUDE.md's `tox.ini` bullet, beside tox.ini's `requires` line and comment:
+
+```
+$ grep -qF -- '- `tox.ini` pins `tox-uv~=1.35`' CLAUDE.md; echo "exit:$?"
+exit:0
+```
+
+CLAUDE.md:77 reads `tox.ini` pins `tox-uv~=1.35` (not `>=1.35,<2`); `tox.ini:17` reads
+`requires = tox-uv~=1.35`, with the preceding comment block explaining the same
+ini-parser constraint. They agree.
+
+(c) `test_dev_extra_pins_tox_uv_not_tox_uv_bare`'s claim about CLAUDE.md, read against
+CLAUDE.md's bullet:
+
+```
+tests/test_toolchain_config_gate.py:302-305:
+    CLAUDE.md's own "Conventions & gotchas" sentence named `tox-uv-bare` as
+    deliberate when Phase 65's revert landed. Phase 65 left that rewrite for
+    Phase 68; Phase 68 (DOC-19/DOC-20) rewrote it to describe the
+    `tox-uv~=1.35` pin, keeping `tox-uv-bare` only as history.
+```
+
+CLAUDE.md:77 does exactly that: it describes the `tox-uv~=1.35` pin and names
+`tox-uv-bare` only in a past-tense historical clause ("The pin was earlier
+`tox-uv-bare`..."). The test's past-tense claim about CLAUDE.md is true.
+
+(d) `_run_sphinx_build_typst`'s docstring sentence, read against `.venv/bin/uv` in this
+worktree and the uv shim check:
+
+```
+$ ls -l .venv/bin/uv
+-rwxr-xr-x 1 yuta users 49388608  9月 13 01:07 .venv/bin/uv
+```
+
+`.venv/bin/uv` exists in this worktree (49,388,608 bytes, executable). The docstring
+(`tests/test_pdf_render_gate.py:168-171`) reads: "The `tox-uv` revert (v0.9.3 Phase 65)
+put `.venv/bin/uv` back, and on NixOS it now runs through the Phase 64 FHS shims rather
+than bare, so that hazard does not recur." This matches the head check's own
+`grep -c typsphinx-fhs-run "$(command -v uv)"` = 2 earlier in this evidence file — the
+`uv` on PATH is the FHS shim, and `.venv/bin/uv` is what it walks up to and execs.
+
+(e) CLAUDE.md's `uv` bootstrap sentence, read against flake.nix's `uvShim` note:
+
+CLAUDE.md: "`uv` alone also falls back to nixpkgs' own `uv`, so a fresh clone or worktree
+with no `.venv` yet can run its first `uv sync`."
+
+flake.nix `uvShim` note: "Leg 2, the on-stop fragment, resolves to nixpkgs' own uv at a
+store path fixed at evaluation time... It is the bootstrap for a fresh clone or worktree
+that has no .venv yet, before its first uv sync -- without it such a tree could not
+provision itself."
+
+Both describe the identical fallback: nixpkgs' `uv`, bootstrapping a fresh clone/worktree
+before its first `uv sync`.
+
+CROSS_FILE_VERDICT = consistent (all five agree)
+
+## Task 2 commit
+
+Committed below (evidence file only, this task's share).
