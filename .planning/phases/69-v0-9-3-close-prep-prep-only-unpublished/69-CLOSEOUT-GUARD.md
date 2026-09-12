@@ -296,3 +296,70 @@ operator reaches it without opening this file separately.
 ---
 *Phase: 69-v0-9-3-close-prep-prep-only-unpublished*
 *Plan: 02, 06*
+
+## Third observation (after phase.complete, orchestrator)
+
+Recorded by the execute-phase orchestrator, outside any plan, at the first of the two
+entry points named in § "For the operator running phase.complete".
+
+OBS3_AT = 2026-09-12T23:21:51Z
+
+Before `phase.complete 69`, REQUIREMENTS.md, ROADMAP.md and STATE.md were backed up to a
+scratch directory outside the repository, and `sha256sum .planning/REQUIREMENTS.md` printed
+`02cb9deb614af2bd89e33adc5d0b640a489f85e616ba74aa1eb419e5b92a232a`.
+
+`phase.complete 69` returned `requirements_updated: true` and flipped REL-12. The digest became
+`42c7e38124fb9010d3eb22c6c59de8954e5d3b3fec5a8d19a2ec530777075017`, with the line count unchanged. The
+verbatim diff:
+
+```diff
+diff --git a/.planning/REQUIREMENTS.md b/.planning/REQUIREMENTS.md
+index d3179eb9..c0ee58f6 100644
+--- a/.planning/REQUIREMENTS.md
++++ b/.planning/REQUIREMENTS.md
+@@ -72,7 +72,7 @@ requirements. That carried-forward item is **DEP-01** here.
+ 
+ ### Release (REL — continues from REL-11)
+ 
+-- [ ] **REL-12**: the milestone is merged to `main` via a PR, with no tag, no PyPI upload and no
++- [x] **REL-12**: the milestone is merged to `main` via a PR, with no tag, no PyPI upload and no
+       GitHub Release, and `pyproject.toml` still at `0.9.2`
+ 
+ ## Future Requirements
+@@ -144,7 +144,7 @@ Which phases cover which requirements. Populated during roadmap creation.
+ | DOC-19 | Phase 68 | Complete |
+ | DOC-20 | Phase 68 | Complete |
+ | DOC-21 | Phase 68 | Complete |
+-| REL-12 | Phase 69 | Pending |
++| REL-12 | Phase 69 | Complete |
+ 
+ **Coverage:**
+ 
+```
+
+Response: `git checkout -- .planning/REQUIREMENTS.md`. Nothing was committed. Probes after the
+revert:
+
+```
+$ sha256sum .planning/REQUIREMENTS.md
+02cb9deb614af2bd89e33adc5d0b640a489f85e616ba74aa1eb419e5b92a232a  .planning/REQUIREMENTS.md
+$ wc -l < .planning/REQUIREMENTS.md
+172
+$ git diff --name-only -- .planning/REQUIREMENTS.md
+(empty)
+$ grep -n REL-12 .planning/REQUIREMENTS.md
+75:- [ ] **REL-12**: the milestone is merged to `main` via a PR, with no tag, no PyPI upload and no
+147:| REL-12 | Phase 69 | Pending |
+164:| 69 — v0.9.3 Close Prep (prep-only, unpublished) | REL-12 | 1 |
+166:**REL-12 is mapped to Phase 69 for coverage purposes only.** Like every REL requirement in this
+```
+
+REQ_SHA256_OBS3 = 02cb9deb614af2bd89e33adc5d0b640a489f85e616ba74aa1eb419e5b92a232a
+REQ_VERDICT_OBS3 = REVERTED
+
+The reverted file is byte-identical to the pre-call backup. That makes eight release-prep
+closes at which the flip has landed. Its ROADMAP.md changes (Phase 69 `[x]` and its Progress row
+set to Complete) were correct and kept. Its STATE.md changes were discarded and re-applied by hand:
+it had quoted `gsd_state_version`, deleted `current_phase_name` and set `completed_phases: 1` /
+`percent: 17`. The second entry point, the inline transition of `/gsd-verify-work`, is still
+owed this observation if it is ever run for Phase 69.
