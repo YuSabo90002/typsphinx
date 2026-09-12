@@ -234,3 +234,146 @@ the pre-this-phase baseline) and Phase 64's dispatch (`34618719267`) — neither
 
 This plan's own evidence commits land after the push and touch only `.planning/`, which no CI job
 reads.
+
+## Run
+
+Waited in the foreground: `timeout 590 gh run watch 34723677990 --interval 30` (Bash tool timeout
+600000ms, no `run_in_background`). The single foreground watch call ran until the tool's own
+590-second wrapper elapsed while the run was still `in_progress`; the immediate follow-up
+`gh run view` poll then found the run already `completed`, so no second watch call was needed.
+
+```
+$ gh run view 34723677990 --json status,conclusion,workflowName,headSha,url,createdAt,updatedAt
+{"conclusion":"success","createdAt":"2026-09-12T22:47:18Z","headSha":"becd70c31bfed573dc10cdc20dcf7a30d57edd57","status":"completed","updatedAt":"2026-09-12T22:53:54Z","url":"https://github.com/YuSabo90002/typsphinx/actions/runs/34723677990","workflowName":"CI"}
+```
+
+RUN_HEAD_SHA = becd70c31bfed573dc10cdc20dcf7a30d57edd57
+RUN_CONCLUSION = success
+
+`status: completed`, `conclusion: success`, `workflowName: CI`, `headSha` equal to `PUSHED_SHA`.
+
+## Job census
+
+```
+$ gh run view 34723677990 --json jobs --jq '.jobs[] | [.name, .conclusion] | @tsv'
+Code Coverage	success
+Integration Test - basic	success
+Lint and Format Check	success
+Test Python 3.12 on macos-latest	success
+Test Python 3.13 on macos-latest	success
+Build Package	success
+Test Python 3.12 on windows-latest	success
+Test Python 3.13 on windows-latest	success
+Integration Test - advanced	success
+Test Python 3.13 on ubuntu-latest	success
+Test Python 3.12 on ubuntu-latest	success
+Type Check	success
+```
+
+Twelve jobs, numbered as reported by the API (transcription order only; no assertion depends on
+this order):
+
+| # | Job | Conclusion |
+|---|-----|------------|
+| 1 | Code Coverage | success |
+| 2 | Integration Test - basic | success |
+| 3 | Lint and Format Check | success |
+| 4 | Test Python 3.12 on macos-latest | success |
+| 5 | Test Python 3.13 on macos-latest | success |
+| 6 | Build Package | success |
+| 7 | Test Python 3.12 on windows-latest | success |
+| 8 | Test Python 3.13 on windows-latest | success |
+| 9 | Integration Test - advanced | success |
+| 10 | Test Python 3.13 on ubuntu-latest | success |
+| 11 | Test Python 3.12 on ubuntu-latest | success |
+| 12 | Type Check | success |
+
+JOB_COUNT = 12
+NON_SUCCESS_JOBS = 0
+
+This is exactly the twelve jobs `ci.yml` defines: 6 `test` matrix cells (3 OS × 2 Python) +
+`Lint and Format Check` + `Type Check` + `Code Coverage` + `Build Package` +
+`Integration Test - basic` + `Integration Test - advanced`. All twelve are `success`.
+
+## windows-latest lanes
+
+| Job | Conclusion |
+|-----|------------|
+| Test Python 3.12 on windows-latest | success |
+| Test Python 3.13 on windows-latest | success |
+
+## macos-latest lanes
+
+| Job | Conclusion |
+|-----|------------|
+| Test Python 3.12 on macos-latest | success |
+| Test Python 3.13 on macos-latest | success |
+
+## ruff's verdict
+
+Quoted verbatim from the `Lint and Format Check` job's `Run lint with tox` step (job id
+`103633947841`):
+
+```
+$ gh run view --job 103633947841 --log
+...
+Lint and Format Check	Install dependencies	2026-09-12T22:47:34.6141806Z  + ruff==0.15.20
+Lint and Format Check	Run lint with tox	2026-09-12T22:47:35.4474016Z lint: commands[0]> black --check .
+Lint and Format Check	Run lint with tox	2026-09-12T22:47:39.6531078Z All done! ✨ 🍰 ✨
+Lint and Format Check	Run lint with tox	2026-09-12T22:47:39.6531610Z 355 files would be left unchanged.
+Lint and Format Check	Run lint with tox	2026-09-12T22:47:39.6769749Z lint: commands[1]> ruff check .
+Lint and Format Check	Run lint with tox	2026-09-12T22:47:39.7420882Z All checks passed!
+Lint and Format Check	Run lint with tox	2026-09-12T22:47:39.7442471Z   lint: OK (4.51=setup[0.21]+cmd[4.23,0.07] seconds)
+```
+
+CI_RUFF_VERSION = 0.15.20
+
+`CI_RUFF_VERSION` (`0.15.20`) equals `LOCK_RUFF_VERSION` (`0.15.20`, from `uv.lock` at
+`PUSHED_SHA`). `black --check .` passed (`All done! ✨ 🍰 ✨` / `355 files would be left
+unchanged.`), `ruff check .` passed (`All checks passed!`), and the tox environment reports
+`lint: OK`. This is `ci.yml`'s `Run lint with tox` step; the differently-named lint step belongs to
+`release.yml`, which this plan never searches and never triggers, and whose step name is absent
+from this evidence. CI holds lint authority (constraint 7); 69-03's local `ruff check .` is set
+beside this one in `69-06`, not here.
+
+## Dispatch count and no release run
+
+```
+$ gh run list --workflow=ci.yml --branch gsd/v0.9.3-toolchain-and-dependency-update-repair --event workflow_dispatch --limit 50 --json headSha
+[{"headSha":"becd70c31bfed573dc10cdc20dcf7a30d57edd57"},{"headSha":"d9c7555323e843b5a389ed4354ce656d2fd05ca2"},{"headSha":"7afbf5b2c1c35d07fa775d194d4aaba6d575e1f5"}]
+```
+
+DISPATCH_COUNT = 1
+
+Exactly one entry carries `headSha` equal to `PUSHED_SHA` (`becd70c31bfed573dc10cdc20dcf7a30d57edd57`).
+The other two are Phase 65's dispatch (`d9c75553…`) and Phase 64's dispatch (`7afbf5b2…`), neither
+of which is this plan's tip.
+
+```
+$ gh run list --workflow=release.yml --limit 20 --json headSha
+[{"headSha":"45962faad21520c72ac9f1e14c7f684050826bb6"},{"headSha":"68b92e24e6ca3df410ca0435d226629ef7ef1e2e"},{"headSha":"78e01e53641433a34c1bd8834b6252187fcae4ba"},{"headSha":"48bf135428bb093a77a432d93d16088ce6930342"},{"headSha":"75fd8ed55f4fca206474f9e3aa934921588b52d5"},{"headSha":"839d77f38ffa67f18696265b361f7dcef92f679b"},{"headSha":"2bf6ef318773b239e4ab20b41fbe40ce91337584"},{"headSha":"7f6db629351aa1229a2a07614b6a6f201001ad80"},{"headSha":"54b8fc90df0359b049a1cd9936f03c76d1169f74"},{"headSha":"27e77403f1d62ebec9f36c2c4a9b7c8e16067fc9"},{"headSha":"cc26b4723f671c0ac0dfdae687b6bee722aa6dd0"},{"headSha":"ea153bfca933b92ea23fdfa72efba2afb100f29b"},{"headSha":"dae500a1f2065691972e03cc70a9bf73a90cd26f"},{"headSha":"a2aca47b367b6a4320be6785202cacffad937c5e"},{"headSha":"415498a8cfa7dc21aa09871d4d3b061ed7ba48a2"},{"headSha":"445af8c4b8a30d924d30341bd87b476fa7d0b486"},{"headSha":"0ed33d10acbee8fa935850bcf77404d55832edc9"},{"headSha":"08aeb4b3cfba2293103aefa201b85c89397f50f3"},{"headSha":"28a80a6cc13288eb8c75612693d34a25ae865142"},{"headSha":"c1e2db714cfacd8ef96759ccdebf6e09f5c9152a"}]
+```
+
+RELEASE_RUNS_AT_PUSHED = 0
+
+None of the 20 most recent `release.yml` runs carry `headSha` equal to `PUSHED_SHA`. No release
+workflow ever ran against this tip.
+
+## D-13 final tip
+
+This run (`RUN_ID = 34723677990`, `headSha = becd70c31bfed573dc10cdc20dcf7a30d57edd57`) is D-13's
+single dispatch for Phase 69. `PUSHED_SHA` carries every product-tree change of the phase — the
+CHANGELOG edit authored by 69-01 — since the `## Tip identity and fence` section above showed the
+pushed tree is byte-identical to this worktree's own HEAD, which itself carries wave 1's merged
+commits and nothing else. Every later commit of this phase (this plan's own evidence commits, and
+any commit 69-03/69-05 make) touches only `.planning/`, which no CI job reads; plan 69-06 proves
+this with its own empty product-tree diff against `PUSHED_SHA`. D-13 permits a second dispatch only
+for a code-affecting change; none has occurred and none is warranted here.
+
+## SC#3 CI verdict
+
+The run is `completed` and `success`, `JOB_COUNT = 12`, `NON_SUCCESS_JOBS = 0`, and all four named
+lanes (`Test Python 3.12 on windows-latest`, `Test Python 3.13 on windows-latest`,
+`Test Python 3.12 on macos-latest`, `Test Python 3.13 on macos-latest`) are `success`.
+
+SC3_CI_VERDICT = MET
