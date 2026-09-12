@@ -5,15 +5,15 @@ milestone_name: Toolchain and dependency-update repair
 current_phase: 66
 current_phase_name: "`.github/dependabot.yml` — `pip` → `uv` Ecosystem"
 status: planning
-stopped_at: Phase 66 context gathered
-last_updated: "2026-09-12T08:59:59.665Z"
+stopped_at: Phase 66 planned (4 plans, 4 waves)
+last_updated: "2026-09-12T10:10:00.000Z"
 last_activity: 2026-09-12
-last_activity_desc: Phase 66 context gathered
-state_head: b45674e96448c8de6946c3540ab3f3ddd62d7ff2
+last_activity_desc: Phase 66 planned — 4 plans in 4 sequential waves (66-02 and 66-03 carry owner checkpoints); plan-checker passed, decision coverage 6/6
+state_head: f98c3e4a230bdc41d3e0104cc1783f435af0d41d
 progress:
   total_phases: 6
   completed_phases: 2
-  total_plans: 8
+  total_plans: 12
   completed_plans: 8
   percent: 33
 ---
@@ -159,9 +159,9 @@ land here.
 ## Current Position
 
 Phase: 66 — `.github/dependabot.yml` — `pip` → `uv` Ecosystem
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-09-12 — Phase 65 complete, transitioned to Phase 66
+Plan: 0 of 4 (66-01..66-04, waves 1–4; 66-02 has the D-01 merge checkpoint, 66-03 the D-03 owner action)
+Status: Ready to execute
+Last activity: 2026-09-12 — Phase 66 planned (research, validation strategy, 4 plans; plan-checker passed)
 
 ## Active Milestone (v0.9.3 — Toolchain and dependency-update repair)
 

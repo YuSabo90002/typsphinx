@@ -515,7 +515,24 @@ with Phases 64–65.
      dependabot's own behaviour or its documented ecosystem support, not assumed from the YAML being
      syntactically identical (DEP-03).
 
-**Plans**: TBD
+**Plans**: 4 plans (4 sequential waves; 66-02 carries the D-01 owner merge checkpoint, 66-03 the D-03 owner action on the Dependabot tab)
+
+Plans:
+**Wave 1**
+
+- [ ] 66-01-PLAN.md — the one-token `pip` → `uv` switch committed on the milestone branch and, byte-identical, on a `main`-bound PR branch built from `origin/main`; PR opened and its 6 required checks observed green
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 66-02-PLAN.md — pre-merge gate and simulated REL-12 merge, owner go-ahead (D-01, one-way), D-02 pre-merge snapshot of #123/#128, two-parent merge into `main`
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 66-03-PLAN.md — the post-merge `uv` update job read from the Actions API (`Dependabot Updates`), owner Dependabot-tab read and conditional "Check for updates" (D-03/D-04), D-02 post-merge snapshot, `dependabot/uv/` PR census
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 66-04-PLAN.md — SC#1 from a real `uv` PR's head commit, D-05 legs 1 and 2 (HALT on leg-2 failure), D-06 observations, DEP-01/DEP-03/DEP-04 closure table
 
 **UI hint**: no
 
@@ -692,7 +709,7 @@ below tracks the active milestone only.
 |-------|-----------|----------------|--------|-----------|
 | 64. FHS Wrapper and Command Shims in `flake.nix` | v0.9.3 | 6/6 | Complete    | 2026-09-12 |
 | 65. `tox-uv-bare` → `tox-uv` Revert, on the uv Path tox Actually Resolves | v0.9.3 | 2/2 | Complete    | 2026-09-12 |
-| 66. `.github/dependabot.yml` — `pip` → `uv` Ecosystem | v0.9.3 | 0/? | Not started | - |
+| 66. `.github/dependabot.yml` — `pip` → `uv` Ecosystem | v0.9.3 | 0/4 | Planned | - |
 | 67. Proof on a Real Dependabot PR, Then Disposal of #123 and #128 | v0.9.3 | 0/? | Not started | - |
 | 68. Documentation Follow-Through — `CLAUDE.md`, `tox.ini`, `flake.nix` | v0.9.3 | 0/? | Not started | - |
 | 69. v0.9.3 Close Prep (prep-only, unpublished) | v0.9.3 | 0/? | Not started | - |

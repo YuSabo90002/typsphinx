@@ -66,7 +66,7 @@ Anything under `typsphinx/` (constraint 13).
 
 ### SC#1 — the real-PR observation
 
-- **D-03: Do not wait for the Monday 00:00 schedule. After the merge, check for a `uv`-ecosystem PR; if none has opened, the owner clicks "Check for updates" (Insights → Dependency graph → Dependabot, per `re-run-dependabot-jobs.md:20`).** There is no public API for triggering a
+- **D-03: Do not wait for the Monday schedule. After the merge, check for a `uv`-ecosystem PR; if none has opened, the owner clicks "Check for updates".** (Schedule — Monday 00:00. Button — Insights → Dependency graph → Dependabot, per `re-run-dependabot-jobs.md:20`.) There is no public API for triggering a
   version-update job, so this is a `checkpoint:human-action`. GitHub's docs are ambiguous on whether
   a config change triggers an immediate run (`about-the-dependabot-yml-file.md:50`); record which
   happened.
