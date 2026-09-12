@@ -460,3 +460,666 @@ commented on, labeled, or sent an `@dependabot` command by this phase.
 *Task 3 complete. `D03_BRANCH = config-push`; `UV_RUN_ACCEPTED = yes`; `OWNER_TAB_ANNOTATION` and
 `OWNER_TAB_CONFIG_ERROR = none` recorded from the owner's Task 2 reply; #123/#128 unchanged
 post-merge; five open `dependabot/uv/` PRs (#138–#142) available as 66-04's candidates.*
+
+---
+
+# 66-04: SC#1 same-commit read, D-05 legs 1–2, D-06, requirement closure
+
+executor worktree, provisioned with the CLAUDE.md line; git and gh only; the main checkout is never
+touched.
+
+SC1_PR = 138
+SC1_SHA = 88088071e02a7411800f504e06b1ded9d6891cc7
+
+## Head check and provisioning
+
+```
+$ test -f .git; echo "exit:$?"
+exit:0
+
+$ pwd -P
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a6b565b111054d94c
+```
+
+`pwd -P` lies under `/home/yuta/Documents/typsphinx/.claude/worktrees/`.
+
+```
+$ env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev
+Using CPython 3.14.4
+Creating virtual environment at: .venv
+Resolved 91 packages in 0.58ms
+   Building typsphinx @ file:///home/yuta/Documents/typsphinx/.claude/worktrees/agent-a6b565b111054d94c
+      Built typsphinx @ file:///home/yuta/Documents/typsphinx/.claude/worktrees/agent-a6b565b111054d94c
+Prepared 1 package in 455ms
+Installed 81 packages in 51ms
+ ... (81 packages, including uv==0.12.13, tox==4.56.1, pytest==9.1.1)
+```
+
+Provisioning ran verbatim (CLAUDE.md, "Worktree-isolated execution"). Task 2 runs `uv` from this
+worktree's own `.venv`.
+
+## Wave-3 gate
+
+```
+$ sed -n 's/^UV_PR_CANDIDATES = //p' .planning/phases/66-github-dependabot-yml-pip-uv-ecosystem/66-DEPENDABOT-EVIDENCE.md
+138 139 140 141 142
+
+$ sed -n 's/^UV_RUN_ID = //p' .planning/phases/66-github-dependabot-yml-pip-uv-ecosystem/66-DEPENDABOT-EVIDENCE.md
+34688990228
+
+$ sed -n 's/^UPDATER_UV_IMAGE = //p' .planning/phases/66-github-dependabot-yml-pip-uv-ecosystem/66-DEPENDABOT-EVIDENCE.md
+ghcr.io/dependabot/dependabot-updater-uv:ebbc4f6acba15d63b83f2211074ddc74e979fcfd
+
+$ sed -n 's/^D03_BRANCH = //p' .planning/phases/66-github-dependabot-yml-pip-uv-ecosystem/66-DEPENDABOT-EVIDENCE.md
+config-push
+
+$ grep -c '^OWNER_TAB_ANNOTATION = ' .planning/phases/66-github-dependabot-yml-pip-uv-ecosystem/66-DEPENDABOT-EVIDENCE.md
+1
+
+$ grep -c '^## HALT' .planning/phases/66-github-dependabot-yml-pip-uv-ecosystem/66-DEPENDABOT-EVIDENCE.md
+0
+
+$ grep -c '^## HALT' .planning/phases/66-github-dependabot-yml-pip-uv-ecosystem/66-MAIN-PR-EVIDENCE.md
+0
+```
+
+All five keys present and non-empty (`UV_PR_CANDIDATES`, `UV_RUN_ID`, `UPDATER_UV_IMAGE`,
+`D03_BRANCH`, `OWNER_TAB_ANNOTATION`), and neither evidence file carries a `## HALT` heading. Gate
+holds.
+
+## Same-commit classification
+
+Re-listed with 66-03's own query — no `dependabot/uv/` PR is new since 66-03; the five candidates
+are exactly `UV_PR_CANDIDATES`:
+
+```
+$ gh pr list --state all --author app/dependabot --limit 50 --json number,title,headRefName,headRefOid,state,labels,createdAt,closedAt
+```
+
+(full JSON recorded; the five open `dependabot/uv/` rows are #138–#142, unchanged from 66-03's
+census; #123 and #128 remain the only other open dependabot PRs, both `pip`-ecosystem, both
+unaffected by this task.)
+
+For each open `dependabot/uv/` PR, ascending, `gh pr view` (verbatim JSON), `git fetch
+origin refs/pull/<n>/head` with a `FETCH_HEAD` == `headRefOid` assertion, then `git show
+--name-only --format='%H%n%an <%ae>%n%s'` on the head commit:
+
+### #138 — `dependabot/uv/ruff-0.16.6`
+
+```
+$ gh pr view 138 --json number,title,state,author,headRefName,headRefOid,baseRefName,createdAt,labels,commits,files
+{"author":{"is_bot":true,"login":"app/dependabot"},"baseRefName":"main","commits":[{"authoredDate":"2026-09-12T10:39:48Z","oid":"88088071e02a7411800f504e06b1ded9d6891cc7", ...}],"createdAt":"2026-09-12T10:39:49Z","files":[{"path":"pyproject.toml","additions":1,"deletions":1,"changeType":"MODIFIED"},{"path":"uv.lock","additions":22,"deletions":22,"changeType":"MODIFIED"}],"headRefName":"dependabot/uv/ruff-0.16.6","headRefOid":"88088071e02a7411800f504e06b1ded9d6891cc7","labels":[],"number":138,"state":"OPEN","title":"chore(deps): bump ruff from 0.15.20 to 0.16.6"}
+
+$ git fetch origin refs/pull/138/head
+ * branch              refs/pull/138/head -> FETCH_HEAD
+
+$ git rev-parse FETCH_HEAD
+88088071e02a7411800f504e06b1ded9d6891cc7
+```
+
+`FETCH_HEAD` equals `headRefOid`.
+
+```
+$ git show --name-only --format='%H%n%an <%ae>%n%s' 88088071e02a7411800f504e06b1ded9d6891cc7
+88088071e02a7411800f504e06b1ded9d6891cc7
+dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+chore(deps): bump ruff from 0.15.20 to 0.16.6
+
+pyproject.toml
+uv.lock
+```
+
+Name list: `pyproject.toml`, `uv.lock` — **class BOTH**. One commit.
+
+### #139 — `dependabot/uv/tox-4.61.4`
+
+```
+$ gh pr view 139 --json ... commits,files
+headRefOid = 49235270a04daaef43c9ec713b73862f5039592e, files: [uv.lock only]
+
+$ git fetch origin refs/pull/139/head; git rev-parse FETCH_HEAD
+49235270a04daaef43c9ec713b73862f5039592e   (equals headRefOid)
+
+$ git show --name-only --format='%H%n%an <%ae>%n%s' 49235270a04daaef43c9ec713b73862f5039592e
+49235270a04daaef43c9ec713b73862f5039592e
+dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+chore(deps): bump tox from 4.56.1 to 4.61.4
+
+uv.lock
+```
+
+Name list: exactly `uv.lock` — **class LOCK-ONLY**. One commit.
+
+### #140 — `dependabot/uv/sphinx-intl-2.4.0`
+
+```
+$ gh pr view 140 --json ... commits,files
+headRefOid = f3ba32992b7e1b5fd128b40897e8b56fe4d09be9, files: [uv.lock only]
+
+$ git fetch origin refs/pull/140/head; git rev-parse FETCH_HEAD
+f3ba32992b7e1b5fd128b40897e8b56fe4d09be9   (equals headRefOid)
+
+$ git show --name-only --format='%H%n%an <%ae>%n%s' f3ba32992b7e1b5fd128b40897e8b56fe4d09be9
+f3ba32992b7e1b5fd128b40897e8b56fe4d09be9
+dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+chore(deps): bump sphinx-intl from 2.3.2 to 2.4.0
+
+uv.lock
+```
+
+Name list: exactly `uv.lock` — **class LOCK-ONLY**. One commit.
+
+### #141 — `dependabot/uv/pre-commit-4.6.2`
+
+```
+$ gh pr view 141 --json ... commits,files
+headRefOid = e94498a515b17047cdc9579c66afee56d7ccb5ab, files: [uv.lock only]
+
+$ git fetch origin refs/pull/141/head; git rev-parse FETCH_HEAD
+e94498a515b17047cdc9579c66afee56d7ccb5ab   (equals headRefOid)
+
+$ git show --name-only --format='%H%n%an <%ae>%n%s' e94498a515b17047cdc9579c66afee56d7ccb5ab
+e94498a515b17047cdc9579c66afee56d7ccb5ab
+dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+chore(deps): bump pre-commit from 4.6.0 to 4.6.2
+
+uv.lock
+```
+
+Name list: exactly `uv.lock` — **class LOCK-ONLY**. One commit.
+
+### #142 — `dependabot/uv/mypy-2.3.1`
+
+```
+$ gh pr view 142 --json ... commits,files
+headRefOid = 7f8737cb0b29985b20aac97a1fe07a8d6d8378b2, files: [uv.lock only]
+
+$ git fetch origin refs/pull/142/head; git rev-parse FETCH_HEAD
+7f8737cb0b29985b20aac97a1fe07a8d6d8378b2   (equals headRefOid)
+
+$ git show --name-only --format='%H%n%an <%ae>%n%s' 7f8737cb0b29985b20aac97a1fe07a8d6d8378b2
+7f8737cb0b29985b20aac97a1fe07a8d6d8378b2
+dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+chore(deps): bump mypy from 2.1.0 to 2.3.1
+
+uv.lock
+```
+
+Name list: exactly `uv.lock` — **class LOCK-ONLY**. One commit.
+
+### Classification table
+
+| # | Title | Branch | Head SHA | Commits | Files | Class |
+|---|-------|--------|----------|---------|-------|-------|
+| 138 | bump ruff 0.15.20→0.16.6 | dependabot/uv/ruff-0.16.6 | 88088071e02a7411800f504e06b1ded9d6891cc7 | 1 | pyproject.toml, uv.lock | BOTH |
+| 139 | bump tox 4.56.1→4.61.4 | dependabot/uv/tox-4.61.4 | 49235270a04daaef43c9ec713b73862f5039592e | 1 | uv.lock | LOCK-ONLY |
+| 140 | bump sphinx-intl 2.3.2→2.4.0 | dependabot/uv/sphinx-intl-2.4.0 | f3ba32992b7e1b5fd128b40897e8b56fe4d09be9 | 1 | uv.lock | LOCK-ONLY |
+| 141 | bump pre-commit 4.6.0→4.6.2 | dependabot/uv/pre-commit-4.6.2 | e94498a515b17047cdc9579c66afee56d7ccb5ab | 1 | uv.lock | LOCK-ONLY |
+| 142 | bump mypy 2.1.0→2.3.1 | dependabot/uv/mypy-2.3.1 | 7f8737cb0b29985b20aac97a1fe07a8d6d8378b2 | 1 | uv.lock | LOCK-ONLY |
+
+Every open `dependabot/uv/` PR carries exactly one commit; SC#1 reads the head commit for the one
+BOTH-class PR. No PR had more than one commit, so the "when a PR has more than one commit" note in
+the plan does not apply here.
+
+## SC#1 selection (D-04)
+
+```
+SC1_PR = 138
+SC1_SHA = 88088071e02a7411800f504e06b1ded9d6891cc7
+```
+
+`SC1_PR` #138 is the lowest-numbered (and only) BOTH PR. Its branch `dependabot/uv/ruff-0.16.6`
+starts with `dependabot/uv/`; its author login `app/dependabot` matches `dependabot`; its base is
+`main`; it carries exactly one commit, which is `SC1_SHA` itself.
+
+```
+$ gh pr view 138 --json headRefName -q '.headRefName | startswith("dependabot/uv/")'
+true
+
+$ gh pr view 138 --json author -q '.author.login | test("dependabot")'
+true
+
+$ gh pr view 138 --json baseRefName -q .baseRefName
+main
+
+$ gh pr view 138 --json commits -q '.commits[].oid'
+88088071e02a7411800f504e06b1ded9d6891cc7
+```
+
+`SC1_SHA` is the PR's sole commit.
+
+```
+$ git show --stat 88088071e02a7411800f504e06b1ded9d6891cc7
+commit 88088071e02a7411800f504e06b1ded9d6891cc7
+Author: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+Date:   Sat Sep 12 10:39:48 2026 +0000
+
+    chore(deps): bump ruff from 0.15.20 to 0.16.6
+    ...
+
+ pyproject.toml |  2 +-
+ uv.lock        | 44 ++++++++++++++++++++++----------------------
+ 2 files changed, 23 insertions(+), 23 deletions(-)
+
+$ git show 88088071e02a7411800f504e06b1ded9d6891cc7 -- pyproject.toml
+diff --git a/pyproject.toml b/pyproject.toml
+index 9ac02823..fc25883f 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -37,7 +37,7 @@ dev = [
+     "tox>=4.56,<5",
+     "tox-uv-bare>=1.35,<2",
+     "black>=26,<27",
+-    "ruff>=0.15,<0.16",
++    "ruff>=0.15,<0.17",
+     "mypy>=1.13,<3.0",
+     "pre-commit>=3.0",
+     "types-docutils>=0.21",
+```
+
+The range widened from `<0.16` to `<0.17` (D-06 range-behaviour material). The context lines still
+show `tox-uv-bare>=1.35,<2` — `main` has not received Phase 65's `tox-uv-bare` → `tox-uv` revert
+yet (that lands only at REL-12, per ROADMAP's two-independent-track design; Track A and Track B
+share no file). Recorded, not touched.
+
+No `gh pr checkout`, `git switch` or `git checkout` was run against any dependabot head in this
+worktree; every read above went through `git show`/`git fetch` only, on this worktree's own
+detached-fetch objects, with HEAD never moving off the worktree's own branch.
+
+## D-05 leg 1 documented and source uv versions
+
+**Documentation:**
+
+```
+$ gh api repos/github/docs/commits/main --jq .sha
+078b5832caa5cde591c2babb389ef447a0ef66eb
+
+$ gh api repos/github/docs/contents/content/code-security/reference/supply-chain-security/dependabot-options-reference.md --jq .content | base64 -d | grep -n '^| uv '
+618:| uv           | `uv`             | v0.11 |
+
+$ gh api repos/github/docs/contents/data/reusables/dependabot/supported-package-managers.md --jq .content | base64 -d | grep -n '^uv '
+59:uv        | `uv`            | v0.11            | {% octicon "check" aria-label="Supported" %} | {% octicon "check" aria-label="Supported" %} | {% octicon "check" aria-label="Supported" %} | {% octicon "check" aria-label="Supported" %} | Not applicable |
+61:uv        | `uv`            | v0.11            | {% octicon "check" aria-label="Supported" %} | {% octicon "x" aria-label="Not supported" %} | {% octicon "check" aria-label="Supported" %} | {% octicon "check" aria-label="Supported" %} | Not applicable |
+```
+
+```
+DOCS_UV_ROW = v0.11
+```
+
+**dependabot-core `main`:**
+
+```
+$ gh api repos/dependabot/dependabot-core/commits/main --jq .sha
+f7f49928afb51e93a3a4e55d76715e990feed02a
+
+$ gh api repos/dependabot/dependabot-core/contents/uv/Dockerfile --jq .content | base64 -d | grep -n 'astral-sh/uv'
+15:FROM ghcr.io/astral-sh/uv:0.12.7 AS uv
+
+$ gh api repos/dependabot/dependabot-core/contents/uv/helpers/requirements.txt --jq .content | base64 -d | grep -n '^uv=='
+10:uv==0.12.7
+```
+
+```
+DEPENDABOT_UV_MAIN = 0.12.7
+```
+
+**The deployed image** — `TAG` is the text after the last `:` of `UPDATER_UV_IMAGE`
+(`ghcr.io/dependabot/dependabot-updater-uv:ebbc4f6acba15d63b83f2211074ddc74e979fcfd`):
+
+```
+$ gh api "repos/dependabot/dependabot-core/commits/ebbc4f6acba15d63b83f2211074ddc74e979fcfd" --jq '[.sha, .commit.committer.date, (.commit.message | split("\n")[0])] | @tsv'
+ebbc4f6acba15d63b83f2211074ddc74e979fcfd	2026-09-11T23:20:28Z	Merge 62f3e983a53a7e7689805f445f350070dfb318fd into 4a3779f686e66f43efcb3815691cf3e93ee655ab
+```
+
+The tag resolves as a real dependabot-core commit (A-DEP-04 does not fire).
+
+```
+$ gh api "repos/dependabot/dependabot-core/contents/uv/Dockerfile?ref=ebbc4f6acba15d63b83f2211074ddc74e979fcfd" --jq .content | base64 -d | grep -n 'astral-sh/uv'
+15:FROM ghcr.io/astral-sh/uv:0.12.7 AS uv
+
+$ gh api "repos/dependabot/dependabot-core/contents/uv/helpers/requirements.txt?ref=ebbc4f6acba15d63b83f2211074ddc74e979fcfd" --jq .content | base64 -d | grep -n '^uv=='
+10:uv==0.12.7
+```
+
+```
+DEPENDABOT_UV_DEPLOYED = 0.12.7
+```
+
+**Finding.** GitHub's own documentation (`DOCS_UV_ROW = v0.11`) is stale relative to source: both
+dependabot-core's `main` branch (`DEPENDABOT_UV_MAIN = 0.12.7`) and the exact image tag dependabot
+pulled for `SC1_PR`'s update run (`DEPENDABOT_UV_DEPLOYED = 0.12.7`) agree with each other and both
+disagree with the documented `v0.11` — a stale-documentation finding (D-05), not a functional
+regression. `.planning/REQUIREMENTS.md`'s DEP-04 wording is not edited; it stays literal.
+
+## D-05 leg 2 lock header
+
+```
+$ git show "88088071e02a7411800f504e06b1ded9d6891cc7:uv.lock" | sed -n 1,2p
+version = 1
+revision = 3
+
+$ git show "293f0c2684641f5d4b2f5ed021b565656e38d48c:uv.lock" | sed -n 1,2p
+version = 1
+revision = 3
+```
+
+Both `SC1_SHA` (the real `uv`-ecosystem PR head) and `MERGE_SHA` (the tip of `main`) read
+`version = 1` / `revision = 3` — no divergence. Leg 2(a) holds.
+
+## D-05 leg 2 local lock check
+
+```
+$ S="$(mktemp -d)"
+S=/tmp/tmp.aDWRG6PjJD
+
+$ git archive -o "$S/head.tar" 88088071e02a7411800f504e06b1ded9d6891cc7; echo "exit:$?"
+exit:0
+
+$ tar -x -f "$S/head.tar" -C "$S"; echo "exit:$?"
+exit:0
+```
+
+From this worktree's own directory (so the `uv` shim on `PATH` is exercised without `cd`ing into
+`$S`):
+
+```
+$ command -v uv
+/nix/store/3vpzk25whpm7s8zq5flpk8gbpkggj9np-uv/bin/uv
+
+$ uv --version
+uv 0.12.13 (x86_64-unknown-linux-gnu)
+```
+
+```
+LOCAL_UV = 0.12.13
+```
+
+```
+$ uv lock --check --directory "$S"; echo "exit:$?"
+Using CPython 3.14.4
+Resolved 89 packages in 4ms
+exit:0
+```
+
+`exit:0` — the exported `SC1_SHA` tree's `uv.lock` is unchanged by a fresh resolve under
+`LOCAL_UV`. Never run with the working directory inside `$S`.
+
+```
+$ rm -rf "$S"; echo "exit:$?"
+exit:0
+```
+
+`$S` removed afterwards. The PR branch itself was never written to — only the scratch export.
+
+## D-05 leg 2 CI uv on the PR head
+
+```
+$ gh run list --workflow=ci.yml --event pull_request --limit 20 --json databaseId,headSha,headBranch,status,conclusion,createdAt
+```
+
+The row whose `headSha` is `SC1_SHA`:
+
+```
+{"conclusion":"success","createdAt":"2026-09-12T10:39:53Z","databaseId":34689041575,"headBranch":"dependabot/uv/ruff-0.16.6","headSha":"88088071e02a7411800f504e06b1ded9d6891cc7","status":"completed"}
+```
+
+Already `completed` at first query — no wait needed.
+
+```
+SC1_RUN_ID = 34689041575
+
+$ gh run view 34689041575 --json status,conclusion,headSha,event,url
+{"conclusion":"success","event":"pull_request","headSha":"88088071e02a7411800f504e06b1ded9d6891cc7","status":"completed","url":"https://github.com/YuSabo90002/typsphinx/actions/runs/34689041575"}
+```
+
+`headSha` equals `SC1_SHA`; `status: completed`.
+
+```
+$ gh run view 34689041575 --json jobs -q '.jobs[] | select(.name == "Test Python 3.12 on ubuntu-latest") | .databaseId'
+103540970982
+
+$ gh api repos/YuSabo90002/typsphinx/actions/jobs/103540970982 --jq '.steps[] | [.number, .name, .conclusion] | @tsv'
+1	Set up job	success
+2	Run actions/checkout@v7	success
+3	Install uv	success
+4	Set up Python 3.12	success
+5	Install dependencies	success
+6	Run tests with tox	success
+7	Upload test results	success
+13	Post Install uv	success
+14	Post Run actions/checkout@v7	success
+15	Complete job	success
+```
+
+`Install dependencies` (`uv sync --extra dev --locked`) concludes `success`.
+
+```
+$ gh run view --job 103540970982 --log | grep -m1 'Successfully installed uv version'
+Test Python 3.12 on ubuntu-latest	Install uv	2026-09-12T10:40:02.5686557Z Successfully installed uv version 0.12.13
+```
+
+```
+CI_UV_VERSION = 0.12.13
+```
+
+**Leg 2 verdict.** (a) lock header held on both `SC1_SHA` and `MERGE_SHA`; (b) the local
+`uv lock --check --directory` on the exported copy printed `exit:0`; (c) the SC#1 CI run's
+`Install dependencies` step concluded `success`.
+
+```
+D05_LEG2 = PASS
+```
+
+All three legs held — the fallback custom workflow is not reached; nothing was built or staged.
+
+## DEP-04 comparison
+
+```
+$ gh api repos/astral-sh/uv/releases/latest --jq '[.tag_name, .published_at] | @tsv'
+0.12.13	2026-09-10T19:27:24Z
+```
+
+```
+UV_LATEST = 0.12.13
+```
+
+| Key | Value |
+|---|---|
+| `DOCS_UV_ROW` | v0.11 |
+| `DEPENDABOT_UV_MAIN` | 0.12.7 |
+| `DEPENDABOT_UV_DEPLOYED` | 0.12.7 |
+| `CI_UV_VERSION` | 0.12.13 |
+| `UV_LATEST` | 0.12.13 |
+| `LOCAL_UV` | 0.12.13 |
+| `uv.lock` header (`SC1_SHA`, `MERGE_SHA`) | `version = 1` / `revision = 3` (both) |
+
+Comparison is string equality only — no ordering is inferred by lexical or float comparison
+(the precision edge). `DOCS_UV_ROW` (`v0.11`) is a distinct literal string from the other five
+figures, all of which read `0.12.x`; none is normalized to compare against `v0.11`.
+
+The local-uv figure the ROADMAP SC#2 text carries forward (`0.11.25`, stale per `66-RESEARCH.md`'s
+own Summary section) is superseded by `LOCAL_UV = 0.12.13`, measured here, not copied.
+
+Astral's lockfile-versioning statement, quoted from `66-RESEARCH.md` Pitfall 3 as context (not as
+evidence for this leg): "The `revision` field of the lockfile is used to track backwards compatible
+changes to the lockfile... Changes to the revision will not cause older versions of uv to error,"
+while "Any given version of uv can read and write lockfiles with the same schema version, but will
+reject lockfiles with a greater schema version." `[CITED: docs.astral.sh/uv/concepts/resolution —
+"Lockfile versioning" section]` — this repo's `version = 1` has been unchanged since well before
+the v0.11/v0.12 split, consistent with the clean `D05_LEG2 = PASS` measured directly above.
+
+DEP-02 (CI's test/lint/type jobs reaching a conclusion on a real dependabot PR) remains Phase 67's
+to judge; this section's `Install dependencies` reading is DEP-04 evidence about lock compatibility
+only, not a DEP-02 closure.
+
+## D-06 observations against the pip-era baseline
+
+### Grouping
+
+```
+$ gh pr list --state all --author app/dependabot --limit 50 --json number,title,headRefName
+```
+
+Filtered to rows whose `headRefName` contains `sphinx-typst-stack` or whose title contains
+`sphinx-typst-stack group`:
+
+```
+{'headRefName': 'dependabot/pip/sphinx-typst-stack-12b5b89b5a', 'number': 128, 'title': '...in the sphinx-typst-stack group across 1 directory'}
+{'headRefName': 'dependabot/pip/sphinx-typst-stack-12b5b89b5a', 'number': 122, 'title': '...in the sphinx-typst-stack group'}
+{'headRefName': 'dependabot/pip/sphinx-typst-stack-12b5b89b5a', 'number': 113, 'title': '...in the sphinx-typst-stack group across 1 directory'}
+{'headRefName': 'dependabot/pip/sphinx-typst-stack-ec50ba62a7', 'number': 108, 'title': 'bump the sphinx-typst-stack group across 1 directory with 2 updates'}
+```
+
+Every matching row is `dependabot/pip/…` — **no `dependabot/uv/sphinx-typst-stack-*` PR opened.**
+This is explained by `## uv update job conclusion`, above: the group's own `docutils` member hit
+`dependency_file_not_resolvable`, so the job never reached the point of opening a group PR for
+`sphinx-typst-stack` under `uv`. #128 (the pip-era grouped bump, still open) is the baseline: one
+package (`docutils`) bumped inside the group, as a single PR — the empty edge (a group PR bumping
+one package still counts as the group behaving as before).
+
+```
+$ gh api repos/github/docs/contents/content/code-security/reference/supply-chain-security/dependabot-options-reference.md --jq .content | base64 -d | sed -n '373,376p'
+### `patterns` and `exclude-patterns` (`groups`)
+
+Both options support using `*` as a wild card to define matches with dependency names. If a dependency matches both a pattern and an exclude-pattern, then it is excluded from the group.
+```
+
+`patterns`/`exclude-patterns` carry no per-ecosystem restriction (unlike `dependency-type`, which
+the same reference lists as "Supported by: `bundler`, `composer`, `mix`, `maven`, `npm`, and
+`pip`" — `uv` and `groups.patterns` are not named as unsupported). Verdict:
+**unobserved-documented-support** — SC#3 accepts documented ecosystem support in the absence of a
+live group PR.
+
+### Exclusions
+
+No `dependabot/uv/` group PR opened (above), so `gh pr diff <n> | grep -cE
+'^[-+].*(sphinx-autodoc-typehints|sphinx-intl)'` has no PR to run against. `.github/dependabot.yml`
+itself still carries both `exclude-patterns` (`sphinx-autodoc-typehints`, `sphinx-intl`) unchanged
+— carried across byte-for-byte from the pip-era config (D-06's own instruction: "carry the block
+across unchanged"). Verdict: **unobserved-documented-support** — the config exclusion is present
+and unedited; only a live group PR could prove it filters correctly, and none opened.
+
+### Labels
+
+```
+$ gh pr view 138 --json labels
+{"labels":[]}
+$ gh pr view 139 --json labels
+{"labels":[]}
+$ gh pr view 140 --json labels
+{"labels":[]}
+$ gh pr view 141 --json labels
+{"labels":[]}
+$ gh pr view 142 --json labels
+{"labels":[]}
+
+$ gh label list --json name --jq '.[].name'
+bug
+documentation
+duplicate
+enhancement
+good first issue
+help wanted
+invalid
+question
+wontfix
+breaking-change
+design
+```
+
+All five open `dependabot/uv/` PRs carry `labels: []`; neither `dependencies` nor `automated`
+exists in the repository's label list — identical to #123's and #128's pip-era `labels: []`
+(the empty edge; Pitfall 2). No extra ecosystem label appeared either. Verdict:
+**behaves-as-before**. No label was created by this task.
+
+### `open-pull-requests-limit`
+
+```
+$ gh pr list --state open --author app/dependabot --json number,headRefName
+```
+
+Rows whose `headRefName` starts with `dependabot/uv/`: 5 (#138, #139, #140, #141, #142) — **exactly**
+`open-pull-requests-limit: 5` from `.github/dependabot.yml`. Per the plan's boundary-edge
+instruction, the `UV_RUN_ID` log is grepped for its limit message at exactly 5:
+
+```
+$ gh run view 34688990228 --log | grep -i 'limit'
+Dependabot	Run Dependabot	2026-09-12T10:39:32.0638606Z updater | ... "hint: While the active Python version is 3.12, the resolution failed for other Python versions supported by your project. Consider limiting your project's supported Python versions using `requires-python`."
+Dependabot	Run Dependabot	2026-09-12T10:40:54.2714520Z |            |                                |   "message": ... (same docutils hint text, repeated in the error table) ...
+```
+
+The only two lines matching `limit` in the job's own Actions log are the `docutils` resolution
+hint's use of "limiting" — **not** a PR-count-limit message. The Actions log itself never states
+the open-PR-limit error; that error surfaces only in the Dependabot tab UI, which is why D-04 routed
+it through `checkpoint:human-action` in 66-03 (`OWNER_TAB_ANNOTATION`, recorded there, quotes
+GitHub's own "Dependabot cannot open any more pull requests... Affected #138 and 4 more" verbatim).
+
+```
+$ gh pr list --state open --author app/dependabot --json number,headRefName
+```
+
+Open `dependabot/pip/` PRs: 2 (#123, #128) — below the limit; the pip ecosystem is not currently
+observed at its own limit boundary (its ecosystem-wide `open-pull-requests-limit` is also `5`, same
+config key, unchanged by this phase). Verdict: **behaves-as-before** — `open-pull-requests-limit: 5`
+carried across unchanged and binds under `uv` exactly as it is configured to (5 PRs opened, 6 more
+blocked, per 66-03's `OWNER_TAB_ANNOTATION`).
+
+### Lockfile-only PRs
+
+From Task 1's classification: 4 of 5 open `dependabot/uv/` PRs (#139, #140, #141, #142) are
+LOCK-ONLY; only #138 is BOTH. This class did not exist under `pip` (`pip` wrote no lockfile).
+Verdict: **divergence-recorded** by construction — new under `uv`, as D-06 anticipated. Setting
+`versioning-strategy` remains a deferred idea (66-CONTEXT.md `<deferred>`); nothing was added to
+`.github/dependabot.yml`.
+
+### `ruff` range behaviour
+
+```
+$ git show 88088071e02a7411800f504e06b1ded9d6891cc7 -- pyproject.toml
+-    "ruff>=0.15,<0.16",
++    "ruff>=0.15,<0.17",
+
+$ gh pr view 123 --json title -q .title
+chore(deps-dev): update ruff requirement from <0.16,>=0.15 to >=0.15,<0.17
+
+$ gh api repos/dependabot/dependabot-core/pulls/15693 --jq '[.number, .title, .merged_at] | @tsv'
+15693	Fix uv library detection for projects not published on PyPI	2026-08-18T20:32:13Z
+```
+
+PR #138 (`uv`-ecosystem) widens ruff's upper bound `<0.16` → `<0.17` — the identical range change
+#123 (`pip`-ecosystem, still open) already proposed. The expectation from dependabot-core #15693
+(merged 2026-08-18, "Fix uv library detection for projects not published on PyPI") — that `uv`
+inherits `pip`'s library detection and so resolves to the same `auto` versioning-strategy
+range-widening behaviour — is **confirmed** by this observation, not merely assumed. Verdict:
+**behaves-as-before**.
+
+### `## D-06 observations`
+
+| item | observed | pip-era baseline | verdict |
+|------|----------|-------------------|---------|
+| `sphinx-typst-stack` grouping | no `dependabot/uv/sphinx-typst-stack-*` PR opened (the group's `docutils` member failed to resolve) | #128: one-package (`docutils`) grouped PR, still open | unobserved-documented-support |
+| exclusions (`sphinx-autodoc-typehints`, `sphinx-intl`) | config carries both `exclude-patterns` unchanged; no group PR to test them against | same two exclusions present pre-switch | unobserved-documented-support |
+| labels (`dependencies`, `automated`) | all five `uv` PRs carry `labels: []`; neither label exists in the repo | #123/#128 both carry `labels: []` | behaves-as-before |
+| `open-pull-requests-limit: 5` | exactly 5 open `dependabot/uv/` PRs; 6 more blocked per `OWNER_TAB_ANNOTATION` | same limit (5) configured, unchanged, pip currently at 2 open | behaves-as-before |
+| lockfile-only PRs | 4 of 5 open `uv` PRs (#139–#142) touch only `uv.lock` | did not exist under `pip` (no lockfile) | divergence-recorded |
+| `ruff` range widening | PR #138 widens `<0.16` → `<0.17` | #123 proposed the identical `<0.16` → `<0.17` widening | behaves-as-before |
+
+Nothing in this section was fixed — no `versioning-strategy` key added, no label created, no
+`.github/dependabot.yml` edit (D-06).
+
+## Requirement closure
+
+| Requirement | Status | Deciding sections |
+|-------------|--------|--------------------|
+| DEP-01 | MET | `.github/dependabot.yml`'s uv line and untouched `github-actions` entry (`66-MAIN-PR-EVIDENCE.md` § Post-merge main); `UV_RUN_ACCEPTED = yes` (§ uv update run); `OWNER_TAB_CONFIG_ERROR = none` (§ Owner Dependabot-tab read (D-04)); `SC1_PR` is BOTH (§ Same-commit classification) |
+| DEP-03 | MET | § D-06 observations — every row (grouping, exclusions, labels, `open-pull-requests-limit`, lockfile-only PRs, `ruff` range) carries a verdict |
+| DEP-04 | MET | § D-05 leg 1 documented and source uv versions; § D-05 leg 2 lock header; § D-05 leg 2 local lock check; § D-05 leg 2 CI uv on the PR head (`D05_LEG2 = PASS`); § DEP-04 comparison |
+
+DEP-02 and DEP-05 are Phase 67's, not judged here. Phase 67 SC#2's inputs are `66-MAIN-PR-EVIDENCE.md`
+§ D-02 pre-merge snapshot and this file's § D-02 post-merge snapshot and § uv pull requests. The
+deferred correction that #128 is itself a grouped `sphinx-typst-stack` bump (66-CONTEXT.md
+`<deferred>`, contradicting the "neither #123 nor #128 is a grouped bump" line in Phase 67 SC#4 and
+PROJECT.md) is carried to Phase 67 discuss and is not amended in this evidence file.
+
+`.github/dependabot.yml`, every file under `.github/workflows/`, and the repository's label list
+were all unchanged by this plan (only this evidence file was written).
