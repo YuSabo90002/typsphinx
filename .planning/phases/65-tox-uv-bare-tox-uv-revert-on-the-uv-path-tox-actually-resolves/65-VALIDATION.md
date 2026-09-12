@@ -44,10 +44,15 @@ created: "2026-09-12"
 
 ## Per-Task Verification Map
 
-*Filled from the PLAN.md tasks once planning completes.*
+*Filled from the PLAN.md tasks at plan time (2026-09-12). The full commands live in each task's `<automated>` block; this table names what each one checks.*
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
+| 65-01-T1 | 65-01 | 1 | TOX-01, TOX-02 | T-65-SC, T-65-01, T-65-03, T-65-04 | lock sha256-pinned and accepted by `--locked`; `TOX_UV_PATH` unset and in no tracked file; scratch comma-form control never committed | integration (shell) + unit (inverted gate, RED then GREEN) | `REVERT_SHA` lists exactly the four files; `uv sync --extra dev --locked`; `uv lock --check`; `uv run pytest tests/test_toolchain_config_gate.py -q` reads `4 passed`; `tox config -e py312 --core -k requires` lists `  tox-uv~=1.35` | ✅ (existing test, inverted) | ⬜ |
+| 65-01-T2 | 65-01 | 1 | TOX-03 | T-65-01, T-65-02, T-65-04 | uv observed from tox's own `-vv` log, never from a shell probe | integration (shell, evidence-recorded) | live `tox -vv -e py312 -r --notest` logs `using bundled uv from: <worktree>/.venv/bin/uv` and only `DEBUG uv <uv.lock version>`; the evidence D-02 section holds `py312: OK`, `collected 1548 items` and `1543 passed, 5 skipped`; `pytest --collect-only -q` reads `1548 tests collected` | ✅ (no new file) | ⬜ |
+| 65-01-T3 | 65-01 | 1 | TOX-03 | T-65-03 | control venv outside the tree, lock-pinned, run outside FHS | integration (shell, evidence-recorded) | nix-interpreter provenance; four `uv pip list` pins equal to `uv.lock`; the live control logs bundled `<CTRL>/bin/uv`, and its first `exit N (` line is `exit 127` on `uv venv`; closure rows TOX-01..TOX-03 MET | ✅ (no new file) | ⬜ |
+| 65-02-T1 | 65-02 | 2 | TOX-04 | T-65-05, T-65-06, T-65-08 | fast-forward push of the canonical ref only; no tag; push gated on wave 1's MET closure | CI (external) + git | upstream set; origin head = `PUSHED_SHA`; no decoy on origin; four-file fence on the tip; `RUN_ID` headSha = `PUSHED_SHA`, event `workflow_dispatch` | ✅ (no new file) | ⬜ |
+| 65-02-T2 | 65-02 | 2 | TOX-04 | T-65-06, T-65-07, T-65-09 | one dispatch; no `release.yml` run; CI is the authority | CI (external) | run `completed`/`success`; 12 jobs all `success`; 2 windows-latest + 2 macos-latest lanes; `Lint and Format Check` success; one dispatched run at `PUSHED_SHA`; `## uv resolved on CI` with at least 7 `venv>` lines; TOX-04 closure MET | ✅ (existing `ci.yml`, unedited) | ⬜ |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
