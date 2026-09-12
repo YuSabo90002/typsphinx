@@ -19,8 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   DEP-02, DEP-03, DEP-04, DEP-05).** Each dependency pull request now updates `pyproject.toml` and
   `uv.lock` in the same commit, so CI's `uv sync --locked` step succeeds and the test, lint and
   type jobs actually run against the updated dependencies; before the switch, every such pull
-  request stopped at that step before any test ran. The grouping, labels and pull-request limit
-  carry over unchanged. This was proven on the pull request that also carried a routine `ruff`
+  request stopped at that step before any test ran. Labels and the pull-request limit behave as
+  before. The `sphinx-typst-stack` grouping is kept as configured, but no grouped pull request has
+  opened under `uv` yet: the group's `docutils` update cannot currently resolve against Sphinx's
+  own `docutils` cap. The switch was proven on the pull request that also carried a routine `ruff`
   version bump. This has no effect on installing or using typsphinx.
 
 - **`flake.nix` now provides a NixOS development shell (NIX-01, NIX-02, NIX-03, NIX-04, NIX-05,
