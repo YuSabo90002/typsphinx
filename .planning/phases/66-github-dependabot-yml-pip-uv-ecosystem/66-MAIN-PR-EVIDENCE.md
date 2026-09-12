@@ -490,3 +490,170 @@ advanced`, `Test Python 3.12 on windows-latest`, `Test Python 3.13 on windows-la
 `statusCheckRollup` read above confirms the same for every non-required context queried this task
 (`build-docs`, `Repo-wide link check (advisory)` ×2, `Integration Test - basic`, `Integration Test -
 advanced`). There is nothing to carry to the checkpoint beyond "all green".
+
+## Owner decision
+
+```
+OWNER_DECISION = merge
+DECIDED_AT = 2026-09-12T10:38:08Z
+```
+
+The owner replied, literally, "merge" to the Task 2 checkpoint (relayed by the coordinator), which
+presented `PR_URL`, the six required checks (all `SUCCESS`), the "None" non-required finding, the
+blob identity (`CONFIG_BLOB` on both the milestone branch and the PR head), the REL-12 simulation's
+`exit:0`, and that `origin/main` was still `BASE_SHA`.
+
+### Gate re-asserted after the decision
+
+```
+$ git fetch origin main
+From https://github.com/YuSabo90002/typsphinx
+ * branch              main       -> FETCH_HEAD
+
+$ git rev-parse origin/main
+6181768f64b4cee62a77ac4e26c60c3c976cbb6e
+
+$ gh pr view 137 --json state,headRefOid
+{"headRefOid":"7cc85d28c6946434aa4fb14a0b9b5555d29275ef","state":"OPEN"}
+
+$ gh pr view 137 --json statusCheckRollup --jq '.statusCheckRollup[] | [.name, .conclusion] | @tsv'
+Test Python 3.12 on ubuntu-latest	SUCCESS
+build-docs	SUCCESS
+Repo-wide link check (advisory)	SUCCESS
+Repo-wide link check (advisory)	SUCCESS
+Test Python 3.13 on ubuntu-latest	SUCCESS
+Test Python 3.12 on windows-latest	SUCCESS
+Test Python 3.13 on windows-latest	SUCCESS
+Test Python 3.12 on macos-latest	SUCCESS
+Test Python 3.13 on macos-latest	SUCCESS
+Lint and Format Check	SUCCESS
+Type Check	SUCCESS
+Code Coverage	SUCCESS
+Build Package	SUCCESS
+Integration Test - basic	SUCCESS
+Integration Test - advanced	SUCCESS
+```
+
+No difference from the pre-merge gate: `origin/main` is still `BASE_SHA`, PR #137 is still `OPEN`
+at `PR_COMMIT`, and all six required contexts still read `SUCCESS`. The merge proceeds.
+
+## D-02 pre-merge snapshot
+
+Both PRs read only, immediately before the merge; neither was commented on, closed, labeled, or
+sent an `@dependabot` command.
+
+```
+$ date -u +%FT%TZ
+2026-09-12T10:38:17Z
+
+$ gh pr view 123 --json number,state,closed,closedAt,comments,headRefName,headRefOid,updatedAt,labels
+{"closed":false,"closedAt":null,"comments":[{"id":"IC_kwDOQBRmjM8AAAABLybpkw","author":{"login":"dependabot"},"authorAssociation":"CONTRIBUTOR","body":"### Labels\n\nThe following labels could not be found: `automated`, `dependencies`. Please create them before Dependabot can add them to a pull request.\n\n\nPlease fix the above issues or remove invalid values from `dependabot.yml`.","createdAt":"2026-07-27T00:07:03Z","includesCreatedEdit":false,"isMinimized":false,"minimizedReason":"","reactionGroups":[],"url":"https://github.com/YuSabo90002/typsphinx/pull/123#issuecomment-5086046611","viewerDidAuthor":false}],"headRefName":"dependabot/pip/ruff-gte-0.15-and-lt-0.17","headRefOid":"1c905bb80d388465e57280dc104cbd117442e28a","labels":[],"number":123,"state":"OPEN","updatedAt":"2026-08-03T20:09:21Z"}
+```
+
+```
+$ date -u +%FT%TZ
+2026-09-12T10:38:19Z
+
+$ gh pr view 128 --json number,state,closed,closedAt,comments,headRefName,headRefOid,updatedAt,labels
+{"closed":false,"closedAt":null,"comments":[{"id":"IC_kwDOQBRmjM8AAAABM56Sgw","author":{"login":"dependabot"},"authorAssociation":"CONTRIBUTOR","body":"### Labels\n\nThe following labels could not be found: `automated`, `dependencies`. Please create them before Dependabot can add them to a pull request.\n\n\nPlease fix the above issues or remove invalid values from `dependabot.yml`.","createdAt":"2026-08-03T00:06:15Z","includesCreatedEdit":false,"isMinimized":false,"minimizedReason":"","reactionGroups":[],"url":"https://github.com/YuSabo90002/typsphinx/pull/128#issuecomment-5160997507","viewerDidAuthor":false}],"headRefName":"dependabot/pip/sphinx-typst-stack-12b5b89b5a","headRefOid":"000859f7e07167a8be8b6d3beceea44bca26fa4f","labels":[],"number":128,"state":"OPEN","updatedAt":"2026-09-07T00:07:47Z"}
+```
+
+Both PRs are `OPEN`, unchanged from 66-01's planning-time census (same `headRefOid`, same
+`updatedAt`, same single dependabot "labels could not be found" comment each). Both snapshot
+timestamps (`10:38:17Z`, `10:38:19Z`) are before `MERGED_AT` (`10:38:30Z`, recorded below).
+
+## Merge
+
+```
+$ date -u +%FT%TZ
+2026-09-12T10:38:23Z
+```
+
+`MERGE_STARTED_AT = 2026-09-12T10:38:23Z`.
+
+```
+$ gh pr merge 137 --merge --match-head-commit 7cc85d28c6946434aa4fb14a0b9b5555d29275ef
+(no stdout)
+```
+
+Exactly those flags — no `--admin`, `--auto`, `--squash`, `--rebase` or `--delete-branch`.
+
+```
+$ gh pr view 137 --json state,mergeCommit,mergedAt
+{"mergeCommit":{"oid":"293f0c2684641f5d4b2f5ed021b565656e38d48c"},"mergedAt":"2026-09-12T10:38:30Z","state":"MERGED"}
+```
+
+```
+MERGE_SHA = 293f0c2684641f5d4b2f5ed021b565656e38d48c
+MERGED_AT = 2026-09-12T10:38:30Z
+```
+
+PR #137 is `MERGED` at `MERGE_SHA`, a two-parent merge commit — the style #132 to #136 used.
+
+## Post-merge main
+
+```
+$ git fetch origin main
+From https://github.com/YuSabo90002/typsphinx
+ * branch              main       -> FETCH_HEAD
+   6181768f..293f0c26  main       -> origin/main
+
+$ git rev-list --parents -n 1 293f0c2684641f5d4b2f5ed021b565656e38d48c
+293f0c2684641f5d4b2f5ed021b565656e38d48c 6181768f64b4cee62a77ac4e26c60c3c976cbb6e 7cc85d28c6946434aa4fb14a0b9b5555d29275ef
+
+$ git rev-parse origin/main
+293f0c2684641f5d4b2f5ed021b565656e38d48c
+
+$ git diff --name-only 6181768f64b4cee62a77ac4e26c60c3c976cbb6e 293f0c2684641f5d4b2f5ed021b565656e38d48c
+.github/dependabot.yml
+
+$ git rev-parse 293f0c2684641f5d4b2f5ed021b565656e38d48c:.github/dependabot.yml
+a58ea1e25254138ff6967438feb948c1a0cc7064
+
+$ git show 293f0c2684641f5d4b2f5ed021b565656e38d48c:.github/dependabot.yml | sed -n 4p
+  - package-ecosystem: "uv"
+
+$ git diff 293f0c2684641f5d4b2f5ed021b565656e38d48c HEAD -- .github/dependabot.yml
+(empty)
+
+$ git merge-tree --write-tree --name-only origin/main HEAD; echo "exit:$?"
+3bf4eda872cc92d185772038ba634b9e56c56c2e
+exit:0
+```
+
+`MERGE_SHA`'s parents are exactly `BASE_SHA` and `PR_COMMIT`. `origin/main` now equals `MERGE_SHA`
+(nothing landed on top). `git diff` between `BASE_SHA` and `MERGE_SHA` names only
+`.github/dependabot.yml`, whose blob is `CONFIG_BLOB` — line 4 is the uv line. `MERGE_SHA` and this
+worktree's HEAD carry an identical copy of the file (empty diff). REL-12's later merge of
+`origin/main` into this HEAD still simulates conflict-free (`exit:0`).
+
+### The push CI run on main
+
+```
+$ gh run list --workflow=ci.yml --branch main --event push --limit 5 --json databaseId,headSha,status,conclusion,createdAt
+[{"conclusion":"","createdAt":"2026-09-12T10:38:32Z","databaseId":34688985508,"headSha":"293f0c2684641f5d4b2f5ed021b565656e38d48c","status":"queued"}, ...]
+```
+
+The row whose `headSha` is `MERGE_SHA`: `databaseId 34688985508`, `status: queued` at the time of
+this read. Observational only, per the plan — not a merge gate.
+
+## Dependabot runs right after the merge
+
+```
+$ date -u +%FT%TZ
+2026-09-12T10:38:54Z
+
+$ gh run list --workflow "Dependabot Updates" --limit 10 --json databaseId,displayTitle,headSha,status,conclusion,createdAt
+[{"conclusion":"","createdAt":"2026-09-12T10:38:38Z","databaseId":34688990474,"displayTitle":"github_actions in /. - Update #1572468103","headSha":"293f0c2684641f5d4b2f5ed021b565656e38d48c","status":"in_progress"},{"conclusion":"","createdAt":"2026-09-12T10:38:38Z","databaseId":34688990228,"displayTitle":"uv in /. - Update #1572468102","headSha":"293f0c2684641f5d4b2f5ed021b565656e38d48c","status":"in_progress"},{"conclusion":"success","createdAt":"2026-09-07T00:07:01Z","databaseId":34068767739,"displayTitle":"pip in / for docutils - Update #1559879891","headSha":"6181768f64b4cee62a77ac4e26c60c3c976cbb6e","status":"completed"}, ...]
+```
+
+**Two Dependabot Updates runs already exist with `createdAt` (`2026-09-12T10:38:38Z`) later than
+`MERGED_AT` (`2026-09-12T10:38:30Z`), both at `headSha` `MERGE_SHA`:**
+- `databaseId 34688990228`, `displayTitle "uv in /. - Update #1572468102"`, `status: in_progress`
+- `databaseId 34688990474`, `displayTitle "github_actions in /. - Update #1572468103"`, `status: in_progress`
+
+This is the first `uv`-ecosystem Dependabot run this repository has ever had, and it started within
+8 seconds of the merge landing — a config-change-triggers-immediate-run answer to the D-03 question
+`about-the-dependabot-yml-file.md:50` left ambiguous. Both runs were `in_progress` at this read; 66-03
+polls them to completion and reads their PR output. No wait was performed here, per the plan's
+instruction that 66-03 owns polling.
