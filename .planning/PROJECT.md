@@ -2144,7 +2144,8 @@ continues at **Phase 64**. Headline commitments below; the REQ-ID'd list is
 - [x] `CLAUDE.md` / `tox.ini` / `flake.nix` documentation brought in line with the new mechanism.
 
 Not published: no tag, no PyPI upload, no GitHub Release, `pyproject.toml` stays at `0.9.2`. A PR to
-`main` is opened and merged.
+`main` is opened and merged. Phase 69 (close prep) is complete; that PR is REL-12, still open by
+design, and `/gsd-complete-milestone` opens and merges it following `69-HANDOFF.md`.
 
 **Candidates carried forward** (full dispositions in `.planning/todos/pending/` and in
 `milestones/v0.9.2-REQUIREMENTS.md`'s v2 section):
@@ -2483,6 +2484,8 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
+*Last updated: 2026-09-13 — **Phase 69 (v0.9.3 Close Prep, prep-only, unpublished) complete and verified 8/8**, 6 plans in 3 waves. Three `### Changed` bullets (TOX, DEP, NIX) went under the existing `## [Unreleased]` as pure addition, with no `0.9.3` anywhere and docs warnings unchanged at 3/5 from clean builds. The branch was fast-forwarded to `becd70c3` on origin, and its single CI dispatch (`34723677990`) went 12/12 green, including both windows-latest and both macos-latest lanes. The trial merge of `origin/main` is clean with a valid merged lock; `main` is `strict: true` with six required checks. REL-12 stays open for `/gsd-complete-milestone`: `phase.complete` flipped it for the eighth release-prep close, and the flip was reverted before commit. Code review found 0 critical / 1 warning / 1 info, all CHANGELOG wording, left for the owner. Next: `/gsd-complete-milestone`.*
+
 *Last updated: 2026-09-13 — **Phase 68 (Documentation Follow-Through — `CLAUDE.md`, `tox.ini`, `flake.nix`) complete and verified 9/9**, 4 plans in 2 waves (three parallel doc edits in isolated worktrees, then a merged-tree closure plan). DOC-19..DOC-21 complete; code review 0 critical / 1 warning / 2 info (WR-01 fixed after verification in `98b05fb1`; the 2 info left open); post-merge full suite 1547 passed / 1 skipped. Next: Phase 69.*
 
 *Last updated: 2026-09-12 — **Phase 67 (Proof on a Real Dependabot PR, Then Disposal of #123 and #128) complete and verified 7/7**, 5 plans in 4 waves, three of them behind owner `checkpoint:decision`s (merge #138, close #128, close #123). DEP-02 and DEP-05 complete; code review had no source file in scope (evidence-only phase). The one repository change the phase caused is on `main` (`cf3305ce`, #138); the milestone branch carries evidence only and reaches `main` at REL-12. The Current Milestone section's claim that #123/#128 "will need closing so the `uv` ecosystem opens fresh ones" is superseded by measurement (#138 opened while #123 was open) and is left for the milestone-close update, as `67-CONTEXT.md` recorded.*
