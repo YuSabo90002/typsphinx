@@ -464,3 +464,107 @@ CROSS_FILE_VERDICT = consistent (all five agree)
 ## Task 2 commit
 
 Committed below (evidence file only, this task's share).
+
+## Green tree (merged)
+
+Re-ran the head check and `env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev`
+(quick resync, 91 packages resolved, 81 checked, no changes) before this task's measurements.
+
+```
+$ sed -n 's/^home = //p;s/^version_info = //p' .venv/pyvenv.cfg
+/home/yuta/.local/share/uv/python/cpython-3.14-linux-x86_64-gnu/bin
+3.14
+```
+
+PYVENV_HOME_68_04 = /home/yuta/.local/share/uv/python/cpython-3.14-linux-x86_64-gnu/bin
+PYVENV_VERSION_68_04 = 3.14
+
+Per D-06, this interpreter (uv-managed CPython 3.14) may differ from the main checkout's
+(nixpkgs `python3` 3.13.13) and from the wave-1 worktrees' (all three also uv-managed
+3.14, per their own evidence files). The gate here is 0 failed, not a cross-tree count
+comparison.
+
+```
+$ uv run pytest -q -p no:cacheprovider
+(tail)
+tests/test_xref_compile_time_guard_render_gate.py ......                 [ 99%]
+tests/test_xref_orphan_degrade_render_gate.py .                          [ 99%]
+tests/test_xref_whole_document_guard_render_gate.py ........             [100%]
+
+================= 1543 passed, 5 skipped in 112.14s (0:01:52) ==================
+```
+
+FULL_SUMMARY = 1543 passed, 5 skipped
+FULL_FAILED = 0
+
+Single invocation completed inside the 600000ms foreground timeout — no split was needed.
+
+```
+$ uv run black --check .; echo "exit:$?"
+All done! ✨ 🍰 ✨
+355 files would be left unchanged.
+exit:0
+
+$ uv run ruff check .; echo "exit:$?"
+All checks passed!
+exit:0
+```
+
+```
+$ uv run tox config -e py312 --core -k requires
+[testenv:py312]
+
+[tox]
+requires =
+  tox-uv~=1.35
+  tox
+```
+
+No CI dispatch: no success criterion of this phase requires one, and CI is unchanged
+(constraint 3).
+
+## Phase scope fence
+
+```
+$ git diff --name-only "$PHASE_BASE" HEAD -- . ':!.planning'
+CLAUDE.md
+flake.nix
+tests/test_pdf_render_gate.py
+tests/test_toolchain_config_gate.py
+tox.ini
+```
+
+Exactly the five edit targets, each present.
+
+```
+$ git diff --stat "$PHASE_BASE" HEAD -- typsphinx .github pyproject.toml uv.lock CHANGELOG.md
+(empty)
+```
+
+Empty — nothing under `typsphinx/`, `.github/`, `pyproject.toml`, `uv.lock` or
+`CHANGELOG.md` changed since `PHASE_BASE` (constraint 13; CHANGELOG is Phase 69's).
+
+```
+$ git diff --name-only "$BASE_68_04" -- .planning/STATE.md .planning/ROADMAP.md .planning/REQUIREMENTS.md
+(empty)
+```
+
+Empty — this worktree's executor did not edit any tracking file.
+
+## Requirement closure
+
+| Requirement | Criterion | Evidence (section) | Verdict |
+|-------------|-----------|---------------------|---------|
+| DOC-19 | `CLAUDE.md`'s NixOS/worktree-provisioning section describes the landed mechanism and instructs no manual shim step | `## SC#1 amended reading` (this file); `68-CLAUDEMD-EVIDENCE.md` (68-01's gates: recipe-tail hash equality, D-02 vacuity at base, D-08 rewrite, gate-ordering check) | MET |
+| DOC-20 | `tox.ini`'s `tox-uv-bare` rationale comment is replaced by one describing the current pin, with the `~=` ini-parser constraint stated | `## SC#2 reading`, `## D-15 classification` (this file); `68-TOX-EVIDENCE.md` (68-02's gates: SpecifierSet equivalence, masked-AST-hash-unchanged, 35-passed unchanged) | MET |
+| DOC-21 | `flake.nix` carries notes explaining the FHS wrapper, which commands are shimmed and why, and the darwin guard | `## SC#3 reading` (this file); `68-FLAKE-EVIDENCE.md` (68-03's gates: four-system drvPath equality before/after, `nix flake check` exit 0 both times, comment-stripped hash unchanged) | MET |
+
+DOC19_VERDICT = MET
+DOC20_VERDICT = MET
+DOC21_VERDICT = MET
+
+SC#1's literal reading is reported separately above (`## SC#1 literal reading`,
+`SC1_LITERAL_VERDICT = PARTIAL`, clause (d) contradicted by measurement by design) — its
+own verdict is distinct from `SC1_AMENDED_VERDICT = MET`, which is what DOC-19's closure
+above relies on, per D-01 (Phase 65 D-01 precedent: literal and amended readings are never
+folded into one verdict).
