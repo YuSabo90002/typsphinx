@@ -745,8 +745,8 @@ checkbox stays `[ ]` through every plan, and constraint 14's checksum fence is w
 Plans:
 **Wave 1**
 
-- [ ] 69-01-PLAN.md — D-01..D-05: three `### Changed` bullets (TOX, DEP, NIX) under the existing `## [Unreleased]`, pure addition, both docs environments built clean before and after the edit
-- [ ] 69-02-PLAN.md — D-12: phase-head REQUIREMENTS.md checksum guard naming both transition entry points; SC#1 observation 1 with a positive control on every remote probe; the no-external-API COVERAGE.md
+- [x] 69-01-PLAN.md — D-01..D-05: three `### Changed` bullets (TOX, DEP, NIX) under the existing `## [Unreleased]`, pure addition, both docs environments built clean before and after the edit
+- [x] 69-02-PLAN.md — D-12: phase-head REQUIREMENTS.md checksum guard naming both transition entry points; SC#1 observation 1 with a positive control on every remote probe; the no-external-API COVERAGE.md
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -787,7 +787,7 @@ below tracks the active milestone only.
 | 66. `.github/dependabot.yml` — `pip` → `uv` Ecosystem | v0.9.3 | 4/4 | Complete    | 2026-09-12 |
 | 67. Proof on a Real Dependabot PR, Then Disposal of #123 and #128 | v0.9.3 | 5/5 | Complete    | 2026-09-12 |
 | 68. Documentation Follow-Through — `CLAUDE.md`, `tox.ini`, `flake.nix` | v0.9.3 | 4/4 | Complete    | 2026-09-13 |
-| 69. v0.9.3 Close Prep (prep-only, unpublished) | v0.9.3 | 0/6 | Not started | - |
+| 69. v0.9.3 Close Prep (prep-only, unpublished) | v0.9.3 | 2/6 | In Progress | - |
 
 ## Roadmap Evolution
 
