@@ -951,3 +951,175 @@ the v0.11/v0.12 split, consistent with the clean `D05_LEG2 = PASS` measured dire
 DEP-02 (CI's test/lint/type jobs reaching a conclusion on a real dependabot PR) remains Phase 67's
 to judge; this section's `Install dependencies` reading is DEP-04 evidence about lock compatibility
 only, not a DEP-02 closure.
+
+## D-06 observations against the pip-era baseline
+
+### Grouping
+
+```
+$ gh pr list --state all --author app/dependabot --limit 50 --json number,title,headRefName
+```
+
+Filtered to rows whose `headRefName` contains `sphinx-typst-stack` or whose title contains
+`sphinx-typst-stack group`:
+
+```
+{'headRefName': 'dependabot/pip/sphinx-typst-stack-12b5b89b5a', 'number': 128, 'title': '...in the sphinx-typst-stack group across 1 directory'}
+{'headRefName': 'dependabot/pip/sphinx-typst-stack-12b5b89b5a', 'number': 122, 'title': '...in the sphinx-typst-stack group'}
+{'headRefName': 'dependabot/pip/sphinx-typst-stack-12b5b89b5a', 'number': 113, 'title': '...in the sphinx-typst-stack group across 1 directory'}
+{'headRefName': 'dependabot/pip/sphinx-typst-stack-ec50ba62a7', 'number': 108, 'title': 'bump the sphinx-typst-stack group across 1 directory with 2 updates'}
+```
+
+Every matching row is `dependabot/pip/…` — **no `dependabot/uv/sphinx-typst-stack-*` PR opened.**
+This is explained by `## uv update job conclusion`, above: the group's own `docutils` member hit
+`dependency_file_not_resolvable`, so the job never reached the point of opening a group PR for
+`sphinx-typst-stack` under `uv`. #128 (the pip-era grouped bump, still open) is the baseline: one
+package (`docutils`) bumped inside the group, as a single PR — the empty edge (a group PR bumping
+one package still counts as the group behaving as before).
+
+```
+$ gh api repos/github/docs/contents/content/code-security/reference/supply-chain-security/dependabot-options-reference.md --jq .content | base64 -d | sed -n '373,376p'
+### `patterns` and `exclude-patterns` (`groups`)
+
+Both options support using `*` as a wild card to define matches with dependency names. If a dependency matches both a pattern and an exclude-pattern, then it is excluded from the group.
+```
+
+`patterns`/`exclude-patterns` carry no per-ecosystem restriction (unlike `dependency-type`, which
+the same reference lists as "Supported by: `bundler`, `composer`, `mix`, `maven`, `npm`, and
+`pip`" — `uv` and `groups.patterns` are not named as unsupported). Verdict:
+**unobserved-documented-support** — SC#3 accepts documented ecosystem support in the absence of a
+live group PR.
+
+### Exclusions
+
+No `dependabot/uv/` group PR opened (above), so `gh pr diff <n> | grep -cE
+'^[-+].*(sphinx-autodoc-typehints|sphinx-intl)'` has no PR to run against. `.github/dependabot.yml`
+itself still carries both `exclude-patterns` (`sphinx-autodoc-typehints`, `sphinx-intl`) unchanged
+— carried across byte-for-byte from the pip-era config (D-06's own instruction: "carry the block
+across unchanged"). Verdict: **unobserved-documented-support** — the config exclusion is present
+and unedited; only a live group PR could prove it filters correctly, and none opened.
+
+### Labels
+
+```
+$ gh pr view 138 --json labels
+{"labels":[]}
+$ gh pr view 139 --json labels
+{"labels":[]}
+$ gh pr view 140 --json labels
+{"labels":[]}
+$ gh pr view 141 --json labels
+{"labels":[]}
+$ gh pr view 142 --json labels
+{"labels":[]}
+
+$ gh label list --json name --jq '.[].name'
+bug
+documentation
+duplicate
+enhancement
+good first issue
+help wanted
+invalid
+question
+wontfix
+breaking-change
+design
+```
+
+All five open `dependabot/uv/` PRs carry `labels: []`; neither `dependencies` nor `automated`
+exists in the repository's label list — identical to #123's and #128's pip-era `labels: []`
+(the empty edge; Pitfall 2). No extra ecosystem label appeared either. Verdict:
+**behaves-as-before**. No label was created by this task.
+
+### `open-pull-requests-limit`
+
+```
+$ gh pr list --state open --author app/dependabot --json number,headRefName
+```
+
+Rows whose `headRefName` starts with `dependabot/uv/`: 5 (#138, #139, #140, #141, #142) — **exactly**
+`open-pull-requests-limit: 5` from `.github/dependabot.yml`. Per the plan's boundary-edge
+instruction, the `UV_RUN_ID` log is grepped for its limit message at exactly 5:
+
+```
+$ gh run view 34688990228 --log | grep -i 'limit'
+Dependabot	Run Dependabot	2026-09-12T10:39:32.0638606Z updater | ... "hint: While the active Python version is 3.12, the resolution failed for other Python versions supported by your project. Consider limiting your project's supported Python versions using `requires-python`."
+Dependabot	Run Dependabot	2026-09-12T10:40:54.2714520Z |            |                                |   "message": ... (same docutils hint text, repeated in the error table) ...
+```
+
+The only two lines matching `limit` in the job's own Actions log are the `docutils` resolution
+hint's use of "limiting" — **not** a PR-count-limit message. The Actions log itself never states
+the open-PR-limit error; that error surfaces only in the Dependabot tab UI, which is why D-04 routed
+it through `checkpoint:human-action` in 66-03 (`OWNER_TAB_ANNOTATION`, recorded there, quotes
+GitHub's own "Dependabot cannot open any more pull requests... Affected #138 and 4 more" verbatim).
+
+```
+$ gh pr list --state open --author app/dependabot --json number,headRefName
+```
+
+Open `dependabot/pip/` PRs: 2 (#123, #128) — below the limit; the pip ecosystem is not currently
+observed at its own limit boundary (its ecosystem-wide `open-pull-requests-limit` is also `5`, same
+config key, unchanged by this phase). Verdict: **behaves-as-before** — `open-pull-requests-limit: 5`
+carried across unchanged and binds under `uv` exactly as it is configured to (5 PRs opened, 6 more
+blocked, per 66-03's `OWNER_TAB_ANNOTATION`).
+
+### Lockfile-only PRs
+
+From Task 1's classification: 4 of 5 open `dependabot/uv/` PRs (#139, #140, #141, #142) are
+LOCK-ONLY; only #138 is BOTH. This class did not exist under `pip` (`pip` wrote no lockfile).
+Verdict: **divergence-recorded** by construction — new under `uv`, as D-06 anticipated. Setting
+`versioning-strategy` remains a deferred idea (66-CONTEXT.md `<deferred>`); nothing was added to
+`.github/dependabot.yml`.
+
+### `ruff` range behaviour
+
+```
+$ git show 88088071e02a7411800f504e06b1ded9d6891cc7 -- pyproject.toml
+-    "ruff>=0.15,<0.16",
++    "ruff>=0.15,<0.17",
+
+$ gh pr view 123 --json title -q .title
+chore(deps-dev): update ruff requirement from <0.16,>=0.15 to >=0.15,<0.17
+
+$ gh api repos/dependabot/dependabot-core/pulls/15693 --jq '[.number, .title, .merged_at] | @tsv'
+15693	Fix uv library detection for projects not published on PyPI	2026-08-18T20:32:13Z
+```
+
+PR #138 (`uv`-ecosystem) widens ruff's upper bound `<0.16` → `<0.17` — the identical range change
+#123 (`pip`-ecosystem, still open) already proposed. The expectation from dependabot-core #15693
+(merged 2026-08-18, "Fix uv library detection for projects not published on PyPI") — that `uv`
+inherits `pip`'s library detection and so resolves to the same `auto` versioning-strategy
+range-widening behaviour — is **confirmed** by this observation, not merely assumed. Verdict:
+**behaves-as-before**.
+
+### `## D-06 observations`
+
+| item | observed | pip-era baseline | verdict |
+|------|----------|-------------------|---------|
+| `sphinx-typst-stack` grouping | no `dependabot/uv/sphinx-typst-stack-*` PR opened (the group's `docutils` member failed to resolve) | #128: one-package (`docutils`) grouped PR, still open | unobserved-documented-support |
+| exclusions (`sphinx-autodoc-typehints`, `sphinx-intl`) | config carries both `exclude-patterns` unchanged; no group PR to test them against | same two exclusions present pre-switch | unobserved-documented-support |
+| labels (`dependencies`, `automated`) | all five `uv` PRs carry `labels: []`; neither label exists in the repo | #123/#128 both carry `labels: []` | behaves-as-before |
+| `open-pull-requests-limit: 5` | exactly 5 open `dependabot/uv/` PRs; 6 more blocked per `OWNER_TAB_ANNOTATION` | same limit (5) configured, unchanged, pip currently at 2 open | behaves-as-before |
+| lockfile-only PRs | 4 of 5 open `uv` PRs (#139–#142) touch only `uv.lock` | did not exist under `pip` (no lockfile) | divergence-recorded |
+| `ruff` range widening | PR #138 widens `<0.16` → `<0.17` | #123 proposed the identical `<0.16` → `<0.17` widening | behaves-as-before |
+
+Nothing in this section was fixed — no `versioning-strategy` key added, no label created, no
+`.github/dependabot.yml` edit (D-06).
+
+## Requirement closure
+
+| Requirement | Status | Deciding sections |
+|-------------|--------|--------------------|
+| DEP-01 | MET | `.github/dependabot.yml`'s uv line and untouched `github-actions` entry (`66-MAIN-PR-EVIDENCE.md` § Post-merge main); `UV_RUN_ACCEPTED = yes` (§ uv update run); `OWNER_TAB_CONFIG_ERROR = none` (§ Owner Dependabot-tab read (D-04)); `SC1_PR` is BOTH (§ Same-commit classification) |
+| DEP-03 | MET | § D-06 observations — every row (grouping, exclusions, labels, `open-pull-requests-limit`, lockfile-only PRs, `ruff` range) carries a verdict |
+| DEP-04 | MET | § D-05 leg 1 documented and source uv versions; § D-05 leg 2 lock header; § D-05 leg 2 local lock check; § D-05 leg 2 CI uv on the PR head (`D05_LEG2 = PASS`); § DEP-04 comparison |
+
+DEP-02 and DEP-05 are Phase 67's, not judged here. Phase 67 SC#2's inputs are `66-MAIN-PR-EVIDENCE.md`
+§ D-02 pre-merge snapshot and this file's § D-02 post-merge snapshot and § uv pull requests. The
+deferred correction that #128 is itself a grouped `sphinx-typst-stack` bump (66-CONTEXT.md
+`<deferred>`, contradicting the "neither #123 nor #128 is a grouped bump" line in Phase 67 SC#4 and
+PROJECT.md) is carried to Phase 67 discuss and is not amended in this evidence file.
+
+`.github/dependabot.yml`, every file under `.github/workflows/`, and the repository's label list
+were all unchanged by this plan (only this evidence file was written).
