@@ -725,3 +725,229 @@ share no file). Recorded, not touched.
 No `gh pr checkout`, `git switch` or `git checkout` was run against any dependabot head in this
 worktree; every read above went through `git show`/`git fetch` only, on this worktree's own
 detached-fetch objects, with HEAD never moving off the worktree's own branch.
+
+## D-05 leg 1 documented and source uv versions
+
+**Documentation:**
+
+```
+$ gh api repos/github/docs/commits/main --jq .sha
+078b5832caa5cde591c2babb389ef447a0ef66eb
+
+$ gh api repos/github/docs/contents/content/code-security/reference/supply-chain-security/dependabot-options-reference.md --jq .content | base64 -d | grep -n '^| uv '
+618:| uv           | `uv`             | v0.11 |
+
+$ gh api repos/github/docs/contents/data/reusables/dependabot/supported-package-managers.md --jq .content | base64 -d | grep -n '^uv '
+59:uv        | `uv`            | v0.11            | {% octicon "check" aria-label="Supported" %} | {% octicon "check" aria-label="Supported" %} | {% octicon "check" aria-label="Supported" %} | {% octicon "check" aria-label="Supported" %} | Not applicable |
+61:uv        | `uv`            | v0.11            | {% octicon "check" aria-label="Supported" %} | {% octicon "x" aria-label="Not supported" %} | {% octicon "check" aria-label="Supported" %} | {% octicon "check" aria-label="Supported" %} | Not applicable |
+```
+
+```
+DOCS_UV_ROW = v0.11
+```
+
+**dependabot-core `main`:**
+
+```
+$ gh api repos/dependabot/dependabot-core/commits/main --jq .sha
+f7f49928afb51e93a3a4e55d76715e990feed02a
+
+$ gh api repos/dependabot/dependabot-core/contents/uv/Dockerfile --jq .content | base64 -d | grep -n 'astral-sh/uv'
+15:FROM ghcr.io/astral-sh/uv:0.12.7 AS uv
+
+$ gh api repos/dependabot/dependabot-core/contents/uv/helpers/requirements.txt --jq .content | base64 -d | grep -n '^uv=='
+10:uv==0.12.7
+```
+
+```
+DEPENDABOT_UV_MAIN = 0.12.7
+```
+
+**The deployed image** — `TAG` is the text after the last `:` of `UPDATER_UV_IMAGE`
+(`ghcr.io/dependabot/dependabot-updater-uv:ebbc4f6acba15d63b83f2211074ddc74e979fcfd`):
+
+```
+$ gh api "repos/dependabot/dependabot-core/commits/ebbc4f6acba15d63b83f2211074ddc74e979fcfd" --jq '[.sha, .commit.committer.date, (.commit.message | split("\n")[0])] | @tsv'
+ebbc4f6acba15d63b83f2211074ddc74e979fcfd	2026-09-11T23:20:28Z	Merge 62f3e983a53a7e7689805f445f350070dfb318fd into 4a3779f686e66f43efcb3815691cf3e93ee655ab
+```
+
+The tag resolves as a real dependabot-core commit (A-DEP-04 does not fire).
+
+```
+$ gh api "repos/dependabot/dependabot-core/contents/uv/Dockerfile?ref=ebbc4f6acba15d63b83f2211074ddc74e979fcfd" --jq .content | base64 -d | grep -n 'astral-sh/uv'
+15:FROM ghcr.io/astral-sh/uv:0.12.7 AS uv
+
+$ gh api "repos/dependabot/dependabot-core/contents/uv/helpers/requirements.txt?ref=ebbc4f6acba15d63b83f2211074ddc74e979fcfd" --jq .content | base64 -d | grep -n '^uv=='
+10:uv==0.12.7
+```
+
+```
+DEPENDABOT_UV_DEPLOYED = 0.12.7
+```
+
+**Finding.** GitHub's own documentation (`DOCS_UV_ROW = v0.11`) is stale relative to source: both
+dependabot-core's `main` branch (`DEPENDABOT_UV_MAIN = 0.12.7`) and the exact image tag dependabot
+pulled for `SC1_PR`'s update run (`DEPENDABOT_UV_DEPLOYED = 0.12.7`) agree with each other and both
+disagree with the documented `v0.11` — a stale-documentation finding (D-05), not a functional
+regression. `.planning/REQUIREMENTS.md`'s DEP-04 wording is not edited; it stays literal.
+
+## D-05 leg 2 lock header
+
+```
+$ git show "88088071e02a7411800f504e06b1ded9d6891cc7:uv.lock" | sed -n 1,2p
+version = 1
+revision = 3
+
+$ git show "293f0c2684641f5d4b2f5ed021b565656e38d48c:uv.lock" | sed -n 1,2p
+version = 1
+revision = 3
+```
+
+Both `SC1_SHA` (the real `uv`-ecosystem PR head) and `MERGE_SHA` (the tip of `main`) read
+`version = 1` / `revision = 3` — no divergence. Leg 2(a) holds.
+
+## D-05 leg 2 local lock check
+
+```
+$ S="$(mktemp -d)"
+S=/tmp/tmp.aDWRG6PjJD
+
+$ git archive -o "$S/head.tar" 88088071e02a7411800f504e06b1ded9d6891cc7; echo "exit:$?"
+exit:0
+
+$ tar -x -f "$S/head.tar" -C "$S"; echo "exit:$?"
+exit:0
+```
+
+From this worktree's own directory (so the `uv` shim on `PATH` is exercised without `cd`ing into
+`$S`):
+
+```
+$ command -v uv
+/nix/store/3vpzk25whpm7s8zq5flpk8gbpkggj9np-uv/bin/uv
+
+$ uv --version
+uv 0.12.13 (x86_64-unknown-linux-gnu)
+```
+
+```
+LOCAL_UV = 0.12.13
+```
+
+```
+$ uv lock --check --directory "$S"; echo "exit:$?"
+Using CPython 3.14.4
+Resolved 89 packages in 4ms
+exit:0
+```
+
+`exit:0` — the exported `SC1_SHA` tree's `uv.lock` is unchanged by a fresh resolve under
+`LOCAL_UV`. Never run with the working directory inside `$S`.
+
+```
+$ rm -rf "$S"; echo "exit:$?"
+exit:0
+```
+
+`$S` removed afterwards. The PR branch itself was never written to — only the scratch export.
+
+## D-05 leg 2 CI uv on the PR head
+
+```
+$ gh run list --workflow=ci.yml --event pull_request --limit 20 --json databaseId,headSha,headBranch,status,conclusion,createdAt
+```
+
+The row whose `headSha` is `SC1_SHA`:
+
+```
+{"conclusion":"success","createdAt":"2026-09-12T10:39:53Z","databaseId":34689041575,"headBranch":"dependabot/uv/ruff-0.16.6","headSha":"88088071e02a7411800f504e06b1ded9d6891cc7","status":"completed"}
+```
+
+Already `completed` at first query — no wait needed.
+
+```
+SC1_RUN_ID = 34689041575
+
+$ gh run view 34689041575 --json status,conclusion,headSha,event,url
+{"conclusion":"success","event":"pull_request","headSha":"88088071e02a7411800f504e06b1ded9d6891cc7","status":"completed","url":"https://github.com/YuSabo90002/typsphinx/actions/runs/34689041575"}
+```
+
+`headSha` equals `SC1_SHA`; `status: completed`.
+
+```
+$ gh run view 34689041575 --json jobs -q '.jobs[] | select(.name == "Test Python 3.12 on ubuntu-latest") | .databaseId'
+103540970982
+
+$ gh api repos/YuSabo90002/typsphinx/actions/jobs/103540970982 --jq '.steps[] | [.number, .name, .conclusion] | @tsv'
+1	Set up job	success
+2	Run actions/checkout@v7	success
+3	Install uv	success
+4	Set up Python 3.12	success
+5	Install dependencies	success
+6	Run tests with tox	success
+7	Upload test results	success
+13	Post Install uv	success
+14	Post Run actions/checkout@v7	success
+15	Complete job	success
+```
+
+`Install dependencies` (`uv sync --extra dev --locked`) concludes `success`.
+
+```
+$ gh run view --job 103540970982 --log | grep -m1 'Successfully installed uv version'
+Test Python 3.12 on ubuntu-latest	Install uv	2026-09-12T10:40:02.5686557Z Successfully installed uv version 0.12.13
+```
+
+```
+CI_UV_VERSION = 0.12.13
+```
+
+**Leg 2 verdict.** (a) lock header held on both `SC1_SHA` and `MERGE_SHA`; (b) the local
+`uv lock --check --directory` on the exported copy printed `exit:0`; (c) the SC#1 CI run's
+`Install dependencies` step concluded `success`.
+
+```
+D05_LEG2 = PASS
+```
+
+All three legs held — the fallback custom workflow is not reached; nothing was built or staged.
+
+## DEP-04 comparison
+
+```
+$ gh api repos/astral-sh/uv/releases/latest --jq '[.tag_name, .published_at] | @tsv'
+0.12.13	2026-09-10T19:27:24Z
+```
+
+```
+UV_LATEST = 0.12.13
+```
+
+| Key | Value |
+|---|---|
+| `DOCS_UV_ROW` | v0.11 |
+| `DEPENDABOT_UV_MAIN` | 0.12.7 |
+| `DEPENDABOT_UV_DEPLOYED` | 0.12.7 |
+| `CI_UV_VERSION` | 0.12.13 |
+| `UV_LATEST` | 0.12.13 |
+| `LOCAL_UV` | 0.12.13 |
+| `uv.lock` header (`SC1_SHA`, `MERGE_SHA`) | `version = 1` / `revision = 3` (both) |
+
+Comparison is string equality only — no ordering is inferred by lexical or float comparison
+(the precision edge). `DOCS_UV_ROW` (`v0.11`) is a distinct literal string from the other five
+figures, all of which read `0.12.x`; none is normalized to compare against `v0.11`.
+
+The local-uv figure the ROADMAP SC#2 text carries forward (`0.11.25`, stale per `66-RESEARCH.md`'s
+own Summary section) is superseded by `LOCAL_UV = 0.12.13`, measured here, not copied.
+
+Astral's lockfile-versioning statement, quoted from `66-RESEARCH.md` Pitfall 3 as context (not as
+evidence for this leg): "The `revision` field of the lockfile is used to track backwards compatible
+changes to the lockfile... Changes to the revision will not cause older versions of uv to error,"
+while "Any given version of uv can read and write lockfiles with the same schema version, but will
+reject lockfiles with a greater schema version." `[CITED: docs.astral.sh/uv/concepts/resolution —
+"Lockfile versioning" section]` — this repo's `version = 1` has been unchanged since well before
+the v0.11/v0.12 split, consistent with the clean `D05_LEG2 = PASS` measured directly above.
+
+DEP-02 (CI's test/lint/type jobs reaching a conclusion on a real dependabot PR) remains Phase 67's
+to judge; this section's `Install dependencies` reading is DEP-04 evidence about lock compatibility
+only, not a DEP-02 closure.
