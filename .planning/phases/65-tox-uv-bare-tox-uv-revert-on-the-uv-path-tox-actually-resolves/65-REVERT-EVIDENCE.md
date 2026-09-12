@@ -620,3 +620,75 @@ unset throughout). No DIVERGENT result occurred at either D-02 or D-03.
 | TOX-03 | MET | `## TOX-03 D-02 observation inside FHS`, `## TOX-03 D-03 isolated control outside FHS`, `## SC#3 literal and amended readings` |
 
 TOX-04 belongs to plan 65-02 and carries no row here.
+
+
+## Addendum: main-checkout re-sync (orchestrator, D-05)
+
+Measured shape: the main checkout `/home/yuta/Documents/typsphinx`, orchestrator-side, after plan 65-02's worktree merged (`48bb023a`) and before phase verification (2026-09-12T08:08:42Z). Steps 1-8 of `65-02-PLAN.md` § "Orchestrator step after this plan merges", in order:
+
+```
+$ uv --version
+uv 0.11.25 (x86_64-unknown-linux-gnu)
+$ test ! -e .venv/bin/uv; echo "exit:$?"
+exit:0
+$ sed -n 's/^home = //p;s/^version_info = //p' .venv/pyvenv.cfg
+/nix/store/l9k0anq0z7zz81zcwy035jfwap9ga6rl-python3-3.13.13/bin
+3.13.13
+$ env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev
+Resolved 91 packages in 0.57ms
+Uninstalled 10 packages in 10ms
+Installed 3 packages in 1ms
+ - accessible-pygments==0.0.5
+ - beautifulsoup4==4.15.0
+ - furo==2025.12.19
+ - mdit-py-plugins==0.6.1
+ - myst-parser==5.1.0
+ - soupsieve==2.8.4
+ - sphinx-autodoc-typehints==3.0.1
+ - sphinx-basic-ng==1.0.0b2
+ - sphinx-intl==2.3.2
+ + tox-uv==1.36.0
+ - tox-uv-bare==1.35.2
+ + tox-uv-bare==1.36.0
+ + uv==0.12.13
+exit:0
+$ test -x .venv/bin/uv; echo "exit:$?"
+exit:0
+$ uv --version
+uv 0.12.13 (x86_64-unknown-linux-gnu)
+$ sed -n 's/^home = //p;s/^version_info = //p' .venv/pyvenv.cfg
+/nix/store/l9k0anq0z7zz81zcwy035jfwap9ga6rl-python3-3.13.13/bin
+3.13.13
+$ tox --version
+4.56.1 from /home/yuta/Documents/typsphinx/.venv/lib/python3.13/site-packages/tox/__init__.py
+registered plugins:
+    tox-uv-bare-1.36.0 at /home/yuta/Documents/typsphinx/.venv/lib/python3.13/site-packages/tox_uv/plugin.py with uv==0.12.13
+```
+
+Before the sync the shim served the nixpkgs uv (`0.11.25`) and `.venv/bin/uv` was absent. After it, `.venv/bin/uv` exists and the shim's first leg resolves it: `uv --version` equals `uv.lock`'s `uv` (`0.12.13`). `pyvenv.cfg` `home` / `version_info` are unchanged (the nix `python3-3.13.13` store path), so the step-7 stop condition did not fire. This is D-05's accepted maintainer-machine switch.
+
+### Two observations recorded as found
+
+- **`tox --version`'s plugin line names `tox-uv-bare-1.36.0 … with uv==0.12.13`, not the `tox-uv` distribution.** Step 8 forecast that the plugin line would name `tox-uv`. In 1.36.0 `tox-uv` is a meta distribution (`tox-uv-bare==1.36.0` + `uv`); the `tox_uv` plugin entry point is registered by `tox-uv-bare`, so tox reports that distribution. The `with uv==0.12.13` suffix is the bundled uv. Nothing was edited in response.
+- **The documented `uv sync --extra dev` is an exact sync, so it uninstalled the `docs` extra this checkout also carried** (furo, myst-parser, sphinx-intl, sphinx-autodoc-typehints and their dependencies, 9 packages). This is the documented line's normal behaviour, not a Phase 65 defect. Without myst-parser the changelog-page tests skip, so to keep the main checkout's environment, and the pytest baseline that the regression gate compares against, as it was, the orchestrator restored the extra right away:
+
+```
+$ env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev --extra docs
+Resolved 91 packages in 2ms
+Installed 9 packages in 4ms
+ + accessible-pygments==0.0.5
+ + beautifulsoup4==4.15.0
+ + furo==2025.12.19
+ + mdit-py-plugins==0.6.1
+ + myst-parser==5.1.0
+ + soupsieve==2.8.4
+ + sphinx-autodoc-typehints==3.0.1
+ + sphinx-basic-ng==1.0.0b2
+ + sphinx-intl==2.3.2
+exit:0
+$ uv --version
+uv 0.12.13 (x86_64-unknown-linux-gnu)
+$ sed -n 's/^home = //p;s/^version_info = //p' .venv/pyvenv.cfg
+/nix/store/l9k0anq0z7zz81zcwy035jfwap9ga6rl-python3-3.13.13/bin
+3.13.13
+```
