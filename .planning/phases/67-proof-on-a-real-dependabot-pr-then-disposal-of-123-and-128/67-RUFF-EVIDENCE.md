@@ -760,3 +760,120 @@ Per the reply, the approved text is `DRAFT_COMMENT_123` unedited:
 APPROVED_COMMENT_123 = Superseded by #138.
 
 This section is committed before any posting.
+
+## Idempotency (DEP-05)
+
+```
+$ gh api user --jq .login
+YuSabo90002
+```
+
+ME = YuSabo90002
+
+```
+$ gh pr view 123 --json state,closedAt,comments --jq '{state, closedAt, mine: [.comments[] | select(.author.login == "YuSabo90002") | .body]}'
+{"state":"OPEN","closedAt":null,"mine":[]}
+```
+
+`#123` is OPEN with zero owner-authored comments — the "Otherwise" branch.
+
+ALREADY_CLOSED_123 = no
+
+## Re-assertion (#123)
+
+```
+$ gh pr view 138 --json state,mergeCommit
+{"mergeCommit":{"oid":"cf3305ce52b72bb8ca3fa8f9d78fd12a50a3564a"},"state":"MERGED"}
+```
+
+Still MERGED at MERGE_SHA_138.
+
+```
+$ gh pr view 123 --json state,headRefOid,comments
+{"comments":[{"id":"IC_kwDOQBRmjM8AAAABLybpkw","author":{"login":"dependabot"},"authorAssociation":"CONTRIBUTOR","body":"### Labels\n\nThe following labels could not be found: `automated`, `dependencies`. Please create them before Dependabot can add them to a pull request.\n\n\nPlease fix the above issues or remove invalid values from `dependabot.yml`.","createdAt":"2026-07-27T00:07:03Z","includesCreatedEdit":false,"isMinimized":false,"minimizedReason":"","reactionGroups":[],"url":"https://github.com/YuSabo90002/typsphinx/pull/123#issuecomment-5086046611","viewerDidAuthor":false}],"headRefOid":"1c905bb80d388465e57280dc104cbd117442e28a","state":"OPEN"}
+```
+
+OPEN, at HEAD123 (`1c905bb80d388465e57280dc104cbd117442e28a`), unchanged. The only comment is still
+dependabot's own automated notice created `2026-07-27T00:07:03Z`, well before
+`THREAD_READ_AT_123 = 2026-09-12T13:47:32Z`. No new comment by any non-dependabot author since the
+draft.
+
+## Close (#123)
+
+```
+$ date -u +%FT%TZ
+2026-09-12T13:52:02Z
+```
+
+The sandbox refused the literal `gh pr close 123 --comment "$(sed ...)"` invocation, reporting the
+command "runs gh with a value computed at runtime (command output) inside a construct too complex
+to verify, so what it runs cannot be shown not to be git" — the same class of refusal 67-03
+documented for `#128`. Per the plan's own documented fallback (note 6), the approved text was
+extracted from `APPROVED_COMMENT_123` to a plain scratch file with `sed` alone (no `gh`/`git` in
+that command), verified byte-for-byte, then posted via `gh pr comment --body-file`, which reads the
+file directly with no shell substitution and no retyping:
+
+```
+$ sed -n 's/^APPROVED_COMMENT_123 = //p' .planning/phases/67-proof-on-a-real-dependabot-pr-then-disposal-of-123-and-128/67-RUFF-EVIDENCE.md | head -n 1 > <scratch>/approved_comment_123.txt
+
+$ cat -A <scratch>/approved_comment_123.txt
+Superseded by #138.$
+
+$ gh pr comment 123 --body-file <scratch>/approved_comment_123.txt
+https://github.com/YuSabo90002/typsphinx/pull/123#issuecomment-5646299429
+
+$ gh pr close 123
+✓ Closed pull request YuSabo90002/typsphinx#123 (chore(deps-dev): update ruff requirement from <0.16,>=0.15 to >=0.15,<0.17)
+```
+
+No `--delete-branch` was passed. The scratch file was removed immediately after use.
+
+## Post-close record
+
+```
+$ gh pr view 123 --json state,closed,closedAt,mergedAt,comments
+{"closed":true,"closedAt":"2026-09-12T13:52:17Z","comments":[{"id":"IC_kwDOQBRmjM8AAAABLybpkw","author":{"login":"dependabot"},"authorAssociation":"CONTRIBUTOR","body":"### Labels\n\nThe following labels could not be found: `automated`, `dependencies`. Please create them before Dependabot can add them to a pull request.\n\n\nPlease fix the above issues or remove invalid values from `dependabot.yml`.","createdAt":"2026-07-27T00:07:03Z","includesCreatedEdit":false,"isMinimized":false,"minimizedReason":"","reactionGroups":[],"url":"https://github.com/YuSabo90002/typsphinx/pull/123#issuecomment-5086046611","viewerDidAuthor":false},{"id":"IC_kwDOQBRmjM8AAAABUIuxJQ","author":{"login":"YuSabo90002"},"authorAssociation":"OWNER","body":"Superseded by #138.\n","createdAt":"2026-09-12T13:52:14Z","includesCreatedEdit":false,"isMinimized":false,"minimizedReason":"","reactionGroups":[],"url":"https://github.com/YuSabo90002/typsphinx/pull/123#issuecomment-5646299429","viewerDidAuthor":true},{"id":"IC_kwDOQBRmjM8AAAABUIuy_g","author":{"login":"dependabot"},"authorAssociation":"CONTRIBUTOR","body":"OK, I won't notify you again about this release, but will get in touch when a new version is available. If you'd rather skip all updates until the next major or minor version, let me know by commenting `@dependabot ignore this major version` or `@dependabot ignore this minor version`. You can also ignore all major, minor, or patch releases for a dependency by adding an `ignore` condition with the desired `update_types` to your config file.\n\nIf you change your mind, just re-open this PR and I'll resolve any conflicts on it.","createdAt":"2026-09-12T13:52:19Z","includesCreatedEdit":false,"isMinimized":false,"minimizedReason":"","reactionGroups":[],"url":"https://github.com/YuSabo90002/typsphinx/pull/123#issuecomment-5646299902","viewerDidAuthor":false}],"mergedAt":null,"state":"CLOSED"}
+```
+
+CLOSED_AT_123 = 2026-09-12T13:52:17Z
+
+Later than `MERGED_AT_138 = 2026-09-12T13:37:03Z` and later than `DECIDED_AT_123 =
+2026-09-12T13:51:28Z` — the merge-first order holds.
+
+```
+$ gh pr view 123 --json comments -q '[.comments[] | select(.author.login == "YuSabo90002")] | length'
+1
+
+$ gh pr view 123 --json comments -q '.comments[] | select(.author.login == "YuSabo90002") | .body'
+Superseded by #138.
+```
+
+Exactly one owner-authored comment, its body equal to `APPROVED_COMMENT_123`. `mergedAt` is `null`
+— `#123` is CLOSED, not merged. A second, automated comment from `dependabot` (its own
+stop-notifying notice) was posted by GitHub after the close and is not an owner comment.
+
+CLOSE_COMMENT_URL_123 = https://github.com/YuSabo90002/typsphinx/pull/123#issuecomment-5646299429
+
+```
+$ gh api --paginate repos/YuSabo90002/typsphinx/issues/123/events --jq '.[] | select(.event == "closed") | [.actor.login, .created_at] | @tsv'
+YuSabo90002	2026-09-12T13:52:17Z
+```
+
+The last (only) `closed` event's actor is `YuSabo90002` — `ME`, the owner account.
+
+## #123 disposition (D-03)
+
+The decision is closed as superseded, taken on the merits. #138 carried the identical `ruff` range
+bump with a working lockfile, merged after the owner's go-ahead — as recorded in 67-02's
+`## SC#3 merits for #138` and `## NIX-01 interaction and D-04 divergence`. `RUFF_LINE_123` and
+`RUFF_LINE_MAIN` measured equal in this plan's `## D-03 merits for #123` section: `main` already
+carries exactly what #123 proposed, through #138.
+
+#123's `pyproject.toml`-only shape fails `uv sync --extra dev --locked` (12 FAILURE / 1 CANCELLED /
+2 SUCCESS on its own CI, re-measured live in this plan), so merging it was never the alternative —
+its `dev`-extra `ruff` range change would have reintroduced the same `--locked` failure #138's
+lockfile already avoids.
+
+The judgement is not "CI finally went green" — #123's own CI stayed red throughout, unchanged from
+planning time. The judgement is that the change #123 proposed already landed on `main`, through a
+different, mergeable PR, with its lockfile intact.
