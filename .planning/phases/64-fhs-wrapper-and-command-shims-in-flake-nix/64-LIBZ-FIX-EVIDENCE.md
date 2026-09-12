@@ -1,0 +1,752 @@
+# Phase 64 Plan 05 — `libz.so.1` Fix Evidence
+
+**Status paragraph (read before anything below).** The Claude Code session running this plan
+predates its own `flake.nix` edit: its PATH was frozen at launch and carries 64-01's shims, which
+embed the old rootfs `/nix/store/dgddrdfkvigqsv48k563szqc8w7xlw2g-typsphinx-fhs-run` (no
+`targetPkgs`, no `libz.so.1`). That old rootfs is exactly what this plan needs for RED and the
+BEFORE audit. Every observation recorded **after** the edit lands goes through
+`nix develop . --command …` and is labelled **DIAGNOSTIC** for that reason — this session can never
+see the edit through its own inherited PATH. Nothing in this file closes NIX-02, NIX-03 or NIX-04;
+those close only in plan 64-06, run in a session the maintainer relaunches after this plan merges.
+
+## Worktree and provisioning
+
+```
+$ test -f .git && echo IS_WORKTREE
+IS_WORKTREE
+$ git status --short
+(empty)
+$ pwd -P
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-affb732be8707b0ce
+$ git rev-parse HEAD
+7aa5cefcbf133ee08e8b1eca86b9e13d9877199c
+$ git rev-parse --abbrev-ref HEAD
+worktree-agent-affb732be8707b0ce
+
+$ env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev
+... (tail)
+ + typsphinx==0.9.2 (from file:///home/yuta/Documents/typsphinx/.claude/worktrees/agent-affb732be8707b0ce)
+ + typst==0.15.0
+ + urllib3==2.7.0
+ + virtualenv==21.5.1
+
+$ cat .venv/pyvenv.cfg
+home = /home/yuta/.local/share/uv/python/cpython-3.14-linux-x86_64-gnu/bin
+implementation = CPython
+uv = 0.11.25
+version_info = 3.14
+include-system-site-packages = false
+prompt = typsphinx
+
+$ uv run python -c 'import typsphinx,os;print(os.path.realpath(typsphinx.__file__))'
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-affb732be8707b0ce/typsphinx/__init__.py
+```
+
+Exactly one documented provisioning line, no interpreter pin (D-04). The `typsphinx.__file__`
+realpath matches `$(pwd -P)/typsphinx/__init__.py` exactly — this worktree's own editable install,
+not the main checkout's.
+
+### Seven tox environments, provisioned cold, no commands run
+
+```
+$ test ! -e .tox && echo NO_TOX_DIR
+NO_TOX_DIR
+
+$ tox run -e lint,type,py312,py313,cov,docs-html,docs-pdf --notest
+lint: venv> /nix/store/f1y7m4b5vxrbwszkrni3yc2lv0x22zcj-uv/bin/uv venv -p .../.venv/bin/python --allow-existing '--prompt=agent-affb732be8707b0ce[lint]' --python-preference system .../.tox/lint
+lint: uv-sync> /nix/store/f1y7m4b5vxrbwszkrni3yc2lv0x22zcj-uv/bin/uv sync --locked --python-preference system --extra dev -p .../.venv/bin/python
+lint: OK ✔ in 0.15 seconds
+type: venv> ... type: OK ✔ in 0.13 seconds
+py312: venv> /nix/store/f1y7m4b5vxrbwszkrni3yc2lv0x22zcj-uv/bin/uv venv -p cpython3.12 --allow-existing '--prompt=agent-affb732be8707b0ce[py312]' --python-preference system .../.tox/py312
+py312: uv-sync> ... py312: OK ✔ in 0.14 seconds
+py313: venv> /nix/store/f1y7m4b5vxrbwszkrni3yc2lv0x22zcj-uv/bin/uv venv -p cpython3.13 --allow-existing '--prompt=agent-affb732be8707b0ce[py313]' --python-preference system .../.tox/py313
+py313: uv-sync> ... py313: OK ✔ in 0.14 seconds
+cov: venv> ... cov: OK ✔ in 0.13 seconds
+docs-html: venv> ... docs-html: OK ✔ in 0.11 seconds
+docs-pdf: venv> /nix/store/f1y7m4b5vxrbwszkrni3yc2lv0x22zcj-uv/bin/uv venv -p .../.venv/bin/python --allow-existing '--prompt=agent-affb732be8707b0ce[docs-pdf]' --python-preference system .../.tox/docs-pdf
+docs-pdf: uv-sync> /nix/store/f1y7m4b5vxrbwszkrni3yc2lv0x22zcj-uv/bin/uv sync --locked --python-preference system --extra docs -p .../.venv/bin/python
+  lint: OK (0.15 seconds)
+  type: OK (0.13 seconds)
+  py312: OK (0.14 seconds)
+  py313: OK (0.14 seconds)
+  cov: OK (0.13 seconds)
+  docs-html: OK (0.11 seconds)
+  docs-pdf: OK (0.12 seconds)
+  congratulations :) (1.05 seconds)
+```
+
+`--notest` was accepted (tox 4.56.1); no environment's own commands ran during provisioning.
+
+```
+$ ls .tox
+CACHEDIR.TAG  cov  docs-html  docs-pdf  lint  py312  py313  type
+```
+
+`pyvenv.cfg` `home` / `version_info` per environment:
+
+| Env | `home` | `version_info` |
+|-----|--------|-----------------|
+| `.venv` | `/home/yuta/.local/share/uv/python/cpython-3.14-linux-x86_64-gnu/bin` | `3.14` |
+| `.tox/cov` | `/home/yuta/.local/share/uv/python/cpython-3.14-linux-x86_64-gnu/bin` | `3.14` |
+| `.tox/docs-html` | `/home/yuta/.local/share/uv/python/cpython-3.14-linux-x86_64-gnu/bin` | `3.14` |
+| `.tox/docs-pdf` | `/home/yuta/.local/share/uv/python/cpython-3.14-linux-x86_64-gnu/bin` | `3.14` |
+| `.tox/lint` | `/home/yuta/.local/share/uv/python/cpython-3.14-linux-x86_64-gnu/bin` | `3.14` |
+| `.tox/py312` | `/home/yuta/.local/share/uv/python/cpython-3.12-linux-x86_64-gnu/bin` | `3.12` |
+| `.tox/py313` | `/nix/store/l9k0anq0z7zz81zcwy035jfwap9ga6rl-python3-3.13.13/bin` | `3.13.13` |
+| `.tox/type` | `/home/yuta/.local/share/uv/python/cpython-3.14-linux-x86_64-gnu/bin` | `3.14` |
+
+Matches planning's expectation exactly: `py312` resolves a uv-managed cpython-3.12, `py313` the
+nix `python3-3.13.13`, everything else the same uv cpython-3.14 as `.venv`.
+
+## Old sandbox and pre-edit baselines
+
+```
+$ command -v ruff tox black mypy pytest sphinx-build uv
+/nix/store/vp86ji36v1nyp4q8d85i49hpyz43zszq-ruff/bin/ruff
+/nix/store/s7rlc9zr6p3c03b9498jabqwjrhp13qz-tox/bin/tox
+/nix/store/kl05v1f86vm0vwq00csz47rlbyxv1chg-black/bin/black
+/nix/store/4pwm7pb8jxk68wprgwicyc00mbn7vz4w-mypy/bin/mypy
+/nix/store/jmwmq21z24kqhbff4b3clpj4agixph5p-pytest/bin/pytest
+/nix/store/0m5hj81l70ddxzkzjn643zyms08ccggm-sphinx-build/bin/sphinx-build
+/nix/store/f1y7m4b5vxrbwszkrni3yc2lv0x22zcj-uv/bin/uv
+```
+
+All seven equal the carried-in table byte for byte.
+
+```
+OLD_FHS=/nix/store/dgddrdfkvigqsv48k563szqc8w7xlw2g-typsphinx-fhs-run/bin/typsphinx-fhs-run
+$ "$OLD_FHS" /bin/sh -c 'ls -la /usr/lib/libz.so*; ldconfig -p | grep -c libz'
+ls: cannot access '/usr/lib/libz.so*': No such file or directory
+0
+```
+
+No `libz.so.1` anywhere in the old rootfs; `ldconfig`'s count is 0.
+
+```
+$ nix eval --raw .#devShells.x86_64-linux.default.drvPath
+/nix/store/vd4rms2m5kvjaazd3i78049k0s9a21g0-nix-shell.drv
+```
+
+```
+PRE_X86_LINUX: /nix/store/vd4rms2m5kvjaazd3i78049k0s9a21g0-nix-shell.drv
+```
+
+Matches the carried-in value exactly (`64-FLAKE-EVIDENCE.md` § NIX-06, post-64-01).
+
+```
+$ nix eval --raw .#devShells.aarch64-linux.default.drvPath
+/nix/store/gm6k80436paqz5hbr66cph11mrfhlnid-nix-shell.drv
+$ nix eval --raw .#devShells.x86_64-darwin.default.drvPath
+evaluation warning: Nixpkgs 26.05 will be the last release to support x86_64-darwin; ...
+/nix/store/fclfls55m9lp06679x7zrw0qzjya834j-nix-shell.drv
+$ nix eval --raw .#devShells.aarch64-darwin.default.drvPath
+/nix/store/2m6y6pshri0vyw3jb5agczjnz9a92sxc-nix-shell.drv
+```
+
+Both darwin values match the carried-in table exactly.
+
+```
+$ nix eval --json .#devShells.x86_64-linux.default.nativeBuildInputs --apply 'map (p: p.name)'
+["nodejs-24.16.0","pnpm-11.9.0","git-2.54.0","python3-3.13.13","uv","tox","ruff","black","mypy","pytest","sphinx-build"]
+
+$ nix eval --json .#devShells.aarch64-darwin.default.nativeBuildInputs --apply 'map (p: p.name)'
+["nodejs-24.16.0","pnpm-11.9.0","git-2.54.0","python3-3.13.13","uv-0.11.25"]
+```
+
+Both censuses match the carried-in table exactly (x86_64-linux 11 names, one `uv`; darwin 5 names).
+
+## RED — import probe (old sandbox)
+
+Import-order-independent, `-S` disables the `site` hook so nothing imports `zlib` before Pillow:
+
+```
+== .venv (uv cp3.14.4) ==
+$ "$OLD_FHS" .venv/bin/python -S -c "import sys; sys.path.insert(0, '<site-packages>'); import PIL._imaging"
+ImportError: libz.so.1: cannot open shared object file: No such file or directory
+exit=1
+
+== .tox/py312 (uv cp3.12.13) ==
+$ "$OLD_FHS" .tox/py312/bin/python -S -c "import sys; sys.path.insert(0, '<site-packages>'); import PIL._imaging"
+ImportError: libz.so.1: cannot open shared object file: No such file or directory
+exit=1
+
+== .tox/py313 (nix cp3.13.13) ==
+$ "$OLD_FHS" .tox/py313/bin/python -S -c "import sys; sys.path.insert(0, '<site-packages>'); import PIL._imaging"
+ImportError: libz.so.1: cannot open shared object file: No such file or directory
+exit=1
+```
+
+RED reproduced for all three interpreter builds, independent of import order, under the old rootfs.
+
+## BEFORE residual audit
+
+Frame-inversion audit script (POSIX `sh`, kept in the session scratchpad, never a tracked file —
+D-05), reproduced verbatim:
+
+```sh
+#!/bin/sh
+# Frame-inversion audit: visits every regular file named *.so or *.so.*
+# or carrying the owner-execute bit, keeps only ELF (magic 7f 45 4c 46),
+# runs ldd, and reports unresolved sonames plus a scanned count.
+n=0
+for root in "$@"; do
+  for f in $(find "$root" \( -type f -o -type l \) \( -name '*.so' -o -name '*.so.*' -o -perm -u+x \) 2>/dev/null); do
+    [ -f "$f" ] || continue
+    magic=$(head -c 4 "$f" 2>/dev/null | od -An -tx1 | tr -d ' \n')
+    [ "$magic" = "7f454c46" ] || continue
+    n=$((n+1))
+    miss=$(ldd "$f" 2>/dev/null | grep 'not found' | sed 's/^[[:space:]]*//' | tr '\n' ';')
+    [ -n "$miss" ] && echo "UNRESOLVED $f :: $miss"
+  done
+done
+echo "scanned=$n"
+```
+
+Roots (this plan's frame-inversion set — derived from the code, not the symptom text):
+
+```
+$(pwd)/.venv
+$(pwd)/.tox/cov
+$(pwd)/.tox/docs-html
+$(pwd)/.tox/docs-pdf
+$(pwd)/.tox/lint
+$(pwd)/.tox/py312
+$(pwd)/.tox/py313
+$(pwd)/.tox/type
+/home/yuta/.local/share/uv/python/cpython-3.14.4-linux-x86_64-gnu   (realpath of .venv/.tox/{cov,docs-html,docs-pdf,lint,type}'s pyvenv.cfg home's parent)
+/home/yuta/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu  (realpath of .tox/py312's pyvenv.cfg home's parent)
+/nix/store/l9k0anq0z7zz81zcwy035jfwap9ga6rl-python3-3.13.13         (realpath of .tox/py313's pyvenv.cfg home's parent)
+```
+
+Run inside the old sandbox: `"$OLD_FHS" /bin/sh <script> <roots…>`. Full output (35 UNRESOLVED
+lines, elided here to one representative line per distinct object class; the full transcript was
+inspected line by line during the plan run):
+
+```
+UNRESOLVED <root>/lib/python3.*/site-packages/PIL/_imaging.cpython-*-x86_64-linux-gnu.so :: libz.so.1 => not found;libz.so.1 => not found;
+UNRESOLVED <root>/lib/python3.*/site-packages/PIL/_imagingft.cpython-*-x86_64-linux-gnu.so :: libz.so.1 => not found;libz.so.1 => not found;
+UNRESOLVED <root>/lib/python3.*/site-packages/pillow.libs/libfreetype-9fc94c80.so.6.20.6 :: libz.so.1 => not found;libz.so.1 => not found;
+UNRESOLVED <root>/lib/python3.*/site-packages/pillow.libs/libharfbuzz-172d1f63.so.0.61421.0 :: libz.so.1 => not found;libz.so.1 => not found;
+UNRESOLVED <root>/lib/python3.*/site-packages/pillow.libs/libpng16-abb096d5.so.16.58.0 :: libz.so.1 => not found;
+UNRESOLVED <root>/lib/python3.*/site-packages/pillow.libs/libtiff-fc87e79d.so.6.2.0 :: libz.so.1 => not found;
+```
+
+(occurring once per `<root>` in `{.venv, .tox/cov, .tox/lint, .tox/py312, .tox/py313, .tox/type}` —
+`.tox/docs-html` and `.tox/docs-pdf` carry no Pillow install, since the `docs` extra does not
+depend on it, so they contribute zero UNRESOLVED lines for these objects)
+
+```
+UNRESOLVED /home/yuta/.local/share/uv/python/cpython-3.14.4-linux-x86_64-gnu/lib/python3.14/lib-dynload/_tkinter.cpython-314-x86_64-linux-gnu.so :: libtcl9.0.so => not found;libtcl9tk9.0.so => not found;
+UNRESOLVED /home/yuta/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/lib-dynload/_crypt.cpython-312-x86_64-linux-gnu.so :: libcrypt.so.1 => not found;
+UNRESOLVED /home/yuta/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/lib-dynload/_tkinter.cpython-312-x86_64-linux-gnu.so :: libtcl9.0.so => not found;libtcl9tk9.0.so => not found;
+
+scanned=1974
+```
+
+```
+BEFORE = {libz.so.1, libcrypt.so.1, libtcl9.0.so, libtcl9tk9.0.so}
+```
+
+The nix `python3-3.13.13` interpreter tree contributes no UNRESOLVED lines: its own extension
+modules carry `RUNPATH`/`RPATH` entries pointing directly at nix store paths for their
+dependencies (e.g. its `zlib` module's own `RUNPATH` to `/nix/store/…-zlib-1.3.2/lib`), independent
+of the FHS sandbox's `ld.so.cache` — confirmed by `64-LIBZ-DIAGNOSIS.md` § 3.
+
+## The edit
+
+```diff
+diff --git a/flake.nix b/flake.nix
+index 973f745a..fe227023 100644
+--- a/flake.nix
++++ b/flake.nix
+@@ -25,6 +25,10 @@
+
+           fhsRun = pkgs.buildFHSEnv {
+             name = "typsphinx-fhs-run";
++            # Pillow's `_imaging` extension carries a bare `NEEDED libz.so.1`, and
++            # uv-managed CPython links zlib statically, so nothing in the process
++            # ever maps it without this entry. See 64-LIBZ-FIX-EVIDENCE.md.
++            targetPkgs = p: [ p.zlib ];
+             runScript = "${pkgs.writeShellScript "typsphinx-fhs-passthrough" ''
+               exec "$@"
+             ''}";
+```
+
+Exactly one `targetPkgs = p: [ p.zlib ];` line plus one comment. No `multiPkgs`, `venvWalk`,
+`venvShimOnStop`, `venvShimNames`, `venvShims`, `uvShim` or `packages` line touched. `runScript`
+stays a pure `exec "$@"` (D-06); no locale variable is set anywhere (D-08). This is the exact
+expression `64-LIBZ-DIAGNOSIS.md` built and measured at this flake's locked nixpkgs (`zlib-1.3.2`).
+
+## GREEN — tracer (DIAGNOSTIC)
+
+```
+$ nix develop . --command bash -c 'command -v pytest'
+(building fhsRun's derivations, first invocation only)
+/nix/store/7q7lwxpw3xlz4h5rwka4nq0rjk1191yh-pytest/bin/pytest
+
+$ grep -oE '/nix/store/[a-z0-9]{32}-typsphinx-fhs-run/bin/typsphinx-fhs-run' /nix/store/7q7lwxpw3xlz4h5rwka4nq0rjk1191yh-pytest/bin/pytest | head -1
+/nix/store/99fm4lqkp4kab20d3blfbwajnprmlbfx-typsphinx-fhs-run/bin/typsphinx-fhs-run
+```
+
+New rootfs (tracer value; Task 3 re-confirms this is still the final value once the whole task set
+has been through the sandbox): `/nix/store/99fm4lqkp4kab20d3blfbwajnprmlbfx-typsphinx-fhs-run`.
+
+`NEW_FHS` differs from `OLD_FHS` (`dgddrdfkvigqsv48k563szqc8w7xlw2g` → `99fm4lqkp4kab20d3blfbwajnprmlbfx`).
+
+```
+$ "$NEW_FHS" /bin/sh -c 'test -e /usr/lib/libz.so.1'; echo "exit=$?"
+exit=0
+$ "$OLD_FHS" /bin/sh -c 'test -e /usr/lib/libz.so.1'; echo "exit=$?"
+exit=1
+
+$ "$NEW_FHS" /bin/sh -c 'ls -la /usr/lib/libz.so*; ldconfig -p | grep libz'
+lrwxrwxrwx 1 nobody nogroup 66  1月  1  1970 /usr/lib/libz.so -> /nix/store/dbz6pb9g67kpgpl95k8d85kzpxm1c32p-zlib-1.3.2/lib/libz.so
+lrwxrwxrwx 1 nobody nogroup 68  1月  1  1970 /usr/lib/libz.so.1 -> /nix/store/dbz6pb9g67kpgpl95k8d85kzpxm1c32p-zlib-1.3.2/lib/libz.so.1
+lrwxrwxrwx 1 nobody nogroup 72  1月  1  1970 /usr/lib/libz.so.1.3.2 -> /nix/store/dbz6pb9g67kpgpl95k8d85kzpxm1c32p-zlib-1.3.2/lib/libz.so.1.3.2
+	libz.so.1 (libc6,x86-64) => /lib/libz.so.1
+	libz.so (libc6,x86-64) => /lib/libz.so
+```
+
+New rootfs holds `/usr/lib/libz.so.1`; old rootfs does not. `zlib-1.3.2`, matching the diagnosis's
+scratch probe exactly.
+
+```
+== .venv (uv cp3.14.4) ==
+$ "$NEW_FHS" .venv/bin/python -S -c "import sys; sys.path.insert(0, '<site-packages>'); import PIL._imaging; print('OK')"
+OK
+exit=0
+
+== .tox/py312 (uv cp3.12.13) ==
+$ "$NEW_FHS" .tox/py312/bin/python -S -c "import sys; sys.path.insert(0, '<site-packages>'); import PIL._imaging; print('OK')"
+OK
+exit=0
+
+== .tox/py313 (nix cp3.13.13) ==
+$ "$NEW_FHS" .tox/py313/bin/python -S -c "import sys; sys.path.insert(0, '<site-packages>'); import PIL._imaging; print('OK')"
+OK
+exit=0
+```
+
+All three probes succeed under NEW_FHS — RED under OLD, GREEN under NEW, for every interpreter
+build, independent of import order.
+
+```
+$ nix develop . --command pytest tests/test_converted_image_collision_render_gate.py -q -rs
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.6.0
+collected 3 items
+tests/test_converted_image_collision_render_gate.py ...                  [100%]
+============================== 3 passed in 1.43s ===============================
+```
+
+The previously failing node passes cleanly through the new rootfs: 3 passed, 0 failed.
+
+```
+$ nix develop . --command pytest tests/test_admonition_greyscale_pipeline.py -q -rs
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.6.0
+collected 2 items
+tests/test_admonition_greyscale_pipeline.py ..                           [100%]
+============================== 2 passed in 0.63s ===============================
+```
+
+The Pillow-gated skip recorded in `64-NIX05-WORKTREE-EVIDENCE.md`'s six-skip table is gone: 2
+passed, 0 skipped, 0 failed.
+
+```
+$ git diff --quiet 4e130c80 HEAD -- flake.lock; echo "exit=$?"
+exit=0
+$ git diff --quiet -- flake.lock; echo "exit=$?"
+exit=0
+```
+
+`flake.lock` is unchanged, both against the phase base and against the working tree.
+
+## AFTER residual audit
+
+Task 1's audit script, unchanged, run over the same roots inside the new sandbox
+(`"$NEW_FHS" /bin/sh <script> <roots…>`):
+
+```
+UNRESOLVED /home/yuta/.local/share/uv/python/cpython-3.14.4-linux-x86_64-gnu/lib/python3.14/lib-dynload/_tkinter.cpython-314-x86_64-linux-gnu.so :: libtcl9.0.so => not found;libtcl9tk9.0.so => not found;
+UNRESOLVED /home/yuta/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/lib-dynload/_crypt.cpython-312-x86_64-linux-gnu.so :: libcrypt.so.1 => not found;
+UNRESOLVED /home/yuta/.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/lib-dynload/_tkinter.cpython-312-x86_64-linux-gnu.so :: libtcl9.0.so => not found;libtcl9tk9.0.so => not found;
+scanned=1974
+```
+
+```
+AFTER = {libcrypt.so.1, libtcl9.0.so, libtcl9tk9.0.so}
+```
+
+`scanned=1974` equals Task 1's BEFORE count exactly — the same files were scanned.
+
+**Set differences:**
+- BEFORE − AFTER = `{libz.so.1}` — exactly as expected; the `zlib` entry resolved the one soname
+  the fix targets.
+- AFTER − BEFORE = `{}` — empty; no new unresolved soname appeared as a side effect of the edit.
+
+## Residual verdicts
+
+| Soname | Objects needing it | Import name(s) | Search hits (excluding the owning object's own package) | Step-3 gate result | Verdict |
+|--------|--------------------|-----------------|-----------------------------------------------------------|----------------------|---------|
+| `libcrypt.so.1` | `cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/lib-dynload/_crypt.cpython-312-x86_64-linux-gnu.so` (stdlib, cp3.12 only — `crypt` was removed from Python 3.13) | `_crypt` / stdlib wrapper `crypt` | `grep -rlE '^[[:space:]]*(import\|from)[[:space:]]+(_crypt\|crypt)([[:space:]]\|\.\|$)'` over `typsphinx/`, `tests/`, `docs/`, `.venv/lib/python3.*/site-packages`, every `.tox/*/lib/python3.*/site-packages` — **zero hits** | `pytest -q -rs` (1543 passed/5 skipped), `tox -e py312` (OK), `tox -e cov` (OK) — none failed, no `crypt`-related traceback | **UNREACHED** — zero hits, no failing gate |
+| `libtcl9.0.so` | `cpython-3.14.4-linux-x86_64-gnu/…/_tkinter.cpython-314-…so`, `cpython-3.12.13-linux-x86_64-gnu/…/_tkinter.cpython-312-…so` (stdlib) | `_tkinter` / stdlib wrapper `tkinter` | same grep for `(_tkinter\|tkinter)` — hits found, but every one is either (a) `mypy`'s own bundled `typeshed/stdlib/tkinter/*.pyi` type-stub files (never executed — mypy reads them for static analysis only, they carry no runtime `import`), or (b) Pillow's own optional `PIL/ImageTk.py` / `PIL/_tkinter_finder.py` (Pillow's lazy, try/except-guarded Tk integration, never invoked by typsphinx or its test suite), or (c) `tox-uv-bare`'s bundled `python_discovery/_py_info.py` (a Python-interpreter-discovery helper, unrelated to this project's own import graph) | same three gates, all clean; no traceback names `tkinter`/`_tkinter`/`libtcl` anywhere | **UNREACHED in practice, FORCED by the letter of the hit rule** — see note below |
+| `libtcl9tk9.0.so` | same two `_tkinter` objects as above | `_tkinter` / `tkinter` | identical hit set to `libtcl9.0.so` (same two objects, same grep) | same — all three gates clean | **UNREACHED in practice, FORCED by the letter of the hit rule** — see note below |
+
+**Note on the tkinter row's dual label.** The task's mechanical rule is "any hit … makes it
+FORCED." The `tkinter` search does return non-empty hits, so by that literal rule the row is
+labelled FORCED above. But the forced-**package** rule (this task's step 4) is stricter and
+separate: it fires only when a step-3 gate actually fails and its traceback names the soname.
+None of the three step-3 gates (`pytest -q -rs`, `tox -e py312`, `tox -e cov`) failed, and none
+named `tkinter`, `_tkinter`, `libtcl9.0.so` or `libtcl9tk9.0.so` in any traceback. Every hit found
+is a stub file mypy reads without executing, or an optional/lazy import path in a dependency that
+this project's own code and tests never reach. Per CONTEXT § Claude's Discretion ("add only what a
+failing measurement demands") and step 4's explicit instruction ("Never add a package for a gate
+that did not fail"), **no `tcl`/`tk` package is added to `targetPkgs`.** `flake.nix` therefore
+holds exactly the one measured `p.zlib` entry — no forced-package section follows because no gate
+forced one.
+
+## Second-gap sweep (DIAGNOSTIC)
+
+All three commands below ran through `nix develop . --command …` in this session (which predates
+the edit), so each is a DIAGNOSTIC — the genuine, session-inherited observation is plan 64-06's.
+No locale variable was set for any of them (D-08).
+
+### Full suite
+
+```
+$ nix develop . --command pytest -q -rs
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-affb732be8707b0ce
+collected 1548 items
+...
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_changelog_page_gate.py:168: myst-parser is required to build docs/source; it lives in the docs extra only (D-01), so a dev-only CI lane skips this class
+SKIPPED [1] tests/test_changelog_page_gate.py:177: myst-parser is required to build docs/source; it lives in the docs extra only (D-01), so a dev-only CI lane skips this class
+SKIPPED [1] tests/test_changelog_page_gate.py:187: myst-parser is required to build docs/source; it lives in the docs extra only (D-01), so a dev-only CI lane skips this class
+SKIPPED [1] tests/test_changelog_page_gate.py:219: myst-parser is required to build the changelog include fixture; it lives in the docs extra only (D-01)
+SKIPPED [1] tests/test_corpus_gate.py:530: SC#3 before/after measurement is env-gated -- set TYPSPHINX_CORPUS_REPORT=1 to run it (RESEARCH Open Question 1)
+================= 1543 passed, 5 skipped in 112.92s (0:01:52) ==================
+```
+
+**1543 passed, 5 skipped** — the exact carried-in baseline, all four myst-parser docs-extra skips
+and the env-gated corpus report, zero failures. This `.venv` is uv-managed `cpython-3.14.4`, while
+the original baseline (`63-GREEN-TREE-EVIDENCE.md`) was taken under the nix `python3-3.13.13`
+interpreter — recorded per plan instruction, not a discrepancy: both interpreters produce the
+identical summary.
+
+### `tox -e py312`
+
+```
+$ nix develop . --command tox -e py312
+py312: uv-sync> /nix/store/3vpzk25whpm7s8zq5flpk8gbpkggj9np-uv/bin/uv sync --locked --python-preference system --extra dev -p cpython3.12
+py312: commands[0]> pytest tests/
+============================= test session starts ==============================
+platform linux -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- .../.tox/py312/bin/python3
+...
+================= 1543 passed, 5 skipped in 109.22s (0:01:49) ==================
+  py312: OK (109.76=setup[0.03]+cmd[109.73] seconds)
+  congratulations :) (109.88 seconds)
+```
+
+`Python 3.12.13` header, `1543 passed, 5 skipped`, `py312: OK`. tox's own `uv-sync>` line names
+`/nix/store/3vpzk25whpm7s8zq5flpk8gbpkggj9np-uv/bin/uv` — confirmed to be the NEW sandbox's `uv`
+shim by cross-check:
+
+```
+$ nix develop . --command bash -c 'command -v uv'
+/nix/store/3vpzk25whpm7s8zq5flpk8gbpkggj9np-uv/bin/uv
+```
+
+Identical path — tox's nested `uv` entry reaches the new sandbox, not the old one.
+
+### `tox -e cov`
+
+```
+$ nix develop . --command tox -e cov
+...
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.14.4-final-0 ________________
+
+Name                             Stmts   Miss  Cover   Missing
+--------------------------------------------------------------
+...
+--------------------------------------------------------------
+TOTAL                             2806    333    88%
+Coverage HTML written to dir htmlcov
+================= 1543 passed, 5 skipped in 111.72s (0:01:51) ==================
+  cov: OK (112.50=setup[0.04]+cmd[112.46] seconds)
+  congratulations :) (112.62 seconds)
+```
+
+`TOTAL` line present (`2806 333 88%`), `1543 passed, 5 skipped`, `cov: OK`.
+
+No `## Baseline divergence` section: every gate reproduced the carried-in baseline exactly, and no
+failure of any kind occurred in this sweep.
+
+### Re-confirmation of the previously failing node
+
+```
+$ nix develop . --command pytest tests/test_converted_image_collision_render_gate.py tests/test_admonition_greyscale_pipeline.py -q -rs
+collected 5 items
+tests/test_converted_image_collision_render_gate.py ...                  [ 60%]
+tests/test_admonition_greyscale_pipeline.py ..                           [100%]
+============================== 5 passed in 1.52s ===============================
+
+$ nix develop . --command tox -e py312 -- tests/test_converted_image_collision_render_gate.py
+============================= test session starts ==============================
+platform linux -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- .../.tox/py312/bin/python3
+collected 3 items
+tests/test_converted_image_collision_render_gate.py::TestConvertedImageCollisionRenderGate::test_typstpdf_build_succeeds_without_image_warnings PASSED [ 33%]
+tests/test_converted_image_collision_render_gate.py::TestConvertedImageCollisionRenderGate::test_content_documents_emit_distinct_image_paths PASSED [ 66%]
+tests/test_converted_image_collision_render_gate.py::TestConvertedImageCollisionRenderGate::test_pdf_embeds_both_distinctly_sized_images PASSED [100%]
+================================== 3 passed in 0.85s ===================================
+  py312: OK (1.03=setup[0.03]+cmd[0.99] seconds)
+  congratulations :) (1.15 seconds)
+```
+
+Zero `failed`; no `Pillow and typst-py are both required` message. The 64-02 failure class is gone
+under both the bare pytest shim and `tox -e py312`.
+
+No forced package and no baseline divergence occurred in this task; `flake.nix` is unchanged from
+Task 1's edit (still exactly the one `targetPkgs = p: [ p.zlib ];` line).
+
+## NIX-06 — final flake, all four systems
+
+Run on the FINAL `flake.nix` (Task 2 forced no package, so this is identical content to Task 1's
+edit):
+
+```
+$ nix flake check --all-systems --no-build
+evaluating flake...
+checking flake output 'devShells'...
+checking derivation devShells.x86_64-linux.default...
+derivation evaluated to /nix/store/jnbia2810h255l78mn8k26sic5xqvb9p-nix-shell.drv
+checking derivation devShells.aarch64-linux.default...
+derivation evaluated to /nix/store/8qqw29d5k2jp4w9pcc4zyhk418fmdv4m-nix-shell.drv
+checking derivation devShells.x86_64-darwin.default...
+evaluation warning: Nixpkgs 26.05 will be the last release to support x86_64-darwin; ...
+derivation evaluated to /nix/store/fclfls55m9lp06679x7zrw0qzjya834j-nix-shell.drv
+checking derivation devShells.aarch64-darwin.default...
+derivation evaluated to /nix/store/2m6y6pshri0vyw3jb5agczjnz9a92sxc-nix-shell.drv
+all checks passed!
+$ echo "exit: $?"
+exit: 0
+
+$ nix flake show --all-systems
+git+file:///home/yuta/Documents/typsphinx/.claude/worktrees/agent-affb732be8707b0ce?ref=refs/heads/worktree-agent-affb732be8707b0ce&rev=1f9266a968bc94091377e9dea0f0c14681813f59
+└───devShells
+    ├───aarch64-darwin
+    │   └───default: development environment 'nix-shell'
+    ├───aarch64-linux
+    │   └───default: development environment 'nix-shell'
+    ├───x86_64-darwin
+    │   └───default: development environment 'nix-shell'
+    └───x86_64-linux
+        └───default: development environment 'nix-shell'
+```
+
+Final drvPaths:
+
+| System | drvPath | vs. carried-in / `PRE_X86_LINUX` |
+|--------|---------|-----------------------------------|
+| `x86_64-darwin` | `/nix/store/fclfls55m9lp06679x7zrw0qzjya834j-nix-shell.drv` | equal to the carried-in value — darwin unchanged |
+| `aarch64-darwin` | `/nix/store/2m6y6pshri0vyw3jb5agczjnz9a92sxc-nix-shell.drv` | equal to the carried-in value — darwin unchanged |
+| `x86_64-linux` | `/nix/store/jnbia2810h255l78mn8k26sic5xqvb9p-nix-shell.drv` | differs from `PRE_X86_LINUX: /nix/store/vd4rms2m5kvjaazd3i78049k0s9a21g0-nix-shell.drv` — the fix landed |
+| `aarch64-linux` (old → new) | `/nix/store/gm6k80436paqz5hbr66cph11mrfhlnid-nix-shell.drv` → `/nix/store/8qqw29d5k2jp4w9pcc4zyhk418fmdv4m-nix-shell.drv` | changed, as expected (Linux-only `targetPkgs` addition) |
+
+Both darwin drvPaths are byte-identical to their pre-edit and planning-time values — the NIX-06
+empty edge holds: the Linux-only `targetPkgs` addition is never evaluated on darwin, because
+`fhsRun` is reached only through the `isLinux` guard.
+
+```
+$ nix eval --json .#devShells.x86_64-linux.default.nativeBuildInputs --apply 'map (p: p.name)'
+["nodejs-24.16.0","pnpm-11.9.0","git-2.54.0","python3-3.13.13","uv","tox","ruff","black","mypy","pytest","sphinx-build"]
+
+$ nix eval --json .#devShells.x86_64-darwin.default.nativeBuildInputs --apply 'map (p: p.name)'
+["nodejs-24.16.0","pnpm-11.9.0","git-2.54.0","python3-3.13.13","uv-0.11.25"]
+
+$ nix eval --json .#devShells.aarch64-darwin.default.nativeBuildInputs --apply 'map (p: p.name)'
+["nodejs-24.16.0","pnpm-11.9.0","git-2.54.0","python3-3.13.13","uv-0.11.25"]
+```
+
+All three censuses match the stated arrays exactly, in order — the NIX-06 adjacency edge (the
+x86_64-linux census stays the same eleven names, one `uv`) and ordering edge (the darwin census
+stays `nodejs-24.16.0, pnpm-11.9.0, git-2.54.0, python3-3.13.13, uv-0.11.25`) both hold.
+
+```
+$ git diff --quiet 4e130c80 HEAD -- flake.lock; echo "exit=$?"
+exit=0
+```
+
+`flake.lock` is unchanged since `4e130c80`.
+
+**Darwin verification status, stated plainly:** darwin *evaluation* is proven here — both drvPaths
+and the census are byte-identical to the pre-edit baseline — but darwin *execution* (actually
+running `nix develop` or the shims on a darwin machine) is unverified by construction, per ROADMAP
+constraint 8. This repository has zero CI coverage for `nix`/`flake`, and no darwin machine is
+available to this phase or this plan.
+
+## NIX-07 carry-over
+
+For each of `uv tox ruff black mypy pytest sphinx-build`, OLD is this session's `command -v <name>`
+(unchanged since 64-01/64-03 — still `dgddrdfkvigqsv48k563szqc8w7xlw2g-typsphinx-fhs-run` embedded),
+NEW is `nix develop . --command bash -c 'command -v <name>'`:
+
+| Tool | OLD | NEW | Normalised diff |
+|------|-----|-----|-------------------|
+| `uv` | `/nix/store/f1y7m4b5vxrbwszkrni3yc2lv0x22zcj-uv/bin/uv` | `/nix/store/3vpzk25whpm7s8zq5flpk8gbpkggj9np-uv/bin/uv` | empty |
+| `tox` | `/nix/store/s7rlc9zr6p3c03b9498jabqwjrhp13qz-tox/bin/tox` | `/nix/store/r70g13f57bbrw66k56dlqk9bbbcpch33-tox/bin/tox` | empty |
+| `ruff` | `/nix/store/vp86ji36v1nyp4q8d85i49hpyz43zszq-ruff/bin/ruff` | `/nix/store/vxcr1f2x7ywkyvwli0sykhgwsmkg800k-ruff/bin/ruff` | empty |
+| `black` | `/nix/store/kl05v1f86vm0vwq00csz47rlbyxv1chg-black/bin/black` | `/nix/store/axxz4wqgrh8dwvv1qd3j3v9668qp8l4a-black/bin/black` | empty |
+| `mypy` | `/nix/store/4pwm7pb8jxk68wprgwicyc00mbn7vz4w-mypy/bin/mypy` | `/nix/store/4yaxrcdb3y2gwi9wjxpblikg3jypa9x1-mypy/bin/mypy` | empty |
+| `pytest` | `/nix/store/jmwmq21z24kqhbff4b3clpj4agixph5p-pytest/bin/pytest` | `/nix/store/7q7lwxpw3xlz4h5rwka4nq0rjk1191yh-pytest/bin/pytest` | empty |
+| `sphinx-build` | `/nix/store/0m5hj81l70ddxzkzjn643zyms08ccggm-sphinx-build/bin/sphinx-build` | `/nix/store/3w4dy4lickl14insmwl48fhxbq0vxi4s-sphinx-build/bin/sphinx-build` | empty |
+
+Each `diff` is taken after `sed -E 's#/nix/store/[a-z0-9]{32}-typsphinx-fhs-run#FHS#g'` on both
+bodies; all seven are empty, and every NEW path differs from its OLD path (a new derivation was
+built for each shim, since the embedded rootfs changed). This proves the D-01 roster, D-02's two
+legs and D-03's strict fragment are textually unchanged — the shipped shims are 64-03's shims
+modulo the rootfs path.
+
+```
+$ grep -o '/nix/store/[a-z0-9]*-uv-0\.11\.25/bin/uv' /nix/store/3vpzk25whpm7s8zq5flpk8gbpkggj9np-uv/bin/uv
+/nix/store/cgvijxnmydknslkl368k4j4j43akvl8b-uv-0.11.25/bin/uv
+```
+
+The `uv` shim's leg-2 path is unchanged: `/nix/store/cgvijxnmydknslkl368k4j4j43akvl8b-uv-0.11.25/bin/uv`.
+
+**New shim paths:**
+
+| Tool | New path |
+|------|----------|
+| `uv` | `/nix/store/3vpzk25whpm7s8zq5flpk8gbpkggj9np-uv/bin/uv` |
+| `tox` | `/nix/store/r70g13f57bbrw66k56dlqk9bbbcpch33-tox/bin/tox` |
+| `ruff` | `/nix/store/vxcr1f2x7ywkyvwli0sykhgwsmkg800k-ruff/bin/ruff` |
+| `black` | `/nix/store/axxz4wqgrh8dwvv1qd3j3v9668qp8l4a-black/bin/black` |
+| `mypy` | `/nix/store/4yaxrcdb3y2gwi9wjxpblikg3jypa9x1-mypy/bin/mypy` |
+| `pytest` | `/nix/store/7q7lwxpw3xlz4h5rwka4nq0rjk1191yh-pytest/bin/pytest` |
+| `sphinx-build` | `/nix/store/3w4dy4lickl14insmwl48fhxbq0vxi4s-sphinx-build/bin/sphinx-build` |
+
+Plan 64-06's head check compares the relaunched session's `command -v <tool>` against this table.
+No diff was non-empty, so the rename test is not re-run — the bodies 64-03's rename evidence
+exercised are the bodies that ship, modulo the rootfs path.
+
+## NIX-08 carry-over
+
+```
+$ diff <("$OLD_FHS" /bin/cat /etc/profile) <("$NEW_FHS" /bin/cat /etc/profile)
+$ echo "exit=$?"
+exit=0
+```
+
+Empty — `/etc/profile` inside the new rootfs is byte-identical to the old one.
+
+```
+$ VIRTUAL_ENV=/nix08-probe UV_PROJECT_ENVIRONMENT=/nix08-probe \
+    env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT "$NEW_FHS" /usr/bin/env \
+    | grep -cE '^(VIRTUAL_ENV|UV_PROJECT_ENVIRONMENT)='
+0
+```
+
+Zero lines — the D-06 `env -u` unsets survive into the new sandbox exactly as they did in the old
+one.
+
+Environment-name diff (host vs. inside the new sandbox, names only):
+
+- **Added (in sandbox, not host):** `ACLOCAL_PATH`, `GST_PLUGIN_SYSTEM_PATH_1_0`,
+  `NIX_CFLAGS_LINK`, `PKG_CONFIG_PATH`
+- **Removed (in host, not sandbox):** none (real) — a `comm` line naming `_` appeared, which is
+  bash's own last-executed-argument bookkeeping variable, not a real environment variable; the
+  carried-in evidence file flagged the identical noise class from its own trailing-blank-line
+  artifact.
+
+**Measured divergence from the carried-in five-name set, stated plainly:** the carried-in set also
+names `TZDIR` as added. In *this* execution context `TZDIR=/etc/zoneinfo` is already present on the
+**host** side (this agent's own shell environment sets it, unlike the maintainer's original
+interactive terminal session that produced `64-NIX08-ENV-EVIDENCE.md`, where the host had no
+`TZDIR`), so `TZDIR` does not appear as "added" here — it is present on both sides. This is an
+artifact of which host shell the measurement runs in, not a sandbox behaviour change: the four
+names that genuinely originate from the FHS wrapper's own closure (`ACLOCAL_PATH`,
+`GST_PLUGIN_SYSTEM_PATH_1_0`, `NIX_CFLAGS_LINK`, `PKG_CONFIG_PATH`) are unchanged from the carried-in
+measurement, and `removed` is empty in both runs.
+
+```
+$ echo "HOST HOME=$HOME LANG=$LANG"
+HOST HOME=/home/yuta LANG=ja_JP.UTF-8
+$ "$NEW_FHS" /bin/sh -c 'echo "SANDBOX HOME=$HOME LANG=$LANG"'
+SANDBOX HOME=/home/yuta LANG=ja_JP.UTF-8
+```
+
+`HOME` and `LANG` are identical host-side and inside the new sandbox — matching the old sandbox's
+measurement exactly. No other value is written here (T-64-10).
+
+**Why the four-cell locale matrix is not re-run:** the rootfs change adds files under `/usr/lib`
+only (the `zlib` symlinks) and `/etc/profile` is proven byte-identical above, so nothing on the
+locale-resolution path (`LANG`, `LOCALE_ARCHIVE`, `/etc/localtime`, `/etc/nsswitch.conf`) changed
+between the old and new sandbox.
+
+## REVIEW dispositions
+
+| Finding | Disposition | Reason |
+|---------|-------------|--------|
+| **CR-01** | Fixed | Task 1's `targetPkgs = p: [ p.zlib ];`. See the RED section (all three interpreter builds failed under the old rootfs), the BEFORE audit (`libz.so.1` present), the GREEN section (all three probes succeed under the new rootfs, the previously failing node passes), and the AFTER audit (`libz.so.1` absent). |
+| **WR-01** | Deferred | No gate in this plan failed on TLS, so D-07's own condition ("add `cacert` if a cold cache turns out to need TLS") did not fire: the `@preview` cache holds nine warm packages, and `docs-pdf` passed cleanly in both 64-01 and 64-02 against that warm cache. CONTEXT § Deferred Ideas explicitly routes cold-cache `docs-pdf` behaviour to record-only follow-up; that item stays outside this plan's scope fence (`flake.nix` and `64-LIBZ-FIX-EVIDENCE.md` only). |
+| **IN-01** | Not actioned | Info-level, no failing measurement: the shim walk's `dirname` call resolved correctly in every shim run across 64-01 through 64-03 and in this plan (Task 1's roster expansion, Task 2's sweep, Task 3's carry-over all ran the walk without incident). Declaring `pkgs.coreutils` in `packages` would also change the NIX-06 census this plan just re-proved unchanged. |
+| **IN-02** | Not actioned | Info-level, message-wording only. Rewording `venvShimOnStop` to distinguish the `.git`-found vs. hit-`/` stop conditions would change the text of all six strict shim bodies, which would invalidate this task's NIX-07 carry-over (the seven empty normalised diffs) and force the 64-03 rename test to be re-run from scratch. No failing gate forces the change. |
+
+## No-dispatch record
+
+```
+$ grep -rliE 'nix|flake' .github/workflows/
+$ echo "exit: $?"
+exit: 1
+```
+
+Empty output, exit 1 — no workflow file references `nix` or `flake`. CI never evaluates
+`flake.nix`, so this plan involves no push and no workflow dispatch, and run `34618719267`
+(`64-CI-EVIDENCE.md`) remains the pre-revert CI baseline Phase 65 compares against.
+
+## Scope record
+
+```
+$ git diff --name-only 4e130c80 HEAD
+.planning/ROADMAP.md
+.planning/STATE.md
+.planning/phases/64-fhs-wrapper-and-command-shims-in-flake-nix/64-05-PLAN.md
+.planning/phases/64-fhs-wrapper-and-command-shims-in-flake-nix/64-06-PLAN.md
+.planning/phases/64-fhs-wrapper-and-command-shims-in-flake-nix/64-LIBZ-DIAGNOSIS.md
+.planning/phases/64-fhs-wrapper-and-command-shims-in-flake-nix/64-LIBZ-FIX-EVIDENCE.md
+.planning/phases/64-fhs-wrapper-and-command-shims-in-flake-nix/64-VALIDATION.md
+.planning/phases/64-fhs-wrapper-and-command-shims-in-flake-nix/COVERAGE.md
+flake.nix
+```
+
+Apart from this phase's own planning files, only `flake.nix` and this evidence file are listed —
+exactly the plan's declared `files_modified`.
+
+## Session relaunch required before wave 5
+
+This session predates the edit. Its shims embed the old rootfs
+(`/nix/store/dgddrdfkvigqsv48k563szqc8w7xlw2g-typsphinx-fhs-run`), so every shim observation above
+that runs after the edit is a `nix develop . --command …` **DIAGNOSTIC**, not a genuine
+session-inherited observation. Nothing in this file closes NIX-02, NIX-03 or NIX-04.
+
+```
+New fhs-run: /nix/store/99fm4lqkp4kab20d3blfbwajnprmlbfx-typsphinx-fhs-run
+```
+
+After this plan merges into the main checkout at `/home/yuta/Documents/typsphinx`, the maintainer:
+
+1. Opens a terminal in `/home/yuta/Documents/typsphinx` so direnv re-evaluates the flake.
+2. Confirms the discriminator: set `FHS` to the `typsphinx-fhs-run` path grepped from `command -v
+   ruff`'s body, and check that `"$FHS" /bin/sh -c 'test -e /usr/lib/libz.so.1'` exits 0. This must
+   match the `New fhs-run:` line above. In the pre-relaunch session it exits non-zero. "The shim
+   contains `typsphinx-fhs-run`" is true in both sessions and discriminates nothing — the store hash
+   after `typsphinx-fhs-run` and the `libz.so.1` presence test are what tell the two sessions apart.
+3. Launches Claude Code from that same shell and runs `/gsd-execute-phase 64 --gaps-only`. Plan
+   64-06's precondition halts otherwise.
+
+No per-worktree `direnv allow` and no `nix develop --command` wrapper around the provisioning line
+is involved anywhere in this procedure (D-09).
