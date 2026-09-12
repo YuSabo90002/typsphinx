@@ -406,13 +406,15 @@ REMOVED_LINE_COUNT = 0
 $ grep -cE '^## \[' CHANGELOG.md
 23
 ```
-HEADINGS_AFTER = 23 (equal to HEADINGS_BEFORE)
+HEADINGS_AFTER = 23
+(equal to HEADINGS_BEFORE)
 
 ```
 $ grep -cE '^\[[^]]+\]: https' CHANGELOG.md
 23
 ```
-LINKREFS_AFTER = 23 (equal to LINKREFS_BEFORE)
+LINKREFS_AFTER = 23
+(equal to LINKREFS_BEFORE)
 
 ```
 $ awk '/^## \[0\.9\.2\]/{exit} f; /^## \[Unreleased\]/{f=1}' CHANGELOG.md | grep -E '^- \*\*' | wc -l
@@ -444,8 +446,8 @@ V093_AFTER = 0
 $ awk '/^### Planned for Future Releases$/{f=1} /^## \[0\.9\.2\]/{exit} f' CHANGELOG.md | sha256sum
 a3436143cc65050f0aa709bbdc02b8fa31ab6d8f58c2c4aa198cbc10e0911f02  -
 ```
-PLANNED_SHA_AFTER = a3436143cc65050f0aa709bbdc02b8fa31ab6d8f58c2c4aa198cbc10e0911f02 (equal to
-PLANNED_SHA_BEFORE)
+PLANNED_SHA_AFTER = a3436143cc65050f0aa709bbdc02b8fa31ab6d8f58c2c4aa198cbc10e0911f02
+(equal to PLANNED_SHA_BEFORE)
 
 ```
 $ grep -cE 'patchelf|ln -sf' CHANGELOG.md
@@ -518,7 +520,8 @@ warnings, no warning naming the `changelog` page):
 445:/home/yuta/Documents/typsphinx/.claude/worktrees/agent-ab4c25ec1378d6a2a/typsphinx/translator.py:docstring of typsphinx.translator.TypstTranslator.visit_toctree:6: WARNING: Block quote ends without a blank line; unexpected unindent. [docutils]
 ```
 
-DOCS_HTML_WARN_POST = 3 (equal to DOCS_HTML_WARN_BASE)
+DOCS_HTML_WARN_POST = 3
+(equal to DOCS_HTML_WARN_BASE)
 
 Command:
 ```
@@ -546,7 +549,8 @@ pre-existing `doctest_block` unknown-node-type warnings):
 461:WARNING: unknown node type: <doctest_block classes="doctest" xml:space="preserve">>>> compute_template_import_path("typst", "base.typ")
 ```
 
-DOCS_PDF_WARN_POST = 5 (equal to DOCS_PDF_WARN_BASE)
+DOCS_PDF_WARN_POST = 5
+(equal to DOCS_PDF_WARN_BASE)
 
 ```
 $ head -c 5 docs/_build/pdf/typsphinx.pdf
@@ -565,3 +569,12 @@ file is NOT"); only `CHANGELOG.md` and this evidence file changed across both ta
 
 TOX-01..04, DEP-01..05, NIX-01..08 and DOC-19..21 are cited here for the CHANGELOG bullets' accuracy
 basis only — their own closure already happened in Phases 64-68 and is not re-decided by this plan.
+
+## Orchestrator note: key-line format correction
+
+After merge, the orchestrator moved the trailing parenthetical of five key lines
+(`HEADINGS_AFTER`, `LINKREFS_AFTER`, `PLANNED_SHA_AFTER`, `DOCS_HTML_WARN_POST`,
+`DOCS_PDF_WARN_POST`) onto the next line, as the plan's evidence-key rule requires. No value
+changed. With the prose on the key line, the plan's Task 2 verify read, for example,
+`3 (equal to DOCS_HTML_WARN_BASE)` and failed its exact comparison against `3`. The executor's
+original text is in commit `a30fd6f2`.
