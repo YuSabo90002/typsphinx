@@ -5,11 +5,11 @@ milestone_name: Toolchain and dependency-update repair
 current_phase: 67
 current_phase_name: "Proof on a Real Dependabot PR, Then Disposal of #123 and #128"
 status: planning
-stopped_at: Phase 66 complete, ready to plan Phase 67
-last_updated: "2026-09-12T11:28:33.017Z"
+stopped_at: Phase 67 context gathered
+last_updated: "2026-09-12T12:05:41.975Z"
 last_activity: 2026-09-12
-last_activity_desc: Phase 66 complete, transitioned to Phase 67
-state_head: f3d7ad73dfdc0faf252de6ed123bd94e68dba754
+last_activity_desc: Phase 67 context gathered (67-CONTEXT.md D-01..D-06)
+state_head: 7801f0653c2289e846c90c082f6452bf592e1713
 progress:
   total_phases: 6
   completed_phases: 3
@@ -161,7 +161,7 @@ land here.
 Phase: 67 — Proof on a Real Dependabot PR, Then Disposal of #123 and #128
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-09-12 — Phase 66 complete, transitioned to Phase 67
+Last activity: 2026-09-12 — Phase 67 context gathered (`67-CONTEXT.md` D-01..D-06; SC#4 premise AMENDED in ROADMAP/PROJECT)
 
 ## Active Milestone (v0.9.3 — Toolchain and dependency-update repair)
 
@@ -1176,7 +1176,7 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/66-github-dependabot-yml-pip-uv-ecosystem/66-CONTEXT.md
+**Resume file:** .planning/phases/67-proof-on-a-real-dependabot-pr-then-disposal-of-123-and-128/67-CONTEXT.md
 — Phases 64 and 65 are complete. Phase 66's context is captured (`66-CONTEXT.md` D-01..D-06,
 commit `b45674e9`): dependabot reads `dependabot.yml` only from `main`, so Phase 66 opens and merges
 a separate `dependabot.yml`-only PR to `main` (ROADMAP constraint 2 carries an owner-approved
@@ -1189,8 +1189,8 @@ before Phase 63 is planned, not after.** It is the only record of the three publ
 v0.9.1 close did not exercise, written with `vX.Y.Z` placeholders so no dead tag name can be copied
 out of it, and Phase 63's SC#5 handoff checklist inherits directly from it.
 
-Last session: 2026-09-12T08:59:59.639Z
-Stopped at: Phase 66 complete, ready to plan Phase 67
+Last session: 2026-09-12T12:05:41.950Z
+Stopped at: Phase 67 context gathered
 (Prior session: 2026-08-30T09:46:50.495Z — Phase 63 complete, UAT 25/25, v0.9.2 shipped 2026-08-31.)
 
 **Nothing is owed forward from a publish, because there was no publish.** The three standing publish
