@@ -5,11 +5,11 @@ milestone_name: Toolchain and dependency-update repair
 current_phase: 66
 current_phase_name: "`.github/dependabot.yml` — `pip` → `uv` Ecosystem"
 status: planning
-stopped_at: Phase 65 complete, ready to plan Phase 66
-last_updated: "2026-09-12T08:18:25.906Z"
+stopped_at: Phase 66 context gathered
+last_updated: "2026-09-12T08:59:59.665Z"
 last_activity: 2026-09-12
-last_activity_desc: Phase 65 complete, transitioned to Phase 66
-state_head: cfaa9a770d757df3d43b62008efa5fcc80c35f6c
+last_activity_desc: Phase 66 context gathered
+state_head: b45674e96448c8de6946c3540ab3f3ddd62d7ff2
 progress:
   total_phases: 6
   completed_phases: 2
@@ -1176,11 +1176,12 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/65-tox-uv-bare-tox-uv-revert-on-the-uv-path-tox-actually-resolves/65-CONTEXT.md
-— Phase 64 is complete (9/9). Phase 65's context is captured (`65-CONTEXT.md` D-01..D-06; ROADMAP
-SC#3 and constraint 12 carry owner-approved AMENDED blocks, commit `6c50f198`). The revert itself has
-NOT happened yet — the tree still declares `tox-uv-bare`. Next action: `/gsd-plan-phase 65`
-(Track A); `/gsd-discuss-phase 66` (Track B) remains independent and parallelizable.
+**Resume file:** .planning/phases/66-github-dependabot-yml-pip-uv-ecosystem/66-CONTEXT.md
+— Phases 64 and 65 are complete. Phase 66's context is captured (`66-CONTEXT.md` D-01..D-06,
+commit `b45674e9`): dependabot reads `dependabot.yml` only from `main`, so Phase 66 opens and merges
+a separate `dependabot.yml`-only PR to `main` (ROADMAP constraint 2 carries an owner-approved
+AMENDED block), replacing `pip` with `uv` outright and snapshotting #123/#128 before/after the
+merge. Next action: `/gsd-plan-phase 66`.
 Archived milestone phases live under `.planning/milestones/v0.9.1-phases/` (and the equivalent
 directory for each earlier milestone). v0.9.1's own inheritance record is
 `.planning/milestones/v0.9.1-phases/61-v0-9-1-release-prep-prep-only/61-HANDOFF.md` — **read it
@@ -1188,8 +1189,8 @@ before Phase 63 is planned, not after.** It is the only record of the three publ
 v0.9.1 close did not exercise, written with `vX.Y.Z` placeholders so no dead tag name can be copied
 out of it, and Phase 63's SC#5 handoff checklist inherits directly from it.
 
-Last session: 2026-09-12T08:19:01.000Z
-Stopped at: Phase 65 complete, ready to plan Phase 66
+Last session: 2026-09-12T08:59:59.639Z
+Stopped at: Phase 66 context gathered
 (Prior session: 2026-08-30T09:46:50.495Z — Phase 63 complete, UAT 25/25, v0.9.2 shipped 2026-08-31.)
 
 **Nothing is owed forward from a publish, because there was no publish.** The three standing publish
