@@ -224,3 +224,101 @@ The row's `headSha` equals `PR_COMMIT`, and its `createdAt` (`2026-09-12T10:18:5
 `PUSH_AT` (`2026-09-12T10:18:32Z`).
 
 `PR_RUN_ID = 34688116389`, URL = `https://github.com/YuSabo90002/typsphinx/actions/runs/34688116389`.
+
+## Run observed to completion
+
+Waited in the foreground with `gh run watch 34688116389 --interval 30` (Bash timeout 600000ms, no
+`run_in_background`). The single foreground call returned after the run reached a terminal state.
+
+```
+$ gh run view 34688116389 --json status,conclusion
+{"conclusion":"success","status":"completed"}
+
+$ gh run view 34688116389 --json status,conclusion,headSha,event,url
+{"conclusion":"success","event":"pull_request","headSha":"7cc85d28c6946434aa4fb14a0b9b5555d29275ef","status":"completed","url":"https://github.com/YuSabo90002/typsphinx/actions/runs/34688116389"}
+```
+
+`status: completed`, `conclusion: success`, `headSha` equal to `PR_COMMIT`, `event: pull_request`.
+
+## Job census
+
+```
+$ gh run view 34688116389 --json jobs --jq '.jobs[] | [.name, .conclusion] | @tsv'
+Code Coverage	success
+Integration Test - basic	success
+Test Python 3.13 on macos-latest	success
+Integration Test - advanced	success
+Build Package	success
+Type Check	success
+Test Python 3.13 on ubuntu-latest	success
+Test Python 3.12 on windows-latest	success
+Lint and Format Check	success
+Test Python 3.12 on ubuntu-latest	success
+Test Python 3.13 on windows-latest	success
+Test Python 3.12 on macos-latest	success
+```
+
+Twelve jobs, numbered as reported by the API (transcription order only; no assertion depends on
+this order):
+
+| # | Job | Conclusion |
+|---|-----|------------|
+| 1 | Code Coverage | success |
+| 2 | Integration Test - basic | success |
+| 3 | Test Python 3.13 on macos-latest | success |
+| 4 | Integration Test - advanced | success |
+| 5 | Build Package | success |
+| 6 | Type Check | success |
+| 7 | Test Python 3.13 on ubuntu-latest | success |
+| 8 | Test Python 3.12 on windows-latest | success |
+| 9 | Lint and Format Check | success |
+| 10 | Test Python 3.12 on ubuntu-latest | success |
+| 11 | Test Python 3.13 on windows-latest | success |
+| 12 | Test Python 3.12 on macos-latest | success |
+
+All twelve jobs are `success`; zero non-success conclusions.
+
+## Required checks
+
+```
+$ gh api repos/YuSabo90002/typsphinx/branches/main/protection --jq '{strict: .required_status_checks.strict, contexts: .required_status_checks.contexts, enforce_admins: .enforce_admins.enabled}'
+{"contexts":["Test Python 3.12 on ubuntu-latest","Lint and Format Check","Type Check","Code Coverage","Build Package","Test Python 3.13 on ubuntu-latest"],"enforce_admins":false,"strict":true}
+```
+
+`strict: true`, `enforce_admins: false`, six required contexts. Each required context tabulated
+against the job census above:
+
+| Required context | Conclusion |
+|-------------------|------------|
+| Test Python 3.12 on ubuntu-latest | success |
+| Test Python 3.13 on ubuntu-latest | success |
+| Lint and Format Check | success |
+| Type Check | success |
+| Code Coverage | success |
+| Build Package | success |
+
+All six required contexts read `success`.
+
+## PR state
+
+```
+$ gh pr view 137 --json state,mergeable,mergeStateStatus,headRefOid
+{"headRefOid":"7cc85d28c6946434aa4fb14a0b9b5555d29275ef","mergeStateStatus":"CLEAN","mergeable":"MERGEABLE","state":"OPEN"}
+```
+
+`state: OPEN`, `headRefOid` equals `PR_COMMIT`, `mergeStateStatus: CLEAN` (`main` had not moved
+ahead of the PR's merge base during this observation).
+
+## Non-required job findings
+
+None. The six non-required jobs (`Integration Test - basic`, `Integration Test - advanced`,
+`Test Python 3.12 on windows-latest`, `Test Python 3.13 on windows-latest`,
+`Test Python 3.12 on macos-latest`, `Test Python 3.13 on macos-latest`) are all `success` per the
+job census above — there is nothing to list.
+
+## Handoff to 66-02
+
+The main-bound PR (#137, `chore/dependabot-uv-ecosystem` at `PR_COMMIT` `7cc85d28c6946434aa4fb14a0b9b5555d29275ef`)
+is OPEN and unmerged. All six required checks are green, `mergeStateStatus` is `CLEAN`. It awaits
+the owner's merge decision (D-01, one-way) in 66-02. There are no non-required findings to carry
+forward.
