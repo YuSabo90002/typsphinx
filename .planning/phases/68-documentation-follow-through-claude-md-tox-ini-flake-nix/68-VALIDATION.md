@@ -51,10 +51,23 @@ created. Comparisons of pytest counts are same-worktree before/after only (D-06:
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| TBD | TBD | 1 | DOC-19 | — | N/A | grep-gate | `git grep -n tox-uv-bare -- CLAUDE.md` prints nothing; provisioning line byte-identical | ✅ | ⬜ pending |
-| TBD | TBD | 1 | DOC-20 | — | N/A | grep-gate + structural | `git grep -n tox-uv-bare -- tox.ini` prints nothing; `tox config -e py312 --core -k requires` prints `tox-uv~=1.35` | ✅ | ⬜ pending |
-| TBD | TBD | 1 | DOC-21 | — | N/A | derivation-identity + grep | four `nix eval --raw .#devShells.{system}.default.drvPath` byte-identical before/after; `grep -n 'D-[0-9]' flake.nix` prints nothing | ✅ | ⬜ pending |
-| TBD | TBD | 2 | DOC-19, DOC-20, DOC-21 | — | N/A | evidence-assertion | repository-wide D-15 grep on the merged tree with zero "rationale presented as current" rows; collected count unchanged | ❌ W0 → `68-*-EVIDENCE.md` | ⬜ pending |
+| 68-01-01 | 01 | 1 | DOC-19 | T-68-01, T-68-02 | recipe tail byte-identical; only old lines 11 and 77 removed | grep-gate + byte fence | line 11 exact; one `tox-uv~=1.35` Conventions bullet carrying its tokens; recipe-tail `sha256sum` equal to `BASE_68_01`; D-02 `git log -S` ×2 and `git grep` at base all 0 (68-01 Task 1 `<automated>`) | ✅ | ⬜ pending |
+| 68-01-02 | 01 | 1 | DOC-19 | T-68-01 | NixOS subsection and boundary paragraph additive; recipe unchanged | region tokens + byte fence | heading order Conventions → CI bullet → `### NixOS development shell` → `### Worktree-isolated execution`; subsection and boundary token sets; no digit-dot-digit in the subsection; recipe-tail hash; collected count equal to before (68-01 Task 2) | ✅ | ⬜ pending |
+| 68-02-01 | 02 | 1 | DOC-20 | T-68-04, T-68-06 | `requires` value unchanged | structural + byte fence | `uv run tox config -e py312 --core -k requires` prints `tox-uv~=1.35`; `requires`-to-EOF and lines 1-3 hash equal to base; block all `#` lines with its tokens; `SPECIFIER_EQUIV = True` (68-02 Task 1) | ✅ | ⬜ pending |
+| 68-02-02 | 02 | 1 | DOC-20, DOC-19 | T-68-05 | assertion logic unchanged | masked-AST hash + pytest | AST hash with docstrings/assert messages masked equal to base; stale self-references absent from the function's strings; two-file result equal to `TWO_FILE_RESULT_BEFORE`; black/ruff (68-02 Task 2) | ✅ | ⬜ pending |
+| 68-02-03 | 02 | 1 | DOC-20 | T-68-05 | assertion logic unchanged | masked-AST hash + docstring order + pytest | masked-AST hash for both test files; QUA-04 sentence → revert/FHS sentence → "kept regardless" order; two-file result and collected count equal to before; black/ruff (68-02 Task 3) | ✅ | ⬜ pending |
+| 68-03-01 | 03 | 1 | DOC-21 | T-68-07, T-68-09 | derivation unchanged | derivation-identity | four `nix eval --raw .#devShells.<sys>.default.drvPath` equal to `DRV_BEFORE_*`; comment-stripped hash equal to base; comment-only diff; uvShim note tokens, no version/ID (68-03 Task 1) | ✅ | ⬜ pending |
+| 68-03-02 | 03 | 1 | DOC-21 | T-68-07, T-68-08 | derivation unchanged; darwin stated unverified | derivation-identity + grep | drvPaths ×4 and `nix flake check --all-systems --no-build`; `grep -nE 'D-[0-9]' flake.nix` empty; archive-stable citations; header and per-element tokens; collected count equal (68-03 Task 2) | ✅ | ⬜ pending |
+| 68-04-01 | 04 | 2 | DOC-20 | T-68-10, T-68-11 | classification measured, not copied | evidence-assertion | live D-15 grep with one table row per hit and `C3_ROWS = 0`; file-scoped stale-sentence negatives; `tox config` read-back (68-04 Task 1) | ✅ | ⬜ pending |
+| 68-04-02 | 04 | 2 | DOC-19, DOC-21 | T-68-10 | SC#1 literal and amended readings kept separate | evidence-assertion + derivation-identity | recipe tail vs `PHASE_BASE`; `ln -sf`/`patchelf` only inside the NixOS subsection; merged-tree drvPaths ×4 equal to `DRV_BEFORE_*`; the seven shim names begin CLAUDE.md § Commands lines (68-04 Task 2) | ✅ | ⬜ pending |
+| 68-04-03 | 04 | 2 | DOC-19, DOC-20, DOC-21 | T-68-11, T-68-12 | no out-of-scope change | full suite + lint + scope fence | `FULL_FAILED = 0`; `uv run black --check .`; `uv run ruff check .`; `git diff --quiet PHASE_BASE HEAD -- typsphinx .github pyproject.toml uv.lock CHANGELOG.md`; exactly the five edit targets changed outside `.planning/` (68-04 Task 3) | ✅ | ⬜ pending |
+
+**Correction to the seeded rows (planner, 2026-09-13).** The seeded DOC-19/DOC-20 rows gated on
+"`git grep -n tox-uv-bare -- <file>` prints nothing". That can never hold: D-08 and D-16 require
+`CLAUDE.md` and `tox.ini` to keep `tox-uv-bare` as one sentence of history. The per-file gate is
+therefore the absence of the six specific sentences RESEARCH classed as "rationale presented as
+current", plus the byte fences above; 68-04's D-15 classification is where every surviving hit is
+judged.
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
