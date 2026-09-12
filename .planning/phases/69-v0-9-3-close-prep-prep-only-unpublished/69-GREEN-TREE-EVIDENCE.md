@@ -190,3 +190,142 @@ RESEARCH Open Question 1) — not a failure, not a hidden pass, exactly one skip
 
 `COLLECTED_69_03` (1548) equals `1547 passed + 1 skipped` (1548) from the live run — the collect
 count and the executed-plus-skipped count agree.
+
+## Full suite under LC_ALL=C
+
+Re-ran the head check and the provisioning line at the start of this task:
+
+```
+$ env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev --extra docs
+Resolved 91 packages in 0.73ms
+Checked 90 packages in 0.71ms
+```
+
+No drift from Task 1's sync.
+
+```
+$ LC_ALL=C uv run pytest -q -rs -p no:cacheprovider
+...
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_corpus_gate.py:530: SC#3 before/after measurement is env-gated -- set TYPSPHINX_CORPUS_REPORT=1 to run it (RESEARCH Open Question 1)
+================= 1547 passed, 1 skipped in 114.04s (0:01:54) ==================
+```
+
+Run in a single foreground Bash call (114.04s wall time, well inside the 600000 ms budget) — no split
+was needed.
+
+LCALLC_SUMMARY = 1547 passed, 1 skipped
+LCALLC_FAILED = 0
+
+Why this run is repeated: CI runs in English, and warning-text assertions have failed only on CI
+before (the `CI-only defect class` this project has hit previously is locale-dependent warning text
+that renders differently under a non-English `LANG`) — re-running the full suite under `LC_ALL=C`
+locally pre-empts that class rather than discovering it only after a CI dispatch.
+
+## Format, type and lint
+
+```
+$ uv run black --check .; echo "exit:$?"
+All done! ✨ 🍰 ✨
+355 files would be left unchanged.
+exit:0
+```
+
+BLACK_EXIT = 0
+
+```
+$ uv run mypy typsphinx/; echo "exit:$?"
+Success: no issues found in 9 source files
+exit:0
+```
+
+MYPY_EXIT = 0
+
+```
+$ uv run ruff --version
+ruff 0.15.20
+```
+
+RUFF_LOCAL_VERSION = 0.15.20
+
+```
+$ uv run ruff check .; echo "exit:$?"
+All checks passed!
+exit:0
+```
+
+RUFF_LOCAL_EXIT = 0
+
+CI's `Lint and Format Check` job holds lint authority (ROADMAP constraint 7), and plan 69-04 reads
+its verdict from a real dispatched CI run against the three-OS matrix — this local run is additive,
+proving the gates pass on this worktree's own uv-managed CPython 3.14 interpreter, not a substitute
+for CI's verdict.
+
+## Version-sync family
+
+```
+$ uv run pytest tests/test_readme_version_sync.py tests/test_preview_version_sync.py -v -p no:cacheprovider
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.6.0 -- .../agent-a69047240a759c44b/.venv/bin/python
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a69047240a759c44b
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collecting ... collected 4 items
+
+tests/test_readme_version_sync.py::test_readme_status_version_matches_pyproject PASSED [ 25%]
+tests/test_preview_version_sync.py::test_preview_versions_identical_across_declaration_sites PASSED [ 50%]
+tests/test_preview_version_sync.py::test_all_four_packages_declared PASSED [ 75%]
+tests/test_preview_version_sync.py::test_example_templates_match_canonical_versions PASSED [100%]
+
+============================== 4 passed in 0.02s ===============================
+
+$ uv run pytest tests/test_extension.py -k version_matches_pyproject_toml -v -p no:cacheprovider
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.6.0 -- .../agent-a69047240a759c44b/.venv/bin/python
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a69047240a759c44b
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collecting ... collected 6 items / 5 deselected / 1 selected
+
+tests/test_extension.py::test_version_matches_pyproject_toml PASSED      [100%]
+
+======================= 1 passed, 5 deselected in 0.02s ========================
+```
+
+VERSION_SYNC_FAILED = 0
+
+This runs even though no version literal moves this phase (D-06/no version bump in Phase 69): it is
+the mechanism that would catch a version literal moving out of sync between `pyproject.toml`,
+`README.md` and the four `@preview` package declaration sites — running it by name is the only way
+to actually confirm the guard itself is intact on this tree, not an assumption that it must be
+because nothing touched a version string.
+
+## Changelog page gate
+
+```
+$ uv run pytest tests/test_changelog_page_gate.py -v -rs -p no:cacheprovider
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.6.0 -- .../agent-a69047240a759c44b/.venv/bin/python
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a69047240a759c44b
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collecting ... collected 6 items
+
+tests/test_changelog_page_gate.py::TestPublishedChangelogPageDelegates::test_page_delegates_to_changelog_md PASSED [ 16%]
+tests/test_changelog_page_gate.py::TestPublishedChangelogPageDelegates::test_page_carries_no_hand_maintained_release_history PASSED [ 33%]
+tests/test_changelog_page_gate.py::TestChangelogPageContentCoverage::test_rendered_page_carries_every_release PASSED [ 50%]
+tests/test_changelog_page_gate.py::TestChangelogPageContentCoverage::test_rendered_page_has_one_changelog_heading PASSED [ 66%]
+tests/test_changelog_page_gate.py::TestChangelogPageContentCoverage::test_build_emits_no_changelog_warnings PASSED [ 83%]
+tests/test_changelog_page_gate.py::TestChangelogIncludeCompilesToPdf::test_included_changelog_reaches_the_pdf PASSED [100%]
+
+============================== 6 passed in 3.24s ===============================
+```
+
+CHANGELOG_GATE_SUMMARY = 6 passed
+CHANGELOG_GATE_SKIPPED = 0
+
+All six build classes ran — none skipped. A skip here would mean the docs extra is missing
+(`myst_parser` unimportable); with the docs extra provisioned (confirmed in Task 1's Tree identity
+section), the gate executed against the tree carrying this milestone's three CHANGELOG bullets,
+including `TestChangelogIncludeCompilesToPdf::test_included_changelog_reaches_the_pdf`, which drives
+the PDF build class end to end.
