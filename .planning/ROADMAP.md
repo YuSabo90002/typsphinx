@@ -102,6 +102,21 @@ questions):
    PR to `main` **is** opened and merged — that is REL-12, and like every REL requirement in this
    project it closes at `/gsd-complete-milestone`, not inside a phase.
 
+   > **AMENDED 2026-09-12 (Phase 66 discuss, owner-approved).** "One PR to `main`" does not survive
+   > contact with how dependabot reads its configuration: GitHub's own docs
+   > (`about-the-dependabot-yml-file.md:46`) state the file must live "in the default branch
+   > (typically `main`)", and `origin/main`'s `.github/dependabot.yml` still reads `pip`. With the
+   > milestone reaching `main` only at REL-12, no `uv`-ecosystem PR could open before the milestone
+   > closed, so Phase 66 SC#1's real-PR observation and all of Phase 67 (DEP-02, DEP-05) would be
+   > unreachable. Phase 66 therefore opens and merges **one additional PR to `main` carrying only
+   > `.github/dependabot.yml`**, with byte-identical content committed on the milestone branch so
+   > REL-12's merge stays conflict-free. REL-12 is otherwise unchanged: still the milestone's PR,
+   > still closed at `/gsd-complete-milestone`; nothing is tagged, uploaded or released. Consequence
+   > for constraint 4: removing the `pip` entry on `main` may itself change #123/#128's state (docs
+   > are silent; unmeasured), so Phase 66 snapshots both PRs immediately before and after the merge
+   > and Phase 67 SC#2 reads that record — any close caused by it is a **mechanical** close, never
+   > DEP-05's disposal on the merits. See `66-CONTEXT.md` D-01..D-02.
+
 3. **CI is deliberately unchanged.** No `nix` job is added; `astral-sh/setup-uv`'s **eleven**
    `version: "latest"` steps are **not** pinned; `astral-sh/setup-uv@v7` is **not** bumped to `@v10`.
    The only `.github/` file this milestone edits is `.github/dependabot.yml`, which is not a
