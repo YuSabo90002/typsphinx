@@ -288,8 +288,119 @@ All checks passed!
 
 ## test_pdf_render_gate.py sentence
 
-(Populated in Task 3.)
+```
+$ git diff -U0 "$BASE_68_02" -- tests/test_pdf_render_gate.py
+--- a/tests/test_pdf_render_gate.py
++++ b/tests/test_pdf_render_gate.py
+@@ -168,4 +168,7 @@ def _run_sphinx_build_typst(
+-    the bundled generic-linux `uv` wheel binary). `sys.executable -m sphinx`
+-    is kept regardless, because it depends on no PATH resolution at all --
+-    a better reason than the hazard ever was, and one that holds no matter
+-    what is installed in `.venv/bin`.
++    the bundled generic-linux `uv` wheel binary). The `tox-uv` revert
++    (v0.9.3 Phase 65) put `.venv/bin/uv` back, and on NixOS it now runs
++    through the Phase 64 FHS shims rather than bare, so that hazard does
++    not recur. `sys.executable -m sphinx` is kept regardless, because it
++    depends on no PATH resolution at all -- a better reason than the
++    hazard ever was, and one that holds no matter what is installed in
++    `.venv/bin`.
+```
+
+Removed lines are base 168-171, a subset of the plan's approximate 166-171 census; base
+lines 1-165 hash identically to base (`06733d0b...`, both sides).
+
+```
+$ masked AST hash, tests/test_pdf_render_gate.py — current tree
+2a839bd0be69d09fdb70c12688cf7eecce96e6a0bccef0a8ce45b3c8b710e31e
+
+$ masked AST hash, git show BASE_68_02:tests/test_pdf_render_gate.py
+2a839bd0be69d09fdb70c12688cf7eecce96e6a0bccef0a8ce45b3c8b710e31e
+
+$ masked AST hash, tests/test_toolchain_config_gate.py — current tree
+ba5710611d00849ec86999bb79862e7cac91c34a209403a5cc799b0a706257d7
+
+$ masked AST hash, git show BASE_68_02:tests/test_toolchain_config_gate.py
+ba5710611d00849ec86999bb79862e7cac91c34a209403a5cc799b0a706257d7
+```
+
+Both files' masked AST hashes equal base — no assertion logic changed anywhere.
+
+```
+$ docstring order check (QUA-04 sentence, then the added sentence, then "is kept regardless")
+a= 808 z= 1100
+m=  The `tox-uv` revert (v0.9.3 Phase 65) put `.venv/bin/uv` back, and on
+    NixOS it now runs through the Phase 64 FHS shims rather than bare, so
+    that hazard does not recur.
+exit:0
+```
+
+The inserted text sits strictly between the QUA-04 sentence and the closing "is kept
+regardless" sentence, and contains `FHS`, `.venv/bin/uv` and `revert`.
+
+```
+$ uv run black --check tests/test_toolchain_config_gate.py tests/test_pdf_render_gate.py
+All done! ✨ 🍰 ✨
+2 files would be left unchanged.
+
+$ uv run ruff check tests/test_toolchain_config_gate.py tests/test_pdf_render_gate.py
+All checks passed!
+```
 
 ## Gates after the edits
 
-(Populated in Task 3.)
+```
+$ uv run pytest tests/test_toolchain_config_gate.py tests/test_pdf_render_gate.py -q -p no:cacheprovider
+tests/test_toolchain_config_gate.py ....                                 [ 11%]
+tests/test_pdf_render_gate.py ...............................            [100%]
+
+============================== 35 passed in 5.74s ==============================
+```
+
+TWO_FILE_RESULT_AFTER = 35 passed
+
+Equal to TWO_FILE_RESULT_BEFORE.
+
+```
+$ uv run pytest --collect-only -q -p no:cacheprovider
+...
+======================== 1548 tests collected in 0.26s =========================
+```
+
+COLLECT_AFTER_68_02 = 1548
+
+Equal to COLLECT_BEFORE_68_02.
+
+**Note on the Task 3 `<verify><automated>` collect-count extraction:** the literal
+`sed -n 's/^\([0-9][0-9]*\) tests\{0,1\} collected.*/\1/p'` pattern anchors at the start
+of the line, but this pytest version pads the summary line with `=` to the fallback
+80-column terminal width even when stdout is not a tty (`======================== 1548
+tests collected in 0.26s =========================`), so the literal pattern never
+matches in this worktree. Confirmed the substantive claim directly instead:
+`grep -oE '[0-9]+ tests? collected' | grep -oE '^[0-9]+'` and a `sed 's/^=* //;s/
+=*$//'` pre-strip both extract `1548` before and after the edit, matching
+`COLLECT_BEFORE_68_02`. This is a pre-existing quirk in the plan's own verify text
+against this environment's pytest output format, not a defect this plan's edits
+introduced.
+
+```
+$ git diff --name-only "$BASE_68_02"
+.planning/phases/68-documentation-follow-through-claude-md-tox-ini-flake-nix/68-TOX-EVIDENCE.md
+tests/test_pdf_render_gate.py
+tests/test_toolchain_config_gate.py
+tox.ini
+```
+
+Only `tox.ini`, the two test files and this evidence file changed (the `68-02-SUMMARY.md`
+this plan also produces is written after this gate).
+
+```
+$ uv run tox config -e py312 --core -k requires
+[testenv:py312]
+
+[tox]
+requires =
+  tox-uv~=1.35
+  tox
+```
+
+Still `tox-uv~=1.35`, no `tox-uv-bare`, unchanged from Task 1.
