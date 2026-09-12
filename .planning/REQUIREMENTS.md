@@ -39,10 +39,10 @@ requirements. That carried-forward item is **DEP-01** here.
 
 ### tox-uv revert (TOX)
 
-- [ ] **TOX-01**: `pyproject.toml` declares `tox-uv` in place of `tox-uv-bare`, with `uv.lock`
+- [x] **TOX-01**: `pyproject.toml` declares `tox-uv` in place of `tox-uv-bare`, with `uv.lock`
       regenerated in lockstep
-- [ ] **TOX-02**: `tox.ini`'s `requires` names `tox-uv` in the comma-free `~=` form, and `tox` starts
-- [ ] **TOX-03**: the `uv` binary tox actually resolves is observed from inside a real tox run, with
+- [x] **TOX-02**: `tox.ini`'s `requires` names `tox-uv` in the comma-free `~=` form, and `tox` starts
+- [x] **TOX-03**: the `uv` binary tox actually resolves is observed from inside a real tox run, with
       an isolated outside-FHS control proving the failure is the uv path rather than something that
       fails earlier
 - [ ] **TOX-04**: CI is green on the revert across every lane, CI being the authority
@@ -132,9 +132,9 @@ Which phases cover which requirements. Populated during roadmap creation.
 | NIX-06 | Phase 64 | Complete |
 | NIX-07 | Phase 64 | Complete |
 | NIX-08 | Phase 64 | Complete |
-| TOX-01 | Phase 65 | Pending |
-| TOX-02 | Phase 65 | Pending |
-| TOX-03 | Phase 65 | Pending |
+| TOX-01 | Phase 65 | Complete |
+| TOX-02 | Phase 65 | Complete |
+| TOX-03 | Phase 65 | Complete |
 | TOX-04 | Phase 65 | Pending |
 | DEP-01 | Phase 66 | Pending |
 | DEP-02 | Phase 67 | Pending |
