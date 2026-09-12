@@ -25,6 +25,10 @@
 
           fhsRun = pkgs.buildFHSEnv {
             name = "typsphinx-fhs-run";
+            # Pillow's `_imaging` extension carries a bare `NEEDED libz.so.1`, and
+            # uv-managed CPython links zlib statically, so nothing in the process
+            # ever maps it without this entry. See 64-LIBZ-FIX-EVIDENCE.md.
+            targetPkgs = p: [ p.zlib ];
             runScript = "${pkgs.writeShellScript "typsphinx-fhs-passthrough" ''
               exec "$@"
             ''}";
