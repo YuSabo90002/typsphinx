@@ -221,7 +221,70 @@ Equal — lines 1-3 unchanged.
 
 ## test_toolchain_config_gate.py strings
 
-(Populated in Task 2.)
+```
+$ git diff -U0 "$BASE_68_02" -- tests/test_toolchain_config_gate.py
+--- a/tests/test_toolchain_config_gate.py
++++ b/tests/test_toolchain_config_gate.py
+@@ -302,3 +302,4 @@ def test_dev_extra_pins_tox_uv_not_tox_uv_bare():
+-    CLAUDE.md's own "Conventions & gotchas" sentence still names `tox-uv-bare` as
+-    deliberate — that sentence goes stale as of this revert and is rewritten in
+-    Phase 68 (DOC-19/DOC-20), not here (D-06).
++    CLAUDE.md's own "Conventions & gotchas" sentence named `tox-uv-bare` as
++    deliberate when Phase 65's revert landed. Phase 65 left that rewrite for
++    Phase 68; Phase 68 (DOC-19/DOC-20) rewrote it to describe the
++    `tox-uv~=1.35` pin, keeping `tox-uv-bare` only as history.
+@@ -367,2 +368,2 @@ def test_dev_extra_pins_tox_uv_not_tox_uv_bare():
+-        "(TOX-01, D-04) and CLAUDE.md 'Conventions & gotchas', which still names "
+-        "tox-uv-bare as deliberate until Phase 68 (DOC-19/DOC-20) rewrites it."
++        "(TOX-01, D-04). CLAUDE.md 'Conventions & gotchas' was rewritten in "
++        "Phase 68 (DOC-19/DOC-20) to describe the tox-uv pin."
+```
+
+Removed lines are only base 302-304 and 367-368 (the assertion-message tail sits two lines
+earlier than the plan's approximate 366-368 census, confirmed by direct measurement); base
+lines 1-301 are untouched.
+
+```
+$ masked AST hash (docstrings + assert messages masked), current tree
+ba5710611d00849ec86999bb79862e7cac91c34a209403a5cc799b0a706257d7
+
+$ masked AST hash, git show BASE_68_02:tests/test_toolchain_config_gate.py
+ba5710611d00849ec86999bb79862e7cac91c34a209403a5cc799b0a706257d7
+```
+
+Equal — no compared name, expression or statement changed.
+
+```
+$ whitespace-normalised string constants of test_dev_extra_pins_tox_uv_not_tox_uv_bare
+... CLAUDE.md's own "Conventions & gotchas" sentence named `tox-uv-bare` as
+deliberate when Phase 65's revert landed. Phase 65 left that rewrite for
+Phase 68; Phase 68 (DOC-19/DOC-20) rewrote it to describe the
+`tox-uv~=1.35` pin, keeping `tox-uv-bare` only as history. ...
+... (TOX-01, D-04). CLAUDE.md 'Conventions & gotchas' was rewritten in
+Phase 68 (DOC-19/DOC-20) to describe the tox-uv pin. ...
+```
+
+Contains `Phase 68` and `Conventions & gotchas`; contains none of `still names`,
+`until Phase 68`, `goes stale`, `###` or `development shell`.
+
+```
+$ uv run pytest tests/test_toolchain_config_gate.py tests/test_pdf_render_gate.py -q -p no:cacheprovider
+tests/test_toolchain_config_gate.py ....                                 [ 11%]
+tests/test_pdf_render_gate.py ...............................            [100%]
+
+============================== 35 passed in 5.56s ==============================
+```
+
+Equal to TWO_FILE_RESULT_BEFORE (35 passed).
+
+```
+$ uv run black --check tests/test_toolchain_config_gate.py
+All done! ✨ 🍰 ✨
+1 file would be left unchanged.
+
+$ uv run ruff check tests/test_toolchain_config_gate.py
+All checks passed!
+```
 
 ## test_pdf_render_gate.py sentence
 
