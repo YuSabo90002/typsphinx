@@ -595,12 +595,12 @@ closing anything.**
      > `REQUIREMENTS.md` DEP-05 is unchanged (its text is correct). See `67-CONTEXT.md` D-06. The
      > verifier reports the literal and the amended reading separately.
 
-**Plans**: 5 plans (4 waves; 67-02 and 67-03 run in parallel in wave 2; 67-02, 67-03 and 67-04 each carry one owner checkpoint:decision immediately before a one-way GitHub action)
+**Plans**: 1/5 plans executed (4 waves; 67-02 and 67-03 run in parallel in wave 2; 67-02, 67-03 and 67-04 each carry one owner checkpoint:decision immediately before a one-way GitHub action)
 
 Plans:
 **Wave 1**
 
-- [ ] 67-01-PLAN.md — D-01/D-02: DEP-02 read from #138's own CI run `34689041575` (job census, check runs, per-step reads of every Lint/Type/Test job), Phase 66 snapshots cited, #123/#128 re-snapshotted read-only after the proof
+- [x] 67-01-PLAN.md — D-01/D-02: DEP-02 read from #138's own CI run `34689041575` (job census, check runs, per-step reads of every Lint/Type/Test job), Phase 66 snapshots cited, #123/#128 re-snapshotted read-only after the proof
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -740,7 +740,7 @@ below tracks the active milestone only.
 | 64. FHS Wrapper and Command Shims in `flake.nix` | v0.9.3 | 6/6 | Complete    | 2026-09-12 |
 | 65. `tox-uv-bare` → `tox-uv` Revert, on the uv Path tox Actually Resolves | v0.9.3 | 2/2 | Complete    | 2026-09-12 |
 | 66. `.github/dependabot.yml` — `pip` → `uv` Ecosystem | v0.9.3 | 4/4 | Complete    | 2026-09-12 |
-| 67. Proof on a Real Dependabot PR, Then Disposal of #123 and #128 | v0.9.3 | 0/5 | Planned | - |
+| 67. Proof on a Real Dependabot PR, Then Disposal of #123 and #128 | v0.9.3 | 1/5 | In Progress | - |
 | 68. Documentation Follow-Through — `CLAUDE.md`, `tox.ini`, `flake.nix` | v0.9.3 | 0/? | Not started | - |
 | 69. v0.9.3 Close Prep (prep-only, unpublished) | v0.9.3 | 0/? | Not started | - |
 
