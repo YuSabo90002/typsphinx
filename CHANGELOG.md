@@ -18,19 +18,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dependabot's Python dependency updates now use the `uv` ecosystem instead of `pip` (DEP-01,
   DEP-02, DEP-03, DEP-04, DEP-05).** Each dependency pull request now updates `pyproject.toml` and
   `uv.lock` in the same commit, so CI's `uv sync --locked` step succeeds and the test, lint and
-  type jobs actually run against it; before the switch, every such pull request stopped at that
-  step before any test ran. The grouping, labels and pull-request limit carry over unchanged. This
-  was proven on the pull request that also carried a routine `ruff` version bump. This has no
-  effect on installing or using typsphinx.
+  type jobs actually run against the updated dependencies; before the switch, every such pull
+  request stopped at that step before any test ran. The grouping, labels and pull-request limit
+  carry over unchanged. This was proven on the pull request that also carried a routine `ruff`
+  version bump. This has no effect on installing or using typsphinx.
 
-- **A NixOS development shell (NIX-01, NIX-02, NIX-03, NIX-04, NIX-05, NIX-06, NIX-07, NIX-08,
-  DOC-19, DOC-20, DOC-21).** `flake.nix` now puts command shims for `uv`, `tox`, `ruff`, `black`,
-  `mypy`, `pytest` and `sphinx-build` on `PATH`; each one runs the checkout's own `.venv` tools
-  inside an FHS sandbox, so the versions `uv.lock` pins run on NixOS without any manual step. This
-  applies only to contributors who enter that shell on NixOS; CI and every other platform are
-  unchanged, and this has no effect on installing or using typsphinx. The `darwin` systems evaluate
-  under this shell but remain unverified. `CLAUDE.md`'s contributor notes, the `tox.ini` comment
-  and the `flake.nix` header now describe the mechanism.
+- **`flake.nix` now provides a NixOS development shell (NIX-01, NIX-02, NIX-03, NIX-04, NIX-05,
+  NIX-06, NIX-07, NIX-08, DOC-19, DOC-20, DOC-21).** The shell puts command shims for `uv`, `tox`,
+  `ruff`, `black`, `mypy`, `pytest` and `sphinx-build` on `PATH`; each one runs the checkout's own
+  `.venv` tools inside an FHS sandbox, so the versions `uv.lock` pins run on NixOS without any
+  manual step. This applies only to contributors who enter that shell on NixOS; CI and every other
+  platform are unchanged, and this has no effect on installing or using typsphinx. The `darwin`
+  systems evaluate under this shell but remain unverified. `CLAUDE.md`'s contributor notes, the
+  `tox.ini` comment and the `flake.nix` header now describe the mechanism.
 
 ### Planned for Future Releases
 - BibTeX/bibliography support
