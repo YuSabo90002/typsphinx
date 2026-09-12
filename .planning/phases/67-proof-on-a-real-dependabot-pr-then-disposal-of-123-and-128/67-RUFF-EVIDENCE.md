@@ -513,3 +513,236 @@ before acting on either.
 #138 is merged into `main` at MERGE_SHA_138 = cf3305ce52b72bb8ca3fa8f9d78fd12a50a3564a. 67-04 closes
 #123 as superseded behind its own `checkpoint:decision`, after reading #123's whole thread. Nothing
 in this plan closed, commented on or `@dependabot`-commanded #123, #128 or #139–#142.
+
+---
+
+# Phase 67 Plan 04 — #123 (ruff, superseded by #138) Disposal Evidence
+
+## Head check and provisioning
+
+```
+$ test -f .git; echo "exit:$?"
+exit:0
+$ pwd -P
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a3eb0138dbbf5e138
+```
+
+`env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev` ran to completion, installing
+`ruff==0.15.20`, `uv==0.12.13`, `typsphinx==0.9.2` (editable, from this worktree) among the
+resolved packages — this worktree's own `uv.lock` (the unmerged milestone lock), not `main`'s.
+
+```
+$ gh auth status
+github.com
+  ✓ Logged in to github.com account YuSabo90002 (/home/yuta/.config/gh/hosts.yml)
+  - Active account: true
+  - Git operations protocol: https
+  - Token: gho_************************************
+  - Token scopes: 'gist', 'read:org', 'repo', 'workflow'
+```
+
+BASE_67_04 = 61139be8fce6e83ca16f2f0683fc6e75816cb1f3
+
+## Wave-2 gate
+
+Read from this file's own prior sections (67-02), never from executor memory:
+
+```
+$ F=.planning/phases/67-proof-on-a-real-dependabot-pr-then-disposal-of-123-and-128/67-RUFF-EVIDENCE.md
+$ sed -n 's/^OWNER_DECISION_138 = //p' "$F" | head -n 1
+merge
+$ sed -n 's/^MERGE_SHA_138 = //p' "$F" | head -n 1
+cf3305ce52b72bb8ca3fa8f9d78fd12a50a3564a
+$ sed -n 's/^MERGED_AT_138 = //p' "$F" | head -n 1
+2026-09-12T13:37:03Z
+$ grep -c '^## HALT' "$F"
+0
+```
+
+Live re-read of #138, not trusted from the file alone:
+
+```
+$ gh pr view 138 --json state,mergeCommit,mergedAt
+{"mergeCommit":{"oid":"cf3305ce52b72bb8ca3fa8f9d78fd12a50a3564a"},"mergedAt":"2026-09-12T13:37:03Z","state":"MERGED"}
+```
+
+#138 is MERGED at MERGE_SHA_138 (`cf3305ce52b72bb8ca3fa8f9d78fd12a50a3564a`), read live and
+matching the recorded key exactly. No `## HALT` heading exists anywhere in this file. This plan
+runs entirely from these evidence keys and live GitHub state, never from executor memory of the
+67-02 run — so an executor resumed after an interruption between the #138 merge and this #123
+close would re-derive the identical facts and proceed the same way (the DEP-05 concurrency edge:
+resumability).
+
+## #123 re-snapshot
+
+```
+$ date -u +%FT%TZ
+2026-09-12T13:47:02Z
+```
+
+SNAP_123_AT_67_04 = 2026-09-12T13:47:02Z
+
+```
+$ gh pr view 123 --json number,title,state,closed,closedAt,author,headRefName,headRefOid,baseRefName,updatedAt,labels,comments
+{"author":{"is_bot":true,"login":"app/dependabot"},"baseRefName":"main","closed":false,"closedAt":null,"comments":[{"id":"IC_kwDOQBRmjM8AAAABLybpkw","author":{"login":"dependabot"},"authorAssociation":"CONTRIBUTOR","body":"### Labels\n\nThe following labels could not be found: `automated`, `dependencies`. Please create them before Dependabot can add them to a pull request.\n\n\nPlease fix the above issues or remove invalid values from `dependabot.yml`.","createdAt":"2026-07-27T00:07:03Z","includesCreatedEdit":false,"isMinimized":false,"minimizedReason":"","reactionGroups":[],"url":"https://github.com/YuSabo90002/typsphinx/pull/123#issuecomment-5086046611","viewerDidAuthor":false}],"headRefName":"dependabot/pip/ruff-gte-0.15-and-lt-0.17","headRefOid":"1c905bb80d388465e57280dc104cbd117442e28a","labels":[],"number":123,"state":"OPEN","title":"chore(deps-dev): update ruff requirement from <0.16,>=0.15 to >=0.15,<0.17","updatedAt":"2026-08-03T20:09:21Z"}
+```
+
+Compared with `67-PROOF-EVIDENCE.md` § D-02 re-snapshot (`SNAP_123_AT = 2026-09-12T13:20:35Z`):
+`headRefOid` (`1c905bb80d388465e57280dc104cbd117442e28a`) — **unchanged**. `updatedAt`
+(`2026-08-03T20:09:21Z`) — **unchanged**. Comment count (1, dependabot's own "labels could not be
+found" comment) — **unchanged**. State is OPEN, so the "quote the closed-event actor and HALT"
+branch does not apply.
+
+HEAD123 = 1c905bb80d388465e57280dc104cbd117442e28a
+
+## D-03 merits for #123
+
+**The pip PR's shape.**
+
+```
+$ git fetch origin refs/pull/123/head
+From https://github.com/YuSabo90002/typsphinx
+ * branch              refs/pull/123/head -> FETCH_HEAD
+$ git rev-parse FETCH_HEAD
+1c905bb80d388465e57280dc104cbd117442e28a
+```
+
+`FETCH_HEAD` equals HEAD123.
+
+```
+$ git show --name-only --format='%H%n%an <%ae>%n%s' 1c905bb80d388465e57280dc104cbd117442e28a
+1c905bb80d388465e57280dc104cbd117442e28a
+dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+chore(deps-dev): update ruff requirement
+
+pyproject.toml
+```
+
+The name list is exactly `pyproject.toml` — nothing else.
+
+```
+$ git show 1c905bb80d388465e57280dc104cbd117442e28a -- pyproject.toml
+commit 1c905bb80d388465e57280dc104cbd117442e28a
+Author: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+Date:   Tue Jul 28 20:59:54 2026 +0000
+
+    chore(deps-dev): update ruff requirement
+
+    Updates the requirements on [ruff](https://github.com/astral-sh/ruff) to permit the latest version.
+    - [Release notes](https://github.com/astral-sh/ruff/releases)
+    - [Changelog](https://github.com/astral-sh/ruff/blob/main/CHANGELOG.md)
+    - [Commits](https://github.com/astral-sh/ruff/compare/0.15.0...0.16.0)
+
+    ---
+    updated-dependencies:
+    - dependency-name: ruff
+      dependency-version: 0.16.0
+      dependency-type: direct:development
+    ...
+
+    Signed-off-by: dependabot[bot] <support@github.com>
+
+diff --git a/pyproject.toml b/pyproject.toml
+index 82b1efc7..dda6bbaa 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -37,7 +37,7 @@ dev = [
+     "tox>=4.56,<5",
+     "tox-uv>=1.35,<2",
+     "black>=26,<27",
+-    "ruff>=0.15,<0.16",
++    "ruff>=0.15,<0.17",
+     "mypy>=1.13,<3.0",
+     "pre-commit>=3.0",
+     "types-docutils>=0.21",
+```
+
+**The supersession.**
+
+```
+$ git show 1c905bb80d388465e57280dc104cbd117442e28a -- pyproject.toml | grep '^+.*ruff' | sed 's/^+ *//'
+"ruff>=0.15,<0.17",
+```
+
+RUFF_LINE_123 = "ruff>=0.15,<0.17",
+
+```
+$ git show cf3305ce52b72bb8ca3fa8f9d78fd12a50a3564a:pyproject.toml | grep 'ruff>=' | sed 's/^ *//'
+"ruff>=0.15,<0.17",
+```
+
+RUFF_LINE_MAIN = "ruff>=0.15,<0.17",
+
+RUFF_LINE_123 and RUFF_LINE_MAIN are **equal**. `main` now carries exactly #123's proposed range,
+with a valid lockfile, through the merged #138.
+
+**#123's own CI.**
+
+```
+$ gh pr view 123 --json statusCheckRollup --jq '.statusCheckRollup[] | [.name, .conclusion] | @tsv'
+Test Python 3.12 on ubuntu-latest	FAILURE
+build-docs	FAILURE
+Repo-wide link check (advisory)	SUCCESS
+Repo-wide link check (advisory)	SUCCESS
+Test Python 3.13 on ubuntu-latest	FAILURE
+Test Python 3.12 on windows-latest	FAILURE
+Test Python 3.13 on windows-latest	FAILURE
+Test Python 3.12 on macos-latest	FAILURE
+Test Python 3.13 on macos-latest	FAILURE
+Lint and Format Check	FAILURE
+Type Check	FAILURE
+Code Coverage	FAILURE
+Build Package	FAILURE
+Integration Test - basic	CANCELLED
+Integration Test - advanced	FAILURE
+```
+
+12 FAILURE, 1 CANCELLED, 2 SUCCESS (the two advisory link-check jobs) — matching the planning-time
+census exactly. A `pyproject.toml`-only change dies at `uv sync --extra dev --locked`, so merging
+#123 is not an option on the merits either.
+
+**Back-reference.** See `## SC#3 merits for #138` and `## NIX-01 interaction and D-04 divergence`
+above (this same file, 67-02's sections) — not restated here.
+
+"CI is finally green" is not the merit here: #123's own CI is red at the install step, exactly as
+it was at planning time. The merit is that `main` already carries #123's proposed `ruff` range,
+through the merged #138, with a working lockfile.
+
+## #123 thread
+
+```
+$ gh pr view 123 --json comments --jq '.comments[] | [.author.login, .createdAt, .body] | @tsv'
+dependabot	2026-07-27T00:07:03Z	### Labels\n\nThe following labels could not be found: `automated`, `dependencies`. Please create them before Dependabot can add them to a pull request.\n\n\nPlease fix the above issues or remove invalid values from `dependabot.yml`.
+```
+
+```
+$ gh api --paginate repos/YuSabo90002/typsphinx/pulls/123/comments --jq 'length'
+0
+$ gh api --paginate repos/YuSabo90002/typsphinx/pulls/123/reviews --jq 'length'
+0
+```
+
+One issue comment total (dependabot's own automated "labels could not be found" notice), zero PR
+review comments, zero reviews. No non-dependabot author appears anywhere in the thread.
+
+```
+$ date -u +%FT%TZ
+2026-09-12T13:47:32Z
+```
+
+THREAD_READ_AT_123 = 2026-09-12T13:47:32Z
+
+## Tooling pre-flight (#123)
+
+```
+$ gh pr close --help | grep -n -- '--comment'
+7:  -c, --comment string   Leave a closing comment
+```
+
+`--comment` is supported by the installed `gh`; no fallback needed.
+
+## Draft comment for #123 (not yet approved)
+
+DRAFT_COMMENT_123 = Superseded by #138.
+
+One English line, per D-03's shape. Nothing has been posted; #123 remains untouched by this task.
