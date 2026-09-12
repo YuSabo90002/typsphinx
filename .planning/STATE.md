@@ -5,11 +5,11 @@ milestone_name: Toolchain and dependency-update repair
 current_phase: 69
 current_phase_name: v0.9.3 Close Prep (prep-only, unpublished)
 status: planning
-stopped_at: Phase 68 complete, ready to plan Phase 69
-last_updated: "2026-09-12T16:33:40.253Z"
+stopped_at: Phase 69 context gathered
+last_updated: "2026-09-12T21:14:30.938Z"
 last_activity: 2026-09-13
-last_activity_desc: Phase 68 complete, transitioned to Phase 69
-state_head: 286cc9d13a90d18de305b855e57224fe4d4cb92f
+last_activity_desc: Phase 69 context gathered (69-CONTEXT.md D-01..D-14)
+state_head: 7be08072283ddd2ffa79190de74b34a2c27da4ff
 progress:
   total_phases: 6
   completed_phases: 5
@@ -1176,7 +1176,7 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** None
+**Resume file:** .planning/phases/69-v0-9-3-close-prep-prep-only-unpublished/69-CONTEXT.md
 — Phases 64 and 65 are complete. Phase 66's context is captured (`66-CONTEXT.md` D-01..D-06,
 commit `b45674e9`): dependabot reads `dependabot.yml` only from `main`, so Phase 66 opens and merges
 a separate `dependabot.yml`-only PR to `main` (ROADMAP constraint 2 carries an owner-approved
@@ -1189,8 +1189,8 @@ before Phase 63 is planned, not after.** It is the only record of the three publ
 v0.9.1 close did not exercise, written with `vX.Y.Z` placeholders so no dead tag name can be copied
 out of it, and Phase 63's SC#5 handoff checklist inherits directly from it.
 
-Last session: 2026-09-12T16:34:36.000Z
-Stopped at: Phase 68 complete, ready to plan Phase 69
+Last session: 2026-09-12T21:14:30.899Z
+Stopped at: Phase 69 context gathered
 (Prior session: 2026-08-30T09:46:50.495Z — Phase 63 complete, UAT 25/25, v0.9.2 shipped 2026-08-31.)
 
 **Nothing is owed forward from a publish, because there was no publish.** The three standing publish
