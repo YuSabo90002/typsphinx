@@ -268,4 +268,95 @@ exit:1
 ), so the equal masked hashes are proving structural equivalence under the annotation/import mask,
 not a no-op edit. No HALT needed.
 
-Evidence file committed alongside this record.
+Evidence file committed alongside this record (commit `a0b1b9ad`).
+
+## Changed-line census
+
+Over `git diff "$PHASE_BASE_SHA" HEAD` for the two files, with diff headers (`+++`/`---`) and blank
+added/removed lines excluded:
+
+```
+$ git diff "$B" HEAD -- $P | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)( |$)' | grep -vE '^[+-][[:space:]]*$' \
+    | grep -cvE '(Dict|List|Set|Tuple|Iterator|dict|list|set|tuple|typing|collections\.abc)'
+0
+```
+
+NON_TYPING_LINES_70_07 = 0
+(every non-blank changed line carries a typing name)
+
+```
+$ git diff "$B" HEAD -- $P | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)( |$)' | grep -cw assert
+0
+```
+No changed line contains the word `assert`.
+
+```
+$ git diff "$B" HEAD -- $P | grep -E '^[+-]' | grep -F '@preview'
+(empty)
+```
+No changed line contains `@preview`.
+
+```
+$ git grep -n '@preview/' 697a113221a8a267d7e8c6dd1f2b95672f9454d2 -- typsphinx/writer.py | cut -d: -f2-
+        imports.append('#import "@preview/codly:1.3.0": *')
+        imports.append('#import "@preview/codly-languages:0.1.10": *')
+        imports.append('#import "@preview/mitex:0.2.7": mi, mitex')
+        imports.append('#import "@preview/gentle-clues:1.3.1": *')
+$ git grep -n '@preview/' HEAD -- typsphinx/writer.py | cut -d: -f2-
+        imports.append('#import "@preview/codly:1.3.0": *')
+        imports.append('#import "@preview/codly-languages:0.1.10": *')
+        imports.append('#import "@preview/mitex:0.2.7": mi, mitex')
+        imports.append('#import "@preview/gentle-clues:1.3.1": *')
+```
+`writer.py`'s four `#import "@preview/…"` lines (asserted byte-identical by
+`tests/test_preview_version_sync.py`) are byte-identical between `PHASE_BASE_SHA` and HEAD.
+
+## Gates
+
+```
+$ uv run black --check typsphinx/writer.py typsphinx/__init__.py
+All done! ✨ 🍰 ✨
+2 files would be left unchanged.
+exit:0
+```
+
+```
+$ uv run ruff check .
+All checks passed!
+exit:0
+```
+Repo-wide, config-rule ruff is clean — the still-present `UP006`/`UP035` ignores mean this check
+does not itself re-verify the two converted files' UP006/UP035 cleanliness (Task 1 already did,
+with `--select` explicitly overriding the ignores); it confirms the conversion introduced no other
+config-rule violation anywhere in the repo.
+
+```
+$ uv run mypy typsphinx/ 2>/dev/null
+Success: no issues found in 9 source files
+```
+
+MYPY_STDOUT_SHA256_70_07 = 46984ca20bf69f7b14ec1fd9bd82101d56a4e109e68f016fd2a04f22481b09b3
+(stdout only, stderr excluded per Pitfall 7 — equal to `MYPY_STDOUT_SHA256_BEFORE`)
+
+```
+$ LC_ALL=C uv run pytest -q -rs -p no:cacheprovider > "$S/pytest.out" 2>&1; echo "exit:$?"
+exit:0
+$ tail -n 1 "$S/pytest.out"
+================= 1547 passed, 1 skipped in 135.97s (0:02:15) ==================
+```
+
+PYTEST_RESULT_70_07 = 1547 passed 1 skipped
+(from the same `grep -oE '[0-9]+ (passed|failed|skipped|errors?|xfailed|xpassed)' | paste -sd' '`
+extraction 70-02/70-04 used — equal to `PYTEST_RESULT_BEFORE`)
+
+Both leg (e) (mypy) and leg (b) (pytest) are unchanged from base: the conversion altered no runtime
+behaviour, no type-checking outcome, and no test outcome.
+
+```
+$ git diff --name-only 6d75e9d5b9254be7f3ff3712b61878a7ae85d332 HEAD
+.planning/phases/70-typing-modernization-and-its-behaviour-identity-evidence/70-CONV-WRITER-INIT-EVIDENCE.md
+typsphinx/__init__.py
+typsphinx/writer.py
+```
+No file outside this plan's declared set (`typsphinx/writer.py`, `typsphinx/__init__.py`, this
+evidence file, and the forthcoming `70-07-SUMMARY.md`) changed since `BASE_70_07`.
