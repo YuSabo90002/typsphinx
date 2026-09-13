@@ -12,7 +12,7 @@ sources using Sphinx, which can then be compiled to PDF using the Typst compiler
 """
 
 import importlib.metadata
-from typing import Any, Dict
+from typing import Any
 
 from sphinx.application import Sphinx
 
@@ -26,7 +26,7 @@ from typsphinx.builder import TypstBuilder, TypstPDFBuilder, _default_typst_docu
 from typsphinx.removed_config import check_config_at_init
 
 
-def setup(app: Sphinx) -> Dict[str, Any]:
+def setup(app: Sphinx) -> dict[str, Any]:
     """
     Sphinx extension setup function.
 
