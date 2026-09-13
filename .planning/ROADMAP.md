@@ -334,7 +334,7 @@ CI dispatch on the post-flip tip.
      individually and green, and `ruff`'s verdict taken from the **`Lint and Format Check`** job
      (step `Run lint with tox`), not from this machine (milestone invariant #5; constraint 8).
 
-**Plans**: 4/13 plans executed (6 waves)
+**Plans**: 8/13 plans executed (6 waves)
 
 Plans:
 **Wave 1**
@@ -349,10 +349,10 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 70-05-PLAN.md — convert builder.py (wave 3)
-- [ ] 70-06-PLAN.md — convert template_engine.py and template_registry.py (wave 3)
-- [ ] 70-07-PLAN.md — convert writer.py and __init__.py, with the one hand edit (wave 3)
-- [ ] 70-08-PLAN.md — convert the remaining three tests/ files (wave 3)
+- [x] 70-05-PLAN.md — convert builder.py (wave 3)
+- [x] 70-06-PLAN.md — convert template_engine.py and template_registry.py (wave 3)
+- [x] 70-07-PLAN.md — convert writer.py and __init__.py, with the one hand edit (wave 3)
+- [x] 70-08-PLAN.md — convert the remaining three tests/ files (wave 3)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -448,7 +448,7 @@ below tracks the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 70. Typing Modernization and Its Behaviour-Identity Evidence | v0.9.4 | 4/13 | In Progress | - |
+| 70. Typing Modernization and Its Behaviour-Identity Evidence | v0.9.4 | 8/13 | In Progress | - |
 | 71. v0.9.4 Close Prep (prep-only, unpublished) | v0.9.4 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
