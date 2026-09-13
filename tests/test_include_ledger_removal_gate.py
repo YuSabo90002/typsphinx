@@ -43,8 +43,8 @@ import re
 import subprocess
 import sys
 import textwrap
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Dict, Iterator, Set
 
 import pytest
 from sphinx.testing.util import SphinxTestApp
@@ -351,14 +351,14 @@ def _reconstruct_fstring_shape(node: ast.JoinedStr) -> str:
     return "".join(parts)
 
 
-def _collect_docstring_constant_ids(tree: ast.AST) -> Set[int]:
+def _collect_docstring_constant_ids(tree: ast.AST) -> set[int]:
     """Return the ``id()`` of every AST ``Constant`` node that IS a
     module/class/function docstring (its containing body's own first
     statement, a bare string expression) -- so a docstring's own worked
     example (e.g. ``render_include_edge_state()``'s ``Returns:`` section)
     is excluded from the state-call literal collection below, which is
     about genuine emission SITES, not documentation."""
-    ids: Set[int] = set()
+    ids: set[int] = set()
     for node in ast.walk(tree):
         if isinstance(
             node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
@@ -371,12 +371,12 @@ def _collect_docstring_constant_ids(tree: ast.AST) -> Set[int]:
     return ids
 
 
-def _module_level_string_constants(tree: ast.Module) -> Dict[str, str]:
+def _module_level_string_constants(tree: ast.Module) -> dict[str, str]:
     """Collect every module-level ``NAME = "literal"`` / ``NAME: T =
     "literal"`` assignment's own resolved string value, keyed by name --
     used to resolve a ``{NAME}`` f-string interpolation captured inside a
     ``state(...)`` call site back to its own literal value."""
-    constants: Dict[str, str] = {}
+    constants: dict[str, str] = {}
     for node in tree.body:
         if (
             isinstance(node, ast.Assign)
@@ -397,7 +397,7 @@ def _module_level_string_constants(tree: ast.Module) -> Dict[str, str]:
     return constants
 
 
-def _collect_state_call_first_arg_literals(root: Path) -> Set[str]:
+def _collect_state_call_first_arg_literals(root: Path) -> set[str]:
     """Collect every DISTINCT resolved literal string passed as the
     first argument to a Typst ``state(...)`` call, across every ``.py``
     file under ``root`` -- collected STRUCTURALLY via ``ast``, not
@@ -409,7 +409,7 @@ def _collect_state_call_first_arg_literals(root: Path) -> Set[str]:
     own module/class/function DOCSTRING is explicitly excluded (see
     ``_collect_docstring_constant_ids``) -- a second spelling would be
     detected here, not assumed absent."""
-    literals: Set[str] = set()
+    literals: set[str] = set()
     for path in _iter_python_files(root):
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         docstring_ids = _collect_docstring_constant_ids(tree)
