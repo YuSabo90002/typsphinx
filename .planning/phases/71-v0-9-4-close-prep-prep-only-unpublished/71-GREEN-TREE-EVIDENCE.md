@@ -150,3 +150,102 @@ measurement, only the `CHANGELOG.md` bullet changed (per the Product-tree delta 
 change carries no test-visible effect, consistent with the identical counts.
 
 No failure occurred; no `## HALT` heading is written in this section.
+
+## Full suite under LC_ALL=C
+
+- Head check re-run: `date -u +%FT%TZ` = `2026-09-13T08:48:53Z`; `pwd -P` still inside this
+  worktree; `test -f .git; echo "exit:$?"` = `exit:0`; `grep -c typsphinx-fhs-run "$(command -v
+  uv)"` = `2`.
+- `LC_ALL=C uv run pytest -q -rs -p no:cacheprovider` ran in the foreground, exit 0, one pass (no
+  split needed — completed in 125.80s). Final summary line and the skip, verbatim:
+  ```
+  SKIPPED [1] tests/test_corpus_gate.py:530: SC#3 before/after measurement is env-gated -- set TYPSPHINX_CORPUS_REPORT=1 to run it (RESEARCH Open Question 1)
+  1547 passed, 1 skipped in 125.80s (0:02:05)
+  ```
+
+LCALLC_SUMMARY = 1547 passed, 1 skipped
+
+LCALLC_FAILED = 0
+
+The run is repeated under `LC_ALL=C` because CI runs in English and warning-text assertions have
+failed only on CI before, never locally under the host's `ja_JP.UTF-8` locale (ROADMAP SC#3).
+
+## Format, type and lint
+
+- `uv run black --check .; echo "exit:$?"`:
+  ```
+  All done! ✨ 🍰 ✨
+  355 files would be left unchanged.
+  exit:0
+  ```
+
+BLACK_EXIT = 0
+
+- `uv run mypy typsphinx/; echo "exit:$?"`:
+  ```
+  Success: no issues found in 9 source files
+  exit:0
+  ```
+
+MYPY_EXIT = 0
+
+- `uv run ruff --version`: `ruff 0.16.6`
+
+RUFF_LOCAL_VERSION = 0.16.6
+
+This equals `uv.lock`'s pinned ruff (`name = "ruff"` / `version = "0.16.6"`).
+
+- `uv run ruff check .; echo "exit:$?"`:
+  ```
+  All checks passed!
+  exit:0
+  ```
+
+RUFF_LOCAL_EXIT = 0
+
+CI's `Lint and Format Check` job holds lint authority (ROADMAP constraint 8); plan 71-04 reads its
+verdict. This local run is additive, not a substitute for that authority.
+
+## Version-sync family
+
+- `uv run pytest tests/test_readme_version_sync.py tests/test_preview_version_sync.py -v -p
+  no:cacheprovider`:
+  ```
+  tests/test_readme_version_sync.py::test_readme_status_version_matches_pyproject PASSED [ 25%]
+  tests/test_preview_version_sync.py::test_preview_versions_identical_across_declaration_sites PASSED [ 50%]
+  tests/test_preview_version_sync.py::test_all_four_packages_declared PASSED [ 75%]
+  tests/test_preview_version_sync.py::test_example_templates_match_canonical_versions PASSED [100%]
+  4 passed in 0.03s
+  ```
+- `uv run pytest tests/test_extension.py -k version_matches_pyproject_toml -v -p no:cacheprovider`:
+  ```
+  tests/test_extension.py::test_version_matches_pyproject_toml PASSED      [100%]
+  1 passed, 5 deselected in 0.02s
+  ```
+
+VERSION_SYNC_FAILED = 0
+
+This runs even though no version literal moves in this plan: it is the mechanism that would catch
+one moving, and constraint 12 keeps the `@preview` count at four.
+
+## Changelog page gate
+
+- `LC_ALL=C uv run pytest tests/test_changelog_page_gate.py -v -rs -p no:cacheprovider`:
+  ```
+  tests/test_changelog_page_gate.py::TestPublishedChangelogPageDelegates::test_page_delegates_to_changelog_md PASSED [ 16%]
+  tests/test_changelog_page_gate.py::TestPublishedChangelogPageDelegates::test_page_carries_no_hand_maintained_release_history PASSED [ 33%]
+  tests/test_changelog_page_gate.py::TestChangelogPageContentCoverage::test_rendered_page_carries_every_release PASSED [ 50%]
+  tests/test_changelog_page_gate.py::TestChangelogPageContentCoverage::test_rendered_page_has_one_changelog_heading PASSED [ 66%]
+  tests/test_changelog_page_gate.py::TestChangelogPageContentCoverage::test_build_emits_no_changelog_warnings PASSED [ 83%]
+  tests/test_changelog_page_gate.py::TestChangelogIncludeCompilesToPdf::test_included_changelog_reaches_the_pdf PASSED [100%]
+  6 passed in 3.90s
+  ```
+
+CHANGELOG_GATE_SUMMARY = 6 passed
+
+CHANGELOG_GATE_SKIPPED = 0
+
+Both `myst_parser` and `typst` are importable in this worktree (confirmed in `## Tree identity`
+and by this run's own zero-skip result), so every build class in the module — the HTML content
+coverage class and the PDF include-compile class, not only the always-on delegation class —
+actually executed. No skip is recorded as a pass; there was no skip to record.
