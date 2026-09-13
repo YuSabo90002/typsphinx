@@ -828,6 +828,214 @@ Equal to `MILESTONE_BASE` — no `main` commit was absorbed since observation 1.
 CLOSE_MAIN_ABSORBED = no
 ```
 
+## Head check and provisioning (Task 2)
+
+```
+$ date -u +%FT%TZ
+2026-09-13T09:16:15Z
+
+$ sed -n 's/^version_info = //p' .venv/pyvenv.cfg
+3.13.13
+```
+
+```
+VENV_VERSION_INFO_71_06 = 3.13.13
+```
+
+## Masked-AST re-run on the close tip (D-11 part 2)
+
+Per D-11 and Claude's discretion, this reuses Phase 70's mask exactly: annotation subtrees plus
+`typing` and `collections.abc` `ImportFrom` nodes, unchanged in behaviour from
+`70-MASK-PILOT-EVIDENCE.md` § "Mask harness".
+
+Harness extraction and hash check, the same two `sed` passes Phase 70's own verifies use:
+
+```
+$ H="$(sed -n '/^~~~python mask-harness$/,/^~~~$/p' .planning/phases/70-typing-modernization-and-its-behaviour-identity-evidence/70-MASK-PILOT-EVIDENCE.md | sed '1d;$d')"
+$ printf '%s\n' "$H" | sha256sum
+11cdbeb68cae48a890dfc98736ae2ff7fc15c4557cddad6c5f3a06f425db8a65  -
+```
+
+```
+MASK_HARNESS_SHA256_71 = 11cdbeb68cae48a890dfc98736ae2ff7fc15c4557cddad6c5f3a06f425db8a65
+```
+
+Equal to `70-MASK-PILOT-EVIDENCE.md`'s recorded `MASK_HARNESS_SHA256`. The harness text was
+written to `$SCRATCH_71_06/p7106_harness.py` (never retyped) and run as
+`sk() { uv run python -c "$H"; }` — equivalently, `uv run python "$SCRATCH_71_06/p7106_harness.py"`
+reading source on stdin, the same extracted text either way.
+
+The file list:
+
+```
+$ git diff --name-only 697a113221a8a267d7e8c6dd1f2b95672f9454d2 e721ff899a981eafdad696ef1a9c93aaab41ece5 -- typsphinx/ tests/
+tests/conftest.py
+tests/test_bundle_layout_sweep_gate.py
+tests/test_include_edge_derivation_unit.py
+tests/test_include_ledger_removal_gate.py
+typsphinx/__init__.py
+typsphinx/builder.py
+typsphinx/template_engine.py
+typsphinx/template_registry.py
+typsphinx/translator.py
+typsphinx/writer.py
+```
+
+Ten paths, exactly Phase 70's converted-file set.
+
+For each path, the base masked hash (`git show 697a1132…:<path>` fed to the harness) and the
+close-tip masked hash (the working-tree file fed to the harness):
+
+| Path | Base masked hash | Close-tip masked hash | Verdict |
+|---|---|---|---|
+| tests/conftest.py | e86284ce44fd0afa1077e595be4b05080990810c11657b03ed430f9e24c31a6e | e86284ce44fd0afa1077e595be4b05080990810c11657b03ed430f9e24c31a6e | EQUAL |
+| tests/test_bundle_layout_sweep_gate.py | 813565e78879f6fd6637a267a4da432acf3b988d75662ee610435e80473de84b | 813565e78879f6fd6637a267a4da432acf3b988d75662ee610435e80473de84b | EQUAL |
+| tests/test_include_edge_derivation_unit.py | adffe23b45742160fba01dd0668dc92c4944976c2d10d58bf84aeb5bdc617d8a | adffe23b45742160fba01dd0668dc92c4944976c2d10d58bf84aeb5bdc617d8a | EQUAL |
+| tests/test_include_ledger_removal_gate.py | 6af6dd86276c3acb15479940e325e6db77931ec60d7b0a444c7d2e3bc7204849 | 6af6dd86276c3acb15479940e325e6db77931ec60d7b0a444c7d2e3bc7204849 | EQUAL |
+| typsphinx/__init__.py | 6b44c4dc942282ea3b94733831b5f343793d9ec453fa5fcde7899d6da1d34b7b | 6b44c4dc942282ea3b94733831b5f343793d9ec453fa5fcde7899d6da1d34b7b | EQUAL |
+| typsphinx/builder.py | dd763862e7a610157eab1ee2c4ba675e1801d09e27e9bb3b8c614495522165e4 | dd763862e7a610157eab1ee2c4ba675e1801d09e27e9bb3b8c614495522165e4 | EQUAL |
+| typsphinx/template_engine.py | 7288a028075f8d778fdfa1a64ae89ea5af60a8ac720e6e30d222bc77e6c8d822 | 7288a028075f8d778fdfa1a64ae89ea5af60a8ac720e6e30d222bc77e6c8d822 | EQUAL |
+| typsphinx/template_registry.py | 655662483067c768432fe0ddcd6bb8ad9c101b50897a7ae4fb8ce0db77e421dc | 655662483067c768432fe0ddcd6bb8ad9c101b50897a7ae4fb8ce0db77e421dc | EQUAL |
+| typsphinx/translator.py | 8c766e23d771c614aa166b6ebe9ea481b8969a9b0726ed31eea2b176afe3c329 | 8c766e23d771c614aa166b6ebe9ea481b8969a9b0726ed31eea2b176afe3c329 | EQUAL |
+| typsphinx/writer.py | ef10bdb40b105c61d0bdaa73749ffa62c1050a93a1833ae41cdf1f40fdc9bc08 | ef10bdb40b105c61d0bdaa73749ffa62c1050a93a1833ae41cdf1f40fdc9bc08 | EQUAL |
+
+All ten EQUAL, every hash 64 hex characters.
+
+```
+D11_MASK_EQUAL_COUNT = 10
+```
+
+## Non-vacuity controls (D-11 part 2)
+
+Work performed only on copies under `$SCRATCH_71_06` (`/tmp/tmp.Q2KAowP2ae`); the tracked tree was
+never edited for these controls.
+
+For each of the ten paths, the raw bytes differ between `697a1132…` and this close tip:
+
+```
+$ git diff --quiet 697a113221a8a267d7e8c6dd1f2b95672f9454d2 HEAD -- tests/conftest.py; echo "exit:$?"
+exit:1
+$ git diff --quiet 697a113221a8a267d7e8c6dd1f2b95672f9454d2 HEAD -- tests/test_bundle_layout_sweep_gate.py; echo "exit:$?"
+exit:1
+$ git diff --quiet 697a113221a8a267d7e8c6dd1f2b95672f9454d2 HEAD -- tests/test_include_edge_derivation_unit.py; echo "exit:$?"
+exit:1
+$ git diff --quiet 697a113221a8a267d7e8c6dd1f2b95672f9454d2 HEAD -- tests/test_include_ledger_removal_gate.py; echo "exit:$?"
+exit:1
+$ git diff --quiet 697a113221a8a267d7e8c6dd1f2b95672f9454d2 HEAD -- typsphinx/__init__.py; echo "exit:$?"
+exit:1
+$ git diff --quiet 697a113221a8a267d7e8c6dd1f2b95672f9454d2 HEAD -- typsphinx/builder.py; echo "exit:$?"
+exit:1
+$ git diff --quiet 697a113221a8a267d7e8c6dd1f2b95672f9454d2 HEAD -- typsphinx/template_engine.py; echo "exit:$?"
+exit:1
+$ git diff --quiet 697a113221a8a267d7e8c6dd1f2b95672f9454d2 HEAD -- typsphinx/template_registry.py; echo "exit:$?"
+exit:1
+$ git diff --quiet 697a113221a8a267d7e8c6dd1f2b95672f9454d2 HEAD -- typsphinx/translator.py; echo "exit:$?"
+exit:1
+$ git diff --quiet 697a113221a8a267d7e8c6dd1f2b95672f9454d2 HEAD -- typsphinx/writer.py; echo "exit:$?"
+exit:1
+```
+
+```
+D11_RAW_DIFFER_COUNT = 10
+```
+
+All ten raw-byte comparisons return `exit:1` — the mask is what makes the masked hashes equal,
+not identical raw source.
+
+`typsphinx/translator.py` copied to `$SCRATCH_71_06/p7106_rename.py`, with the first
+`class TypstTranslator(` replaced by `class TypstTranslatorZZZ(` via a `uv run python -c` string
+replace (`str.replace(..., count=1)`, not `sed`):
+
+```
+$ grep -c 'class TypstTranslator(' typsphinx/translator.py
+1
+$ uv run python -c "import sys; s=open(sys.argv[1]).read(); open(sys.argv[2],'w').write(s.replace('class TypstTranslator(','class TypstTranslatorZZZ(',1))" typsphinx/translator.py "$SCRATCH_71_06/p7106_rename.py"
+$ sk < "$SCRATCH_71_06/p7106_rename.py"
+5c954eacaaed23319400a434ca5194560e7275ea033267e944d0b0ea0c6d8fb1
+$ sk < typsphinx/translator.py
+8c766e23d771c614aa166b6ebe9ea481b8969a9b0726ed31eea2b176afe3c329
+```
+
+```
+CONTROL_RENAME_71 = DIFFER
+```
+
+Matches `70-MASK-PILOT-EVIDENCE.md`'s own recorded rename-control transition
+(`8c766e23…` → `5c954eac…`) exactly.
+
+`tests/test_include_ledger_removal_gate.py` copied to `$SCRATCH_71_06/p7106_noimport.py` with its
+`import textwrap` line (line 45) removed the same way:
+
+```
+$ grep -n '^import textwrap$' tests/test_include_ledger_removal_gate.py
+45:import textwrap
+$ uv run python -c "import sys; s=open(sys.argv[1]).read(); open(sys.argv[2],'w').write(s.replace('import textwrap\n','',1))" tests/test_include_ledger_removal_gate.py "$SCRATCH_71_06/p7106_noimport.py"
+$ sk < "$SCRATCH_71_06/p7106_noimport.py"
+28efd38f08dbe49bb4daf8a0730ca632e3c8a5e9ff90f039934b2b6b4aaa89c3
+$ sk < tests/test_include_ledger_removal_gate.py
+6af6dd86276c3acb15479940e325e6db77931ec60d7b0a444c7d2e3bc7204849
+```
+
+```
+CONTROL_IMPORT_71 = DIFFER
+```
+
+Both controls DIFFER from their originals — the mask is not vacuous: a rename and a removed
+non-`typing` import both change the hash. The tracked tree itself was never touched:
+
+```
+$ git status --porcelain typsphinx/ tests/ pyproject.toml uv.lock
+(no output)
+```
+
+## Cross-check with the Phase 70 leg (a) table
+
+The interpreter here is `3.13.13` (`VENV_VERSION_INFO_71_06`), the same version Phase 70's leg (a)
+table was computed on. Each close-tip masked hash above is checked against
+`70-AFTER-STATIC-EVIDENCE.md` § "Leg (a) — every converted file":
+
+| Path | Close-tip masked hash | Present in Phase 70's leg (a) table |
+|---|---|---|
+| tests/conftest.py | e86284ce44fd0afa1077e595be4b05080990810c11657b03ed430f9e24c31a6e | yes |
+| tests/test_bundle_layout_sweep_gate.py | 813565e78879f6fd6637a267a4da432acf3b988d75662ee610435e80473de84b | yes |
+| tests/test_include_edge_derivation_unit.py | adffe23b45742160fba01dd0668dc92c4944976c2d10d58bf84aeb5bdc617d8a | yes |
+| tests/test_include_ledger_removal_gate.py | 6af6dd86276c3acb15479940e325e6db77931ec60d7b0a444c7d2e3bc7204849 | yes |
+| typsphinx/__init__.py | 6b44c4dc942282ea3b94733831b5f343793d9ec453fa5fcde7899d6da1d34b7b | yes |
+| typsphinx/builder.py | dd763862e7a610157eab1ee2c4ba675e1801d09e27e9bb3b8c614495522165e4 | yes |
+| typsphinx/template_engine.py | 7288a028075f8d778fdfa1a64ae89ea5af60a8ac720e6e30d222bc77e6c8d822 | yes |
+| typsphinx/template_registry.py | 655662483067c768432fe0ddcd6bb8ad9c101b50897a7ae4fb8ce0db77e421dc | yes |
+| typsphinx/translator.py | 8c766e23d771c614aa166b6ebe9ea481b8969a9b0726ed31eea2b176afe3c329 | yes |
+| typsphinx/writer.py | ef10bdb40b105c61d0bdaa73749ffa62c1050a93a1833ae41cdf1f40fdc9bc08 | yes |
+
+```
+PHASE70_TABLE_MATCH = 10
+```
+
+This compares live hashes, recomputed in this plan's own worktree, against a recorded table; it
+never copies a recorded hash into this file as a measurement — every hash in the tables above was
+independently produced by running the checked harness against the base and close-tip file
+contents read in this plan's execution.
+
+## D-11 verdict
+
+What this proves: the non-import, non-annotation structure — statements, expressions, calls,
+control flow — of every one of the ten converted files is unchanged since Phase 70's base
+(`697a1132…`), re-measured live on the close tip rather than inferred, and shown non-vacuous by two
+independent mutation controls (a class rename and a non-`typing` import removal) and by all ten
+files' raw bytes genuinely differing from that base.
+
+What it does not prove: the correctness of the import lists themselves — that a name referenced by
+a masked annotation (e.g. `Any`) stayed imported. That gap is closed by `mypy typsphinx/` and the
+full pytest suite, both run in `71-03`.
+
+```
+D11_VERDICT = MET
+```
+
+`D11_MASK_EQUAL_COUNT` (10), `D11_RAW_DIFFER_COUNT` (10) and `PHASE70_TABLE_MATCH` (10) are all 10,
+both `CONTROL_RENAME_71` and `CONTROL_IMPORT_71` read `DIFFER`, and Task 1's
+`CLOSE_CODE_FREEZE_DIFF_FILES = 0` holds — every condition this verdict requires is met.
+
 ---
 *Phase: 71-v0-9-4-close-prep-prep-only-unpublished*
 *Plan: 02, 06*
