@@ -334,7 +334,7 @@ CI dispatch on the post-flip tip.
      individually and green, and `ruff`'s verdict taken from the **`Lint and Format Check`** job
      (step `Run lint with tox`), not from this machine (milestone invariant #5; constraint 8).
 
-**Plans**: 3/13 plans executed (6 waves)
+**Plans**: 4/13 plans executed (6 waves)
 
 Plans:
 **Wave 1**
@@ -345,7 +345,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 70-04-PLAN.md — tracer conversion of translator.py and the ledger gate, plus the masked-AST pilot (wave 2)
+- [x] 70-04-PLAN.md — tracer conversion of translator.py and the ledger gate, plus the masked-AST pilot (wave 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -448,7 +448,7 @@ below tracks the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 70. Typing Modernization and Its Behaviour-Identity Evidence | v0.9.4 | 3/13 | In Progress | - |
+| 70. Typing Modernization and Its Behaviour-Identity Evidence | v0.9.4 | 4/13 | In Progress | - |
 | 71. v0.9.4 Close Prep (prep-only, unpublished) | v0.9.4 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution

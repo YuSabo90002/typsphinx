@@ -5,16 +5,16 @@ milestone_name: Typing Modernization
 current_phase: 70
 current_phase_name: Typing Modernization and Its Behaviour-Identity Evidence
 status: executing
-stopped_at: Phase 70 executing — wave 1 merged (3/13), wave 2 (70-04) dispatched
+stopped_at: Phase 70 executing — waves 1-2 merged (4/13), wave 3 (70-05..70-08) dispatched
 last_updated: "2026-09-13T04:25:00.000Z"
 last_activity: 2026-09-13
-last_activity_desc: Phase 70 wave 1 merged — CLAUDE.md:75 rewritten, baseline (113 UP findings, 1547 passed/1 skipped) and corpus/docs base recorded; post-merge gate green; wave 2 (70-04 tracer + mask pilot) dispatched
+last_activity_desc: Phase 70 wave 2 merged — translator.py and the ledger gate converted, mask harness piloted EQUAL on both and shown non-vacuous; post-merge gate green; wave 3 (70-05..70-08 file-disjoint conversions) dispatched
 state_head: 697a113221a8a267d7e8c6dd1f2b95672f9454d2
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 13
-  completed_plans: 3
+  completed_plans: 4
   percent: 0
 ---
 
@@ -195,9 +195,9 @@ land here.
 ## Current Position
 
 Phase: 70 — Typing Modernization and Its Behaviour-Identity Evidence
-Plan: 3 of 13 complete (wave 1 merged; wave 2 of 6 executing: 70-04)
+Plan: 4 of 13 complete (waves 1-2 merged; wave 3 of 6 executing: 70-05, 70-06, 70-07, 70-08)
 Status: Executing Phase 70
-Last activity: 2026-09-13 — Phase 70 wave 1 merged, post-merge gate green (1547 passed, 1 skipped; ruff/black/mypy clean); wave 2 dispatched
+Last activity: 2026-09-13 — Phase 70 wave 2 merged, post-merge gate green (1547 passed, 1 skipped; ruff/black/mypy clean); wave 3 dispatched
 
 Progress: [░░░░░░░░░░] 0% (0/2 phases)
 
