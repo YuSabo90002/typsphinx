@@ -24,121 +24,36 @@ As of **v0.5.0 (shipped 2026-07-11)** the extension tracks the current ecosystem
 
 **v0.9.2 (shipped 2026-08-31)** closed that blocker and published everything v0.9.1 had held back. `visit_image()`/`depart_image()` now join the separator triad the rest of the translator already runs on — `_add_paragraph_separator()`, `_emit_inline_concat_separator()`, and the `in_list_item` / `list_item_needs_separator` pair — so an image placed anywhere other than first in its container is separated from the preceding code-mode expression instead of juxtaposed with it. The trigger surface was measured, not assumed: **16** failing shapes, not the four the defect record named, spanning a substitution image mid-sentence, a block-level `.. image::` as the second element of a list item, a table cell, a definition-list body, an admonition, a footnote, a field-list body, a section title, and a figure's own legend. One fix closes all sixteen, and the blast radius is every master in the project, because Typst's `#include()` re-parses the included content file — an `index.rst` containing no image at all also failed to compile. The change is a **9-line pure insertion with zero deletions**, gated by a real `typst.compile()` over an 18-master fixture recorded RED against the unfixed tree first, with 8 of 9 must-keep-passing shapes bound byte-identical to committed goldens and zero pre-existing test edits. Released as **0.9.2** together with v0.9.1's Windows path work under a single `## [0.9.2]` CHANGELOG heading; `0.9.0` users should upgrade, and the release notes say so.
 
+**v0.9.3 (completed 2026-09-13 — merged to `main`, not published)** repaired the toolchain rather than the product; nothing under `typsphinx/` changed. On the maintainer's NixOS machine, `flake.nix` now puts seven bare commands on PATH — `uv`, `tox`, `ruff`, `black`, `mypy`, `pytest`, `sphinx-build` — each resolving the checkout's own `.venv/bin/<tool>` and running it inside a Linux-guarded `buildFHSEnv`, so generic-linux binaries that `uv` installs or downloads execute, and the manual per-worktree `ln -sf` / `patchelf` step is retired. That dissolved the constraint that had forced `tox-uv-bare`, so the dev extra is back on upstream `tox-uv`. Dependabot moved from the `pip` ecosystem to `uv`, so its PRs update `pyproject.toml` and `uv.lock` together and the eleven `uv sync --locked` CI steps run the tests instead of refusing a stale lockfile — proven on dependabot's own #138. Grouped updates under `uv` remain unobserved, blocked upstream by Sphinx 9.1.0's `docutils<0.23` cap. `pyproject.toml` stays at `0.9.2` and the bullets wait under `## [Unreleased]`.
+
 ## Core Value
 
 The `typst`/`typstpdf` builders produce correct, compilable **and faithfully-rendered** output on the **current** ecosystem — Sphinx 9 and typst 0.15+ — with the runtime pins raised forward, the bundled `@preview` packages compiling cleanly (no `kai`-class breaks), and real-world documentation sets rendering to PDF that matches the source rather than merely compiling fatal-free. The same standard applies to the publishing surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. **From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct** — an API reference page has to read as a reference document, not as text that happens to compile.
 
-## Current Milestone: v0.9.3 Toolchain and dependency-update repair (started 2026-09-02)
+## Shipped Milestone: v0.9.3 Toolchain and dependency-update repair (completed 2026-09-13 — merged, NOT published)
 
-**Goal:** make every lint / type / test lane actually run on the maintainer's NixOS machine, and
-return the dependency-update path to a state where dependabot PRs are tested rather than dying at
-the install step.
+**Goal achieved; nothing published.** Six phases (64–69), 27 plans, 70 tasks, **21/21 v1
+requirements complete**. REL-12 — the milestone's one irreversible step — was the merge itself:
+PR #143 to `main` as ``58d578f2``, 15/15 checks green including both `windows-latest` and both `macos-latest` lanes, with no tag, no PyPI upload, no GitHub Release and
+`pyproject.toml` still at `0.9.2`. `override_closeout`: all six verifications reported
+fingerprint-stale after later legitimate edits to files they cover, and the same-day
+`v0.9.3-MILESTONE-AUDIT.md` (`tech_debt`, no gaps) stood in for re-running them.
 
-**Target features:**
+**What it delivered.** (1) **FHS command shims** (NIX-01..NIX-08) — `ruff`, every tox environment,
+`.venv/bin/uv` and tox's downloaded CPython run on NixOS; a missing `.venv/bin/<tool>` fails loudly
+with exit 127 rather than running some other binary; `zlib` had to join the FHS closure after the
+first re-measurement found `libz.so.1` missing for uv-managed interpreters. (2) **`tox-uv` restored**
+(TOX-01..TOX-04), after the roadmap's "different code path" claim was falsified against
+`tox_uv/_venv.py:232-238` and amended with the owner. (3) **Dependabot on `uv`** (DEP-01..DEP-05) —
+switched on `main` through its own PR (#137), because dependabot reads its config only from the
+default branch; proven on #138 (`ruff` 0.16.6, `pyproject.toml` + `uv.lock` in one commit, full CI
+ran); #123 closed as superseded, #128 closed on the Sphinx `docutils<0.23` cap. (4) **Documentation**
+(DOC-19..DOC-21) — `CLAUDE.md`, `tox.ini`, `flake.nix`, each proven behaviour-neutral by hash.
 
-- **FHS + command-name shims in `flake.nix`** — a `buildFHSEnv` wrapper exposed as PATH commands
-  (including `uv`) so the whole generic-linux-ELF class executes rather than one binary at a time:
-  `ruff`, `tox -e py312`, `.venv/bin/uv`, and the CPython that tox downloads. Retires the manual
-  per-worktree `ln -sf` / `patchelf` step that eight phase summaries record and that Phase 38-07
-  once forgot, producing a 45-test false alarm.
-- **Revert `tox-uv-bare` → `tox-uv`** in `pyproject.toml` and `tox.ini`. The QUA-04 constraint that
-  forced `-bare` — the bundled `uv` wheel cannot exec on NixOS — is dissolved by the FHS wrapper.
-- **Switch `.github/dependabot.yml` from `package-ecosystem: "pip"` to `"uv"`**, so dependabot
-  updates `pyproject.toml` and `uv.lock` together and the eleven `uv sync --locked` steps stop
-  refusing a stale lockfile. `--locked` and its reproducibility guarantee stay everywhere. **This
-  replaces the custom lockfile-regeneration workflow this milestone was originally scoped with — see
-  the AMENDED block below.**
-- **Dispose of the two stale dependabot PRs** (#123 `ruff <0.17`, open since 2026-07-27; #128
-  `docutils <0.24`, open since 2026-08-03) — prove the fix on a real dependabot PR, then judge each
-  bump on its merits rather than merging it because CI finally went green.
-- **Documentation follow-through** — `CLAUDE.md`'s NixOS / worktree-provisioning section, `tox.ini`'s
-  `tox-uv-bare` rationale comment, and `flake.nix`'s own structure notes.
-
-**Release shape:** milestone label **v0.9.3**, **not published** — no PyPI upload, no GitHub Release,
-no tag. `pyproject.toml` stays at `0.9.2` and this milestone's CHANGELOG bullets sit under
-`## [Unreleased]`, following the v0.9.1 precedent. A PR to `main` **is** opened and merged, decided
-up front rather than after the close as v0.9.1's was.
-
-**Explicitly out of scope:** CI is unchanged — no `nix` job is added, and `astral-sh/setup-uv`'s
-eleven `version: "latest"` steps are not pinned. SEED-003 (PEP 735 `[dependency-groups]`) stays
-dormant.
-
-**Binding measurements taken during scoping (2026-09-02).** These constrain the requirements and the
-plan; none of them is inferred from prose.
-
-- `buildFHSEnv`'s `.env` used as a flake devShell does **not** put you inside FHS under either
-  `nix develop` or `direnv` — `/lib64/ld-linux-x86-64.so.2` still resolves to `stub-ld` in both. The
-  devShell must stay `mkShell`: `.envrc` is `use flake` and direnv is installed.
-- A `shellHook` that `exec`s into the FHS wrapper does not work either. `nix develop` never runs the
-  hook at all (it appears in `nix print-dev-env` output but is not executed, with or without a pty);
-  under direnv the hook does run, but the `exec` only replaces nix-direnv's environment-capture
-  subshell, and the real command then runs outside FHS.
-- `buildFHSEnv` is Linux-only. `flake.nix` declares two darwin systems and needs a per-system guard.
-- The shims must resolve the project's own `.venv` binaries — the `uv.lock` versions. `ruff --version`
-  must report **0.15.20**, not nixpkgs' 0.15.14, or local and CI lint diverge.
-- `tox-uv` works under FHS: `uv.find_uv_bin()` returns `.venv/bin/uv` — the generic-linux wheel
-  QUA-04 declared unrunnable — and `tox -e type` / `-e lint` / `-e py312` / `-e py313` are all green
-  with it.
-- The dependabot fix must be proven on a **real dependabot PR**, observing the install step succeed.
-  A hand-made branch carrying a fresh `uv.lock` does not count.
-- CI remains the lint authority; only CI reaches the Windows and macOS lanes, which have caught real
-  defects at three consecutive closes.
-- `flake.nix` still receives no CI coverage — it is referenced nowhere in `.github/workflows/`. This
-  is accepted deliberately as the consequence of leaving CI unchanged, and it is a new standing risk
-  because this milestone makes `flake.nix` load-bearing.
-
-**AMENDED 2026-09-02 (before requirements were written) — the dependabot fix changed shape.** This
-milestone was scoped with a custom GitHub Actions workflow that would run `uv lock` on
-`dependabot[bot]` PRs and push the result onto the PR branch. Project research falsified that as the
-right mechanism, and the owner approved the replacement.
-
-*What was found, and independently re-verified by the operator rather than taken from the
-researchers' prose:* GitHub's own supported-ecosystems table carries a `uv` row — package manager
-`uv`, YAML value `uv`, supported versions **v0.11**, with Version updates, Security updates, Private
-repositories and Private registries all checked and Vendoring "Not applicable" (fetched and parsed
-from the live docs page). Astral's own `docs/guides/integration/dependabot.md`, read through the
-GitHub API rather than the JS-rendered docs site, states plainly: "Dependabot supports updating
-`uv.lock` files. To enable it, add the uv `package-ecosystem` to your `updates` list". Its
-"some use cases are not yet working" caveat points at `astral-sh/uv#2512`, which is **closed** (last
-updated 2026-04-23) — the caveat, not the support, is what looks stale.
-
-*Why this is not merely simpler.* Every failure mode the Pitfalls research found for the custom
-workflow is specific to that workflow and disappears with the ecosystem switch: a
-dependabot-triggered `pull_request` run gets a **forced read-only `GITHUB_TOKEN` regardless of any
-`permissions:` block**, so the push either silently fails or the workflow must move to
-`pull_request_target` (handling dependabot-branch content in a write-capable context) or carry a
-PAT; a `GITHUB_TOKEN`-authored push does not retrigger CI, so the workflow can report success while
-the PR's checks stay stale; and dependabot force-pushes over commits on its own branches unless the
-commit message carries `[dependabot skip]`, so a fix proven once can be clobbered on the next rebase
-cycle. Two of the four researchers surfaced the ecosystem switch independently, from different
-dimensions, without being prompted to look for it.
-
-*What this does not settle, and must be measured during planning:*
-- Dependabot's stated uv support is **v0.11**, while `ci.yml`'s eleven `astral-sh/setup-uv@v7` steps
-  are pinned to `version: "latest"`, which today resolves to 0.12.x. This repo's `uv.lock` is
-  `version = 1, revision = 3` and the local uv is 0.11.25. If a 0.12 uv writes a lock revision
-  dependabot's 0.11 cannot handle, the switch breaks. Measure it; do not assume it.
-- The existing `pip` section carries the `sphinx-typst-stack` group (`sphinx*`/`docutils*`/`typst*`,
-  excluding `sphinx-autodoc-typehints` and `sphinx-intl`), `labels`, and
-  `open-pull-requests-limit: 5`. Whether grouping behaves identically under the `uv` ecosystem is
-  unconfirmed, and neither #123 nor #128 exercises a grouped update.
-
-  > **AMENDED 2026-09-12 (Phase 67 discuss, owner-approved).** #128 **is** a `sphinx-typst-stack`
-  > group PR (branch `dependabot/pip/sphinx-typst-stack-12b5b89b5a`). Under `uv` no group PR
-  > opened — the group's `docutils` member hit `dependency_file_not_resolvable` because Sphinx
-  > 9.1.0 caps `docutils<0.23` — and the PR carrying the proof (#138, `ruff`) is not grouped, so
-  > the milestone's proof still does not cover a grouped `uv` update. See Phase 67 `67-CONTEXT.md`
-  > D-06.
-- #123 and #128 were opened under the `pip` ecosystem, and `@dependabot recreate` re-runs under the
-  ecosystem the PR was opened with. They will need closing so the `uv` ecosystem opens fresh ones —
-  and it is those fresh PRs, not the old ones, that satisfy the "prove it on a real dependabot PR"
-  constraint.
-
-The custom workflow is retained as a **fallback**, to be reached for only if the v0.11/v0.12 gap
-above turns out to bite.
-
-**Unverified, to be closed during planning:** `tox -e cov`, `docs-html`, `docs-pdf` (real typstpdf
-PDF generation), the full 1548-test suite, and FHS behaviour inside an executor's isolated worktree.
+**Accepted and carried.** `flake.nix` is load-bearing with zero CI coverage and an unexercisable
+darwin branch; the `sphinx-typst-stack` grouped update under `uv` is unobserved; a cold `@preview`
+cache through the FHS sandbox is unmeasured; Nyquist and security gates did not run. CI workflows
+are unchanged by design.
 
 ## Shipped Milestone: v0.9.2 Inline image blocker fix and release (2026-08-31)
 
@@ -2121,16 +2036,46 @@ commit dump rather than the curated CHANGELOG section (todo filed, D-11).
 
 - ✓ The three documentation surfaces describe the mechanism that actually landed — v0.9.3 Phase 68 (DOC-19, DOC-20, DOC-21): `CLAUDE.md` names the `tox-uv~=1.35` pin (with `tox-uv-bare` kept only as history) and gained a `### NixOS development shell` subsection (the seven FHS shims, the launch prerequisite and `grep -q typsphinx-fhs-run "$(command -v uv)"` check, no manual step, locale and interpreter cautions) plus a boundary paragraph above the byte-identical worktree provisioning recipe; `tox.ini`'s `requires` comment states the landed pin, the ini-parser `~=` constraint in full and why `tox-uv` is safe now; `flake.nix` gained header notes (why `mkShell` stays, the two falsified alternatives, namespace inheritance, darwin unverified by construction) with all four devShell drvPaths byte-identical. SC#1 was closed on its owner-approved AMENDED reading (worktree executors depend on the inherited shims); the literal reading is PARTIAL by design. 25 surviving `tox-uv-bare` hits were classified 14 historical / 11 test-named / 0 presented as current.
 
+- ✓ The milestone merged to `main` with nothing published — v0.9.3 Phase 69 (prep-only) + the `/gsd-complete-milestone` merge (REL-12): CHANGELOG bullets under `## [Unreleased]`, tree green locally (1547 passed / 1 skipped, twice, once under `LC_ALL=C`) and in CI (run `34723677990`, 12/12), the REQUIREMENTS.md SHA-256 fence re-matched after `phase.complete` flipped REL-12 for the eighth time; then PR #143 merged as ``58d578f2`` and REL-12 was checked on five observations (merge commit on `origin/main`, `pyproject.toml` `0.9.2`, no `v0.9.3` tag, PyPI 404 for `0.9.3`, no `v0.9.3` Release) — Validated in Phase 69 (69-VERIFICATION.md `passed` 8/8; 6 plans) + the v0.9.3 close (2026-09-13)
+
 ### Active
 
-<!-- Cleared 2026-08-31 at the v0.9.2 close. `.planning/REQUIREMENTS.md` is the authoritative,
+<!-- Cleared 2026-09-13 at the v0.9.3 close. `.planning/REQUIREMENTS.md` is the authoritative,
      REQ-ID'd list and is deleted at each milestone close; this section only ever carries the active
      milestone's headline commitments, and is re-scoped by `/gsd-new-milestone`. Completed
      milestones' lists are retained collapsed below. -->
 
-**v0.9.3 Toolchain and dependency-update repair — ACTIVE, started 2026-09-02.** Phase numbering
-continues at **Phase 64**. Headline commitments below; the REQ-ID'd list is
-`.planning/REQUIREMENTS.md`.
+**No milestone is active** (v0.9.3 completed 2026-09-13, merged to `main`, not published). Next:
+`/gsd-new-milestone`, with phase numbering continuing at **Phase 70**.
+
+**Candidates carried forward** (full dispositions in `.planning/todos/pending/` and in
+`milestones/v0.9.2-REQUIREMENTS.md`'s v2 section):
+
+- **NUM-01** — `numref` numbers diverge per master and vanish for figures reachable only from a
+  non-root master. Excluded from every published surface by D-07 (v0.8.0) and carried unscoped
+  across four consecutive milestones.
+- **CI-01** — every dependabot PR dies before running a test, because it bumps `pyproject.toml`
+  without regenerating `uv.lock` and all eleven `uv sync --locked` steps refuse the stale lockfile.
+  `severity: major`. **→ Closed by v0.9.3 (DEP-01..DEP-05).**
+- **MSG-06** — `translator.py:5047,5152` quote `up_path`/`down_path` with a hardcoded `'...'`
+  delimiter, the same MSG-02 shape Phase 60 closed in three other modules. Found by that phase's own
+  repo-wide discovery grep and filed rather than fixed. The one-line fix is `quote_path()`, which now
+  exists.
+- **WR-02** — `templates_path` collision detection resolves against `srcdir` rather than `confdir`,
+  so `-c`/confdir projects are uncovered. Shipped silent by D-09 (v0.9.0) and still silent.
+- **WR-03** — the "Custom template not found" warning fires three times instead of two for one narrow
+  shape (54.1 WR-01).
+- **QUA-08** (`sphinx-build -b linkcheck` CI job), **QUA-09** (typing modernization — drop the
+  `UP006`/`UP035` ruff ignores, forbidden by `CLAUDE.md` until its own todo lands), **QUA-10**
+  (`ruff` unrunnable on this NixOS machine — **closed by v0.9.3**, NIX-01..NIX-08), **DOC-18** (the root
+  `index.rst` toctree duplicates section children in the HTML sidebar), and the dormant seeds
+  **SEED-001**, **SEED-003**, **SEED-004** — the last being `typst-py` upstream maintenance slowing,
+  the largest structural risk on the horizon and never scoped into any milestone across five
+  consecutive closes — plus **SEED-005** (GSD workstreams for parallel roadmap tracks), planted during
+  v0.9.3 and acknowledged dormant at its close.
+
+<details>
+<summary>v0.9.3's Active list (complete, merged 2026-09-13, not published) — retained for reference</summary>
 
 - [x] FHS + command-name shims in `flake.nix`, so `ruff`, `tox -e py312`, `.venv/bin/uv` and tox's
       downloaded CPython all execute on this NixOS machine — retiring the manual per-worktree shim
@@ -2147,30 +2092,7 @@ Not published: no tag, no PyPI upload, no GitHub Release, `pyproject.toml` stays
 `main` is opened and merged. Phase 69 (close prep) is complete; that PR is REL-12, still open by
 design, and `/gsd-complete-milestone` opens and merges it following `69-HANDOFF.md`.
 
-**Candidates carried forward** (full dispositions in `.planning/todos/pending/` and in
-`milestones/v0.9.2-REQUIREMENTS.md`'s v2 section):
-
-- **NUM-01** — `numref` numbers diverge per master and vanish for figures reachable only from a
-  non-root master. Excluded from every published surface by D-07 (v0.8.0) and carried unscoped
-  across four consecutive milestones.
-- **CI-01** — every dependabot PR dies before running a test, because it bumps `pyproject.toml`
-  without regenerating `uv.lock` and all eleven `uv sync --locked` steps refuse the stale lockfile.
-  `severity: major`. **→ Scoped into v0.9.3; no longer carried forward.**
-- **MSG-06** — `translator.py:5047,5152` quote `up_path`/`down_path` with a hardcoded `'...'`
-  delimiter, the same MSG-02 shape Phase 60 closed in three other modules. Found by that phase's own
-  repo-wide discovery grep and filed rather than fixed. The one-line fix is `quote_path()`, which now
-  exists.
-- **WR-02** — `templates_path` collision detection resolves against `srcdir` rather than `confdir`,
-  so `-c`/confdir projects are uncovered. Shipped silent by D-09 (v0.9.0) and still silent.
-- **WR-03** — the "Custom template not found" warning fires three times instead of two for one narrow
-  shape (54.1 WR-01).
-- **QUA-08** (`sphinx-build -b linkcheck` CI job), **QUA-09** (typing modernization — drop the
-  `UP006`/`UP035` ruff ignores, forbidden by `CLAUDE.md` until its own todo lands), **QUA-10**
-  (`ruff` unrunnable on this NixOS machine; CI holds lint authority), **DOC-18** (the root
-  `index.rst` toctree duplicates section children in the HTML sidebar), and the three dormant seeds
-  **SEED-001**, **SEED-003**, **SEED-004** — the last being `typst-py` upstream maintenance slowing,
-  the largest structural risk on the horizon and never scoped into any milestone across four
-  consecutive closes.
+</details>
 
 <details>
 <summary>v0.9.2's Active list (complete, shipped 2026-08-31) — retained for reference</summary>
@@ -2371,6 +2293,10 @@ more than one master produces a complete PDF for each:
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
+| **Switch dependabot to the native `uv` ecosystem instead of a custom lockfile-regeneration workflow** (owner, AMENDED 2026-09-02) | Every failure mode research found for the custom workflow — forced read-only `GITHUB_TOKEN`, `pull_request_target` exposure, `GITHUB_TOKEN` pushes not retriggering CI, dependabot force-pushing over foreign commits — belongs to that workflow and disappears with the switch | ✓ Good — proven on dependabot's own #138, which updated `pyproject.toml` and `uv.lock` in one commit and ran the full CI. Grouped updates under `uv` remain unobserved (Sphinx `docutils<0.23` cap), recorded rather than claimed |
+| **Merge a `dependabot.yml`-only PR to `main` mid-milestone** (owner, Phase 66 AMENDED 2026-09-12) | Dependabot reads its config only from the default branch, so no `uv` PR could open before the milestone PR merged; the Phase 67 proof would have been unreachable | ✓ Good — byte-identical content on both branches kept REL-12's merge conflict-free; the close's trial merge exited 0 |
+| **Leave CI unchanged: no `nix` job, `setup-uv` stays `latest`, `@v7` not bumped** (owner, 2026-09-02) | Windows cannot run nix and its lanes are load-bearing; the FHS wrapper is useless on runners with a real loader | — Pending. The accepted cost is that `flake.nix` is load-bearing with zero CI coverage and an unexercisable darwin branch. Revisit if a `flake.nix` break ever reaches a contributor before the maintainer |
+| **Close v0.9.3 as `override_closeout` rather than re-run `/gsd-verify-work` on six fingerprint-stale phases** (owner, 2026-09-13) | Staleness came from later legitimate edits to covered files (`REQUIREMENTS.md`, the Phase 68 review fix, the owner-requested CHANGELOG wording); the same-day audit re-checked every phase | — Pending. The fingerprint includes a shared tracking file, so every earlier phase goes stale by construction; expect the same at the next multi-phase close unless the tooling changes |
 | **Amend the fix's mechanism on a live measurement before writing it, rather than implementing the requirement literally** (Phase 62, AMENDED D-08, owner-acknowledged 2026-08-30) | IMG-10 specified driving the separator triad from `visit_image()`'s non-`in_figure` branch. A 27-document / 18-master probe measured that form leaving **4 of 18 masters still refused** — both legend shapes (a legend image has `in_figure == True` and never reaches that branch), the field-list-body concat shape (a *new* refusal, `cannot apply unary '+' to content`), and `index` transitively | ✓ Good — the leading half was hoisted above the `if self.in_figure:` split and the trailing half made concat-aware: 18/18 compiling, both branch bodies still textually unmodified so the literal success criterion held, and the diff a 9-line pure insertion. Delivered strictly more of the requirement, never less. Second consecutive milestone in which a locked decision was falsified by measurement and closed with an `AMENDED` block |
 | **Keep the fix and its gate in one phase** (v0.9.2 roadmap, following `research/ARCHITECTURE.md` Q5) | A phase boundary between them would let "fixed" be claimed before "proven by a real compile" — the precise failure mode that let this defect ship in 0.9.0 and survive three milestones of translator work | ✓ Good — the RED was recorded against a genuinely restored pre-fix `translator.py` inside the same phase, transcribed verbatim with a positive control, and the fix restored with `git status --porcelain` empty. A gate observed only green would have satisfied nothing |
 | **Pin the one non-byte-identical PASS shape to an exact committed delta rather than soften its assertion to "compiles"** (Phase 62 planning, D-06 not weakened) | 8 of the 9 must-keep-passing shapes are byte-identical under the fix; the ninth (an image first in its paragraph) gains exactly one empty line. Relaxing the whole set to "still compiles" would have hidden any future drift in the other eight | ✓ Good — two committed goldens plus an exact-delta assertion. The regression surface stays as tight after the fix as before it |
@@ -2484,6 +2410,8 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
+*Last updated: 2026-09-13 after the v0.9.3 milestone — **v0.9.3 Toolchain and dependency-update repair completed and merged to `main` via PR #143, not published.** 6 phases, 27 plans, 21/21 requirements; REL-12 checked on the observed merge. `override_closeout` on six fingerprint-stale verifications, with the same-day audit standing in. No milestone is active; next is `/gsd-new-milestone`, phase numbering continuing at 70. Prior footer retained below.*
+
 *Last updated: 2026-09-13 — **Phase 69 (v0.9.3 Close Prep, prep-only, unpublished) complete and verified 8/8**, 6 plans in 3 waves. Three `### Changed` bullets (TOX, DEP, NIX) went under the existing `## [Unreleased]` as pure addition, with no `0.9.3` anywhere and docs warnings unchanged at 3/5 from clean builds. The branch was fast-forwarded to `becd70c3` on origin, and its single CI dispatch (`34723677990`) went 12/12 green, including both windows-latest and both macos-latest lanes. The trial merge of `origin/main` is clean with a valid merged lock; `main` is `strict: true` with six required checks. REL-12 stays open for `/gsd-complete-milestone`: `phase.complete` flipped it for the eighth release-prep close, and the flip was reverted before commit. Code review found 0 critical / 1 warning / 1 info, all CHANGELOG wording, left for the owner. Next: `/gsd-complete-milestone`.*
 
 *Last updated: 2026-09-13 — **Phase 68 (Documentation Follow-Through — `CLAUDE.md`, `tox.ini`, `flake.nix`) complete and verified 9/9**, 4 plans in 2 waves (three parallel doc edits in isolated worktrees, then a merged-tree closure plan). DOC-19..DOC-21 complete; code review 0 critical / 1 warning / 2 info (WR-01 fixed after verification in `98b05fb1`; the 2 info left open); post-merge full suite 1547 passed / 1 skipped. Next: Phase 69.*
