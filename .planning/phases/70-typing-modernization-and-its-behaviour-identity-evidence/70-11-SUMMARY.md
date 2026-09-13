@@ -131,3 +131,14 @@ comparison, as its own read_first names. No blockers.
 ---
 *Phase: 70-typing-modernization-and-its-behaviour-identity-evidence*
 *Completed: 2026-09-13*
+
+## Self-Check: PASSED
+
+- `70-AFTER-RUNTIME-EVIDENCE.md` exists on disk — confirmed.
+- `70-11-SUMMARY.md` exists on disk — confirmed.
+- Commits `16ed7dfa`, `dd9bfbae`, `1eacb7d4` all found in `git log --oneline --all`.
+- Task 1 and Task 2 `<verify>` blocks both re-run post-commit and both print `PASS`.
+- Plan-level `<verification>` ("Legs (b) and (d) are MET on the post-flip tree under the base's
+  lock, extras and interpreter") is satisfied: `LEG_B_VERDICT = MET` and `LEG_D_VERDICT = MET` are
+  both recorded in `70-AFTER-RUNTIME-EVIDENCE.md`, `VENV_HOME`/`VENV_VERSION_INFO` equal 70-02's,
+  and the corpus was built under the base's extras (`--extra dev --extra docs`).
