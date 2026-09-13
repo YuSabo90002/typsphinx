@@ -186,3 +186,118 @@ https://github.com/YuSabo90002/typsphinx/actions/runs/34742047126
 
 RUN_ID = 34742047126
 RUN_URL = https://github.com/YuSabo90002/typsphinx/actions/runs/34742047126
+
+## Run
+
+Waited in the foreground: `timeout 590 gh run watch 34742047126 --interval 30` (Bash tool `timeout` 600000, no `run_in_background`), then `gh run view 34742047126 --json status,conclusion` confirmed `status: completed`. The run finished inside the first watch window — no second poll was needed, and no second run was ever dispatched.
+
+`gh run view "$RUNID" --json status,conclusion,workflowName,headSha,url,createdAt,updatedAt`:
+```json
+{"conclusion":"success","createdAt":"2026-09-13T06:09:27Z","headSha":"e70e31fba9039133a153a5bba16577d7b2f889c1","status":"completed","updatedAt":"2026-09-13T06:16:19Z","url":"https://github.com/YuSabo90002/typsphinx/actions/runs/34742047126","workflowName":"CI"}
+```
+
+RUN_HEAD_SHA = e70e31fba9039133a153a5bba16577d7b2f889c1
+RUN_CONCLUSION = success
+
+## Job census
+
+EXPECTED_JOB_COUNT = 12
+(arithmetic: test matrix 3 os × 2 python-version = 6, plus `Lint and Format Check` + `Type Check` + `Code Coverage` + `Build Package` = 4, plus integration matrix 2 `example` entries = 2; 6 + 4 + 2 = 12)
+
+`gh run view "$RUNID" --json jobs --jq '.jobs[] | [.name, .conclusion] | @tsv'`:
+
+| # | Job | Conclusion |
+|---|-----|------------|
+| 1 | Lint and Format Check | success |
+| 2 | Integration Test - advanced | success |
+| 3 | Test Python 3.13 on ubuntu-latest | success |
+| 4 | Build Package | success |
+| 5 | Code Coverage | success |
+| 6 | Test Python 3.12 on windows-latest | success |
+| 7 | Integration Test - basic | success |
+| 8 | Type Check | success |
+| 9 | Test Python 3.13 on windows-latest | success |
+| 10 | Test Python 3.12 on macos-latest | success |
+| 11 | Test Python 3.13 on macos-latest | success |
+| 12 | Test Python 3.12 on ubuntu-latest | success |
+
+JOB_COUNT = 12
+NON_SUCCESS_JOBS = 0
+
+## windows-latest lanes
+
+| Job | Conclusion |
+|-----|------------|
+| Test Python 3.12 on windows-latest | success |
+| Test Python 3.13 on windows-latest | success |
+
+## macos-latest lanes
+
+| Job | Conclusion |
+|-----|------------|
+| Test Python 3.12 on macos-latest | success |
+| Test Python 3.13 on macos-latest | success |
+
+## ruff's verdict
+
+`Lint and Format Check` job id: 103683279265. Quoted from `gh run view --job 103683279265 --log`:
+
+`Install dependencies` step, the `+ ruff==` line:
+```
+Lint and Format Check	Install dependencies	2026-09-13T06:09:40.3979771Z  + ruff==0.16.6
+```
+CI_RUFF_VERSION = 0.16.6 — equal to `LOCK_RUFF_VERSION_TIP` (0.16.6).
+
+`Run lint with tox` step, `commands[0]> black --check .` line and verdict:
+```
+Lint and Format Check	Run lint with tox	2026-09-13T06:09:41.1366422Z lint: commands[0]> black --check .
+Lint and Format Check	Run lint with tox	2026-09-13T06:09:44.2203550Z All done! ✨ 🍰 ✨
+Lint and Format Check	Run lint with tox	2026-09-13T06:09:44.2203968Z 355 files would be left unchanged.
+```
+
+`Run lint with tox` step, `commands[1]> ruff check .` line and verdict:
+```
+Lint and Format Check	Run lint with tox	2026-09-13T06:09:44.2455569Z lint: commands[1]> ruff check .
+Lint and Format Check	Run lint with tox	2026-09-13T06:09:44.2893229Z All checks passed!
+```
+
+`lint: OK` line:
+```
+Lint and Format Check	Run lint with tox	2026-09-13T06:09:44.2910680Z   lint: OK (3.34=setup[0.18]+cmd[3.11,0.04] seconds)
+```
+
+CI is the lint authority; `release.yml` has a differently-named lint step and was neither searched nor triggered by this plan.
+
+## Dispatch count and no release run
+
+`gh run list --workflow=ci.yml --branch gsd/v0.9.4-typing-modernization --event workflow_dispatch --limit 50 --json headSha -q '[.[] | select(.headSha == "e70e31fba9039133a153a5bba16577d7b2f889c1")] | length'`:
+```
+1
+```
+DISPATCH_COUNT = 1
+
+`gh run list --workflow=release.yml --limit 20 --json headSha -q '[.[] | select(.headSha == "e70e31fba9039133a153a5bba16577d7b2f889c1")] | length'`:
+```
+0
+```
+RELEASE_RUNS_AT_PUSHED = 0
+
+## SC#5 verdict
+
+The run is completed and success, `JOB_COUNT` (12) equals `EXPECTED_JOB_COUNT` (12), `NON_SUCCESS_JOBS = 0`, the four named lanes are all success, and `Lint and Format Check` is success.
+
+SC5_VERDICT = MET
+
+## Phase SC roll-up
+
+| SC | Evidence | Verdict |
+|----|----------|---------|
+| SC#1 | 70-10 `SC1_VERDICT` | MET |
+| SC#2 | 70-10 `SC2_VERDICT` | MET |
+| SC#3 | 70-04 pilot keys, 70-10 `LEG_A_VERDICT`, `LEG_C_VERDICT`, `LEG_E_VERDICT` | MET |
+| SC#4 | 70-11 `LEG_B_VERDICT`, `LEG_D_VERDICT`; 70-12 `DOC23_VERDICT` | MET |
+| SC#5 | this file's `SC5_VERDICT` | MET |
+
+PHASE_SC_ROLLUP = ALL_MET
+
+(SC#3 note: 70-04's `70-MASK-PILOT-EVIDENCE.md` records `MASK_HARNESS_SHA256 = 11cdbeb68cae48a890dfc98736ae2ff7fc15c4557cddad6c5f3a06f425db8a65` and "Both pilot files hash EQUAL to base — no HALT needed," the pilot that was wired into the automated leg (a) check later reported `LEG_A_VERDICT = MET` in `70-AFTER-STATIC-EVIDENCE.md`.)
