@@ -182,6 +182,16 @@ None - no external service configuration required.
 - No blockers. This plan's branch touches only its own two source files, its own evidence file,
   and this SUMMARY — file-disjoint from 70-05/70-06/70-08 as the plan's `must_haves` required.
 
+## Self-Check: PASSED
+
+- FOUND: `typsphinx/writer.py`
+- FOUND: `typsphinx/__init__.py`
+- FOUND: `.planning/phases/70-typing-modernization-and-its-behaviour-identity-evidence/70-CONV-WRITER-INIT-EVIDENCE.md`
+- FOUND: `.planning/phases/70-typing-modernization-and-its-behaviour-identity-evidence/70-07-SUMMARY.md`
+- FOUND commits: `47159f96`, `a0b1b9ad`, `3ab2f371` (`git log --oneline -5`)
+- Both tasks' `<acceptance_criteria>` and the plan-level `<verification>` re-run PASS, independently
+  reproduced from a private, non-shared script after the shared-scratchpad collision noted above.
+
 ---
 *Phase: 70-typing-modernization-and-its-behaviour-identity-evidence*
 *Completed: 2026-09-13*
