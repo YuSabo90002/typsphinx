@@ -5,16 +5,16 @@ milestone_name: Docs Link Check and Navigation
 current_phase: 72
 current_phase_name: "`tox -e linkcheck` and Root Toctree Deduplication"
 status: executing
-stopped_at: Phase 72 executing — wave 3 merged (5/6), wave 4 (72-06 first push and CI dispatch) dispatched
-last_updated: "2026-09-13T13:58:52.000Z"
+stopped_at: Phase 72 executing — wave 4 merged (6/6), code review and verification next
+last_updated: "2026-09-13T14:12:44.000Z"
 last_activity: 2026-09-13
-last_activity_desc: "Phase 72 wave 3 merged — SC#3 same-venv pair (base 5 multiple-toctrees messages, tip 0, 3 warnings each), SC#4 sidebar and Typst MET, no parent divergence at tip; tip tox linkcheck 95/95 and docs-html clean; local quartet green; wave 4 dispatched"
-state_head: a6543c499fad3ad6956a272b76ac95322f4c4e66
+last_activity_desc: "Phase 72 wave 4 merged — branch first pushed to origin at 0b2595df, CI run 34761445288 completed success (12/12 jobs incl. both windows-latest and both macos-latest), required checks unchanged"
+state_head: 20294867f713622646dd9c172fb157ef95944018
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
   percent: 0
 ---
 
@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-13 — full evolution review at the v0.9.4 close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** v0.9.5 Docs Link Check and Navigation — roadmap created, Phases 72–73: Phase 72 `tox -e linkcheck` and root toctree deduplication (QUA-13, DOC-24, DOC-18), Phase 73 close prep (REL-14; merge-only, unpublished). QUA-08 (the weekly advisory CI workflow) was deferred to Future by the owner at roadmap review, 2026-09-13. Phase 72 executing (6 plans in 4 waves; waves 1–3 merged 2026-09-13).
+**Current focus:** v0.9.5 Docs Link Check and Navigation — roadmap created, Phases 72–73: Phase 72 `tox -e linkcheck` and root toctree deduplication (QUA-13, DOC-24, DOC-18), Phase 73 close prep (REL-14; merge-only, unpublished). QUA-08 (the weekly advisory CI workflow) was deferred to Future by the owner at roadmap review, 2026-09-13. Phase 72 executing (6 plans in 4 waves; all 4 waves merged 2026-09-13).
 
 ## Shipped Milestone (v0.9.4 — archived, merged to `main`, NOT published)
 
@@ -228,9 +228,9 @@ land here.
 ## Current Position
 
 Phase: 72 of 73 (`tox -e linkcheck` and Root Toctree Deduplication)
-Plan: 5 of 6 complete (waves 1–3 merged; wave 4 of 4 executing: 72-06)
+Plan: 6 of 6 complete (all 4 waves merged; code review and verification next)
 Status: Executing Phase 72
-Last activity: 2026-09-13 — Phase 72 wave 3 merged, post-merge gate green (1547 passed, 1 skipped; ruff/black/mypy clean); wave 4 dispatched
+Last activity: 2026-09-13 — Phase 72 wave 4 merged: first push to origin, CI run 34761445288 success (12/12 jobs)
 
 Progress: [░░░░░░░░░░] 0% (0/2 phases)
 

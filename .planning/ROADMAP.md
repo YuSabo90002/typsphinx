@@ -432,7 +432,7 @@ stands in for the deleted entries.
 
      (Milestone invariant #5; constraints 2, 3, 6.)
 
-**Plans**: 5/6 plans executed (4 waves)
+**Plans**: 6/6 plans executed (4 waves)
 
 Plans:
 **Wave 1**
@@ -451,7 +451,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 72-06-PLAN.md — branch census, first push with tracking, one CI dispatch, job transcript, required checks at close (wave 4)
+- [x] 72-06-PLAN.md — branch census, first push with tracking, one CI dispatch, job transcript, required checks at close (wave 4)
 
 ### Phase 73: v0.9.5 Close Prep (prep-only, unpublished)
 
@@ -540,7 +540,7 @@ below tracks the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 72. `tox -e linkcheck` and Root Toctree Deduplication | v0.9.5 | 5/6 | In Progress | - |
+| 72. `tox -e linkcheck` and Root Toctree Deduplication | v0.9.5 | 6/6 | In Progress | - |
 | 73. v0.9.5 Close Prep (prep-only, unpublished) | v0.9.5 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
