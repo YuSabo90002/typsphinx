@@ -41,7 +41,7 @@ runtime behaviour and emitted Typst output unchanged.
 - `pyproject.toml` `[tool.ruff.lint] ignore` loses the `UP035` and `UP006` entries and their
   deferral comments.
 - The 113 violations that removal exposes (measured 2026-09-13, ruff 0.16.6: 93 UP006 + 20 UP035)
-  are resolved — `typsphinx/` 7 files / 92 (`translator.py` 42, `builder.py` 30,
+  are resolved — `typsphinx/` 6 files / 92 (`translator.py` 42, `builder.py` 30,
   `template_engine.py` 12, `template_registry.py` 4, `writer.py` 2, `__init__.py` 2) and `tests/`
   4 files / 21 (`conftest.py` + three gate modules). 94 are `ruff --fix`-autofixable; the UP035
   import-line residue falls to F401 once usages are rewritten; one `Iterator` moves to
