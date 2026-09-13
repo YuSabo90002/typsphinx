@@ -15,12 +15,13 @@ provides:
   - "D-11 part 1 on the close tip: no code change since Phase 70's CODE_FREEZE_ANCHOR, with a positive control across Phase 70's own range"
   - "D-11 part 2: Phase 70's masked-AST harness re-run live on the close tip against PHASE_BASE_SHA for all ten converted files, non-vacuously, cross-checked against Phase 70's leg (a) table"
 affects: [71-07, "gsd-complete-milestone"]
+plan_head_before: 9c66a8505e36af774af9d6c4260206a697a7b0d4
 
 # Actuals (#2632)
 actuals:
   tokens: 7956
   tasks: 2
-  commits: 2
+  commits: 5
 
 # Tech tracking
 tech-stack:
@@ -246,8 +247,9 @@ None — no external service configuration required.
 - Task 2's `<acceptance_criteria>` re-checked: all four bullets (masked-AST table,
   non-vacuity controls, cross-check, D-11 verdict) hold as recorded, and its own automated
   verify passed with exit 0.
-- `plan_head_before: 9c66a8505e36af774af9d6c4260206a697a7b0d4`, `commits: 2` (measured via
-  `git rev-list --count 9c66a8505e36af774af9d6c4260206a697a7b0d4..HEAD` before this commit).
+- `plan_head_before: 9c66a8505e36af774af9d6c4260206a697a7b0d4`, `commits: 5` (measured via
+  `git rev-list --count 9c66a8505e36af774af9d6c4260206a697a7b0d4..HEAD` — 4 prior plan commits
+  plus this documentation-fixup commit itself).
 
 ---
 *Phase: 71-v0-9-4-close-prep-prep-only-unpublished*
