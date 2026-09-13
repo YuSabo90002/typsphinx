@@ -31,6 +31,7 @@ tox                          # env_list: py312, py313, lint, type, cov, docs
 # Build the project's own docs (from docs/)
 tox -e docs-html             # HTML via furo
 tox -e docs-pdf              # PDF via the typstpdf builder (dogfoods this extension)
+tox -e linkcheck             # Check external links and anchors (needs network; not run by plain tox)
 ```
 
 To exercise the builders manually against a Sphinx project:
