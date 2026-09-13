@@ -201,6 +201,91 @@ $ git status --porcelain .planning/REQUIREMENTS.md
 Byte-unchanged. REL-13 remains `- [ ]` and Pending, exactly as recorded in § "The lines under
 guard" above.
 
+## Re-verification at phase close
+
+Run by plan 71-07, inside its own isolated worktree
+(`/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a29480a65a3a98d99`), after wave 3 merged
+and `71-SC1-INVARIANTS.md` recorded `D11_VERDICT = MET`. Every command below was re-run live from
+this tree; nothing is copied from the Baseline above.
+
+```
+$ date -u +"%Y-%m-%dT%H:%M:%SZ"
+2026-09-13T09:28:14Z
+
+$ sha256sum .planning/REQUIREMENTS.md
+4d98e0287552d2dce8f45b7939dfcb0e729523c6869bfa1cd2d1d041119c5636  .planning/REQUIREMENTS.md
+
+$ wc -l .planning/REQUIREMENTS.md
+80 .planning/REQUIREMENTS.md
+
+$ git diff --name-only -- .planning/REQUIREMENTS.md
+(no output)
+
+$ git log --oneline f1f7d54a61d74c3972f1df0508ac994c001dda7e..HEAD -- .planning/REQUIREMENTS.md
+(no output)
+
+$ grep -c 'REL-13' .planning/REQUIREMENTS.md
+4
+
+$ grep -n 'REL-13' .planning/REQUIREMENTS.md
+24:- [ ] **REL-13**: Close prep only, unpublished: one CHANGELOG bullet under the existing `## [Unreleased]`, in the register of the three bullets already there, naming the API-reference type-text change and noting that the ja translation catalogs pick it up at the next published release; `pyproject.toml` stays `0.9.2`; no tag, no PyPI upload, no GitHub Release. The milestone branch is merged to `main` through a PR, as v0.9.3's REL-12 was. This checkbox is checked only at `/gsd-complete-milestone`, on the observed merge — never by phase-completion tooling.
+33:  wrong for the same reason. Every other part of REL-13 stands, including when this checkbox is
+71:| REL-13 | Phase 71 | Pending — coverage only; checked at `/gsd-complete-milestone` on the observed merge, never by phase-completion tooling |
+75:- Mapped to phases: 6 (Phase 70: 5 — QUA-09, QUA-11, QUA-12, DOC-22, DOC-23; Phase 71: 1 — REL-13)
+
+$ git status --porcelain .planning/REQUIREMENTS.md
+(no output)
+```
+
+Key lines:
+
+```
+CLOSE_AT = 2026-09-13T09:28:14Z
+REQ_SHA256_CLOSE = 4d98e0287552d2dce8f45b7939dfcb0e729523c6869bfa1cd2d1d041119c5636
+REQ_LINES_CLOSE = 80
+REL13_HITS_CLOSE = 4
+```
+
+**Comparison table, digest beside digest (edge: encoding — SHA-256 over raw bytes, the primary
+probe, because a checkbox flip leaves `wc -l` unchanged):**
+
+| Measurement | Baseline (phase head) | Close (this plan) | Verdict |
+|---|---|---|---|
+| `PHASE_BASE_SHA` ancestor of `HEAD` | `f1f7d54a61d74c3972f1df0508ac994c001dda7e` | `git merge-base --is-ancestor … HEAD` → `exit:0` | MATCH |
+| `sha256sum .planning/REQUIREMENTS.md` | `REQ_SHA256_BASE = 4d98e0287552d2dce8f45b7939dfcb0e729523c6869bfa1cd2d1d041119c5636` | `REQ_SHA256_CLOSE = 4d98e0287552d2dce8f45b7939dfcb0e729523c6869bfa1cd2d1d041119c5636` | MATCH |
+| `wc -l .planning/REQUIREMENTS.md` | `REQ_LINES_BASE = 80` | `REQ_LINES_CLOSE = 80` | MATCH |
+| `git diff --name-only -- .planning/REQUIREMENTS.md` | (n/a — baseline is the reference point) | (no output) | MATCH — empty |
+| `git log --oneline PHASE_BASE_SHA..HEAD -- .planning/REQUIREMENTS.md` | (n/a) | (no output) | MATCH — no commit since phase base touched the file |
+| `grep -c 'REL-13' .planning/REQUIREMENTS.md` | `REL13_HITS_BASE = 4` | `REL13_HITS_CLOSE = 4` | MATCH |
+
+**REL-13 grep, compared line by line, in file order (edge: ordering).** The close-tip
+`grep -n 'REL-13' .planning/REQUIREMENTS.md` output above was diffed, line by line, against the
+same grep run directly against `git show f1f7d54a61d74c3972f1df0508ac994c001dda7e:.planning/REQUIREMENTS.md`
+(the Baseline commit's own committed content, not a transcription of § "The lines under guard"
+above): both are the four lines 24/33/71/75 quoted verbatim above, byte-identical in every
+character and in the same order. `diff` between the two captures is empty.
+
+**REL-13 read directly from the file, never inferred:**
+
+- Checkbox line 24: `- [ ] **REL-13**: …` — unchecked.
+- Traceability row, line 71: `| REL-13 | Phase 71 | Pending — coverage only; checked at
+  `/gsd-complete-milestone` on the observed merge, never by phase-completion tooling |` — `Pending`.
+
+```
+REQ_VERDICT_CLOSE = MATCH
+```
+
+Every comparison above holds: the digest, the line count, the empty name-only diff, the empty
+`git log` since `PHASE_BASE_SHA`, the hit count, and the line-by-line grep against the Baseline
+commit's own content are all identical. No divergence occurred, so no `### Divergence detected and
+reverted` section is written and `git checkout -- .planning/REQUIREMENTS.md` was not needed.
+
+§ "For the operator running phase.complete" (above) is present, unedited, and still carries the
+same inline digest and four grep lines this section just re-confirmed live. The decisive third
+observation — the one that runs after `phase.complete`-family tooling, outside any plan's reach —
+still lies ahead of this plan; `71-HANDOFF.md` reproduces the procedure in full so the operator
+reaches it without opening this file separately.
+
 ---
 *Phase: 71-v0-9-4-close-prep-prep-only-unpublished*
-*Plan: 02*
+*Plan: 02, 07*
