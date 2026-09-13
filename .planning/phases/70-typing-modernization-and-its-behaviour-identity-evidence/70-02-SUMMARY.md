@@ -131,3 +131,11 @@ None - no external service configuration required.
 ---
 *Phase: 70-typing-modernization-and-its-behaviour-identity-evidence*
 *Completed: 2026-09-13*
+
+## Self-Check: PASSED
+
+- FOUND: `.planning/phases/70-typing-modernization-and-its-behaviour-identity-evidence/70-BASELINE-EVIDENCE.md`
+- FOUND: `.planning/phases/70-typing-modernization-and-its-behaviour-identity-evidence/70-02-SUMMARY.md`
+- FOUND commit `a04f8ca3` (Task 1)
+- FOUND commit `1fdbc5d5` (Task 2)
+- FOUND commit `73a115ed` (SUMMARY)
