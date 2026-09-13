@@ -120,3 +120,98 @@ corroborates 72-04's base/tip pair from the real tox environment, and 72-01's ba
 positive control (`BASE_MULTI_TOCTREE_COUNT = 5`, `BASE_WARNING_COUNT = 3`). No HALT.
 
 Both documentation tox environments have run for real on the final tree and pass.
+
+## Local gate quartet
+
+Interpreter recorded beside the counts (unchanged from provisioning):
+```
+$ sed -n 's/^home = //p;s/^version_info = //p' .venv/pyvenv.cfg
+/nix/store/l9k0anq0z7zz81zcwy035jfwap9ga6rl-python3-3.13.13/bin
+3.13.13
+```
+
+```
+$ uv run ruff check .
+(no output)
+$ echo "exit:$?"
+exit:0
+```
+RUFF_EXIT = 0
+
+```
+$ uv run black --check .
+(no output)
+$ echo "exit:$?"
+exit:0
+```
+BLACK_EXIT = 0
+
+```
+$ uv run mypy typsphinx/
+(no output)
+$ echo "exit:$?"
+exit:0
+```
+MYPY_EXIT = 0
+
+```
+$ uv run pytest -q -p no:cacheprovider > "$S/p7205_pytest.log" 2>&1; echo "exit:$?"
+exit:0
+```
+PYTEST_EXIT = 0
+
+Tail of `$S/p7205_pytest.log`:
+```
+tests/test_xref_whole_document_guard_render_gate.py ........                 [100%]
+
+================= 1547 passed, 1 skipped in 129.75s (0:02:09) ==================
+```
+
+PYTEST_PASSED = 1547
+PYTEST_SKIPPED = 1
+PYTEST_FAILED = 0
+
+```
+$ uv run pytest -q -p no:cacheprovider tests/test_changelog_page_gate.py
+============================== 6 passed in 4.00s ===============================
+```
+CHANGELOG_GATE_SKIPPED = 0
+Docs extra present: 6 passed, 0 skipped.
+
+All four gate exits are 0.
+
+## Scope fence
+
+```
+$ git diff --stat 34c77f59266acb028c8934ff56715dd4454bdfe8 HEAD -- typsphinx/ .github/workflows/
+(empty)
+```
+Empty — SC#5's scope constraint holds.
+
+```
+$ git diff --stat 098a8ff64cf008822eef9dc69f75102ded3f7bc1 HEAD -- typsphinx/
+(empty)
+```
+Empty — constraint 2 (milestone-base `typsphinx/` scope) holds.
+
+```
+$ git diff --name-only 34c77f59266acb028c8934ff56715dd4454bdfe8 HEAD -- pyproject.toml uv.lock flake.nix tests/ .github/
+(empty)
+```
+Empty — packaging, lockfile, flake, tests and workflows all unchanged since the phase base.
+
+```
+$ git diff --name-only 34c77f59266acb028c8934ff56715dd4454bdfe8 HEAD -- . ':(exclude).planning' | sort | tr '\n' ' '
+CLAUDE.md README.md docs/source/contributing.rst docs/source/index.rst tox.ini
+```
+PRODUCT_DIFF_FILES = CLAUDE.md README.md docs/source/contributing.rst docs/source/index.rst tox.ini
+
+Exactly the five edited files named by the plan. `docs/source/conf.py` is not present — no D-02
+key fired in 72-02 (`CONF_LINKCHECK_KEYS = 0`) or in this plan's Task 1 (no timing key was added).
+
+## SC#5 local verdict
+
+All four gate exits (`RUFF_EXIT`, `BLACK_EXIT`, `MYPY_EXIT`, `PYTEST_EXIT`) are 0, `PYTEST_FAILED = 0`,
+`CHANGELOG_GATE_SKIPPED = 0`, and every scope check above is empty/matching.
+
+SC5_LOCAL_VERDICT = MET
