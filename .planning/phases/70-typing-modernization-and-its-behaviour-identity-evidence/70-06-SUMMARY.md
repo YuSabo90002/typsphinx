@@ -144,6 +144,17 @@ This plan's conversion is one of four file-disjoint wave-3 conversions (alongsid
 - Commit `cf705ee8` — FOUND
 - All Task 1 and Task 2 acceptance criteria re-verified passing (see automated verify runs above)
 
+**Scratchpad isolation note:** all helper scripts and outputs for this plan were written under
+this agent's own `mktemp -d` directories (`/tmp/tmp.0bKKlHeZ5t`, `/tmp/tmp.8Tb0oiakYM`), never
+the shared wave-3 scratchpad — after a coordinator warning that a sibling agent had overwritten a
+generically-named shared-scratchpad helper mid-run, every load-bearing measurement (both mask
+hashes, both ruff invocations, black, repo-wide ruff, the mypy stdout hash, and the full pytest
+result) was independently re-run from a freshly written, uniquely-named (`p06_`-prefixed) script
+in a fresh private directory and reproduced identically: `TEMPLATE_ENGINE_MASK = EQUAL`,
+`TEMPLATE_REGISTRY_MASK = EQUAL`, both ruff checks and black clean, mypy stdout hash
+`46984ca2...` equal to `MYPY_STDOUT_SHA256_BEFORE`, and pytest `1547 passed, 1 skipped` equal to
+`PYTEST_RESULT_BEFORE` (re-run twice independently, ~132-134s each).
+
 ---
 *Phase: 70-typing-modernization-and-its-behaviour-identity-evidence*
 *Completed: 2026-09-13*
