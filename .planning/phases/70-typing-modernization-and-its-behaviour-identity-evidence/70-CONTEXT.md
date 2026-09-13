@@ -109,6 +109,18 @@ context only. Constraint 3 still requires the executing plan to re-measure fresh
   targets. Any hunk that does not trace this way goes to the owner as a finding. It is never recorded
   as nondeterminism, because the control build is what separates nondeterminism.
 
+  *AMENDED 2026-09-13 (plan-phase; owner chose option (a) on 70-RESEARCH.md § Contradictions C1).*
+  The location rule also admits the `sphinx.ext.viewcode` source pages under
+  `_modules/typsphinx/…` (viewcode is enabled at `docs/source/conf.py:38`), because each one mirrors
+  a source file this phase converts. Research measured four of them differing: `builder`,
+  `template_engine`, `translator` and `writer`. That list is research-time evidence; the executing
+  plan enumerates the differing pages itself. A hunk on such a page is classified the same way as
+  one under `api/…`: it must be the same annotation rename, or the same `typing` /
+  `collections.abc` import-line change, as the converted source it mirrors. `_modules/` is not
+  dropped from the HTML comparison. A hunk whose text shape changes because of the rename, such as
+  `Optional[Set[str]]` → `set[str] | None` (70-RESEARCH.md Pitfall 9), still traces to a converted
+  annotation and is classified, not escalated. Any other hunk still goes to the owner.
+
 ### Claude's Discretion
 
 - The exact wording of the rewritten `CLAUDE.md:75` bullet, within D-01..D-03.
