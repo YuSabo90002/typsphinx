@@ -2,9 +2,14 @@
 gsd_state_version: "1.0"
 milestone: v0.9.4
 milestone_name: Typing Modernization
+current_phase: 70
+current_phase_name: Typing Modernization and Its Behaviour-Identity Evidence
 status: planning
-last_updated: "2026-09-13T02:17:07.000Z"
+stopped_at: Phase 70 context gathered
+last_updated: "2026-09-13T02:35:53.845Z"
 last_activity: 2026-09-13
+last_activity_desc: v0.9.4 roadmap created (Phases 70–71, 6/6 requirements mapped)
+state_head: 1f994a79d2811ebd21c80b7e953730cdbcaf32d6
 progress:
   total_phases: 2
   completed_phases: 0
@@ -1212,8 +1217,10 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-09-13
-Stopped at: v0.9.4 roadmap created (Phases 70–71, 6/6 requirements mapped); awaiting owner approval and commit
+**Resume file:** .planning/phases/70-typing-modernization-and-its-behaviour-identity-evidence/70-CONTEXT.md
+
+Last session: 2026-09-13T02:35:53.826Z
+Stopped at: Phase 70 context gathered
 Resume: `/gsd-plan-phase 70` once the roadmap is approved. Phase 70's first wave is the `CLAUDE.md:75`
 rewrite, which must land before any conversion plan runs.
 
