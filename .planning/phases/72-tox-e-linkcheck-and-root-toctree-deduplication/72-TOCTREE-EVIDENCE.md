@@ -204,3 +204,172 @@ same-environment pair: `MULTI_TOCTREE_BASE = 5`, `WARNINGS_BASE = 3`. Both equal
 `PYVENV_VERSION_INFO = 3.13.13`, recorded above).
 
 `SC3_VERDICT = MET`
+
+SIDEBAR_BASE_COUNTS = 2 2 2 2 2
+SIDEBAR_TIP_COUNTS = 1 1 1 1 1
+SIDEBAR_TIP_PARENTS = user_guide/index.html user_guide/index.html user_guide/index.html examples/index.html examples/index.html
+SIDEBAR_BASE_CONTROL = 1
+SIDEBAR_TIP_CONTROL = 1
+ROOT_INCLUDE_LINES_BASE = 12
+ROOT_INCLUDE_LINES_TIP = 7
+ROOT_DEAD_INCLUDES_BASE = 5
+ROOT_DEAD_INCLUDES_TIP = 0
+SECTION_GUARDS_TIP = 5
+EDGES_PER_PAGE_TIP = 1 1 1 1 1
+EDGE_STATE_IDENTICAL = yes
+TYPST_DIFF_FILES = index.typ contributing.typ .doctrees/api/index.doctree .doctrees/changelog.doctree .doctrees/contributing.doctree .doctrees/environment.pickle .doctrees/examples/advanced.doctree .doctrees/examples/basic.doctree .doctrees/examples/index.doctree .doctrees/index.doctree .doctrees/installation.doctree .doctrees/quickstart.doctree .doctrees/user_guide/builders.doctree .doctrees/user_guide/configuration.doctree .doctrees/user_guide/index.doctree .doctrees/user_guide/output_layout.doctree .doctrees/user_guide/templates.doctree
+SC4_HTML_VERDICT = MET
+SC4_TYPST_VERDICT = MET
+
+## Sidebar
+
+Copied the `html.parser`-based sidebar-scoped link counter from `72-RESEARCH.md` § "Sidebar-scoped
+link count" verbatim to `/tmp/tmp.CtjpuH1Kzi/p7204_sidebar.py` (scratch helper, never committed). Ran it over
+`html-base/index.html` and `html-tip/index.html` (pair `SC3_PAIR = 1`, unsuffixed names):
+
+```
+$ uv run python /tmp/tmp.CtjpuH1Kzi/p7204_sidebar.py /tmp/tmp.CtjpuH1Kzi/html-base/index.html
+user_guide/configuration.html: count=2 parents=['user_guide/index.html', None]
+user_guide/builders.html: count=2 parents=['user_guide/index.html', None]
+user_guide/templates.html: count=2 parents=['user_guide/index.html', None]
+examples/basic.html: count=2 parents=['examples/index.html', None]
+examples/advanced.html: count=2 parents=['examples/index.html', None]
+user_guide/output_layout.html: count=1 parents=['user_guide/index.html']
+$ uv run python /tmp/tmp.CtjpuH1Kzi/p7204_sidebar.py /tmp/tmp.CtjpuH1Kzi/html-tip/index.html
+user_guide/configuration.html: count=1 parents=['user_guide/index.html']
+user_guide/builders.html: count=1 parents=['user_guide/index.html']
+user_guide/templates.html: count=1 parents=['user_guide/index.html']
+examples/basic.html: count=1 parents=['examples/index.html']
+examples/advanced.html: count=1 parents=['examples/index.html']
+user_guide/output_layout.html: count=1 parents=['user_guide/index.html']
+```
+
+In the page order configuration, builders, templates, basic, advanced:
+`SIDEBAR_BASE_COUNTS = 2 2 2 2 2`, `SIDEBAR_TIP_COUNTS = 1 1 1 1 1`,
+`SIDEBAR_TIP_PARENTS = user_guide/index.html user_guide/index.html user_guide/index.html examples/index.html examples/index.html`,
+`SIDEBAR_BASE_CONTROL = 1`, `SIDEBAR_TIP_CONTROL = 1`.
+
+The tip shows a count of 1 for every page, with parent `user_guide/index.html` for the first three
+and `examples/index.html` for the last two, and a control of 1. The base shows every page at least
+2. No HALT.
+
+## Typst pair
+
+Built `-b typst` for base and tip back to back, clean, from the same `git archive` trees, into
+`/tmp/tmp.CtjpuH1Kzi/typst-base` and `/tmp/tmp.CtjpuH1Kzi/typst-tip`:
+
+```bash
+LANG=C LC_ALL=C uv run sphinx-build -b typst /tmp/tmp.CtjpuH1Kzi/tree-base/docs/source /tmp/tmp.CtjpuH1Kzi/typst-base > /tmp/tmp.CtjpuH1Kzi/p7204_typst-base.log 2>&1
+echo "exit:$?"
+```
+```
+exit:0
+```
+```bash
+LANG=C LC_ALL=C uv run sphinx-build -b typst /tmp/tmp.CtjpuH1Kzi/tree-tip/docs/source /tmp/tmp.CtjpuH1Kzi/typst-tip > /tmp/tmp.CtjpuH1Kzi/p7204_typst-tip.log 2>&1
+echo "exit:$?"
+```
+```
+exit:0
+```
+Both exits 0.
+
+Root `index.typ` include-line counts:
+```
+$ grep -c 'include("' /tmp/tmp.CtjpuH1Kzi/typst-base/index.typ
+12
+$ grep -c 'include("' /tmp/tmp.CtjpuH1Kzi/typst-tip/index.typ
+7
+```
+`ROOT_INCLUDE_LINES_BASE = 12`, `ROOT_INCLUDE_LINES_TIP = 7`.
+
+For each of the five pages, the dead root guard count in each `index.typ`:
+```
+$ for p in user_guide/configuration user_guide/builders user_guide/templates examples/basic examples/advanced; do grep -cF "\"index#0>$p\"" /tmp/tmp.CtjpuH1Kzi/typst-base/index.typ; done
+1
+1
+1
+1
+1
+$ for p in user_guide/configuration user_guide/builders user_guide/templates examples/basic examples/advanced; do grep -cF "\"index#0>$p\"" /tmp/tmp.CtjpuH1Kzi/typst-tip/index.typ; done
+0
+0
+0
+0
+0
+```
+`ROOT_DEAD_INCLUDES_BASE = 5` (sum), matching 72-01's `BASE_ROOT_DEAD_INCLUDES = 5`.
+`ROOT_DEAD_INCLUDES_TIP = 0` — no dead root guard for any of the five pages left in the tip
+`index.typ`.
+
+The guard line in each tip section index, verbatim:
+```
+$ grep -F 'include-edges' /tmp/tmp.CtjpuH1Kzi/typst-tip/user_guide/index.typ
+  if "user_guide/index#0>user_guide/configuration" in state("typsphinx:include-edges", ()).get() { include("configuration.typ") }
+  if "user_guide/index#0>user_guide/builders" in state("typsphinx:include-edges", ()).get() { include("builders.typ") }
+  if "user_guide/index#0>user_guide/templates" in state("typsphinx:include-edges", ()).get() { include("templates.typ") }
+  if "user_guide/index#0>user_guide/output_layout" in state("typsphinx:include-edges", ()).get() { include("output_layout.typ") }
+$ grep -F 'include-edges' /tmp/tmp.CtjpuH1Kzi/typst-tip/examples/index.typ
+  if "examples/index#0>examples/basic" in state("typsphinx:include-edges", ()).get() { include("basic.typ") }
+  if "examples/index#0>examples/advanced" in state("typsphinx:include-edges", ()).get() { include("advanced.typ") }
+```
+`SECTION_GUARDS_TIP = 5` (the three `user_guide/*` guards plus the two `examples/*` guards).
+
+The include-edges state line of each `typsphinx.typ`, verbatim (byte-identical between base and
+tip):
+```
+$ grep -F 'state("typsphinx:include-edges", ()).update(' /tmp/tmp.CtjpuH1Kzi/typst-base/typsphinx.typ
+#state("typsphinx:include-edges", ()).update(("index#0>installation", "index#0>quickstart", "index#0>user_guide/index", "user_guide/index#0>user_guide/configuration", "user_guide/index#0>user_guide/builders", "user_guide/index#0>user_guide/templates", "user_guide/index#0>user_guide/output_layout", "index#0>examples/index", "examples/index#0>examples/basic", "examples/index#0>examples/advanced", "index#0>api/index", "index#0>contributing", "index#0>changelog",))
+$ grep -F 'state("typsphinx:include-edges", ()).update(' /tmp/tmp.CtjpuH1Kzi/typst-tip/typsphinx.typ
+#state("typsphinx:include-edges", ()).update(("index#0>installation", "index#0>quickstart", "index#0>user_guide/index", "user_guide/index#0>user_guide/configuration", "user_guide/index#0>user_guide/builders", "user_guide/index#0>user_guide/templates", "user_guide/index#0>user_guide/output_layout", "index#0>examples/index", "examples/index#0>examples/basic", "examples/index#0>examples/advanced", "index#0>api/index", "index#0>contributing", "index#0>changelog",))
+```
+`EDGE_STATE_IDENTICAL = yes`.
+
+Parsed the tip line's quoted edge strings with `uv run python`, counting edges ending in `#0>P` for
+each page:
+```
+$ grep -F 'state("typsphinx:include-edges", ()).update(' /tmp/tmp.CtjpuH1Kzi/typst-tip/typsphinx.typ | uv run python /tmp/tmp.CtjpuH1Kzi/p7204_edges.py
+1 1 1 1 1
+```
+`EDGES_PER_PAGE_TIP = 1 1 1 1 1`, in page order configuration, builders, templates, basic,
+advanced, each `S#0>P` with `S` the page's section index (`user_guide/index` for the first three,
+`examples/index` for the last two — asserted by the parsing script itself, which raises on any
+other shape).
+
+`LANG=C LC_ALL=C diff -rq` between the two output trees:
+```
+$ LANG=C LC_ALL=C diff -rq /tmp/tmp.CtjpuH1Kzi/typst-base /tmp/tmp.CtjpuH1Kzi/typst-tip
+Files .../typst-base/.doctrees/api/index.doctree and .../typst-tip/.doctrees/api/index.doctree differ
+Files .../typst-base/.doctrees/changelog.doctree and .../typst-tip/.doctrees/changelog.doctree differ
+Files .../typst-base/.doctrees/contributing.doctree and .../typst-tip/.doctrees/contributing.doctree differ
+Files .../typst-base/.doctrees/environment.pickle and .../typst-tip/.doctrees/environment.pickle differ
+Files .../typst-base/.doctrees/examples/advanced.doctree and .../typst-tip/.doctrees/examples/advanced.doctree differ
+Files .../typst-base/.doctrees/examples/basic.doctree and .../typst-tip/.doctrees/examples/basic.doctree differ
+Files .../typst-base/.doctrees/examples/index.doctree and .../typst-tip/.doctrees/examples/index.doctree differ
+Files .../typst-base/.doctrees/index.doctree and .../typst-tip/.doctrees/index.doctree differ
+Files .../typst-base/.doctrees/installation.doctree and .../typst-tip/.doctrees/installation.doctree differ
+Files .../typst-base/.doctrees/quickstart.doctree and .../typst-tip/.doctrees/quickstart.doctree differ
+Files .../typst-base/.doctrees/user_guide/builders.doctree and .../typst-tip/.doctrees/user_guide/builders.doctree differ
+Files .../typst-base/.doctrees/user_guide/configuration.doctree and .../typst-tip/.doctrees/user_guide/configuration.doctree differ
+Files .../typst-base/.doctrees/user_guide/index.doctree and .../typst-tip/.doctrees/user_guide/index.doctree differ
+Files .../typst-base/.doctrees/user_guide/output_layout.doctree and .../typst-tip/.doctrees/user_guide/output_layout.doctree differ
+Files .../typst-base/.doctrees/user_guide/templates.doctree and .../typst-tip/.doctrees/user_guide/templates.doctree differ
+Files .../typst-base/contributing.typ and .../typst-tip/contributing.typ differ
+Files .../typst-base/index.typ and .../typst-tip/index.typ differ
+```
+`TYPST_DIFF_FILES` (relative to each output root, space-separated): `index.typ contributing.typ`
+plus every `.doctrees/*.doctree` and `.doctrees/environment.pickle` (the doctree cache necessarily
+differs because the pickled environment records the base's five extra toctree-inclusion relations
+that the tip's edit removes). `index.typ` and `contributing.typ` are the two product-tree `.typ`
+files that differ — expected, since `contributing.typ` carries 72-03's `tox -e linkcheck` line and
+`index.typ` carries the dead-include removal. `user_guide/index.typ` and `examples/index.typ`,
+which fire the real, non-dead includes, are absent from this list (untouched).
+
+## SC#4 HTML and Typst verdicts
+
+`SC4_HTML_VERDICT = MET`: the tip counts are `1 1 1 1 1`, the parents are as stated
+(`user_guide/index.html` ×3, `examples/index.html` ×2), the control is 1, and the base counts are
+each 2 (at least 2).
+
+`SC4_TYPST_VERDICT = MET`: `ROOT_DEAD_INCLUDES_TIP = 0`, `ROOT_DEAD_INCLUDES_BASE = 5` (at least 1),
+`SECTION_GUARDS_TIP = 5`, `EDGES_PER_PAGE_TIP = 1 1 1 1 1`.`
