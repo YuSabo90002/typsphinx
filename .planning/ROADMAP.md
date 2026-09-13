@@ -334,7 +334,7 @@ CI dispatch on the post-flip tip.
      individually and green, and `ruff`'s verdict taken from the **`Lint and Format Check`** job
      (step `Run lint with tox`), not from this machine (milestone invariant #5; constraint 8).
 
-**Plans**: 8/13 plans executed (6 waves)
+**Plans**: 9/13 plans executed (6 waves)
 
 Plans:
 **Wave 1**
@@ -356,7 +356,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 70-09-PLAN.md — the flip: drop both ignores and move the todo in one commit, then the gate quartet (wave 4)
+- [x] 70-09-PLAN.md — the flip: drop both ignores and move the todo in one commit, then the gate quartet (wave 4)
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -448,7 +448,7 @@ below tracks the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 70. Typing Modernization and Its Behaviour-Identity Evidence | v0.9.4 | 8/13 | In Progress | - |
+| 70. Typing Modernization and Its Behaviour-Identity Evidence | v0.9.4 | 9/13 | In Progress | - |
 | 71. v0.9.4 Close Prep (prep-only, unpublished) | v0.9.4 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
