@@ -432,7 +432,7 @@ stands in for the deleted entries.
 
      (Milestone invariant #5; constraints 2, 3, 6.)
 
-**Plans**: 2/6 plans executed (4 waves)
+**Plans**: 3/6 plans executed (4 waves)
 
 Plans:
 **Wave 1**
@@ -442,7 +442,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 72-03-PLAN.md — DOC-24: name tox -e linkcheck on every listing surface found by grep, plus the D-07 todo note (wave 2)
+- [x] 72-03-PLAN.md — DOC-24: name tox -e linkcheck on every listing surface found by grep, plus the D-07 todo note (wave 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -540,7 +540,7 @@ below tracks the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 72. `tox -e linkcheck` and Root Toctree Deduplication | v0.9.5 | 2/6 | In Progress | - |
+| 72. `tox -e linkcheck` and Root Toctree Deduplication | v0.9.5 | 3/6 | In Progress | - |
 | 73. v0.9.5 Close Prep (prep-only, unpublished) | v0.9.5 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
