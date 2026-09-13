@@ -122,3 +122,23 @@ build succeeded, 3 warnings.
 
 Run 1 meets SC#1 on its own: exit 0, total 95 equals working 95, at least 1 row. Task 2 records
 the verdict.
+
+## Classification (D-01, D-02, D-03)
+
+Run 1's non-`working` row count is 0. There is nothing to classify as transient (D-01) or
+non-transient (D-03): every row is `working`. Run 1 exited 0, its total (95) is at least 1 and
+equals the `working` count (95), so run 1 is the pass by step 2 of Task 2's action. No re-run
+(D-01) and no `conf.py` timing key (D-02) are needed or added.
+
+## SC#1 verdict
+
+LINKCHECK_RUNS = 1
+LINKCHECK_PASS_RUN = 1
+LINKCHECK_TOTAL = 95
+LINKCHECK_WORKING = 95
+CONF_LINKCHECK_KEYS = 0
+LINKCHECK_VERDICT = PASS
+
+`docs/_build/linkcheck/output.json` in this worktree is run 1's output, the passing run's output.
+`docs/source/conf.py` is unchanged from `$BASE_72_02` — `CONF_LINKCHECK_KEYS = 0` and no
+`linkcheck_*` key exists in it.
