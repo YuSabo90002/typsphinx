@@ -165,10 +165,13 @@ def _run_sphinx_build_typst(
     executable") when invoked from inside a pytest-launched subprocess, even
     though the same command succeeded when run directly in a shell. That
     cause was removed by QUA-04 (2026-08-10; `tox-uv` -> `tox-uv-bare` drops
-    the bundled generic-linux `uv` wheel binary). `sys.executable -m sphinx`
-    is kept regardless, because it depends on no PATH resolution at all --
-    a better reason than the hazard ever was, and one that holds no matter
-    what is installed in `.venv/bin`.
+    the bundled generic-linux `uv` wheel binary). The `tox-uv` revert
+    (v0.9.3 Phase 65) put `.venv/bin/uv` back, and on NixOS it now runs
+    through the Phase 64 FHS shims rather than bare, so that hazard does
+    not recur. `sys.executable -m sphinx` is kept regardless, because it
+    depends on no PATH resolution at all -- a better reason than the
+    hazard ever was, and one that holds no matter what is installed in
+    `.venv/bin`.
 
     `extra_args` is an optional tuple of additional sphinx-build CLI
     arguments (e.g. `("-D", "todo_include_todos=0")`) spliced into the

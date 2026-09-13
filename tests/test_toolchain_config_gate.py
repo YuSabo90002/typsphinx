@@ -32,21 +32,20 @@ because pytest had always resolved against the outer editable `.venv` via the sa
 PATH-shadowing mechanism as G3. The failure is uv-version-dependent and unreproducible
 locally — a static gate is the only defense.
 
-**GAP G5 (45.2-02-D1, SC#2):** [project.optional-dependencies].dev MUST name
-`tox-uv-bare` (by normalized distribution name) and MUST NOT name `tox-uv`. The
-plain `tox-uv` meta package bundles a PyPI `uv` wheel whose generic-linux ELF cannot
-exec on NixOS; uv.find_uv_bin() searches .venv/bin first and reads no environment
-variable. A revert from `tox-uv-bare` to `tox-uv` reinstates the broken .venv/bin/uv,
-re-breaks every local `tox` invocation and the 45 pytest failures that Step 3 of
-45.2-TOOLCHAIN-EVIDENCE.md censused — confined to the 5 modules that invoke `uv` in a
-subprocess argument list. 45.2-CONTEXT.md D-09 deliberately leaves those 5 modules on
-`uv run` rather than normalizing them onto `sys.executable -m sphinx`, precisely because
-they are this defect class's only runtime regression detector; this gate is the static
-counterpart. Critically, CI would stay green — the defect
-is NixOS-specific, so only the maintainer's machine shows it. That asymmetry (no CI
-signal) is precisely why this static gate exists. See CLAUDE.md 'Conventions & gotchas':
-"The -bare package is deliberate (QUA-04, Phase 45.2) ... Do not 'simplify' it back to
-tox-uv."
+**GAP G5 (45.2-02-D1, SC#2) — REVERTED Phase 65 (TOX-01):** [project.optional-dependencies].dev
+MUST name `tox-uv` (by normalized distribution name) and MUST NOT name `tox-uv-bare`
+directly. Phase 64's FHS wrapper and command shims in `flake.nix` run every `tox`/`uv`
+invocation inside a `typsphinx-fhs-run` sandbox that provides the shared libraries
+(e.g. `/usr/lib/libz.so.1`) a generic-linux ELF needs, so `tox-uv`'s bundled `uv` wheel
+now executes on NixOS via `.venv/bin/uv` exactly like it does everywhere else. The
+stub-ld defect QUA-04 fixed by moving to `tox-uv-bare` no longer bites: without
+`tox-uv`, tox-uv's bundled-uv branch (`tox_uv/_venv.py`'s `find_uv_bin()`) is absent
+from the dependency graph, and tox falls back to whichever `uv` happens to be on
+PATH — meaning CI's `setup-uv` `uv`, not the lock-pinned one, would drive every `tox`
+environment. Reverting to `tox-uv` restores the intended discovery order. See
+`.planning/phases/65-tox-uv-bare-tox-uv-revert-on-the-uv-path-tox-actually-resolves/65-REVERT-EVIDENCE.md`
+for the observed-from-inside-tox proof (TOX-03) that the bundled branch resolves this
+worktree's own `.venv/bin/uv` under the Phase 64 shims.
 
 **GAP G6 (45.2-05-D2, SC#7):** [project].dependencies MUST NOT name any of: uv, tox,
 tox-uv, tox-uv-bare (by normalized distribution name). SC#7 establishes that Phase 45.2's
@@ -266,23 +265,26 @@ def test_testenv_package_is_editable_not_wheel():
     )
 
 
-def test_dev_extra_pins_tox_uv_bare_not_tox_uv():
-    """[project.optional-dependencies].dev MUST name tox-uv-bare, MUST NOT name tox-uv.
+def test_dev_extra_pins_tox_uv_not_tox_uv_bare():
+    """[project.optional-dependencies].dev MUST name tox-uv, MUST NOT name tox-uv-bare.
 
-    This gate prevents a critical NixOS-specific regression: the plain `tox-uv` meta
-    package bundles a PyPI `uv` wheel (generic-linux ELF) that cannot execute on NixOS
-    due to the stub-ld defect QUA-04 fixed. Reverting from `tox-uv-bare` to `tox-uv`
-    would reinstate the broken .venv/bin/uv and re-break every local `tox` environment
-    plus the 45 pytest failures censused in 45.2-TOOLCHAIN-EVIDENCE.md Step 3, which are
-    confined to the 5 test modules that invoke `uv` in a subprocess argument list.
-    45.2-CONTEXT.md D-09 keeps those 5 modules on `uv run` on purpose — they are this
-    defect class's only runtime regression detector, and this gate is its static
-    counterpart, catching the revert at the config level before a suite run is needed.
+    This gate protects Phase 65's revert (TOX-01): the Phase 64 FHS wrapper and command
+    shims in `flake.nix` run every `tox`/`uv` invocation inside a `typsphinx-fhs-run`
+    sandbox that provides the shared libraries (e.g. `/usr/lib/libz.so.1`) a
+    generic-linux ELF needs, so `tox-uv`'s bundled `uv` wheel executes on NixOS via
+    `.venv/bin/uv` exactly like it does everywhere else. The stub-ld defect QUA-04
+    fixed by moving to `tox-uv-bare` no longer bites. Without `tox-uv`, tox-uv's
+    bundled-uv discovery branch (`tox_uv/_venv.py`'s `find_uv_bin()`) is absent from
+    the dependency graph entirely, and tox falls back to whichever `uv` happens to be
+    on PATH — meaning CI's own `setup-uv`-installed `uv` would drive every `tox`
+    environment there instead of the lock-pinned one this project depends on for
+    reproducible provisioning.
 
-    **Why this defect stays undetected on CI:** CI runs on Linux runner images with
-    glibc, not NixOS; the `tox-uv` wheel's generic-linux ELF executes there. Only the
-    maintainer's machine (NixOS) exhibits the defect. That asymmetry (no CI signal) is
-    exactly why SC#2 mandates a static gate rather than relying on CI to catch it.
+    **Why this defect class stayed undetected on CI pre-Phase-64:** CI runs on Linux
+    runner images with glibc, not NixOS, so the `tox-uv` wheel's generic-linux ELF
+    always executed there — only the maintainer's NixOS machine exhibited the
+    stub-ld failure. Phase 64 closed that asymmetry by wrapping every `tox`/`uv`
+    invocation in an FHS sandbox, which is what makes this revert safe.
 
     **The naming trap:** "tox-uv-bare" contains the substring "tox-uv". A naive
     substring-match test would either false-positive on the correct value or false-
@@ -292,13 +294,20 @@ def test_dev_extra_pins_tox_uv_bare_not_tox_uv():
 
     **Scope:** All package names are compared on their normalized distribution names
     (via packaging.utils.canonicalize_name), so future variations in spacing or case
-    are covered automatically.
+    are covered automatically. Naming `tox-uv` in the dev extra pulls in `tox-uv-bare`
+    transitively (as `tox-uv`'s own exact-version dependency, per `uv.lock`) — that
+    transitive presence is expected and is not what this gate forbids; it forbids the
+    `dev` extra naming `tox-uv-bare` directly as a literal entry.
 
-    See CLAUDE.md 'Conventions & gotchas' for the full explanation: "The -bare package
-    is also deliberate (QUA-04, Phase 45.2): the plain `tox-uv` meta package bundles
-    a PyPI `uv` wheel whose generic-linux ELF cannot exec on NixOS, and `uv.find_uv_bin()`
-    searches `.venv/bin` first and reads no environment variable. Do not 'simplify'
-    it back to `tox-uv`."
+    CLAUDE.md's own "Conventions & gotchas" sentence named `tox-uv-bare` as
+    deliberate when Phase 65's revert landed. Phase 65 left that rewrite for
+    Phase 68; Phase 68 (DOC-19/DOC-20) rewrote it to describe the
+    `tox-uv~=1.35` pin, keeping `tox-uv-bare` only as history.
+
+    See
+    `.planning/phases/65-tox-uv-bare-tox-uv-revert-on-the-uv-path-tox-actually-resolves/65-REVERT-EVIDENCE.md`
+    for the observed-from-inside-tox proof (TOX-03) that the bundled branch resolves
+    this worktree's own `.venv/bin/uv` under the Phase 64 shims.
     """
     pyproject = _load_pyproject()
 
@@ -332,33 +341,32 @@ def test_dev_extra_pins_tox_uv_bare_not_tox_uv():
                 f"Could not parse requirement '{req_string}' in dev extra: {e}"
             ) from e
 
-    # G5 requirement 1: dev extra MUST contain tox-uv-bare.
-    assert canonicalize_name("tox-uv-bare") in dev_names, (
-        "dev extra does not contain 'tox-uv-bare' (on normalized distribution name) -- "
-        "Phase 45.2's migration from tox-uv to tox-uv-bare switched the dev environment "
-        "to the -bare variant to work around the generic-linux-ELF NixOS defect (QUA-04). "
-        "The plain tox-uv meta package bundles a PyPI uv wheel that cannot execute on NixOS; "
-        "uv.find_uv_bin() searches .venv/bin FIRST and reads no environment variable. "
-        "Without tox-uv-bare, every local `tox` invocation fails, and 45 pytest tests "
-        "confined to the 5 modules that invoke uv in a subprocess argument list will fail. "
-        "Critically, CI would stay GREEN (the defect is NixOS-specific), so only the "
-        "maintainer's machine would show it. See CLAUDE.md 'Conventions & gotchas' and SC#2 "
-        "for full context. Evidence: 45.2-TOOLCHAIN-EVIDENCE.md Step 3 (pre-fix, 45 failed) "
-        "vs. Step 7 (post-fix, 0 failed), and CI run 31445582363 (post-fix green)."
+    # G5 requirement 1 (Phase 65 revert): dev extra MUST contain tox-uv.
+    assert canonicalize_name("tox-uv") in dev_names, (
+        "dev extra does not contain 'tox-uv' (on normalized distribution name) -- "
+        "Phase 65's revert (TOX-01) switched the dev environment back to the upstream "
+        "tox-uv meta package now that Phase 64's FHS wrapper and command shims in "
+        "flake.nix run every tox/uv invocation inside a typsphinx-fhs-run sandbox that "
+        "provides the shared libraries a generic-linux ELF needs. tox-uv's bundled "
+        "uv.find_uv_bin() branch now resolves this worktree's own .venv/bin/uv correctly "
+        "under that sandbox. Without tox-uv, tox-uv's bundled-uv discovery branch is "
+        "absent from the dependency graph entirely, and tox falls back to whichever uv "
+        "happens to be on PATH -- meaning CI's own setup-uv-installed uv would drive "
+        "every tox environment there instead of the lock-pinned one. See "
+        "65-REVERT-EVIDENCE.md for the observed-from-inside-tox proof (TOX-03)."
     )
 
-    # G5 requirement 2: dev extra MUST NOT contain tox-uv.
-    assert canonicalize_name("tox-uv") not in dev_names, (
-        "dev extra contains 'tox-uv' (on normalized distribution name) -- "
-        "this is precisely the defect QUA-04 fixed. The plain tox-uv meta package bundles "
-        "a PyPI uv wheel whose generic-linux ELF cannot execute on NixOS; uv.find_uv_bin() "
-        "searches .venv/bin FIRST and reads no environment variable. A revert from tox-uv-bare "
-        "to tox-uv reinstates the broken .venv/bin/uv and re-breaks every local `tox` command "
-        "plus the 45 pytest tests confined to the 5 uv-invoking modules. The defect is "
-        "NixOS-specific, so CI would stay GREEN — that asymmetry (no CI signal) is why SC#2 "
-        "established this static gate. Switch to tox-uv-bare; do NOT 'simplify' this back to "
-        "tox-uv (per CLAUDE.md). See 45.2-TOOLCHAIN-EVIDENCE.md Step 3 for the pre-fix "
-        "45-failure census and Step 5 for the post-fix census proving .venv/bin/uv absent."
+    # G5 requirement 2 (Phase 65 revert): dev extra MUST NOT name tox-uv-bare directly.
+    assert canonicalize_name("tox-uv-bare") not in dev_names, (
+        "dev extra names 'tox-uv-bare' directly (on normalized distribution name) -- "
+        "this is the stale Phase 45.2 workaround pin that Phase 65's revert (TOX-01) "
+        "removes now that Phase 64's FHS shims dissolve the stub-ld defect (QUA-04) that "
+        "motivated it. tox-uv-bare stays present only as tox-uv's own exact-version "
+        "transitive dependency in uv.lock, which is expected and not what this assertion "
+        "forbids -- it forbids the dev extra naming tox-uv-bare as a literal entry in "
+        "pyproject.toml. See 65-REVERT-EVIDENCE.md for the lock regeneration proof "
+        "(TOX-01, D-04). CLAUDE.md 'Conventions & gotchas' was rewritten in "
+        "Phase 68 (DOC-19/DOC-20) to describe the tox-uv pin."
     )
 
 
