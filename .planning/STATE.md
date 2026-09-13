@@ -2,30 +2,30 @@
 gsd_state_version: "1.0"
 milestone: v0.9.4
 milestone_name: Typing Modernization
-current_phase: 70
-current_phase_name: Typing Modernization and Its Behaviour-Identity Evidence
-status: verifying
-stopped_at: Phase 70 verified human_needed (5/5 automated); awaiting owner read of the DOC-23 D-11 classification table via /gsd-verify-work 70
-last_updated: "2026-09-13T04:25:00.000Z"
+current_phase: 71
+current_phase_name: v0.9.4 Close Prep (prep-only, unpublished)
+status: planning
+stopped_at: Phase 70 complete, ready to plan Phase 71
+last_updated: "2026-09-13T06:50:51.841Z"
 last_activity: 2026-09-13
-last_activity_desc: Phase 70 wave 6 merged — branch pushed to origin at e70e31fb (first push), CI run 34742047126 completed success on all 12 jobs incl. both windows-latest and both macos-latest lanes; PHASE_SC_ROLLUP = ALL_MET; code review and verification next
-state_head: 697a113221a8a267d7e8c6dd1f2b95672f9454d2
+last_activity_desc: Phase 70 complete, transitioned to Phase 71
+state_head: 5e5866792921419da8fbe09fc82e973cf03a0e71
 progress:
   total_phases: 2
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 13
   completed_plans: 13
-  percent: 0
+  percent: 50
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-09-13 — v0.9.4 Current Milestone scoped after the v0.9.3 close review)
+See: .planning/PROJECT.md (updated 2026-09-13 — after Phase 70)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** v0.9.4 Typing Modernization — **roadmapped, Phases 70–71, 6/6 v1 requirements mapped**. Drop the `UP006`/`UP035` ruff ignores and move `typsphinx/` + `tests/` onto builtin generics, with behaviour evidenced unchanged by five measurements; the only visible change is API-reference type text. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`); the branch merges to `main` via a PR at `/gsd-complete-milestone` (REL-13). Phase 70 executing (13 plans in 6 waves; wave 1 dispatched 2026-09-13).
+**Current focus:** v0.9.4 Typing Modernization — **roadmapped, Phases 70–71, 6/6 v1 requirements mapped**. Drop the `UP006`/`UP035` ruff ignores and move `typsphinx/` + `tests/` onto builtin generics, with behaviour evidenced unchanged by five measurements; the only visible change is API-reference type text. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`); the branch merges to `main` via a PR at `/gsd-complete-milestone` (REL-13). **Phase 70 complete** (2026-09-13: verification passed 5/5, UAT 1/1, Nyquist validated, SECURITY 35/35 closed; 5/6 requirements Complete). Next: Phase 71 — v0.9.4 Close Prep (prep-only, unpublished).
 
 ## Shipped Milestone (v0.9.3 — archived, merged to `main`, NOT published)
 
@@ -194,12 +194,12 @@ land here.
 
 ## Current Position
 
-Phase: 70 — Typing Modernization and Its Behaviour-Identity Evidence
-Plan: 13 of 13 complete (all 6 waves merged)
-Status: Phase 70 executed and verified 5/5 automated; human verification pending (70-UAT.md, 1 item)
-Last activity: 2026-09-13 — Phase 70 code review clean (1 pre-existing Info); verification human_needed, 1 owner check persisted to 70-UAT.md
+Phase: 71 — v0.9.4 Close Prep (prep-only, unpublished)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-09-13 — Phase 70 complete, transitioned to Phase 71
 
-Progress: [░░░░░░░░░░] 0% (0/2 phases)
+Progress: [█████░░░░░] 50% (1/2 phases)
 
 ## Active Milestone (v0.9.4 — Typing Modernization)
 
@@ -1217,19 +1217,18 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/70-typing-modernization-and-its-behaviour-identity-evidence/70-01-PLAN.md
+**Resume file:** None
 
-Last session: 2026-09-13T04:14:40.000Z
-Stopped at: Phase 70 planned (13 plans, 6 waves)
-Resume: `/gsd-execute-phase 70`. Wave 1 (70-01 `CLAUDE.md:75` rewrite, 70-02/70-03 baseline) must land
-before any conversion plan runs.
+Last session: 2026-09-13T06:55:00.000Z
+Stopped at: Phase 70 complete, ready to plan Phase 71
+Resume: `/gsd-discuss-phase 71` (no 71-CONTEXT.md yet) or `/gsd-plan-phase 71`.
 
 ## Operator Next Steps
 
-- **Execute Phase 70 with `/gsd-execute-phase 70`.** Every worktree provisions with
+- **Phase 70 is complete; plan Phase 71 next** (`/gsd-discuss-phase 71` or `/gsd-plan-phase 71`).
+  Phase 70's worktrees provisioned with
   `env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev --extra docs --python 3.13.13`
-  (70-RESEARCH.md). D-11 was amended at planning to admit the viewcode `_modules/typsphinx/…` pages
-  (owner option (a)). v0.9.4 publishes nothing either. If a later milestone publishes, the v0.9.1 → 0.9.2 precedent points to `0.9.4`
+  (70-RESEARCH.md); Phase 71 should reuse it. v0.9.4 publishes nothing either. If a later milestone publishes, the v0.9.1 → 0.9.2 precedent points to `0.9.4`
   with `0.9.3` left unused; that is not decided here.
 
 - **Read the Docs has not been verified since the v0.9.2 close.** The procedure is `63-HANDOFF.md` § 5 in
@@ -1238,7 +1237,8 @@ before any conversion plan runs.
 
 - **No dependabot PR is open** (measured 2026-09-13 at the v0.9.4 roadmap): #139 (tox), #140
   (sphinx-intl), #141 (pre-commit) and #142 (mypy) all merged to `main` between 00:31 and 00:59 UTC.
-  Do not merge a `ruff` bump into the milestone branch while Phase 70's conversion is in flight.
+  Phase 70's conversion has landed (ruff 0.16.6); a `ruff` bump arriving before the close must be
+  re-checked with `ruff check .` on the milestone branch before it is absorbed.
 
 - **The main checkout's `.venv` now carries ruff 0.16.6** (from `main`'s #138). It was re-synced with
   `uv sync --extra dev --extra docs` during the close, so the docs extra is still present.

@@ -2077,6 +2077,8 @@ commit dump rather than the curated CHANGELOG section (todo filed, D-11).
 
 - ✓ The milestone merged to `main` with nothing published — v0.9.3 Phase 69 (prep-only) + the `/gsd-complete-milestone` merge (REL-12): CHANGELOG bullets under `## [Unreleased]`, tree green locally (1547 passed / 1 skipped, twice, once under `LC_ALL=C`) and in CI (run `34723677990`, 12/12), the REQUIREMENTS.md SHA-256 fence re-matched after `phase.complete` flipped REL-12 for the eighth time; then PR #143 merged as ``58d578f2`` and REL-12 was checked on five observations (merge commit on `origin/main`, `pyproject.toml` `0.9.2`, no `v0.9.3` tag, PyPI 404 for `0.9.3`, no `v0.9.3` Release) — Validated in Phase 69 (69-VERIFICATION.md `passed` 8/8; 6 plans) + the v0.9.3 close (2026-09-13)
 
+- ✓ `typsphinx/` and `tests/` are on builtin generics and `ruff check .` enforces it, with behaviour evidenced unchanged by measurement — v0.9.4 Phase 70 (QUA-09, QUA-11, QUA-12, DOC-22, DOC-23): `CLAUDE.md:75`'s prohibition was rewritten first, worded true both before and after the flip (`3c5e281c`, only line 75 changed); file-disjoint conversions ran under the still-present ignores; then one commit (`0224b5ea`) dropped exactly the two `UP006`/`UP035` ignore lines and moved the 2026-07-22 todo to `completed/`. The fresh base census was 113 findings (ruff 0.16.6), zero after. Five legs all `MET`: (a) masked-AST hashes equal for all 10 converted files, with a hash-pinned harness proven non-vacuous by two controls that must change the hash; (b) 1548 collected / 1547 passed / 1 skipped before and after; (c) zero non-typing and zero `assert` lines changed; (d) the 167-project golden corpus manifest byte-identical; (e) `mypy typsphinx/` stdout SHA-256 identical. The clean docs diff is confined to 83 hunks of API-reference and viewcode type text, every one traced to a converted source line (`UNTRACED_HUNKS = 0`, owner-read at UAT). CI run `34742047126` on the pushed tip was 12/12 `success` — Validated in Phase 70 (70-VERIFICATION.md `passed` 5/5, UAT 1/1, SECURITY 35/35 closed; 13 plans in 6 waves)
+
 ### Active
 
 <!-- Cleared 2026-09-13 at the v0.9.3 close. `.planning/REQUIREMENTS.md` is the authoritative,
@@ -2087,13 +2089,13 @@ commit dump rather than the curated CHANGELOG section (todo filed, D-11).
 **Active milestone: v0.9.4 Typing Modernization** (started 2026-09-13, Phases from 70). Headline
 commitments — the REQ-ID'd list is `.planning/REQUIREMENTS.md`:
 
-- [ ] `UP006`/`UP035` removed from the ruff ignore list; `ruff check .` clean without them
-      (QUA-09).
-- [ ] Every `typing.Dict`/`List`/`Set`/`Tuple` use in `typsphinx/` and `tests/` on builtin
+- [x] `UP006`/`UP035` removed from the ruff ignore list; `ruff check .` clean without them
+      (QUA-09) — Phase 70.
+- [x] Every `typing.Dict`/`List`/`Set`/`Tuple` use in `typsphinx/` and `tests/` on builtin
       generics, `Iterator` on `collections.abc`, with runtime behaviour and emitted `.typ` output
-      evidenced unchanged.
-- [ ] `CLAUDE.md`'s modernization prohibition and `pyproject.toml`'s deferral comments retired; the
-      todo filed to `completed/`.
+      evidenced unchanged — Phase 70.
+- [x] `CLAUDE.md`'s modernization prohibition and `pyproject.toml`'s deferral comments retired; the
+      todo filed to `completed/` — Phase 70.
 - [ ] Close prep, unpublished: CHANGELOG bullet under `## [Unreleased]`, `pyproject.toml` stays
       `0.9.2`, no tag / PyPI / Release.
 
@@ -2439,6 +2441,7 @@ more than one master produces a complete PDF for each:
 | Decline a fail-loud shim for the removed `typst_authors` (owner, D-03) | Adding a `typsphinx/` shim in Phase 46 is exactly the class of code change the prep-only fence excludes; the alternative was resequencing a closed phase | ⚠️ **Revisit in the next milestone.** The silent-loss failure mode is real and measured — a `conf.py` still setting `typst_authors` gets no error and loses its author information — and a removal is precisely the change that most needs a shim. v0.7.1 shipped without one |
 | Ship the two `_track_image()` defects unfixed, with no `### Known Limitations` CHANGELOG section and no GitHub issue (owner, D-27) | Argued in full against the counter-case (regression in failure mode, non-exotic reachability, silent wrong output being the failure class this project's core value names directly, the `CHANGELOG.md:817` precedent, an otherwise-empty public issue tracker) and declined; fixing them in Phase 46 would contradict D-03's own reasoning | ⚠️ **Revisit.** Both records stay in `todos/pending/` and are named in this file's Active candidates. The major one is a regression in failure mode — the same project used to abort loudly and now renders the wrong picture silently |
 | Rename `tox-uv` to `tox-uv-bare` rather than set `TOX_UV_PATH` in `flake.nix` (v0.7.1, QUA-04) | The rejected alternative was measured working and declined: it repairs `tox` only, leaves the pytest failures untouched, and is a NixOS-local workaround rather than a fix | ✓ Good: one dependency name fixed both symptoms at the root. All four tox environments provision with no override, and the full suite under an outer `uv run pytest` went 45 failures → 0 — which also retired the five Phase 45.1 deferred items rather than carrying them |
+| Order Phase 70 as `CLAUDE.md` rewrite → conversions under the still-present ignores → ignore flip + todo move in one commit (owner decision 2026-09-13, research option (a)) | Every merged state stays `ruff check .`-green, and the rewritten bullet must be true on both sides of the flip rather than cite a todo path that moves | ✓ Good: the bullet was re-read identical at the pre-flip and post-flip commits (`CLAUDE_BULLET_IDENTICAL = YES`), and the flip landed on a zero-finding tree with the full suite unchanged |
 | Close v0.7.1 as `override_closeout` without a `MILESTONE-AUDIT.md` (owner decision, 2026-08-11) | Third consecutive close taken this way. `init.manager` reported all 8 phases `phase_complete=true` / `verification_status=passed`, 17/19 requirements were already Complete, and the 2 remaining were the publish-gated REL rows the close itself discharges | — Pending. The v0.7.0 entry above said "if a gap surfaces post-release, revisit whether the audit should be mandatory" — none surfaced from the v0.7.0 close, and v0.7.1 shipped with zero known gaps |
 
 ## Evolution
@@ -2459,7 +2462,9 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-13 — started milestone **v0.9.4 Typing Modernization** via `/gsd-new-milestone`. Scope set by the owner to QUA-09 alone: drop the `UP006`/`UP035` ruff ignores and move `typsphinx/` and `tests/` onto builtin generics (113 violations measured with ruff 0.16.6, 94 autofixable). Owner decisions: close prep only and unpublished (same shape as v0.9.3), milestone label v0.9.4, research run first. Phase numbering continues at **Phase 70**. Prior footer retained below.*
+*Last updated: 2026-09-13 after Phase 70 — typing modernization landed and verified (5/5, UAT 1/1, Nyquist validated, SECURITY 35/35 closed); QUA-09, QUA-11, QUA-12, DOC-22 and DOC-23 moved to Validated. Next: Phase 71 (close prep, unpublished). Prior footer retained below.*
+
+*Prior: Last updated: 2026-09-13 — started milestone **v0.9.4 Typing Modernization** via `/gsd-new-milestone`. Scope set by the owner to QUA-09 alone: drop the `UP006`/`UP035` ruff ignores and move `typsphinx/` and `tests/` onto builtin generics (113 violations measured with ruff 0.16.6, 94 autofixable). Owner decisions: close prep only and unpublished (same shape as v0.9.3), milestone label v0.9.4, research run first. Phase numbering continues at **Phase 70**. Prior footer retained below.*
 
 *Prior: Last updated: 2026-09-13 after the v0.9.3 milestone — **v0.9.3 Toolchain and dependency-update repair completed and merged to `main` via PR #143, not published.** 6 phases, 27 plans, 21/21 requirements; REL-12 checked on the observed merge. `override_closeout` on six fingerprint-stale verifications, with the same-day audit standing in. No milestone is active; next is `/gsd-new-milestone`, phase numbering continuing at 70. Prior footer retained below.*
 
