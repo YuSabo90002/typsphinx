@@ -309,9 +309,14 @@ $ git log --format='%H %s' -1 -- typsphinx/ tests/
 e721ff899a981eafdad696ef1a9c93aaab41ece5 chore: merge executor worktree (worktree-agent-a9a3a29e4a793db3b)
 ```
 
-`CODE_FREEZE_ANCHOR = e721ff899a981eafdad696ef1a9c93aaab41ece5` — Phase 70's final code commit,
-confirmed by measurement: the live `git log` above prints exactly this SHA, so no commit touched
-code after Phase 70.
+Key line:
+
+```
+CODE_FREEZE_ANCHOR = e721ff899a981eafdad696ef1a9c93aaab41ece5
+```
+
+Phase 70's final code commit, confirmed by measurement: the live `git log` above prints exactly
+this SHA, so no commit touched code after Phase 70.
 
 ```
 $ git merge-base --is-ancestor e721ff899a981eafdad696ef1a9c93aaab41ece5 HEAD; echo "exit:$?"
