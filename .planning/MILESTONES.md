@@ -1,5 +1,84 @@
 # Milestones: typsphinx
 
+## v0.9.4 Typing Modernization (Completed: 2026-09-13 — **NOT published**, merged to `main`)
+
+**Delivered:** ruff's `UP006`/`UP035` deferral, standing since 2026-07-22, is retired.
+`pyproject.toml` no longer ignores the two rules, and every `typing.Dict`/`List`/`Set`/`Tuple` in
+`typsphinx/` and `tests/` is on builtin generics, with `Iterator` imported from `collections.abc`.
+Behaviour was evidenced unchanged by five measurements rather than asserted. The only user-visible
+change is API-reference type text (`Dict[str, Any]` → `dict[str, Any]`). Nothing was released: no
+tag, no PyPI upload, no GitHub Release, `pyproject.toml` still at `0.9.2`. The CHANGELOG bullet waits
+under `## [Unreleased]` beside v0.9.3's three.
+
+**Closeout:** override_closeout, on a real `v0.9.4-MILESTONE-AUDIT.md` (`status: tech_debt`,
+requirements 5/6 before the close with REL-13 held by design, phases 2/2, integration 6/6, flows
+3/3). The override has one cause: `init.manager` reported Phase 70 `verification_status: stale`
+(`phase_complete: false`). Its VERIFICATION.md fingerprints `.planning/REQUIREMENTS.md`, and
+`5292a85b` (Phase 71 discussion) added REL-13's 10-line AMENDED block to that file after Phase 70
+verified. Phase 70's own work is unchanged; the owner accepted the override without re-running
+`/gsd-verify-work`. Phase 71 read `passed`.
+Known verification overrides: **1 newly acknowledged, 12 carried forward from a prior close** (see
+STATE.md Deferred Items). The new one is the `doctest_block` todo (Future TRN-01), captured on
+2026-09-13 during the Issue #91 re-measurement.
+**Phases:** 2 (70–71) · **Plans:** 20 · **Tasks:** 42
+**Requirements:** 6/6 v1 requirements complete; REL-13 checked at this close, after the merge was observed
+**Timeline:** 2026-09-13, a single calendar day (first milestone commit 10:50 JST, PR merged 19:09 JST)
+**Git:** milestone branch `gsd/v0.9.4-typing-modernization` (144 commits before the close) merged to
+`main` as `383a07e9` via **PR #145**, 15/15 checks green including both `windows-latest` and both
+`macos-latest` lanes. Merge commit, not squash. `origin/main` had not moved from the milestone base
+`d14ca458`, so no update merge was needed (trial `merge-tree` exit 0). No tag. Branch kept.
+**Code delta (milestone scope, excl. `.planning/`):** 13 files, +90 / −84 lines. `typsphinx/`: 6
+files, +65 / −65, annotations and typing imports only. `tests/`: 4 files, +14 / −16. Plus
+`pyproject.toml` (−2, the two ignore lines), `CLAUDE.md` (one line) and `CHANGELOG.md` (+10).
+**Zero runtime dependencies added**, no new `typst_*` config value, no `@preview` change, CI
+workflows unchanged.
+
+**Key accomplishments:**
+
+- **The deferral is retired and enforced** (QUA-09, QUA-11, Phase 70). A fresh base census found
+  113 findings under ruff 0.16.6 across 10 files, six in `typsphinx/` and four in `tests/`, where the
+  2026-07-22 todo had listed four. File-disjoint conversions ran under the still-present ignores with
+  scoped two-pass `ruff --fix` and a single hand edit (an F401 survivor in `__init__.py`). One commit
+  (`0224b5ea`) then dropped the two ignore lines and moved the todo to `completed/`. `ruff check .` is
+  clean repo-wide, and CI's lint job now enforces the style.
+
+- **Behaviour unchanged, by measurement** (QUA-12). All five legs MET: (a) masked-AST hashes equal
+  for all 10 converted files, with the hash-pinned harness proven non-vacuous by two mutation
+  controls; (b) 1548 collected / 1547 passed / 1 skipped before and after; (c) zero non-typing and
+  zero `assert` lines changed; (d) the 167-project `.typ` corpus manifest byte-identical; (e)
+  `mypy typsphinx/` stdout SHA-256 identical.
+
+- **The one visible change is traced hunk by hunk** (DOC-23). A clean docs build diff has 83 hunks
+  (62 HTML, 21 `.typ`) of API-reference and viewcode type text. Every hunk maps to a converted source
+  line (`UNTRACED_HUNKS = 0`), and the owner read it at UAT.
+
+- **`CLAUDE.md` changed first and stayed true** (DOC-22). The "don't modernize typing imports"
+  prohibition became a standing annotation-style instruction before any conversion ran, worded to be
+  true on both sides of the ignore flip, and was proven byte-identical and true at both commits.
+
+- **Close prep, then the merge** (REL-13, Phase 71 + this close). One CHANGELOG bullet landed as a
+  pure addition under `## [Unreleased]`, with docs warning counts unchanged at 3 / 5. The tree was
+  green locally (1547 passed / 1 skipped, twice, once under `LC_ALL=C`) and in CI (run
+  `34748483361`, 12/12). A GitHub HTTP 5xx on the dispatch silently created a second run; the owner
+  kept the Actions history and accepted an AMENDED reading of "exactly one dispatch". At this close
+  PR #145 merged, and REL-13 was checked on five observations: the merge commit on `origin/main`,
+  `pyproject.toml` still `0.9.2`, no `v0.9.4` tag, PyPI 404 for `0.9.4`, and no `v0.9.4` Release.
+
+- **The release-checkbox fence held, and for the first time had nothing to catch.**
+  `phase.complete 71` returned `requirements_updated: false` and left REL-13 alone, after eight
+  consecutive release-prep flips. The SHA-256 matched `4d98e028…` at every observation. One
+  non-firing is not treated as a fix.
+
+**Known limitations:** Phase 71 never ran Nyquist validation (VALIDATION.md still `draft`) or the
+security audit (no `71-SECURITY.md`), though both are enabled; Phase 70 ran both.
+`template_engine.py:665` keeps a pre-existing implicit `Optional` (`template_file: str = None`),
+left alone because no PEP 604 sweep was in scope. The CHANGELOG's "byte-identical across the
+test-fixture corpus of 167 projects" is vacuously true for the 21 error-path fixtures that emit no
+`.typ`. The quick task `260913-e7n` (Issue #91 closed as not reproducible, merged earlier via #144)
+was archived with this milestone into `milestones/v0.9.4-quick/`.
+
+---
+
 ## v0.9.3 Toolchain and dependency-update repair (Completed: 2026-09-13 — **NOT published**, merged to `main`)
 
 **Delivered:** the gates that protect this project's core value run on the maintainer's NixOS

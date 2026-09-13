@@ -26,48 +26,33 @@ As of **v0.5.0 (shipped 2026-07-11)** the extension tracks the current ecosystem
 
 **v0.9.3 (completed 2026-09-13 — merged to `main`, not published)** repaired the toolchain rather than the product; nothing under `typsphinx/` changed. On the maintainer's NixOS machine, `flake.nix` now puts seven bare commands on PATH — `uv`, `tox`, `ruff`, `black`, `mypy`, `pytest`, `sphinx-build` — each resolving the checkout's own `.venv/bin/<tool>` and running it inside a Linux-guarded `buildFHSEnv`, so generic-linux binaries that `uv` installs or downloads execute, and the manual per-worktree `ln -sf` / `patchelf` step is retired. That dissolved the constraint that had forced `tox-uv-bare`, so the dev extra is back on upstream `tox-uv`. Dependabot moved from the `pip` ecosystem to `uv`, so its PRs update `pyproject.toml` and `uv.lock` together and the eleven `uv sync --locked` CI steps run the tests instead of refusing a stale lockfile — proven on dependabot's own #138. Grouped updates under `uv` remain unobserved, blocked upstream by Sphinx 9.1.0's `docutils<0.23` cap. `pyproject.toml` stays at `0.9.2` and the bullets wait under `## [Unreleased]`.
 
+**v0.9.4 (completed 2026-09-13 — merged to `main`, not published)** retired a lint deferral that had stood since 2026-07-22. `pyproject.toml` no longer ignores ruff's `UP006`/`UP035`, and every `typing.Dict`/`List`/`Set`/`Tuple` in `typsphinx/` and `tests/` is on builtin generics, with `Iterator` from `collections.abc`; `ruff check .` enforces it. Behaviour was evidenced unchanged by five measurements (masked-AST hashes, pytest counts, zero assertion edits, a byte-identical 167-project `.typ` corpus, identical `mypy` output). The only user-visible change is API-reference type text, `Dict[str, Any]` → `dict[str, Any]`. Merged as PR #145; `pyproject.toml` stays at `0.9.2`, and `## [Unreleased]` now carries four bullets from two unpublished milestones.
+
 ## Core Value
 
 The `typst`/`typstpdf` builders produce correct, compilable **and faithfully-rendered** output on the **current** ecosystem — Sphinx 9 and typst 0.15+ — with the runtime pins raised forward, the bundled `@preview` packages compiling cleanly (no `kai`-class breaks), and real-world documentation sets rendering to PDF that matches the source rather than merely compiling fatal-free. The same standard applies to the publishing surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. **From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct** — an API reference page has to read as a reference document, not as text that happens to compile.
 
-## Current Milestone: v0.9.4 Typing Modernization
+## Shipped Milestone: v0.9.4 Typing Modernization (completed 2026-09-13 — merged, NOT published)
 
-**Goal:** drop the `UP006`/`UP035` ruff ignores and rewrite every `typing.Dict`/`List`/`Set`/`Tuple`
-use in `typsphinx/` and `tests/` onto builtin generics (and `typing.Iterator` onto
-`collections.abc`), closing the deferral recorded in the 2026-07-22 modernize todo (QUA-09) — with
-runtime behaviour and emitted Typst output unchanged.
+**Goal achieved; nothing published.** Two phases (70–71), 20 plans, 42 tasks, **6/6 v1
+requirements complete**. REL-13, the milestone's one irreversible step, was the merge itself: PR #145
+to `main` as `383a07e9`, 15/15 checks green including both `windows-latest` and both `macos-latest`
+lanes, with no tag, no PyPI upload, no GitHub Release and `pyproject.toml` still at `0.9.2`.
+`override_closeout`: Phase 70's verification read fingerprint-stale after `5292a85b` added REL-13's
+AMENDED block to `REQUIREMENTS.md`, a file it covers; the same-day `v0.9.4-MILESTONE-AUDIT.md`
+(`tech_debt`, no gaps) stood in.
 
-**Target features:**
-- `pyproject.toml` `[tool.ruff.lint] ignore` loses the `UP035` and `UP006` entries and their
-  deferral comments.
-- The 113 violations that removal exposes (measured 2026-09-13, ruff 0.16.6: 93 UP006 + 20 UP035)
-  are resolved — `typsphinx/` 6 files / 92 (`translator.py` 42, `builder.py` 30,
-  `template_engine.py` 12, `template_registry.py` 4, `writer.py` 2, `__init__.py` 2) and `tests/`
-  4 files / 21 (`conftest.py` + three gate modules). 94 are `ruff --fix`-autofixable; the UP035
-  import-line residue falls to F401 once usages are rewritten; one `Iterator` moves to
-  `collections.abc`.
-- `CLAUDE.md:75`'s "Don't modernize typing imports until that todo lands" prohibition is rewritten
-  to reflect completion; the todo moves to `todos/completed/`.
-- Final phase is **close prep only, unpublished** (owner decision 2026-09-13, same shape as v0.9.3):
-  no tag, no PyPI upload, no GitHub Release; `pyproject.toml` stays `0.9.2`; the CHANGELOG bullet
-  goes under the existing `## [Unreleased]`.
+**What it delivered.** (1) **The `UP006`/`UP035` ignores are gone** (QUA-09, QUA-11) — 113 findings
+measured fresh across 10 files, converted by scoped two-pass `ruff --fix` under the still-present
+ignores, then the ignores dropped in one commit with the todo moved to `completed/`. (2) **Behaviour
+evidenced unchanged** (QUA-12) on five legs, each MET. (3) **The visible change traced** (DOC-23) —
+83 docs hunks, every one mapped to a converted line. (4) **`CLAUDE.md` rewritten first** (DOC-22),
+true on both sides of the flip.
 
-**Key context:**
-- The todo's own file list is stale — it predates `template_registry.py`, misses `writer.py`'s
-  `Tuple`, and names no `tests/` files. CI runs `ruff check .`, so `tests/` is in scope by
-  construction. Discovery is by `ruff check . --select UP006,UP035`, not by the todo's list.
-- **One visible side effect:** `docs/source/api/index.rst` autodocs `typsphinx.builder`, `.pdf`,
-  `.writer`, `.translator`, `.template_engine` with `sphinx_autodoc_typehints`
-  (`autodoc_typehints = "description"`), so the rendered API reference (HTML and PDF on RTD) will
-  show `dict[str, Any]` where it showed `Dict[str, Any]`.
-- "Behaviour unchanged" must be evidenced, not asserted — the mechanism (AST-level comparison,
-  byte-identical `.typ` output, zero pre-existing test-assertion edits, or a combination) is for
-  research and planning to settle.
-- Research requested by the owner for this milestone.
-- Phase numbering continues at **Phase 70**; worktree-isolated execution is the standing mode.
-- Version label **v0.9.4**: `v0.9.3` is already a milestone name. If this work is ever published,
-  the precedent (v0.9.1 → 0.9.2) points to publishing as `0.9.4` with `0.9.3` left unused — not
-  decided here, since this milestone publishes nothing.
+**Accepted and carried.** Phase 71 ran neither Nyquist validation nor the security audit; a
+pre-existing implicit `Optional` at `template_engine.py:665` stays, since no PEP 604 sweep was in
+scope. The release-checkbox auto-flip did not fire at Phase 71's close for the first time in nine
+release-prep closes; the fence stays in place.
 
 ## Shipped Milestone: v0.9.3 Toolchain and dependency-update repair (completed 2026-09-13 — merged, NOT published)
 
@@ -2079,15 +2064,42 @@ commit dump rather than the curated CHANGELOG section (todo filed, D-11).
 
 - ✓ `typsphinx/` and `tests/` are on builtin generics and `ruff check .` enforces it, with behaviour evidenced unchanged by measurement — v0.9.4 Phase 70 (QUA-09, QUA-11, QUA-12, DOC-22, DOC-23): `CLAUDE.md:75`'s prohibition was rewritten first, worded true both before and after the flip (`3c5e281c`, only line 75 changed); file-disjoint conversions ran under the still-present ignores; then one commit (`0224b5ea`) dropped exactly the two `UP006`/`UP035` ignore lines and moved the 2026-07-22 todo to `completed/`. The fresh base census was 113 findings (ruff 0.16.6), zero after. Five legs all `MET`: (a) masked-AST hashes equal for all 10 converted files, with a hash-pinned harness proven non-vacuous by two controls that must change the hash; (b) 1548 collected / 1547 passed / 1 skipped before and after; (c) zero non-typing and zero `assert` lines changed; (d) the 167-project golden corpus manifest byte-identical; (e) `mypy typsphinx/` stdout SHA-256 identical. The clean docs diff is confined to 83 hunks of API-reference and viewcode type text, every one traced to a converted source line (`UNTRACED_HUNKS = 0`, owner-read at UAT). CI run `34742047126` on the pushed tip was 12/12 `success` — Validated in Phase 70 (70-VERIFICATION.md `passed` 5/5, UAT 1/1, SECURITY 35/35 closed; 13 plans in 6 waves)
 
+- ✓ The milestone merged to `main` with nothing published — v0.9.4 Phase 71 (prep-only) + the `/gsd-complete-milestone` merge (REL-13): one CHANGELOG bullet under `## [Unreleased]` as a pure addition, tree green locally (1547 passed / 1 skipped, twice, once under `LC_ALL=C`) and in CI (run `34748483361`, 12/12; a surplus dispatch created by a GitHub HTTP 5xx was cancelled and read per the owner's AMENDED decision), the REQUIREMENTS.md SHA-256 fence matching at every observation — `phase.complete` left REL-13 alone for the first time; then PR #145 merged as `383a07e9` and REL-13 was checked on five observations (merge commit on `origin/main`, `pyproject.toml` `0.9.2`, no `v0.9.4` tag, PyPI 404 for `0.9.4`, no `v0.9.4` Release) — Validated in Phase 71 (71-VERIFICATION.md `passed` 4/4; 7 plans) + the v0.9.4 close (2026-09-13)
+
 ### Active
 
-<!-- Cleared 2026-09-13 at the v0.9.3 close. `.planning/REQUIREMENTS.md` is the authoritative,
+<!-- Cleared 2026-09-13 at the v0.9.4 close. `.planning/REQUIREMENTS.md` is the authoritative,
      REQ-ID'd list and is deleted at each milestone close; this section only ever carries the active
      milestone's headline commitments, and is re-scoped by `/gsd-new-milestone`. Completed
      milestones' lists are retained collapsed below. -->
 
-**Active milestone: v0.9.4 Typing Modernization** (started 2026-09-13, Phases from 70). Headline
-commitments — the REQ-ID'd list is `.planning/REQUIREMENTS.md`:
+**No milestone is active.** v0.9.4 completed 2026-09-13 and merged to `main` via PR #145, nothing
+published. Start the next milestone with `/gsd-new-milestone`; phase numbering continues at **72**.
+
+**Candidates carried forward** (none scheduled) (full dispositions in `.planning/todos/pending/` and in
+`milestones/v0.9.4-REQUIREMENTS.md`'s Future section):
+
+- **NUM-01** — `numref` numbers diverge per master and vanish for figures reachable only from a
+  non-root master. Excluded from every published surface by D-07 (v0.8.0) and carried unscoped
+  across five consecutive milestones.
+- **TRN-01** — `doctest_block` has no translator handler, so `>>>` examples collapse onto one line of
+  plain text. `severity: major`; captured 2026-09-13 during the Issue #91 re-measurement and
+  acknowledged at the v0.9.4 close.
+- **MSG-06** — `translator.py`'s two relative-path DEBUG logs quote `up_path`/`down_path` with a
+  hardcoded `'...'` delimiter, the same MSG-02 shape Phase 60 closed in three other modules. The
+  one-line fix is `quote_path()`, which now exists.
+- **WR-02** — `templates_path` collision detection resolves against `srcdir` rather than `confdir`,
+  so `-c`/confdir projects are uncovered. Shipped silent by D-09 (v0.9.0) and still silent.
+- **WR-03** — the "Custom template not found" warning fires three times instead of two for one narrow
+  shape (54.1 WR-01).
+- **QUA-08** (`sphinx-build -b linkcheck` CI job), **DOC-18** (the root `index.rst` toctree
+  duplicates section children in the HTML sidebar), and the dormant seeds **SEED-001**,
+  **SEED-003**, **SEED-004** — `typst-py` upstream maintenance slowing, the largest structural risk
+  on the horizon and never scoped into any milestone — and **SEED-005** (GSD workstreams).
+  **QUA-09** closed in v0.9.4; **QUA-10** and **CI-01** closed in v0.9.3.
+
+<details>
+<summary>v0.9.4's Active list (complete, merged 2026-09-13, not published) — retained for reference</summary>
 
 - [x] `UP006`/`UP035` removed from the ruff ignore list; `ruff check .` clean without them
       (QUA-09) — Phase 70.
@@ -2096,34 +2108,11 @@ commitments — the REQ-ID'd list is `.planning/REQUIREMENTS.md`:
       evidenced unchanged — Phase 70.
 - [x] `CLAUDE.md`'s modernization prohibition and `pyproject.toml`'s deferral comments retired; the
       todo filed to `completed/` — Phase 70.
-- [ ] Close prep, unpublished: CHANGELOG bullet under `## [Unreleased]`, `pyproject.toml` stays
+- [x] Close prep, unpublished: CHANGELOG bullet under `## [Unreleased]`, `pyproject.toml` stays
       `0.9.2`, no tag / PyPI / Release.
+      Merged to `main` via PR #145 (REL-13) — Phase 71 + the close.
 
-**Candidates carried forward** (everything below except QUA-09 remains unscheduled) (full dispositions in `.planning/todos/pending/` and in
-`milestones/v0.9.2-REQUIREMENTS.md`'s v2 section):
-
-- **NUM-01** — `numref` numbers diverge per master and vanish for figures reachable only from a
-  non-root master. Excluded from every published surface by D-07 (v0.8.0) and carried unscoped
-  across four consecutive milestones.
-- **CI-01** — every dependabot PR dies before running a test, because it bumps `pyproject.toml`
-  without regenerating `uv.lock` and all eleven `uv sync --locked` steps refuse the stale lockfile.
-  `severity: major`. **→ Closed by v0.9.3 (DEP-01..DEP-05).**
-- **MSG-06** — `translator.py:5047,5152` quote `up_path`/`down_path` with a hardcoded `'...'`
-  delimiter, the same MSG-02 shape Phase 60 closed in three other modules. Found by that phase's own
-  repo-wide discovery grep and filed rather than fixed. The one-line fix is `quote_path()`, which now
-  exists.
-- **WR-02** — `templates_path` collision detection resolves against `srcdir` rather than `confdir`,
-  so `-c`/confdir projects are uncovered. Shipped silent by D-09 (v0.9.0) and still silent.
-- **WR-03** — the "Custom template not found" warning fires three times instead of two for one narrow
-  shape (54.1 WR-01).
-- **QUA-08** (`sphinx-build -b linkcheck` CI job), **QUA-09** (typing modernization — drop the
-  `UP006`/`UP035` ruff ignores, forbidden by `CLAUDE.md` until its own todo lands), **QUA-10**
-  (`ruff` unrunnable on this NixOS machine — **closed by v0.9.3**, NIX-01..NIX-08), **DOC-18** (the root
-  `index.rst` toctree duplicates section children in the HTML sidebar), and the dormant seeds
-  **SEED-001**, **SEED-003**, **SEED-004** — the last being `typst-py` upstream maintenance slowing,
-  the largest structural risk on the horizon and never scoped into any milestone across five
-  consecutive closes — plus **SEED-005** (GSD workstreams for parallel roadmap tracks), planted during
-  v0.9.3 and acknowledged dormant at its close.
+</details>
 
 <details>
 <summary>v0.9.3's Active list (complete, merged 2026-09-13, not published) — retained for reference</summary>
@@ -2344,10 +2333,13 @@ more than one master produces a complete PDF for each:
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
+| **Close v0.9.4 as `override_closeout` on Phase 70's fingerprint-stale verification rather than re-run `/gsd-verify-work`** (owner, 2026-09-13) | The only covered-file change after verification was `5292a85b`, REL-13's AMENDED block in `REQUIREMENTS.md`; the same-day audit re-checked the phase | — Pending. Second consecutive close overridden for this tooling reason; the v0.9.3 row's prediction held |
+| **Rewrite `CLAUDE.md`'s prohibition before any conversion, worded true on both sides of the ignore flip** (owner, 2026-09-13) | A standing instruction that was false for part of the milestone would mislead worktree executors reading it mid-phase | ✓ Good — proven byte-identical and true at the pre-flip and post-flip commits; no executor hit a contradicting instruction |
+| **Prove "behaviour unchanged" on five independent legs, with the masked-AST harness piloted on two files before automation** (Phase 70, 2026-09-13) | A mechanical rename is still a claim; each leg covers a failure the others miss (structure, test outcome, test edits, emitted output, type checker) | ✓ Good — all five MET; the pilot's two mutation controls proved the harness could fail before it was trusted on ten files |
 | **Switch dependabot to the native `uv` ecosystem instead of a custom lockfile-regeneration workflow** (owner, AMENDED 2026-09-02) | Every failure mode research found for the custom workflow — forced read-only `GITHUB_TOKEN`, `pull_request_target` exposure, `GITHUB_TOKEN` pushes not retriggering CI, dependabot force-pushing over foreign commits — belongs to that workflow and disappears with the switch | ✓ Good — proven on dependabot's own #138, which updated `pyproject.toml` and `uv.lock` in one commit and ran the full CI. Grouped updates under `uv` remain unobserved (Sphinx `docutils<0.23` cap), recorded rather than claimed |
 | **Merge a `dependabot.yml`-only PR to `main` mid-milestone** (owner, Phase 66 AMENDED 2026-09-12) | Dependabot reads its config only from the default branch, so no `uv` PR could open before the milestone PR merged; the Phase 67 proof would have been unreachable | ✓ Good — byte-identical content on both branches kept REL-12's merge conflict-free; the close's trial merge exited 0 |
 | **Leave CI unchanged: no `nix` job, `setup-uv` stays `latest`, `@v7` not bumped** (owner, 2026-09-02) | Windows cannot run nix and its lanes are load-bearing; the FHS wrapper is useless on runners with a real loader | — Pending. The accepted cost is that `flake.nix` is load-bearing with zero CI coverage and an unexercisable darwin branch. Revisit if a `flake.nix` break ever reaches a contributor before the maintainer |
-| **Close v0.9.3 as `override_closeout` rather than re-run `/gsd-verify-work` on six fingerprint-stale phases** (owner, 2026-09-13) | Staleness came from later legitimate edits to covered files (`REQUIREMENTS.md`, the Phase 68 review fix, the owner-requested CHANGELOG wording); the same-day audit re-checked every phase | — Pending. The fingerprint includes a shared tracking file, so every earlier phase goes stale by construction; expect the same at the next multi-phase close unless the tooling changes |
+| **Close v0.9.3 as `override_closeout` rather than re-run `/gsd-verify-work` on six fingerprint-stale phases** (owner, 2026-09-13) | Staleness came from later legitimate edits to covered files (`REQUIREMENTS.md`, the Phase 68 review fix, the owner-requested CHANGELOG wording); the same-day audit re-checked every phase | — Pending. The fingerprint includes a shared tracking file, so every earlier phase goes stale by construction; expect the same at the next multi-phase close unless the tooling changes. **Confirmed at the v0.9.4 close** (Phase 70 stale for the same reason) |
 | **Amend the fix's mechanism on a live measurement before writing it, rather than implementing the requirement literally** (Phase 62, AMENDED D-08, owner-acknowledged 2026-08-30) | IMG-10 specified driving the separator triad from `visit_image()`'s non-`in_figure` branch. A 27-document / 18-master probe measured that form leaving **4 of 18 masters still refused** — both legend shapes (a legend image has `in_figure == True` and never reaches that branch), the field-list-body concat shape (a *new* refusal, `cannot apply unary '+' to content`), and `index` transitively | ✓ Good — the leading half was hoisted above the `if self.in_figure:` split and the trailing half made concat-aware: 18/18 compiling, both branch bodies still textually unmodified so the literal success criterion held, and the diff a 9-line pure insertion. Delivered strictly more of the requirement, never less. Second consecutive milestone in which a locked decision was falsified by measurement and closed with an `AMENDED` block |
 | **Keep the fix and its gate in one phase** (v0.9.2 roadmap, following `research/ARCHITECTURE.md` Q5) | A phase boundary between them would let "fixed" be claimed before "proven by a real compile" — the precise failure mode that let this defect ship in 0.9.0 and survive three milestones of translator work | ✓ Good — the RED was recorded against a genuinely restored pre-fix `translator.py` inside the same phase, transcribed verbatim with a positive control, and the fix restored with `git status --porcelain` empty. A gate observed only green would have satisfied nothing |
 | **Pin the one non-byte-identical PASS shape to an exact committed delta rather than soften its assertion to "compiles"** (Phase 62 planning, D-06 not weakened) | 8 of the 9 must-keep-passing shapes are byte-identical under the fix; the ninth (an image first in its paragraph) gains exactly one empty line. Relaxing the whole set to "still compiles" would have hidden any future drift in the other eight | ✓ Good — two committed goldens plus an exact-delta assertion. The regression surface stays as tight after the fix as before it |
@@ -2462,7 +2454,9 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-13 after Phase 70 — typing modernization landed and verified (5/5, UAT 1/1, Nyquist validated, SECURITY 35/35 closed); QUA-09, QUA-11, QUA-12, DOC-22 and DOC-23 moved to Validated. Next: Phase 71 (close prep, unpublished). Prior footer retained below.*
+*Last updated: 2026-09-13 after the v0.9.4 milestone — **v0.9.4 Typing Modernization completed and merged to `main` via PR #145 (`383a07e9`), not published.** 2 phases, 20 plans, 42 tasks, 6/6 requirements; REL-13 checked on the observed merge. `override_closeout` on Phase 70's fingerprint-stale verification, with the same-day audit standing in. No milestone is active; next is `/gsd-new-milestone`, phase numbering continuing at 72. Prior footer retained below.*
+
+*Prior: Last updated: 2026-09-13 after Phase 70 — typing modernization landed and verified (5/5, UAT 1/1, Nyquist validated, SECURITY 35/35 closed); QUA-09, QUA-11, QUA-12, DOC-22 and DOC-23 moved to Validated. Next: Phase 71 (close prep, unpublished). Prior footer retained below.*
 
 *Prior: Last updated: 2026-09-13 — started milestone **v0.9.4 Typing Modernization** via `/gsd-new-milestone`. Scope set by the owner to QUA-09 alone: drop the `UP006`/`UP035` ruff ignores and move `typsphinx/` and `tests/` onto builtin generics (113 violations measured with ruff 0.16.6, 94 autofixable). Owner decisions: close prep only and unpublished (same shape as v0.9.3), milestone label v0.9.4, research run first. Phase numbering continues at **Phase 70**. Prior footer retained below.*
 

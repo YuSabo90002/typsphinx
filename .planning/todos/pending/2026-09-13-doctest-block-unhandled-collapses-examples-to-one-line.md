@@ -7,6 +7,10 @@ source: Issue #91 investigation (2026-09-13) — a real sphinx-autoapi build of 
 files:
   - typsphinx/translator.py:5819  # unknown_visit() — where doctest_block currently lands (warning only, children still visited)
   - typsphinx/translator.py:5832  # unknown_departure()
+
+audit_acknowledged:
+  milestone: v0.9.4
+  at: 2026-09-13
 ---
 
 ## Problem
