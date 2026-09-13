@@ -163,3 +163,36 @@ MYPY_STDOUT_SHA256_BEFORE = 46984ca20bf69f7b14ec1fd9bd82101d56a4e109e68f016fd2a0
 ~~~text mypy-before
 Success: no issues found in 9 source files
 ~~~
+
+## pytest before (leg b)
+
+Ran `LC_ALL=C uv run pytest --collect-only -q -p no:cacheprovider 2>/dev/null | grep -oE '[0-9]+ tests? collected' | grep -oE '^[0-9]+'`
+(the first grep is unanchored, because the summary line is wrapped in `=`):
+
+PYTEST_COLLECTED_BEFORE = 1548
+
+Ran `LC_ALL=C uv run pytest -q -rs -p no:cacheprovider > "$S/pytest-before.out" 2>&1; echo "exit:$?"`:
+```
+exit:0
+```
+
+PYTEST_EXIT_BEFORE = 0
+
+Summary line (`tail -n 1 "$S/pytest-before.out"`):
+```
+================= 1547 passed, 1 skipped in 131.38s (0:02:11) ==================
+```
+
+PYTEST_RESULT_BEFORE = 1547 passed 1 skipped
+(from `tail -n 1 "$S/pytest-before.out" | grep -oE '[0-9]+ (passed|failed|skipped|errors?|xfailed|xpassed)' | paste -sd' '`)
+
+1547 + 1 = 1548 = PYTEST_COLLECTED_BEFORE. Confirmed.
+
+PYTEST_WARNINGS_BEFORE = 0
+(no "warnings summary" section in the output; informational only)
+
+Skip reasons (`-rs` short summary, every `SKIPPED` line):
+
+~~~text pytest-skips-before
+SKIPPED [1] tests/test_corpus_gate.py:530: SC#3 before/after measurement is env-gated -- set TYPSPHINX_CORPUS_REPORT=1 to run it (RESEARCH Open Question 1)
+~~~
