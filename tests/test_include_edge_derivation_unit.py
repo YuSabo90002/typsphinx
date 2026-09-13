@@ -22,7 +22,6 @@ which drives one real Sphinx build via ``SphinxTestApp``.
 """
 
 from pathlib import Path
-from typing import Dict, List
 
 import pytest
 from docutils import nodes
@@ -293,7 +292,7 @@ class TestMakeIncludeEdgeKeySeparatorInjectivity:
 # ---------------------------------------------------------------------------
 
 
-def _linear_chain(n: int) -> Dict[str, List[str]]:
+def _linear_chain(n: int) -> dict[str, list[str]]:
     """A synthesized ``toctree_includes`` mapping for a straight-line
     include chain ``d0 -> d1 -> ... -> d(n-1) -> d(n)`` of ``n`` edges."""
     return {f"d{i}": [f"d{i + 1}"] for i in range(n)}

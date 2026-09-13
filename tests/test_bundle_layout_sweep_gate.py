@@ -39,7 +39,6 @@ below names paths relative to the repository root (T-56-14).
 
 import re
 from pathlib import Path
-from typing import Dict, List
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -84,7 +83,7 @@ DELETED_WRITE_TEMPLATE_FILE_METHOD_RE = re.compile(r"\b_write_template_file\b")
 # everywhere else -- the same line-scoped-exemption shape
 # tests/test_docs_template_layout_gate.py's `templates_path` rule already
 # established for this codebase.
-EXCLUDED_SWEEP_PATHS: Dict[str, str] = {
+EXCLUDED_SWEEP_PATHS: dict[str, str] = {
     "docs/source/changelog.rst": (
         "Historical release notes describing what was true at the version "
         "they document (the _template.typ-era output layout, at the "
@@ -102,14 +101,14 @@ EXCLUDED_SWEEP_PATHS: Dict[str, str] = {
 }
 
 
-def _discover_policed_files() -> List[Path]:
+def _discover_policed_files() -> list[Path]:
     """Discover every policed file at run time -- never a hardcoded list.
 
     ``docs/source/`` is walked for ``*.rst``/``*.md``; ``README.md`` is
     yielded directly; ``examples/`` is walked for ``*.md``/``*.rst``/
     ``*.py``. Skips ``__pycache__`` and any ``_build`` output directory.
     """
-    files: List[Path] = []
+    files: list[Path] = []
     for root in POLICED_ROOTS:
         if not root.exists():
             continue
@@ -150,7 +149,7 @@ def _excluded_lines_for(relpath: str) -> set:
     return lines
 
 
-def _find_offenses(pattern: re.Pattern) -> List[str]:
+def _find_offenses(pattern: re.Pattern) -> list[str]:
     """Every ``relpath:lineno: line text`` offense the given pattern finds
     across every policed file, honouring EXCLUDED_SWEEP_PATHS (both
     whole-file and line-scoped entries)."""
