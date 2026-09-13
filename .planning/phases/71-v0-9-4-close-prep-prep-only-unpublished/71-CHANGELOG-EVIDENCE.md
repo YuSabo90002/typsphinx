@@ -277,3 +277,219 @@ line numbers, exit 0). The line-number shifts inside the raw log (22/44/418/445 
 are from the CHANGELOG.md-driven `changelog` page rebuild output length changing by one line
 elsewhere in the log, not from a new or moved warning. No new warning names the changelog page or
 any other page.
+
+## Pure-addition proof
+
+```
+$ git diff "$BASE_71_01" -- CHANGELOG.md
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index f6a99e87..09c14af2 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -34,6 +34,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
+   systems evaluate under this shell but remain unverified. `CLAUDE.md`'s contributor notes, the
+   `tox.ini` comment and the `flake.nix` header now describe the mechanism.
+ 
++- **Type annotations in typsphinx's source now use builtin generics (QUA-09, QUA-11, QUA-12,
++  DOC-22, DOC-23).** `typsphinx/` and `tests/` moved off the `typing` aliases `Dict`, `List`,
++  `Set` and `Tuple` onto the builtin `dict`, `list`, `set` and `tuple`, with `Iterator` now
++  imported from `collections.abc` instead; the linter now enforces this style, and the
++  contributor notes in `CLAUDE.md` describe it. The visible effect is in the API reference: it
++  now shows, for example, `dict[str, Any]` where it showed `Dict[str, Any]`. This has no effect
++  on installing or using typsphinx. The Typst output typsphinx generates and its runtime
++  behaviour are unchanged: the `.typ` output is byte-identical across the test-fixture corpus of
++  167 projects.
++
+ ### Planned for Future Releases
+ - BibTeX/bibliography support
+ - Glossary generation
+```
+
+From `git diff --numstat "$BASE_71_01" -- CHANGELOG.md`:
+
+ADDED_LINES = 10
+REMOVED_LINES = 0
+
+From `git diff -U0 "$BASE_71_01" -- CHANGELOG.md`, number of `@@` lines:
+
+DIFF_HUNKS = 1
+
+Number of added lines that are empty:
+
+ADDED_BLANK_LINES = 1
+
+The added non-blank lines are exactly the fourth bullet (9 lines) plus the one blank separator
+line before it — the three existing bullets, the Planned block, and everything below are
+unchanged byte for byte.
+
+## Fence assertions
+
+```
+$ grep -cE '^## \[' CHANGELOG.md
+23
+```
+HEADINGS_AFTER = 23
+(equals HEADINGS_BEFORE)
+
+```
+$ grep -cE '^\[[^]]+\]: https' CHANGELOG.md
+23
+```
+LINKREFS_AFTER = 23
+(equals LINKREFS_BEFORE)
+
+```
+$ awk '/^## \[0\.9\.2\]/{exit} f; /^## \[Unreleased\]/{f=1}' CHANGELOG.md | grep -cE '^- \*\*'
+4
+```
+UNRELEASED_BOLD_AFTER = 4
+
+```
+$ awk '/^## \[0\.9\.2\]/{exit} f; /^## \[Unreleased\]/{f=1}' CHANGELOG.md | tr '\n' ' ' | tr -s ' ' | grep -oi 'no effect on installing or using typsphinx' | wc -l
+4
+```
+NO_EFFECT_PHRASES = 4
+
+```
+$ grep -cE '0\.9\.[34]' CHANGELOG.md
+0
+```
+VERSION_LITERALS_AFTER = 0
+
+```
+$ awk '/^### Planned for Future Releases$/{f=1} /^## \[0\.9\.2\]/{exit} f' CHANGELOG.md | sha256sum
+a3436143cc65050f0aa709bbdc02b8fa31ab6d8f58c2c4aa198cbc10e0911f02  -
+```
+PLANNED_SHA_AFTER = a3436143cc65050f0aa709bbdc02b8fa31ab6d8f58c2c4aa198cbc10e0911f02
+(equals PLANNED_SHA_BEFORE)
+
+Also recorded, as commands with their outputs:
+
+```
+$ tail -n 1 CHANGELOG.md
+[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.9.2...HEAD
+```
+Identical to the base's final line.
+
+```
+$ grep -cF 'compare/v0.9.2...HEAD' CHANGELOG.md
+1
+```
+The `[Unreleased]` compare base stays `v0.9.2` (D-04).
+
+```
+$ sed -n 7p pyproject.toml
+version = "0.9.2"
+```
+
+```
+$ awk '/^## \[0\.9\.2\]/{exit} f; /^## \[Unreleased\]/{f=1}' CHANGELOG.md | grep -E '^### '
+### Changed
+### Planned for Future Releases
+```
+
+```
+$ awk '/^### Changed$/{exit} f; /^## \[Unreleased\]/{f=1}' CHANGELOG.md | grep -c .
+0
+```
+No lead paragraph under `## [Unreleased]` before `### Changed` (D-04).
+
+```
+$ git status --porcelain typsphinx/ tests/ docs/ .github/ pyproject.toml uv.lock .planning/REQUIREMENTS.md
+(empty)
+```
+
+## Bullet content assertions
+
+The fourth bullet joined into one line with the region extractor from the census:
+
+```markdown
+- **Type annotations in typsphinx's source now use builtin generics (QUA-09, QUA-11, QUA-12, DOC-22, DOC-23).** `typsphinx/` and `tests/` moved off the `typing` aliases `Dict`, `List`, `Set` and `Tuple` onto the builtin `dict`, `list`, `set` and `tuple`, with `Iterator` now imported from `collections.abc` instead; the linter now enforces this style, and the contributor notes in `CLAUDE.md` describe it. The visible effect is in the API reference: it now shows, for example, `dict[str, Any]` where it showed `Dict[str, Any]`. This has no effect on installing or using typsphinx. The Typst output typsphinx generates and its runtime behaviour are unchanged: the `.typ` output is byte-identical across the test-fixture corpus of 167 projects.
+```
+
+BULLET_ID_SPAN = present
+TYPE_EXAMPLE = present
+JAPANESE_SITE_WORDS = 0
+BYTE_IDENTICAL_COUNT = 1
+TEST_TOOL_FIGURES = 0
+BULLET_NUMERALS = 167
+ADJACENCY = OK
+
+The four bullets' first lines, in order (edge: ordering):
+
+```
+- **Contributor tooling returns to `tox-uv` from `tox-uv-bare` (TOX-01, TOX-02, TOX-03, TOX-04).**
+- **Dependabot's Python dependency updates now use the `uv` ecosystem instead of `pip` (DEP-01,
+- **`flake.nix` now provides a NixOS development shell (NIX-01, NIX-02, NIX-03, NIX-04, NIX-05,
+- **Type annotations in typsphinx's source now use builtin generics (QUA-09, QUA-11, QUA-12,
+```
+
+No assertion in this section failed, so the bullet needed no correction and Task 1 step 6 was not
+re-run.
+
+## Discretion exercised
+
+- The lead sentence chosen is "Type annotations in typsphinx's source now use builtin generics" —
+  it carries a verb ("use") rather than a bare noun phrase, matching the `tox-uv` bullet's shape
+  and avoiding the bare-noun-phrase defect `69-REVIEW.md` WR-01 recorded.
+- The evidence sentence cites the project count (167) because that is the leg (d) figure the
+  corpus manifest actually measures — a byte-identical `.typ` output over a named, countable
+  fixture set is a falsifiable claim; a vaguer claim ("the output is unaffected") would not be.
+- `### Verified` and a lead paragraph under `## [Unreleased]` are deliberately absent (D-04): no
+  release has happened yet for either to describe, and the next release-prep phase authors them
+  when it promotes the bullets into a versioned section.
+
+## Docs render — post-edit, clean builds
+
+`rm -rf docs/_build`, then `LC_ALL=C uv run tox -e docs-html` in the foreground:
+
+~~~text docs-html-post-warnings
+21::21: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+43::21: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+417::6: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a1002cdd91840430e/typsphinx/translator.py:docstring of typsphinx.translator.TypstTranslator.visit_toctree:6: WARNING: Block quote ends without a blank line; unexpected unindent. [docutils]
+~~~
+
+```
+build succeeded, 3 warnings.
+```
+DOCS_HTML_WARN_POST = 3
+(equals DOCS_HTML_WARN_BASE)
+
+`rm -rf docs/_build`, then `LC_ALL=C uv run tox -e docs-pdf` in the foreground:
+
+~~~text docs-pdf-post-warnings
+21::21: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+43::21: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+417::6: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a1002cdd91840430e/typsphinx/translator.py:docstring of typsphinx.translator.TypstTranslator.visit_toctree:6: WARNING: Block quote ends without a blank line; unexpected unindent. [docutils]
+WARNING: unknown node type: <doctest_block classes="doctest" xml:space="preserve">>>> compute_content_include_path("", "index.typ")
+'index.typ'
+>>> compute_content_include_path("manuals", "guide/index.typ")
+'../guide/index.typ'
+>>> compute_content_include_path("guide", "guide/index.typ")
+'index.typ'</doctest_block>
+WARNING: unknown node type: <doctest_block classes="doctest" xml:space="preserve">>>> compute_template_import_path("typst", "base.typ")
+'/_template/typst/base.typ'
+>>> compute_template_import_path("report", "custom.typ")
+'/_template/report/custom.typ'</doctest_block>
+~~~
+
+```
+build succeeded, 5 warnings.
+```
+DOCS_PDF_WARN_POST = 5
+(equals DOCS_PDF_WARN_BASE)
+
+```
+$ head -c 5 docs/_build/pdf/typsphinx.pdf
+%PDF-
+```
+
+Both post-edit counts equal their `_BASE` values, with the same set of `WARNING` lines (`diff`
+of the message text between base and post-edit logs, exit 0 for both docs-html and docs-pdf). No
+warning names the changelog page or any other page; the halt rule of Task 1 step 6 did not fire.
+
+`scripts/extract_changelog_section.py` was not run at any point in this plan. Only `CHANGELOG.md`
+and this evidence file changed under version control (plus this phase's own `71-01-SUMMARY.md`,
+written after both tasks complete).
