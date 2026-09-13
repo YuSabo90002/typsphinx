@@ -1,21 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.9.4
-milestone_name: Typing Modernization
-status: Awaiting next milestone
-stopped_at: Milestone v0.9.4 completed and archived — merged to main via PR #145 (383a07e9), nothing published
-last_updated: "2026-09-13T10:12:57.000Z"
+milestone: v0.9.5
+milestone_name: Docs Link Check and Navigation
+status: planning
+last_updated: "2026-09-13T10:30:52.780Z"
 last_activity: 2026-09-13
-last_activity_desc: Milestone v0.9.4 completed, merged to main via PR #145 and archived — no tag, no PyPI, no Release
-state_head: 383a07e970766e9edd57694e6f85a1643e0d0369
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 20
-  completed_plans: 20
-  percent: 100
-current_phase: 71
-current_phase_name: v0.9.4 Close Prep (prep-only, unpublished)
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,7 +20,7 @@ current_phase_name: v0.9.4 Close Prep (prep-only, unpublished)
 See: .planning/PROJECT.md (updated 2026-09-13 — full evolution review at the v0.9.4 close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** none — v0.9.4 completed 2026-09-13 and merged to `main` via PR #145, nothing published; awaiting `/gsd-new-milestone`
+**Current focus:** v0.9.5 Docs Link Check and Navigation — defining requirements (QUA-08 weekly advisory linkcheck, DOC-18 root toctree dedup; merge-only, unpublished); phases start at 72
 
 ## Shipped Milestone (v0.9.4 — archived, merged to `main`, NOT published)
 
@@ -227,10 +222,10 @@ land here.
 
 ## Current Position
 
-Phase: Milestone v0.9.4 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-09-13 — Milestone v0.9.4 completed, merged to `main` via PR #145 and archived
+Status: Defining requirements
+Last activity: 2026-09-13 — Milestone v0.9.5 started
 
 ## Shipped Milestone (v0.9.0 — archived)
 
@@ -1218,8 +1213,8 @@ Items acknowledged and carried forward from milestone closes:
 
 Last session: 2026-09-13
 Stopped at: Milestone v0.9.4 completed, merged to `main` via PR #145 (`383a07e9`) and archived — nothing published
-Resume: `/gsd-new-milestone`. This milestone's phase directories are under
-`.planning/milestones/v0.9.4-phases/`; `71-HANDOFF.md` there records the close procedure that ran.
+Resume: `/gsd-new-milestone` for v0.9.5 is in progress (requirements → roadmap). v0.9.4's phase
+directories are under `.planning/milestones/v0.9.4-phases/`; `71-HANDOFF.md` there records its close.
 
 ## Operator Next Steps
 
