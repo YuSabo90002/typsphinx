@@ -22,7 +22,8 @@ affects: [70-09 (the ignore-flip plan), 70-10/70-11 (repo-wide gates)]
 actuals:
   tokens: 3937
   tasks: 2
-  commits: 3
+  commits: 5
+plan_head_before: 6d75e9d5b9254be7f3ff3712b61878a7ae85d332
 
 # Tech tracking
 tech-stack:
