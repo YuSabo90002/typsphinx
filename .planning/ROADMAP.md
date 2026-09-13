@@ -334,14 +334,14 @@ CI dispatch on the post-flip tip.
      individually and green, and `ruff`'s verdict taken from the **`Lint and Format Check`** job
      (step `Run lint with tox`), not from this machine (milestone invariant #5; constraint 8).
 
-**Plans**: 13 plans in 6 waves
+**Plans**: 3/13 plans executed (6 waves)
 
 Plans:
 **Wave 1**
 
-- [ ] 70-01-PLAN.md — DOC-22: rewrite CLAUDE.md:75 as an annotation-style instruction (wave 1)
-- [ ] 70-02-PLAN.md — baseline: PHASE_BASE_SHA, fresh UP006/UP035 census, SC#2 counts, legs (b)/(e) before (wave 1)
-- [ ] 70-03-PLAN.md — baseline: leg (d) corpus pilot, manifest and cross-path control; DOC-23 docs manifests (wave 1)
+- [x] 70-01-PLAN.md — DOC-22: rewrite CLAUDE.md:75 as an annotation-style instruction (wave 1)
+- [x] 70-02-PLAN.md — baseline: PHASE_BASE_SHA, fresh UP006/UP035 census, SC#2 counts, legs (b)/(e) before (wave 1)
+- [x] 70-03-PLAN.md — baseline: leg (d) corpus pilot, manifest and cross-path control; DOC-23 docs manifests (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -448,7 +448,7 @@ below tracks the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 70. Typing Modernization and Its Behaviour-Identity Evidence | v0.9.4 | 0/13 | Not started | - |
+| 70. Typing Modernization and Its Behaviour-Identity Evidence | v0.9.4 | 3/13 | In Progress | - |
 | 71. v0.9.4 Close Prep (prep-only, unpublished) | v0.9.4 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution

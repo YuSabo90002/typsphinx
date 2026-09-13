@@ -4,17 +4,17 @@ milestone: v0.9.4
 milestone_name: Typing Modernization
 current_phase: 70
 current_phase_name: Typing Modernization and Its Behaviour-Identity Evidence
-status: planning
-stopped_at: Phase 70 planned (13 plans, 6 waves)
-last_updated: "2026-09-13T04:14:40.000Z"
+status: executing
+stopped_at: Phase 70 executing — wave 1 merged (3/13), wave 2 (70-04) dispatched
+last_updated: "2026-09-13T04:25:00.000Z"
 last_activity: 2026-09-13
-last_activity_desc: Phase 70 planned — research, pattern map, D-11 amended (owner option (a)), 13 plans in 6 waves; plan-checker passed; decision coverage 11/11
-state_head: be564c958c96171ce108550ac0d87c6b281868ec
+last_activity_desc: Phase 70 wave 1 merged — CLAUDE.md:75 rewritten, baseline (113 UP findings, 1547 passed/1 skipped) and corpus/docs base recorded; post-merge gate green; wave 2 (70-04 tracer + mask pilot) dispatched
+state_head: 697a113221a8a267d7e8c6dd1f2b95672f9454d2
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 13
-  completed_plans: 0
+  completed_plans: 3
   percent: 0
 ---
 
@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-13 — v0.9.4 Current Milestone scoped after the v0.9.3 close review)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** v0.9.4 Typing Modernization — **roadmapped, Phases 70–71, 6/6 v1 requirements mapped**. Drop the `UP006`/`UP035` ruff ignores and move `typsphinx/` + `tests/` onto builtin generics, with behaviour evidenced unchanged by five measurements; the only visible change is API-reference type text. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`); the branch merges to `main` via a PR at `/gsd-complete-milestone` (REL-13). Next action: `/gsd-execute-phase 70` (13 plans in 6 waves, planned 2026-09-13).
+**Current focus:** v0.9.4 Typing Modernization — **roadmapped, Phases 70–71, 6/6 v1 requirements mapped**. Drop the `UP006`/`UP035` ruff ignores and move `typsphinx/` + `tests/` onto builtin generics, with behaviour evidenced unchanged by five measurements; the only visible change is API-reference type text. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`); the branch merges to `main` via a PR at `/gsd-complete-milestone` (REL-13). Phase 70 executing (13 plans in 6 waves; wave 1 dispatched 2026-09-13).
 
 ## Shipped Milestone (v0.9.3 — archived, merged to `main`, NOT published)
 
@@ -195,9 +195,9 @@ land here.
 ## Current Position
 
 Phase: 70 — Typing Modernization and Its Behaviour-Identity Evidence
-Plan: 0 of 13 complete (70-01..70-13 planned in 6 waves)
-Status: Ready to execute
-Last activity: 2026-09-13 — Phase 70 planned (research, pattern map, D-11 amended, 13 plans; plan-checker passed)
+Plan: 3 of 13 complete (wave 1 merged; wave 2 of 6 executing: 70-04)
+Status: Executing Phase 70
+Last activity: 2026-09-13 — Phase 70 wave 1 merged, post-merge gate green (1547 passed, 1 skipped; ruff/black/mypy clean); wave 2 dispatched
 
 Progress: [░░░░░░░░░░] 0% (0/2 phases)
 
