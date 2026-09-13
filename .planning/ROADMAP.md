@@ -432,13 +432,13 @@ stands in for the deleted entries.
 
      (Milestone invariant #5; constraints 2, 3, 6.)
 
-**Plans**: 6 plans (4 waves)
+**Plans**: 2/6 plans executed (4 waves)
 
 Plans:
 **Wave 1**
 
-- [ ] 72-01-PLAN.md — base: PHASE_BASE_SHA, clean base HTML and Typst builds with positive control, phase-head reads; then the DOC-18 edit and todo move (wave 1)
-- [ ] 72-02-PLAN.md — QUA-13: add [testenv:linkcheck] and pass it on a clean run under D-01..D-03 (wave 1)
+- [x] 72-01-PLAN.md — base: PHASE_BASE_SHA, clean base HTML and Typst builds with positive control, phase-head reads; then the DOC-18 edit and todo move (wave 1)
+- [x] 72-02-PLAN.md — QUA-13: add [testenv:linkcheck] and pass it on a clean run under D-01..D-03 (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -540,7 +540,7 @@ below tracks the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 72. `tox -e linkcheck` and Root Toctree Deduplication | v0.9.5 | 0/TBD | Not started | - |
+| 72. `tox -e linkcheck` and Root Toctree Deduplication | v0.9.5 | 2/6 | In Progress | - |
 | 73. v0.9.5 Close Prep (prep-only, unpublished) | v0.9.5 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
