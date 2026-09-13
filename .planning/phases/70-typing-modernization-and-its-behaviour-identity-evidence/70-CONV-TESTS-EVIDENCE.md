@@ -301,3 +301,105 @@ All three pairs are equal.
 TESTS_MASK = EQUAL
 
 No HALT needed.
+
+## Leg (c) census
+
+Over `git diff "$PHASE_BASE_SHA" HEAD` for the three files, with headers and blank lines
+excluded:
+
+```
+$ git diff 697a113221a8a267d7e8c6dd1f2b95672f9454d2 HEAD -- tests/conftest.py tests/test_bundle_layout_sweep_gate.py tests/test_include_edge_derivation_unit.py --stat
+ tests/conftest.py                          | 4 ++--
+ tests/test_bundle_layout_sweep_gate.py     | 9 ++++-----
+ tests/test_include_edge_derivation_unit.py | 3 +--
+ 3 files changed, 7 insertions(+), 9 deletions(-)
+```
+Per-file added+removed line counts: `tests/conftest.py` 2+2, `tests/test_bundle_layout_sweep_gate.py`
+5+4, `tests/test_include_edge_derivation_unit.py` 1+2 (matching the full diff quoted above under
+`## Conversion`).
+
+```
+$ git diff "$B" HEAD -- $P | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)( |$)' | grep -vE '^[+-][[:space:]]*$' \
+    | grep -cvE '(Dict|List|Set|Tuple|Iterator|dict|list|set|tuple|typing|collections\.abc)'
+0
+```
+
+NON_TYPING_LINES_70_08 = 0
+(every changed non-blank line carries a typing name)
+
+```
+$ git diff "$B" HEAD -- $P | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)( |$)' | grep -cw assert
+0
+```
+
+ASSERT_LINES_70_08 = 0
+(no changed line contains the word `assert`)
+
+```
+$ git diff --quiet 697a113221a8a267d7e8c6dd1f2b95672f9454d2 HEAD -- tests/test_authors_pipeline_stage_gate.py; echo "exit:$?"
+exit:0
+$ sed -n 515p tests/test_authors_pipeline_stage_gate.py
+        if isinstance(node, ast.Return) and isinstance(node.value, ast.Dict):
+```
+`tests/test_authors_pipeline_stage_gate.py` (the file whose `ast.Dict` at line 515 must stay
+byte-identical) is untouched by this plan's conversion, confirmed by an empty diff, and line 515
+still contains `ast.Dict`.
+
+## Gates
+
+```
+$ uv run black --check tests/conftest.py tests/test_bundle_layout_sweep_gate.py tests/test_include_edge_derivation_unit.py
+All done! ✨ 🍰 ✨
+3 files would be left unchanged.
+exit:0
+```
+
+```
+$ uv run ruff check .
+All checks passed!
+exit:0
+```
+Repo-wide, config-rule ruff is clean — the still-present `UP006`/`UP035` ignores mean this check
+does not itself re-verify the three converted files' UP006/UP035 cleanliness (Task 1 already did,
+with `--select` explicitly overriding the ignores); it confirms the conversion introduced no other
+config-rule violation anywhere in the repo, and that the parallel wave-3 siblings' in-flight
+changes (invisible to this worktree) do not affect this check.
+
+```
+$ uv run mypy typsphinx/ 2>/dev/null
+Success: no issues found in 9 source files
+exit:0
+```
+
+MYPY_STDOUT_SHA256_70_08 = 46984ca20bf69f7b14ec1fd9bd82101d56a4e109e68f016fd2a04f22481b09b3
+(stdout only, stderr excluded per Pitfall 7 — equal to `MYPY_STDOUT_SHA256_BEFORE`)
+
+```
+$ LC_ALL=C uv run pytest --collect-only -q -p no:cacheprovider 2>/dev/null | grep -oE '[0-9]+ tests? collected' | grep -oE '^[0-9]+'
+1548
+```
+
+PYTEST_COLLECTED_70_08 = 1548
+(equal to `PYTEST_COLLECTED_BEFORE`)
+
+```
+$ LC_ALL=C uv run pytest -q -rs -p no:cacheprovider; echo "exit:$?"
+...
+tests/test_xref_whole_document_guard_render_gate.py ........             [100%]
+
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_corpus_gate.py:530: SC#3 before/after measurement is env-gated -- set TYPSPHINX_CORPUS_REPORT=1 to run it (RESEARCH Open Question 1)
+================= 1547 passed, 1 skipped in 133.52s (0:02:13) ==================
+exit:0
+```
+
+PYTEST_RESULT_70_08 = 1547 passed 1 skipped
+(equal to `PYTEST_RESULT_BEFORE`; 1547 + 1 = 1548 = `PYTEST_COLLECTED_70_08`, confirmed)
+
+Both leg (e) (mypy) and leg (b) (pytest) are unchanged from base: the conversion altered no
+type-checking outcome and no test outcome. Combined with leg (a) (`TESTS_MASK = EQUAL`) and this
+section's leg (c) census (`NON_TYPING_LINES_70_08 = 0`, `ASSERT_LINES_70_08 = 0`), the three
+remaining `tests/` files are proven structurally identical to base under the mask, with no
+assertion touched and no runtime-behaviour or test-outcome change.
+
+No HALT needed.
