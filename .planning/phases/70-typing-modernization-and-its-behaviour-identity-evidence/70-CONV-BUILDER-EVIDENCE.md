@@ -157,3 +157,76 @@ dd763862e7a610157eab1ee2c4ba675e1801d09e27e9bb3b8c614495522165e4
 Both hashes are 64-character hex digests and are equal.
 
 BUILDER_MASK = EQUAL
+
+## Changed-line census
+
+Over `git diff "$PHASE_BASE_SHA" HEAD -- typsphinx/builder.py`, with diff headers (`+++`/`---`) and
+blank added/removed lines excluded:
+
+```
+$ git diff 697a113221a8a267d7e8c6dd1f2b95672f9454d2 HEAD -- typsphinx/builder.py | grep -E '^[+-]' \
+    | grep -vE '^(\+\+\+|---)( |$)' | grep -vE '^[+-][[:space:]]*$' \
+    | grep -cvE '(Dict|List|Set|Tuple|Iterator|dict|list|set|tuple|typing|collections\.abc)'
+0
+```
+
+NON_TYPING_LINES_70_05 = 0
+(every non-blank changed line carries a typing name)
+
+```
+$ git diff 697a113221a8a267d7e8c6dd1f2b95672f9454d2 HEAD -- typsphinx/builder.py | grep -E '^[+-]' \
+    | grep -vE '^(\+\+\+|---)( |$)' | grep -cwE 'assert|@preview'
+0
+```
+No changed line contains `assert` or `@preview`.
+
+## Gates
+
+```
+$ uv run black --check typsphinx/builder.py
+All done! ✨ 🍰 ✨
+1 file would be left unchanged.
+exit:0
+```
+
+```
+$ uv run ruff check .
+All checks passed!
+exit:0
+```
+Repo-wide, config-rule ruff is clean — the still-present `UP006`/`UP035` ignores mean this check
+does not itself re-verify `builder.py`'s UP006/UP035 cleanliness (Task 1 already did, with
+`--select` explicitly overriding the ignores); it confirms the conversion introduced no other
+config-rule violation anywhere in the repo, including in the other three wave-3 siblings'
+in-flight, uncommitted-to-this-branch changes (not visible from this worktree).
+
+```
+$ uv run mypy typsphinx/ 2>/dev/null
+Success: no issues found in 9 source files
+```
+
+MYPY_STDOUT_SHA256_70_05 = 46984ca20bf69f7b14ec1fd9bd82101d56a4e109e68f016fd2a04f22481b09b3
+(stdout only, stderr excluded — equal to `MYPY_STDOUT_SHA256_BEFORE`)
+
+```
+$ LC_ALL=C uv run pytest -q -rs -p no:cacheprovider > pytest_out.txt 2>&1; echo "exit:$?"
+exit:0
+$ tail -n 1 pytest_out.txt
+================= 1547 passed, 1 skipped in 131.92s (0:02:11) ==================
+```
+
+PYTEST_RESULT_70_05 = 1547 passed 1 skipped
+(from the same `grep -oE '[0-9]+ (passed|failed|skipped|errors?|xfailed|xpassed)' | paste -sd' '`
+extraction 70-02 used — equal to `PYTEST_RESULT_BEFORE`)
+
+Both leg (e) (mypy) and leg (b) (pytest) are unchanged from base: the conversion altered no runtime
+behaviour, no type-checking outcome, and no test outcome.
+
+`git diff --name-only BASE_70_05 HEAD` (quoted verbatim):
+```
+.planning/phases/70-typing-modernization-and-its-behaviour-identity-evidence/70-CONV-BUILDER-EVIDENCE.md
+typsphinx/builder.py
+```
+Only this plan's two declared files changed (the SUMMARY is added and committed after this
+evidence file, per the plan's own `<output>` step) — confirming isolation from the three
+file-disjoint wave-3 siblings (70-06, 70-07, 70-08).
