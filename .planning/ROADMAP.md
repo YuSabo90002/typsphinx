@@ -440,7 +440,7 @@ constraint 10's checksum fence is what keeps it there.
      the merge: the merge commit on `origin/main`, `pyproject.toml` still `0.9.2`, no `v0.9.4` tag,
      PyPI 404 for `0.9.4`, and no `v0.9.4` Release.
 
-**Plans**: 2/7 plans executed (4 waves)
+**Plans**: 5/7 plans executed (4 waves)
 
 Plans:
 **Wave 1**
@@ -450,9 +450,9 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 71-03-PLAN.md — local green-tree proof: full suite twice (once under LC_ALL=C), format/type/lint, version sync, zero-skip changelog gate, clean docs (wave 2)
-- [ ] 71-04-PLAN.md — decoy census, fast-forward push, one CI dispatch, 12-job transcript and ruff verdict from Lint and Format Check (wave 2)
-- [ ] 71-05-PLAN.md — non-committing trial merge of origin/main with merged lock and lint, main protection, merge-method precedent and open-PR census (wave 2)
+- [x] 71-03-PLAN.md — local green-tree proof: full suite twice (once under LC_ALL=C), format/type/lint, version sync, zero-skip changelog gate, clean docs (wave 2)
+- [x] 71-04-PLAN.md — decoy census, fast-forward push, one CI dispatch, 12-job transcript and ruff verdict from Lint and Format Check (wave 2)
+- [x] 71-05-PLAN.md — non-committing trial merge of origin/main with merged lock and lint, main protection, merge-method precedent and open-PR census (wave 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -477,7 +477,7 @@ below tracks the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 70. Typing Modernization and Its Behaviour-Identity Evidence | v0.9.4 | 13/13 | Complete | 2026-09-13 |
-| 71. v0.9.4 Close Prep (prep-only, unpublished) | v0.9.4 | 2/7 | In Progress | - |
+| 71. v0.9.4 Close Prep (prep-only, unpublished) | v0.9.4 | 5/7 | In Progress | - |
 
 ## Roadmap Evolution
 
