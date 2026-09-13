@@ -131,6 +131,18 @@ None - no external service configuration required.
 
 This plan's conversion is one of four file-disjoint wave-3 conversions (alongside 70-05 `builder.py`, 70-07 `writer.py`/`__init__.py`, 70-08 the three test-gate files). `template_engine.py` and `template_registry.py` are lint-green under both the scoped `UP006`/`UP035` selection and the full ruff config, structurally unchanged under the masked-AST proof, and behaviour-identical on mypy and the full pytest suite. Ready for 70-09's ignore-flip once all four wave-3 plans land.
 
+## Self-Check: PASSED
+
+- `typsphinx/template_engine.py` — FOUND
+- `typsphinx/template_registry.py` — FOUND
+- `70-CONV-TEMPLATE-EVIDENCE.md` — FOUND
+- `70-06-SUMMARY.md` — FOUND
+- Commit `a7f35d33` — FOUND
+- Commit `0fec0268` — FOUND
+- Commit `6e529253` — FOUND
+- Commit `cf705ee8` — FOUND
+- All Task 1 and Task 2 acceptance criteria re-verified passing (see automated verify runs above)
+
 ---
 *Phase: 70-typing-modernization-and-its-behaviour-identity-evidence*
 *Completed: 2026-09-13*
