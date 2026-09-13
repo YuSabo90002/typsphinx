@@ -34,6 +34,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   systems evaluate under this shell but remain unverified. `CLAUDE.md`'s contributor notes, the
   `tox.ini` comment and the `flake.nix` header now describe the mechanism.
 
+- **Type annotations in typsphinx's source now use builtin generics (QUA-09, QUA-11, QUA-12,
+  DOC-22, DOC-23).** `typsphinx/` and `tests/` moved off the `typing` aliases `Dict`, `List`,
+  `Set` and `Tuple` onto the builtin `dict`, `list`, `set` and `tuple`, with `Iterator` now
+  imported from `collections.abc` instead; the linter now enforces this style, and the
+  contributor notes in `CLAUDE.md` describe it. The visible effect is in the API reference: it
+  now shows, for example, `dict[str, Any]` where it showed `Dict[str, Any]`. This has no effect
+  on installing or using typsphinx. The Typst output typsphinx generates and its runtime
+  behaviour are unchanged: the `.typ` output is byte-identical across the test-fixture corpus of
+  167 projects.
+
 ### Planned for Future Releases
 - BibTeX/bibliography support
 - Glossary generation
