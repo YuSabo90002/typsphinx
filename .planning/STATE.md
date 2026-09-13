@@ -6,7 +6,7 @@ status: Awaiting next milestone
 stopped_at: Milestone v0.9.3 completed and archived — merged to main via PR #143 (58d578f2), nothing published
 last_updated: "2026-09-13T00:40:00.000Z"
 last_activity: 2026-09-13
-last_activity_desc: Milestone v0.9.3 completed, merged to main via PR #143 and archived — no tag, no PyPI, no Release
+last_activity_desc: Completed quick task 260913-e7n — Issue #91 closed as not reproducible on 0.9.2
 state_head: 58d578f20cc568e54b3e2aacbba87f34b4ebc0d9
 progress:
   total_phases: 6
@@ -197,7 +197,7 @@ land here.
 Phase: Milestone v0.9.3 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-09-13 — Milestone v0.9.3 completed, merged to `main` via PR #143 and archived
+Last activity: 2026-09-13 - Completed quick task 260913-e7n: Close Issue #91 as not reproducible on 0.9.2
 
 ## Shipped Milestone (v0.9.0 — archived)
 
@@ -891,6 +891,12 @@ words like "layout", "page", and "render". Same for `api-coverage.verify-pre` fa
 prose describing compile/render/API-read evidence (three recorded overrides in v0.6.4). GATE-01
 note: honest-verifier — abstain to `human_needed` rather than assert a truth without direct
 evidence.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260913-e7n | Close Issue #91 (autoapi footnote / signature stray `+`) as not reproducible on 0.9.2 — live re-measured (same- and cross-document variants, negative control, `typsphinx/` unchanged since v0.9.2), one comment posted, closed as completed | 2026-09-13 | 1606fd94 | [260913-e7n-close-issue-91-autoapi-footnote-signatur](./quick/260913-e7n-close-issue-91-autoapi-footnote-signatur/) |
 
 ### Roadmap Evolution
 
