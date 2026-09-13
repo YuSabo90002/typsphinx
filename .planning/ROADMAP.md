@@ -407,6 +407,13 @@ constraint 10's checksum fence is what keeps it there.
      `scripts/extract_changelog_section.py` is not run for any new section. The CHANGELOG page gate
      runs with **zero skipped** in an environment carrying the `docs` extra.
 
+     *AMENDED 2026-09-13 (Phase 71 discussion, owner decision; see REQUIREMENTS.md REL-13 and
+     `71-CONTEXT.md` D-02).* The bullet does **not** note the `ja` translation catalogs, and it names
+     no Japanese-site mechanism. `update-pin.yml` in `typsphinx-doc-translations` runs daily and
+     follows `main`, not releases, and the ja API reference is untranslated (0/668 msgids), so the
+     sentence would be inaccurate and would add nothing. The bullet carries one evidence sentence:
+     emitted Typst output is unchanged, with byte-identical `.typ` output over the test-fixture corpus.
+
   3. **The tree is proven green on runs executed in this phase, including against `main` as it
      stands at close.** Proof comes from this phase's own runs, not a prior phase's word. Full pytest
      suite (once more under `LC_ALL=C`, since CI runs in English), `black --check .`,

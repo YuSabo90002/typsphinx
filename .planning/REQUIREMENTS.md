@@ -23,6 +23,16 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 
 - [ ] **REL-13**: Close prep only, unpublished: one CHANGELOG bullet under the existing `## [Unreleased]`, in the register of the three bullets already there, naming the API-reference type-text change and noting that the ja translation catalogs pick it up at the next published release; `pyproject.toml` stays `0.9.2`; no tag, no PyPI upload, no GitHub Release. The milestone branch is merged to `main` through a PR, as v0.9.3's REL-12 was. This checkbox is checked only at `/gsd-complete-milestone`, on the observed merge — never by phase-completion tooling.
 
+  *AMENDED 2026-09-13 (Phase 71 discussion, owner decision; `71-CONTEXT.md` D-02).* The clause
+  "noting that the ja translation catalogs pick it up at the next published release" is withdrawn,
+  and the bullet names no Japanese-site mechanism. Measured: `typsphinx-doc-translations`'
+  `update-pin.yml` runs on a daily `schedule` and advances its submodule pin to `main`'s tip
+  regardless of releases. The ja `latest` site therefore follows `main` within about a day, not at a
+  release. `locale/ja/LC_MESSAGES/api/index.po` has 0 of 668 msgids translated, so the ja API reference
+  shows the same English type text. The Out of Scope row's "at the next published release" timing is
+  wrong for the same reason. Every other part of REL-13 stands, including when this checkbox is
+  checked.
+
 ## Future Requirements
 
 Deferred. Tracked but not in this roadmap.

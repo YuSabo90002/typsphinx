@@ -5,10 +5,10 @@ milestone_name: Typing Modernization
 current_phase: 71
 current_phase_name: v0.9.4 Close Prep (prep-only, unpublished)
 status: planning
-stopped_at: Phase 70 complete, ready to plan Phase 71
-last_updated: "2026-09-13T06:50:51.841Z"
+stopped_at: Phase 71 context gathered
+last_updated: "2026-09-13T07:10:00.000Z"
 last_activity: 2026-09-13
-last_activity_desc: Phase 70 complete, transitioned to Phase 71
+last_activity_desc: Phase 71 context gathered (71-CONTEXT.md; REL-13 / SC#2 AMENDED)
 state_head: 5e5866792921419da8fbe09fc82e973cf03a0e71
 progress:
   total_phases: 2
@@ -196,8 +196,8 @@ land here.
 
 Phase: 71 — v0.9.4 Close Prep (prep-only, unpublished)
 Plan: Not started
-Status: Ready to plan
-Last activity: 2026-09-13 — Phase 70 complete, transitioned to Phase 71
+Status: Ready to plan (context gathered: `phases/71-v0-9-4-close-prep-prep-only-unpublished/71-CONTEXT.md`)
+Last activity: 2026-09-13 — Phase 71 context gathered; REL-13 and ROADMAP SC#2 carry an AMENDED block dropping the ja-catalog clause
 
 Progress: [█████░░░░░] 50% (1/2 phases)
 
