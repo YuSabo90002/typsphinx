@@ -468,3 +468,35 @@ This verdict is on the merits of the CI run itself: the phase's tip is proven gr
 three-OS run, matching Phase 70's job shape, with ruff green in `Lint and Format Check`. It is
 independent of, and does not resolve, the `DISPATCH_COUNT = 2` procedural discrepancy recorded
 above, which is a separate open item for the human/orchestrator.
+
+## AMENDED 2026-09-13 — dispatch count (owner decision, orchestrator addendum)
+
+Appended by the execute-phase orchestrator after wave 2 merged. Everything above this section is
+the 71-04 executor's record and is left unchanged, including its `DISPATCH_COUNT = 2`.
+
+The owner chose to keep the GitHub Actions history (no `gh run delete`) and to read the plan's
+"exactly one `workflow_dispatch` run at `PUSHED_SHA`" check as follows: exactly one run at
+`PUSHED_SHA` concluded `success`, and it is `RUN_ID`; the only other run at `PUSHED_SHA` is
+`34748491771`, created by a retry after `HTTP 500`/`HTTP 502` responses from the dispatch API and
+then cancelled. No job of that run failed, so the cited green run masks no red one, and no dispatch
+was issued after `RUN_ID` was observed.
+
+Measured by the orchestrator:
+
+```
+$ gh run list --workflow=ci.yml --branch gsd/v0.9.4-typing-modernization --event workflow_dispatch --limit 50 --json databaseId,headSha,status,conclusion,createdAt --jq '[.[] | select(.headSha == "7a42bf996b1aaca24a8b17346be78459e6d41e2b")]'
+[{"conclusion":"cancelled","createdAt":"2026-09-13T08:47:58Z","databaseId":34748491771,"headSha":"7a42bf996b1aaca24a8b17346be78459e6d41e2b","status":"completed"},{"conclusion":"success","createdAt":"2026-09-13T08:47:28Z","databaseId":34748483361,"headSha":"7a42bf996b1aaca24a8b17346be78459e6d41e2b","status":"completed"}]
+$ gh run view 34748491771 --json jobs --jq '[.jobs[] | select(.conclusion != "success" and .conclusion != "cancelled")] | length'
+0
+```
+
+AMENDED_AT = 2026-09-13T09:08:06Z
+SUCCESS_RUNS_AT_PUSHED = 1
+CANCELLED_SURPLUS_RUN = 34748491771
+SURPLUS_RUN_FAILED_JOBS = 0
+DISPATCH_COUNT_VERDICT = AMENDED-MET
+
+Consequence for later checks: the verify of 71-04 Task 2 and the verify of 71-06 Task 1 each
+assert a literal count of 1 and return 2. Those two assertions fail for this recorded reason only.
+Plan 71-06 records the same reading as a deviation rather than editing its plan, and `71-HANDOFF.md`
+carries it forward.
