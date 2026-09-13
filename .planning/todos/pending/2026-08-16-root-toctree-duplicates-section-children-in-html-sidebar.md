@@ -3,6 +3,7 @@ created: 2026-08-16T14:05:00Z
 title: "The root `index.rst` lists section indexes AND their children in the same toctree, so the HTML sidebar shows Configuration / Builders / Templates twice — once nested under User Guide, once as its siblings, both pointing at the same pages"
 area: docs
 severity: minor
+resolves_phase: 72
 files:
 
   - docs/source/index.rst:41-48   # the "User Guide" toctree
