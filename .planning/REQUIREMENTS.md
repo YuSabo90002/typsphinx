@@ -53,18 +53,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| QUA-09 | — | Pending |
-| QUA-11 | — | Pending |
-| QUA-12 | — | Pending |
-| DOC-22 | — | Pending |
-| DOC-23 | — | Pending |
-| REL-13 | — | Pending |
+| QUA-09 | Phase 70 | Pending |
+| QUA-11 | Phase 70 | Pending |
+| QUA-12 | Phase 70 | Pending |
+| DOC-22 | Phase 70 | Pending |
+| DOC-23 | Phase 70 | Pending |
+| REL-13 | Phase 71 | Pending — coverage only; checked at `/gsd-complete-milestone` on the observed merge, never by phase-completion tooling |
 
 **Coverage:**
 - v1 requirements: 6 total
-- Mapped to phases: 0 (filled by the roadmapper)
-- Unmapped: 6
+- Mapped to phases: 6 (Phase 70: 5 — QUA-09, QUA-11, QUA-12, DOC-22, DOC-23; Phase 71: 1 — REL-13)
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-09-13*
-*Last updated: 2026-09-13 after initial definition*
+*Last updated: 2026-09-13 after roadmap creation (Phases 70–71, 6/6 mapped)*

@@ -3,10 +3,10 @@ gsd_state_version: "1.0"
 milestone: v0.9.4
 milestone_name: Typing Modernization
 status: planning
-last_updated: "2026-09-13T01:49:39.562Z"
+last_updated: "2026-09-13T02:17:07.000Z"
 last_activity: 2026-09-13
 progress:
-  total_phases: 0
+  total_phases: 2
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,10 +17,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-09-13 — full evolution review at the v0.9.3 close)
+See: .planning/PROJECT.md (updated 2026-09-13 — v0.9.4 Current Milestone scoped after the v0.9.3 close review)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** v0.9.4 Typing Modernization — defining requirements (research first); phases start at 70
+**Current focus:** v0.9.4 Typing Modernization — **roadmapped, Phases 70–71, 6/6 v1 requirements mapped**. Drop the `UP006`/`UP035` ruff ignores and move `typsphinx/` + `tests/` onto builtin generics, with behaviour evidenced unchanged by five measurements; the only visible change is API-reference type text. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`); the branch merges to `main` via a PR at `/gsd-complete-milestone` (REL-13). Next action: `/gsd-plan-phase 70` after the roadmap is approved.
 
 ## Shipped Milestone (v0.9.3 — archived, merged to `main`, NOT published)
 
@@ -189,10 +189,48 @@ land here.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 70 — Typing Modernization and Its Behaviour-Identity Evidence (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-09-13 — Milestone v0.9.4 started
+Status: Ready to plan (roadmap awaiting owner approval)
+Last activity: 2026-09-13 — v0.9.4 roadmap created (Phases 70–71, 6/6 requirements mapped)
+
+Progress: [░░░░░░░░░░] 0% (0/2 phases)
+
+## Active Milestone (v0.9.4 — Typing Modernization)
+
+Full phase detail, the 13 binding constraints and every success criterion:
+[ROADMAP.md](ROADMAP.md) § "🚧 v0.9.4 — Typing Modernization (ACTIVE)". Requirements and
+traceability: [REQUIREMENTS.md](REQUIREMENTS.md). Research: `.planning/research/` (`SUMMARY.md`,
+`STACK.md`, `FEATURES.md`, `ARCHITECTURE.md`, `PITFALLS.md`).
+
+**Goal:** drop the `UP006`/`UP035` ruff ignores and move every `typing.Dict`/`List`/`Set`/`Tuple`
+use in `typsphinx/` and `tests/` onto builtin generics (`Iterator` onto `collections.abc`), with
+runtime behaviour and emitted Typst output evidenced unchanged. The one sanctioned visible change
+is API-reference type text (`Dict[str, Any]` → `dict[str, Any]`).
+
+| Phase | Name | Requirements |
+|-------|------|--------------|
+| 70 | Typing Modernization and Its Behaviour-Identity Evidence | QUA-09, QUA-11, QUA-12, DOC-22, DOC-23 (5) |
+| 71 | v0.9.4 Close Prep (prep-only, unpublished) | REL-13 (1) |
+
+**Orderings inside Phase 70 (owner decision 2026-09-13, research option (a)):** `CLAUDE.md:75`'s
+prohibition rewrite first, worded true both before and after the ignore flip and citing no todo
+path → file-disjoint conversions under the still-present ignores → the `pyproject.toml` ignore
+flip last, with the todo move in the same commit → after-side evidence and the CI dispatch on the
+post-flip tree. Every merged state stays `ruff check .`-green.
+
+**Not published, decided up front.** No tag, no PyPI upload, no GitHub Release; `pyproject.toml`
+stays `0.9.2`; one CHANGELOG bullet under the existing `## [Unreleased]`. REL-13 (the merge PR) is
+checked only at `/gsd-complete-milestone`, on the observed merge, behind Phase 71's checksum fence.
+
+**Measured at roadmap time (2026-09-13):** canonical `gsd/v0.9.4-typing-modernization` at
+`4a6701c7` (`main` + 3, all under `.planning/`), carrying HEAD, **not on `origin`**; no
+`gsd/v0.9.4-milestone` decoy yet (expect one after the next `gsd-tools` commit). `main` =
+`origin/main` = `d14ca458`, whose push-triggered CI run `34730969392` is `success`. That run is
+the pre-conversion code baseline. ruff 0.16.6 (`uv.lock:1257-1258`). Zero open PRs: dependabot
+#139–#142 all merged to `main` on 2026-09-13. No test reads `CLAUDE.md` or the ruff ignore list.
+The todo's `pending/` path is cited in exactly two tracked files outside `.planning/`
+(`CLAUDE.md:75`, `pyproject.toml:128`).
 
 ## Shipped Milestone (v0.9.0 — archived)
 
@@ -585,6 +623,12 @@ archived `milestones/v0.6.4-ROADMAP.md`. Standing process decisions that carry f
 
 ### Pending Todos
 
+**2026-09-13 (v0.9.4 roadmap): six open, one promoted.**
+`2026-07-22-modernize-typing-imports-drop-up006-up035-ignore` is promoted into **Phase 70** (QUA-09,
+QUA-11, QUA-12, DOC-22); it moves to `todos/completed/` in the same commit that removes the
+`pyproject.toml` ignores. The other five stay deferred: NUM-01, MSG-06, the HTML-sidebar toctree
+duplicate, the linkcheck CI job, and TRN-01's `doctest_block`.
+
 **Measured 2026-09-13: six open in `.planning/todos/pending/`.** The sixth was captured 2026-09-13
 (`doctest-block-unhandled-collapses-examples-to-one-line`, **major**): `doctest_block` has no
 translator handler, so `>>>` examples fall through `unknown_visit()` and lose every line break. Found
@@ -895,6 +939,19 @@ evidence.
 
 ### Roadmap Evolution
 
+- **2026-09-13** — v0.9.4 roadmap created: **Phases 70–71**, 6/6 v1 requirements mapped, zero
+  orphans, zero duplicates, continuing numbering from v0.9.3's Phase 69. Two phases at
+  `granularity: standard` (nominally 4–6). That is below the range because the milestone is one
+  mechanical, single-domain rewrite plus its evidence, and research's one-code-phase + close-prep
+  shape was adopted. Baked in: **(a)** DOC-22 and DOC-23 map to Phase 70. DOC-22's rewrite must
+  precede the conversions, which wave order enforces. DOC-23's diff is against Phase 70's
+  pre-conversion base, and Phase 71's whole-file `REQUIREMENTS.md` fence only works where no other
+  checkbox moves. **(b)** The todo move lands in the ignore-flip commit, not with the `CLAUDE.md`
+  rewrite, so the pending path's last reference (`pyproject.toml:128`) and the pending file leave
+  together. **(c)** After-side evidence runs in a wave after the flip, never co-located with what
+  it audits. **(d)** The 3-OS CI run and milestone invariant #5 carry no REQ-ID; they are held by
+  70 SC#5 and 71 SC#3, with `main`'s run `34730969392` as the pre-conversion baseline.
+
 - **2026-09-02** — v0.9.3 roadmap created: **Phases 64–69**, 21/21 v1 requirements mapped, zero
   orphans, zero duplicates, continuing numbering from v0.9.2's Phase 63. Six phases at
   `granularity: standard` (nominally 4–6) — at the top of the range because the milestone contains
@@ -1156,23 +1213,23 @@ Items acknowledged and carried forward from milestone closes:
 ## Session Continuity
 
 Last session: 2026-09-13
-Stopped at: Milestone v0.9.3 completed, merged to `main` via PR #143 (`58d578f2`) and archived — nothing published
-Resume: `/gsd-new-milestone`. This milestone's phase directories are under
-`.planning/milestones/v0.9.3-phases/`; `69-HANDOFF.md` there records the close procedure that ran.
+Stopped at: v0.9.4 roadmap created (Phases 70–71, 6/6 requirements mapped); awaiting owner approval and commit
+Resume: `/gsd-plan-phase 70` once the roadmap is approved. Phase 70's first wave is the `CLAUDE.md:75`
+rewrite, which must land before any conversion plan runs.
 
 ## Operator Next Steps
 
-- **Start the next milestone with `/gsd-new-milestone`.** Phase numbering continues at **70**.
-  `0.9.3` is unclaimed, not decided (69 D-11): the next release-prep phase promotes the
-  `## [Unreleased]` bullets into its own versioned section.
+- **Plan Phase 70 with `/gsd-plan-phase 70`** once the v0.9.4 roadmap is approved. v0.9.4 publishes
+  nothing either. If a later milestone publishes, the v0.9.1 → 0.9.2 precedent points to `0.9.4`
+  with `0.9.3` left unused; that is not decided here.
 
 - **Read the Docs has not been verified since the v0.9.2 close.** The procedure is `63-HANDOFF.md` § 5 in
   `.planning/milestones/v0.9.2-phases/`. `latest` rebuilds from `main` on its own and should now show
   the `## [Unreleased]` bullets. `stable` is unaffected, because nothing was tagged.
 
-- **Four dependabot `uv` PRs are open:** #139 (tox), #140 (sphinx-intl), #141 (pre-commit) and #142
-  (mypy). They target `main` and are ordinary maintenance. Dependabot rebases them onto the new
-  `uv.lock` on its own schedule.
+- **No dependabot PR is open** (measured 2026-09-13 at the v0.9.4 roadmap): #139 (tox), #140
+  (sphinx-intl), #141 (pre-commit) and #142 (mypy) all merged to `main` between 00:31 and 00:59 UTC.
+  Do not merge a `ruff` bump into the milestone branch while Phase 70's conversion is in flight.
 
 - **The main checkout's `.venv` now carries ruff 0.16.6** (from `main`'s #138). It was re-synced with
   `uv sync --extra dev --extra docs` during the close, so the docs extra is still present.
@@ -1180,8 +1237,8 @@ Resume: `/gsd-new-milestone`. This milestone's phase directories are under
 - **`### Known Limitations` is still undecided.** v0.9.3 published nothing, so it did not force the
   question. It stays open for the next release cycle.
 
-- **Milestone branches are not deleted on merge.** `gsd/v0.9.3-toolchain-and-dependency-update-repair`
-  still exists locally and on `origin` at `fec0d6c4`.
+- **Milestone branches are not deleted on merge.** Re-measured at the v0.9.4 roadmap (2026-09-13):
+  `gsd/v0.9.3-toolchain-and-dependency-update-repair` is absent locally and is **absent from `origin`** (`git ls-remote`, with `refs/heads/main` as positive control).
 
 - **Audit tech debt (non-blocking)** is listed in `milestones/v0.9.3-MILESTONE-AUDIT.md`
   `tech_debt:`: 16 items across the six phases, plus milestone-wide debt.
