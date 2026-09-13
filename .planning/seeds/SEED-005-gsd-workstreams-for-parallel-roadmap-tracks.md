@@ -5,6 +5,10 @@ planted: 2026-09-02
 planted_during: v0.9.3 (Toolchain and dependency-update repair) — new-milestone roadmap approval
 trigger_when: when a milestone's roadmap splits into two or more logically independent tracks AND the tracks are long enough that serializing them costs real calendar time
 scope: medium
+audit_acknowledged:
+  milestone: v0.9.3
+  at: 2026-09-13
+  status: dormant
 ---
 
 # SEED-005: Adopt GSD workstreams (`--ws`) so logically independent roadmap tracks can actually be worked in parallel
