@@ -2,6 +2,7 @@
 created: 2026-07-22T23:55:07+09:00
 title: typing の modernize（`UP006`/`UP035` の ignore 解除と組み込みジェネリクスへの書き換え）
 area: source
+resolves_phase: 70
 files:
 
   - pyproject.toml:122 (ruff `[tool.ruff.lint] ignore` の `"UP035",  # typing.Dict/List/Set deprecation (Python 3.10+ support)` 行)
