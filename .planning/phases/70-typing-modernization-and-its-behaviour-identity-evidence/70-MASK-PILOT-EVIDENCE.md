@@ -339,3 +339,80 @@ $ sk < tests/test_include_ledger_removal_gate.py
 CONTROL_IMPORT = DIFFER
 
 Both controls DIFFER from their originals — the mask is not vacuous. No HALT needed.
+
+## Changed-line census
+
+For the two files, over `git diff "$PHASE_BASE_SHA" HEAD`, with diff headers (`+++`/`---`) and
+blank added/removed lines excluded:
+
+```
+$ git diff "$B" HEAD -- $P | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)( |$)' | grep -vE '^[+-][[:space:]]*$' \
+    | grep -cvE '(Dict|List|Set|Tuple|Iterator|dict|list|set|tuple|typing|collections\.abc)'
+0
+```
+
+NON_TYPING_LINES_70_04 = 0
+(every non-blank changed line carries a typing name)
+
+```
+$ git diff "$B" HEAD -- $P | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)( |$)' | grep -cw assert
+0
+```
+
+ASSERT_LINES_70_04 = 0
+(no changed line contains the word `assert`)
+
+```
+$ git diff "$B" HEAD -- $P | grep -E '^[+-]' | grep -F '@preview'
+(empty)
+```
+No changed line contains `@preview`.
+
+```
+$ git diff --quiet "$B" HEAD -- tests/test_authors_pipeline_stage_gate.py; echo "exit:$?"
+exit:0
+```
+`tests/test_authors_pipeline_stage_gate.py` (the file whose `ast.Dict` at line 515 must stay
+byte-identical) is untouched by this plan's conversion, confirmed by an empty diff.
+
+## Gates
+
+```
+$ uv run black --check typsphinx/translator.py tests/test_include_ledger_removal_gate.py
+All done! ✨ 🍰 ✨
+2 files would be left unchanged.
+exit:0
+```
+
+```
+$ uv run ruff check .
+All checks passed!
+exit:0
+```
+Repo-wide, config-rule ruff is clean — the still-present `UP006`/`UP035` ignores mean this check
+does not itself re-verify the two converted files' UP006/UP035 cleanliness (Task 1 already did,
+with `--select` explicitly overriding the ignores); it confirms the conversion introduced no other
+config-rule violation anywhere in the repo.
+
+```
+$ uv run mypy typsphinx/ 2>/dev/null
+Success: no issues found in 9 source files
+```
+
+MYPY_STDOUT_SHA256_70_04 = 46984ca20bf69f7b14ec1fd9bd82101d56a4e109e68f016fd2a04f22481b09b3
+(stdout only, stderr excluded per Pitfall 7 — equal to `MYPY_STDOUT_SHA256_BEFORE`)
+
+```
+$ LC_ALL=C uv run pytest -q -rs -p no:cacheprovider > "$S/pytest.out" 2>&1; echo "exit:$?"
+exit:0
+$ tail -n 1 "$S/pytest.out"
+================= 1547 passed, 1 skipped in 129.06s (0:02:09) ==================
+```
+
+PYTEST_RESULT_70_04 = 1547 passed 1 skipped
+(from the same `grep -oE '[0-9]+ (passed|failed|skipped|errors?|xfailed|xpassed)' | paste -sd' '`
+extraction 70-02 used — equal to `PYTEST_RESULT_BEFORE`)
+
+Both leg (e) (mypy) and leg (b) (pytest) are unchanged from base: the conversion altered no runtime
+behaviour, no type-checking outcome, and no test outcome — closing the gap leg (a) alone leaves open
+(import-list correctness), exactly as the Mask harness section above says it would.
