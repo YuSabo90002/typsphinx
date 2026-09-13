@@ -440,13 +440,13 @@ constraint 10's checksum fence is what keeps it there.
      the merge: the merge commit on `origin/main`, `pyproject.toml` still `0.9.2`, no `v0.9.4` tag,
      PyPI 404 for `0.9.4`, and no `v0.9.4` Release.
 
-**Plans**: 7 plans (4 waves)
+**Plans**: 2/7 plans executed (4 waves)
 
 Plans:
 **Wave 1**
 
-- [ ] 71-01-PLAN.md — the one CHANGELOG bullet under the existing Unreleased heading (D-01..D-04), with clean-build docs baselines before and after (wave 1)
-- [ ] 71-02-PLAN.md — REL-13 closeout-guard baseline, SC#1 observation 1 with the D-11 code freeze at phase head, and COVERAGE.md (wave 1)
+- [x] 71-01-PLAN.md — the one CHANGELOG bullet under the existing Unreleased heading (D-01..D-04), with clean-build docs baselines before and after (wave 1)
+- [x] 71-02-PLAN.md — REL-13 closeout-guard baseline, SC#1 observation 1 with the D-11 code freeze at phase head, and COVERAGE.md (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -477,7 +477,7 @@ below tracks the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 70. Typing Modernization and Its Behaviour-Identity Evidence | v0.9.4 | 13/13 | Complete | 2026-09-13 |
-| 71. v0.9.4 Close Prep (prep-only, unpublished) | v0.9.4 | 0/TBD | Not started | - |
+| 71. v0.9.4 Close Prep (prep-only, unpublished) | v0.9.4 | 2/7 | In Progress | - |
 
 ## Roadmap Evolution
 
