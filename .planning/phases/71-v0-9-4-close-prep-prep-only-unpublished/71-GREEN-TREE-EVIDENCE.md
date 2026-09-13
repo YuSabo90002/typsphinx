@@ -249,3 +249,124 @@ Both `myst_parser` and `typst` are importable in this worktree (confirmed in `##
 and by this run's own zero-skip result), so every build class in the module — the HTML content
 coverage class and the PDF include-compile class, not only the always-on delegation class —
 actually executed. No skip is recorded as a pass; there was no skip to record.
+
+## Docs builds on the merged tree
+
+Head check re-run before this section: `date -u +%FT%TZ` and `pwd -P` confirmed the worktree
+unchanged from the prior sections; `test -f .git; echo "exit:$?"` = `exit:0`; the provisioning
+line is unchanged from Task 1 (no re-sync needed — the venv was already provisioned).
+
+Each build is preceded immediately by `rm -rf docs/_build`, and run under `LC_ALL=C`.
+
+- `LC_ALL=C uv run tox -e docs-html`, tail:
+  ```
+  追加のページを出力中... search 完了
+  English (code: en) の検索インデックスを出力... 完了
+  オブジェクト インベントリを出力... 完了
+  build succeeded, 3 warnings.
+
+  HTMLページは_build/htmlにあります。
+    docs-html: OK (3.83=setup[0.10]+cmd[3.73] seconds)
+    congratulations :) (3.85 seconds)
+  ```
+  Every `WARNING` line:
+  ```
+  22::21: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+  44::21: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+  418::6: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+  /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a43d13d9aa59679b9/typsphinx/translator.py:docstring of typsphinx.translator.TypstTranslator.visit_toctree:6: WARNING: Block quote ends without a blank line; unexpected unindent. [docutils]
+  ```
+
+DOCS_HTML_WARN_FINAL = 3
+
+- `LC_ALL=C uv run tox -e docs-pdf`, tail:
+  ```
+  typst: wrote 1 wrapper file(s) -- compile these: typsphinx.typ
+  Compiling 1 master document(s) to PDF...
+  Generated PDF: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a43d13d9aa59679b9/docs/_build/pdf/typsphinx.pdf
+  build succeeded, 5 warnings.
+    docs-pdf: OK (4.27=setup[0.10]+cmd[4.18] seconds)
+    congratulations :) (4.29 seconds)
+  ```
+  Every `WARNING` line:
+  ```
+  22::21: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+  44::21: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+  418::6: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+  /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a43d13d9aa59679b9/typsphinx/translator.py:docstring of typsphinx.translator.TypstTranslator.visit_toctree:6: WARNING: Block quote ends without a blank line; unexpected unindent. [docutils]
+  WARNING: unknown node type: <doctest_block classes="doctest" xml:space="preserve">>>> compute_content_include_path("", "index.typ")
+  WARNING: unknown node type: <doctest_block classes="doctest" xml:space="preserve">>>> compute_template_import_path("typst", "base.typ")
+  ```
+
+DOCS_PDF_WARN_FINAL = 5
+
+- `head -c 5 docs/_build/pdf/typsphinx.pdf`: `%PDF-`
+
+PDF_MAGIC = %PDF-
+
+- `ls -l docs/_build/pdf/typsphinx.pdf`:
+  ```
+  -rw-r--r-- 1 yuta users 2789972 9月 13 17:53 /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a43d13d9aa59679b9/docs/_build/pdf/typsphinx.pdf
+  ```
+
+`71-CHANGELOG-EVIDENCE.md`'s `DOCS_HTML_WARN_BASE` = 3 and `DOCS_PDF_WARN_BASE` = 5 (its clean
+pre-edit baseline, taken in worktree `agent-a1002cdd91840430e`). Both pairs are equal:
+`DOCS_HTML_WARN_FINAL` (3) = `DOCS_HTML_WARN_BASE` (3); `DOCS_PDF_WARN_FINAL` (5) =
+`DOCS_PDF_WARN_BASE` (5). The `WARNING` line text is identical between that baseline and this run
+except for the worktree-path prefix on the docstring warning line, which differs only because the
+two runs execute in different worktree directories — the same source line
+(`typsphinx/translator.py` docstring of `visit_toctree`) is cited in both.
+
+Both this worktree's and 71-01's worktree's `.venv/pyvenv.cfg` report `version_info = 3.13.13` on
+CPython built from the same nix store path (`/nix/store/l9k0anq0z7zz81zcwy035jfwap9ga6rl-python3-3.13.13/bin`)
+— confirmed in `## Tree identity` above for this worktree, and by `71-CHANGELOG-EVIDENCE.md`'s own
+record for the 71-01 worktree. No interpreter difference exists between the two measurements, so
+the equal counts trace to an unchanged docs tree (the one-file `CHANGELOG.md` delta carries no
+docs-visible content, since `changelog.rst` delegates to `CHANGELOG.md` at build time and both
+runs build the same post-edit `CHANGELOG.md`), not to a coincidence across different toolchains.
+
+## Division of authority
+
+- `71-CHANGELOG-EVIDENCE.md` (plan 71-01) decides the pre-edit-versus-post-edit docs comparison,
+  taken inside one tree/worktree, around the single `CHANGELOG.md` edit.
+- This file (`71-GREEN-TREE-EVIDENCE.md`, plan 71-03) decides the full pytest suite (twice), the
+  format/type/local-lint trio, the version-sync family, the changelog page gate, and the
+  final-merged-tree docs builds compared against 71-01's baseline.
+- `71-CI-EVIDENCE.md` (plan 71-04, running in parallel in a different worktree) decides the
+  three-OS CI matrix and holds the authoritative lint verdict (ROADMAP constraint 8).
+- `71-PREFLIGHT-EVIDENCE.md` (plan 71-05, running in parallel in a different worktree) decides the
+  non-committing trial merge against `origin/main`.
+
+This file does not read 71-04's or 71-05's results, and they do not read this file's — each
+plan's evidence stands on its own runs. Plan 71-07 sets all four side by side in the closing
+handoff.
+
+## Executed versus skipped
+
+| Gate | Outcome | Note |
+|------|---------|------|
+| Tree identity (worktree editable install, docs extra) | executed-green | `typsphinx.__file__` inside worktree; `myst_parser` importable |
+| Product-tree delta from `PHASE_BASE_SHA` | executed-green | `CHANGELOG.md` only, 0 deletions |
+| D-05 non-absorption (`origin/main` merge-base) | executed-green | equals `MILESTONE_BASE`, `main` not absorbed |
+| Full pytest suite (default locale) | executed-green | 1547 passed, 1 skipped (env-gated corpus measurement) |
+| Full pytest suite under `LC_ALL=C` | executed-green | 1547 passed, 1 skipped, same env-gated skip |
+| `black --check .` | executed-green | 355 files unchanged |
+| `mypy typsphinx/` | executed-green | no issues, 9 source files |
+| `ruff check .` | executed-green | all checks passed, version 0.16.6 matches `uv.lock` |
+| Version-sync family (readme, preview, extension) | executed-green | 5/5 relevant tests passed |
+| Changelog page gate | executed-green | 6 passed, 0 skipped (docs extra + typst both present) |
+| `docs-html` clean build | executed-green | 3 warnings, matches 71-01's pre-edit baseline |
+| `docs-pdf` clean build | executed-green | 5 warnings, matches 71-01's pre-edit baseline; PDF starts `%PDF-` |
+| CI three-OS matrix / lint authority | not executed here | owned by plan 71-04 (`71-CI-EVIDENCE.md`), running in parallel |
+| Trial merge against `origin/main` | not executed here | owned by plan 71-05 (`71-PREFLIGHT-EVIDENCE.md`), running in parallel |
+
+Nothing this plan attempted is left implied: every row above ran to a real, quoted outcome.
+
+## SC#3 local verdict
+
+All of the following hold: `FULL_FAILED` = 0, `LCALLC_FAILED` = 0, `BLACK_EXIT` = 0, `MYPY_EXIT` =
+0, `RUFF_LOCAL_EXIT` = 0, `VERSION_SYNC_FAILED` = 0; `CHANGELOG_GATE_SKIPPED` = 0; both docs pairs
+are equal (`DOCS_HTML_WARN_FINAL` = `DOCS_HTML_WARN_BASE`, `DOCS_PDF_WARN_FINAL` =
+`DOCS_PDF_WARN_BASE`); `PDF_MAGIC` is `%PDF-`.
+
+SC3_LOCAL_VERDICT = MET
