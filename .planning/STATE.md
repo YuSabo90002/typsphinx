@@ -4,12 +4,12 @@ milestone: v0.9.5
 milestone_name: Docs Link Check and Navigation
 current_phase: 72
 current_phase_name: "`tox -e linkcheck` and Root Toctree Deduplication"
-status: executing
-stopped_at: Phase 72 executing — wave 4 merged (6/6), code review and verification next
-last_updated: "2026-09-13T14:12:44.000Z"
+status: verifying
+stopped_at: Phase 72 verified human_needed (5/5 automated); awaiting owner look at the rendered HTML sidebar via /gsd-verify-work 72
+last_updated: "2026-09-13T14:22:25.000Z"
 last_activity: 2026-09-13
-last_activity_desc: "Phase 72 wave 4 merged — branch first pushed to origin at 0b2595df, CI run 34761445288 completed success (12/12 jobs incl. both windows-latest and both macos-latest), required checks unchanged"
-state_head: 20294867f713622646dd9c172fb157ef95944018
+last_activity_desc: "Phase 72 code review clean (1 Info); verification human_needed, 5/5 automated, 1 owner sidebar check persisted to 72-UAT.md"
+state_head: 2986b824085b989e7e30a6823440acfb95e4749a
 progress:
   total_phases: 2
   completed_phases: 0
@@ -228,9 +228,9 @@ land here.
 ## Current Position
 
 Phase: 72 of 73 (`tox -e linkcheck` and Root Toctree Deduplication)
-Plan: 6 of 6 complete (all 4 waves merged; code review and verification next)
-Status: Executing Phase 72
-Last activity: 2026-09-13 — Phase 72 wave 4 merged: first push to origin, CI run 34761445288 success (12/12 jobs)
+Plan: 6 of 6 complete (all 4 waves merged)
+Status: Phase 72 executed and verified 5/5 automated; human verification pending (72-UAT.md, 1 item)
+Last activity: 2026-09-13 — Phase 72 code review clean (1 Info); verification human_needed, 1 owner check persisted to 72-UAT.md
 
 Progress: [░░░░░░░░░░] 0% (0/2 phases)
 
