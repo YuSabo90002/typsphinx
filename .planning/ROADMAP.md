@@ -440,7 +440,7 @@ constraint 10's checksum fence is what keeps it there.
      the merge: the merge commit on `origin/main`, `pyproject.toml` still `0.9.2`, no `v0.9.4` tag,
      PyPI 404 for `0.9.4`, and no `v0.9.4` Release.
 
-**Plans**: 6/7 plans executed (4 waves)
+**Plans**: 7/7 plans executed (4 waves)
 
 Plans:
 **Wave 1**
@@ -460,7 +460,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 71-07-PLAN.md — closeout-guard re-verification at phase close and the standalone 71-HANDOFF.md (wave 4)
+- [x] 71-07-PLAN.md — closeout-guard re-verification at phase close and the standalone 71-HANDOFF.md (wave 4)
 
 **UI hint**: no
 
@@ -477,7 +477,7 @@ below tracks the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 70. Typing Modernization and Its Behaviour-Identity Evidence | v0.9.4 | 13/13 | Complete | 2026-09-13 |
-| 71. v0.9.4 Close Prep (prep-only, unpublished) | v0.9.4 | 6/7 | In Progress | - |
+| 71. v0.9.4 Close Prep (prep-only, unpublished) | v0.9.4 | 7/7 | In Progress | - |
 
 ## Roadmap Evolution
 
