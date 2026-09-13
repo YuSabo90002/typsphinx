@@ -316,3 +316,80 @@ $ sk < typsphinx/template_registry.py
 TEMPLATE_REGISTRY_MASK = EQUAL
 
 Both masked hashes equal base — no HALT needed.
+
+## Changed-line census
+
+For the two files, over `git diff "$PHASE_BASE_SHA" HEAD` (`PHASE_BASE_SHA` here is
+`BASE_70_06`, `6d75e9d5b9254be7f3ff3712b61878a7ae85d332`, since Task 1's own commit is the only
+change to these two files since `PHASE_BASE_SHA`), with diff headers (`+++`/`---`) and blank
+added/removed lines excluded:
+
+```
+$ git diff "$B" HEAD -- $P | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)( |$)' | grep -vE '^[+-][[:space:]]*$' \
+    | grep -cvE '(Dict|List|Set|Tuple|Iterator|dict|list|set|tuple|typing|collections\.abc)'
+0
+```
+
+NON_TYPING_LINES_70_06 = 0
+(every non-blank changed line carries a typing name)
+
+```
+$ git diff "$B" HEAD -- $P | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)( |$)' | grep -wE 'assert|@preview'
+(no output, grep exit 1)
+```
+No changed line contains `assert` or `@preview`.
+
+```
+$ git grep -n '@preview/' 697a113221a8a267d7e8c6dd1f2b95672f9454d2 -- typsphinx/template_engine.py | cut -d: -f2-
+277:            typst_package: Typst Universe package specification (e.g., "@preview/charged-ieee:0.1.0")
+705:            output_parts.append('#import "@preview/codly:1.3.0": *')
+706:            output_parts.append('#import "@preview/codly-languages:0.1.10": *')
+707:            output_parts.append('#import "@preview/mitex:0.2.7": mi, mitex')
+708:            output_parts.append('#import "@preview/gentle-clues:1.3.1": *')
+$ git grep -n '@preview/' HEAD -- typsphinx/template_engine.py | cut -d: -f2-
+277:            typst_package: Typst Universe package specification (e.g., "@preview/charged-ieee:0.1.0")
+705:            output_parts.append('#import "@preview/codly:1.3.0": *')
+706:            output_parts.append('#import "@preview/codly-languages:0.1.10": *')
+707:            output_parts.append('#import "@preview/mitex:0.2.7": mi, mitex')
+708:            output_parts.append('#import "@preview/gentle-clues:1.3.1": *')
+```
+Byte-identical at `PHASE_BASE_SHA` and HEAD — the four version-sync import strings and the
+docstring example are untouched.
+
+## Gates
+
+```
+$ uv run black --check typsphinx/template_engine.py typsphinx/template_registry.py
+All done! ✨ 🍰 ✨
+2 files would be left unchanged.
+exit:0
+```
+
+```
+$ uv run ruff check .
+All checks passed!
+exit:0
+```
+
+```
+$ uv run mypy typsphinx/ 2>/dev/null
+Success: no issues found in 9 source files
+```
+
+MYPY_STDOUT_SHA256_70_06 = 46984ca20bf69f7b14ec1fd9bd82101d56a4e109e68f016fd2a04f22481b09b3
+(stdout only, stderr excluded per Pitfall 7 — equal to `MYPY_STDOUT_SHA256_BEFORE`)
+
+```
+$ LC_ALL=C uv run pytest -q -rs -p no:cacheprovider > "$S/pytest.out" 2>&1; echo "exit:$?"
+exit:0
+$ tail -n 1 "$S/pytest.out"
+================= 1547 passed, 1 skipped in 133.80s (0:02:13) ==================
+```
+
+PYTEST_RESULT_70_06 = 1547 passed 1 skipped
+(from the same `grep -oE '[0-9]+ (passed|failed|skipped|errors?|xfailed|xpassed)' | paste -sd' '`
+extraction 70-02/70-04 used — equal to `PYTEST_RESULT_BEFORE`)
+
+Both leg (e) (mypy) and leg (b) (pytest) are unchanged from base: the conversion altered no
+runtime behaviour, no type-checking outcome, and no test outcome. `NON_TYPING_LINES_70_06 = 0`
+and the `@preview/` byte-identity above close the remaining gap leg (a) leaves open.
