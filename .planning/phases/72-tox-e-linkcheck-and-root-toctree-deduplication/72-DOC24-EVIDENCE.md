@@ -176,3 +176,24 @@ docs/source/contributing.rst:124:   uv run tox -e docs-pdf      # Build PDF docu
 ```
 
 DOC24_VERDICT = MET
+
+## D-07 todo note
+
+`git diff --numstat 043949e7cb4233999d4d1db9683055e6f5ecbb83 HEAD -- .planning/todos/pending/2026-07-22-add-sphinx-linkcheck-ci-job.md`:
+```
+6	0	.planning/todos/pending/2026-07-22-add-sphinx-linkcheck-ci-job.md
+```
+0 removed. The base file (41 lines) is a byte-identical prefix of the new file: `head -n 41` of the current file hashes to `6a0aa371a5cccac3410ec9f12e8f9e8c190e35ab`, the same as `git rev-parse 043949e7cb4233999d4d1db9683055e6f5ecbb83:.planning/todos/pending/2026-07-22-add-sphinx-linkcheck-ci-job.md`.
+
+`git ls-files .planning/todos/pending .planning/todos/completed | wc -l` before this task (at `BASE_72_03`): 60. After this task (current HEAD): 60. Unchanged — no todo was added, moved, or removed.
+
+Appended text, verbatim (via `sed -n '/^## Status note (Phase 72, v0.9.5)$/,$p'`):
+```markdown
+## Status note (Phase 72, v0.9.5)
+
+- `tox.ini` now has the `[testenv:linkcheck]` environment the first Solution bullet asks for. It runs `sphinx-build -b linkcheck source _build/linkcheck` from `docs/`, and it is not in `env_list` (Phase 72, QUA-13).
+- The still-open part is the CI job that would run it. That is **QUA-08**, a Future requirement in `.planning/REQUIREMENTS.md`, deferred by the owner on 2026-09-13.
+- A future pickup must plan a side PR to `main` from the start, because GitHub runs `schedule` only on the default branch and `workflow_dispatch` only for a workflow file on it (ROADMAP v0.9.5 constraint 4). v0.9.3 did the same for `dependabot.yml`, in PR #137.
+```
+
+D07_NOTE = appended
