@@ -10,7 +10,7 @@ import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from sphinx.errors import ExtensionError
 
@@ -107,7 +107,7 @@ class _ElementsEmissionKind:
 # introspected from Python, and most `project()` params (title/authors/date/
 # toctree_*) already arrive via `parameter_mapping`/`extract_toctree_options`
 # -- adding them here would create a second, colliding source of truth.
-ELEMENTS_ALLOWLIST: Dict[str, str] = {
+ELEMENTS_ALLOWLIST: dict[str, str] = {
     "papersize": _ElementsEmissionKind.STRING,
     "fontsize": _ElementsEmissionKind.RAW,
     "lang": _ElementsEmissionKind.STRING,
@@ -259,11 +259,11 @@ class TemplateEngine:
         self,
         template_path: str | None = None,
         template_name: str | None = None,
-        search_paths: List[str] | None = None,
-        parameter_mapping: Dict[str, str] | None = None,
+        search_paths: list[str] | None = None,
+        parameter_mapping: dict[str, str] | None = None,
         typst_package: str | None = None,
         typst_template_function: Any | None = None,
-        typst_package_imports: List[str] | None = None,
+        typst_package_imports: list[str] | None = None,
     ):
         """
         Initialize TemplateEngine.
@@ -465,9 +465,9 @@ class TemplateEngine:
 
     def map_parameters(
         self,
-        sphinx_metadata: Dict[str, Any],
-        typst_elements: Dict[str, Any] | None = None,
-    ) -> Dict[str, Any]:
+        sphinx_metadata: dict[str, Any],
+        typst_elements: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Map Sphinx metadata to template parameters.
 
@@ -502,7 +502,7 @@ class TemplateEngine:
         # `_convert_to_authors_tuple`, etc.), and every other key's
         # differently-typed assignment later in the method would then be a
         # type error.
-        params: Dict[str, Any] = {}
+        params: dict[str, Any] = {}
 
         # CONF-10/D-F removed the dict-of-dicts author-details config value
         # that used to seed params["authors"] unconditionally here, before
@@ -601,7 +601,7 @@ class TemplateEngine:
             # Import entire module: #import "@package:version"
             return f'#import "{self.typst_package}"'
 
-    def extract_toctree_options(self, doctree: Any) -> Dict[str, Any]:
+    def extract_toctree_options(self, doctree: Any) -> dict[str, Any]:
         """
         Extract toctree options from doctree for template parameters.
 
@@ -662,7 +662,7 @@ class TemplateEngine:
         return template
 
     def render(
-        self, params: Dict[str, Any], body: str, template_file: str = None
+        self, params: dict[str, Any], body: str, template_file: str = None
     ) -> str:
         """
         Render final Typst document with template and body.
