@@ -5,16 +5,16 @@ milestone_name: Typing Modernization
 current_phase: 70
 current_phase_name: Typing Modernization and Its Behaviour-Identity Evidence
 status: executing
-stopped_at: Phase 70 executing — waves 1-5 merged (12/13), wave 6 (70-13 push + CI) dispatched
+stopped_at: Phase 70 all 13 plans merged; code review and phase verification pending
 last_updated: "2026-09-13T04:25:00.000Z"
 last_activity: 2026-09-13
-last_activity_desc: Phase 70 wave 5 merged — SC1/SC2 and QUA-12 legs (a)-(e) MET, corpus manifest byte-identical, DOC-23 docs diff 83/83 hunks TRACED; post-merge gate green; wave 6 (70-13 first push and CI dispatch) dispatched
+last_activity_desc: Phase 70 wave 6 merged — branch pushed to origin at e70e31fb (first push), CI run 34742047126 completed success on all 12 jobs incl. both windows-latest and both macos-latest lanes; PHASE_SC_ROLLUP = ALL_MET; code review and verification next
 state_head: 697a113221a8a267d7e8c6dd1f2b95672f9454d2
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 13
-  completed_plans: 12
+  completed_plans: 13
   percent: 0
 ---
 
@@ -195,9 +195,9 @@ land here.
 ## Current Position
 
 Phase: 70 — Typing Modernization and Its Behaviour-Identity Evidence
-Plan: 12 of 13 complete (waves 1-5 merged; wave 6 of 6 executing: 70-13)
-Status: Executing Phase 70
-Last activity: 2026-09-13 — Phase 70 wave 5 merged (after-side evidence all MET), post-merge gate green (1547 passed, 1 skipped; ruff/black/mypy clean); wave 6 dispatched
+Plan: 13 of 13 complete (all 6 waves merged)
+Status: Phase 70 executed; code review and verification pending
+Last activity: 2026-09-13 — Phase 70 wave 6 merged; first push to origin and CI run 34742047126 green on all 12 jobs
 
 Progress: [░░░░░░░░░░] 0% (0/2 phases)
 

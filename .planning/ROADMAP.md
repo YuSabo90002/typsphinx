@@ -334,7 +334,7 @@ CI dispatch on the post-flip tip.
      individually and green, and `ruff`'s verdict taken from the **`Lint and Format Check`** job
      (step `Run lint with tox`), not from this machine (milestone invariant #5; constraint 8).
 
-**Plans**: 12/13 plans executed (6 waves)
+**Plans**: 13/13 plans executed (6 waves)
 
 Plans:
 **Wave 1**
@@ -366,7 +366,7 @@ Plans:
 
 **Wave 6** *(blocked on Wave 5 completion)*
 
-- [ ] 70-13-PLAN.md — gate quartet, branch census, first push, one CI dispatch, job transcript and SC roll-up (wave 6)
+- [x] 70-13-PLAN.md — gate quartet, branch census, first push, one CI dispatch, job transcript and SC roll-up (wave 6)
 
 **Cross-cutting constraints:**
 
@@ -448,7 +448,7 @@ below tracks the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 70. Typing Modernization and Its Behaviour-Identity Evidence | v0.9.4 | 12/13 | In Progress | - |
+| 70. Typing Modernization and Its Behaviour-Identity Evidence | v0.9.4 | 13/13 | In Progress | - |
 | 71. v0.9.4 Close Prep (prep-only, unpublished) | v0.9.4 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
