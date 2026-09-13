@@ -208,6 +208,18 @@ None - no external service configuration required.
 - No blockers for 70-13 or ship/release-prep. The two verify-oracle defects are advisory findings for
   the orchestrator, not blockers on this plan's own deliverable.
 
+## Self-Check: PASSED
+
+- `.planning/phases/70-typing-modernization-and-its-behaviour-identity-evidence/70-DOCS-DIFF-EVIDENCE.md` — FOUND
+- `.planning/phases/70-typing-modernization-and-its-behaviour-identity-evidence/70-12-SUMMARY.md` — FOUND
+- Task 1 commit `cd1d0fbe` — FOUND in `git log --oneline --all`
+- Task 2 commit `178412b1` — FOUND in `git log --oneline --all`
+- SUMMARY commit `18ab54bc` — FOUND in `git log --oneline --all`
+- Both tasks' `<acceptance_criteria>` re-verified directly (BUILD_EXITS, control equality, base
+  cross-check, location rule, hunk-count/table-row/TRACED-row identity) — all PASS
+- Plan-level `<verification>` re-confirmed: differing files confined to `api/` and
+  `_modules/typsphinx/`, every hunk classified TRACED, base-vs-base control empty
+
 ---
 *Phase: 70-typing-modernization-and-its-behaviour-identity-evidence*
 *Completed: 2026-09-13*
