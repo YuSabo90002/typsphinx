@@ -484,3 +484,151 @@ CORPUS_CONTROL = EQUAL
 ~~~
 
 `$S/control-wt` does not appear in the list above — the control worktree is removed and pruned.
+
+
+## Docs base builds (D-09)
+
+From `docs/`, `rm -rf _build` was run first, then the tox commands via `uv run`:
+```
+LC_ALL=C uv run sphinx-build -b html source _build/html
+LC_ALL=C uv run sphinx-build -b typstpdf source _build/pdf
+```
+
+DOCS_HTML_EXIT_BEFORE = 0
+DOCS_PDF_EXIT_BEFORE = 0
+DOCS_HTML_WARNINGS_BEFORE = 4
+DOCS_PDF_WARNINGS_BEFORE = 6
+(both counts are `grep -c WARNING` of the raw build log, for information only)
+
+HTML build log tail:
+~~~text docs-html-base-log-tail
+highlighting module code... [ 80%] typsphinx.translator
+highlighting module code... [100%] typsphinx.writer
+
+writing additional pages... search done
+dumping search index in English (code: en)... done
+dumping object inventory... done
+build succeeded, 3 warnings.
+
+The HTML pages are in _build/html.
+exit:0
+~~~
+
+PDF build log tail:
+~~~text docs-pdf-base-log-tail
+writing output... [user_guide/builders] done
+writing output... [user_guide/configuration] done
+writing output... [user_guide/index] done
+writing output... [user_guide/output_layout] done
+writing output... [user_guide/templates] done
+typst: wrote 1 wrapper file(s) -- compile these: typsphinx.typ
+Compiling 1 master document(s) to PDF...
+Generated PDF: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-a998dd3d72c77c7d4/docs/_build/pdf/typsphinx.pdf
+build succeeded, 5 warnings.
+exit:0
+~~~
+
+## Docs base manifests
+
+HTML manifest (`docs/_build/html`, excluding `.doctrees/`):
+```
+(cd docs/_build/html && find . -type f -not -path './.doctrees/*' -print0 | LC_ALL=C sort -z | xargs -0 sha256sum)
+```
+
+`.typ` manifest (`docs/_build/pdf`, `.typ` files only):
+```
+(cd docs/_build/pdf && find . -type f -name '*.typ' -print0 | LC_ALL=C sort -z | xargs -0 sha256sum)
+```
+
+DOCS_HTML_FILE_COUNT_BEFORE = 62
+DOCS_HTML_MANIFEST_SHA256_BEFORE = 57090afbe053c28d1175427a718f0037d592fef5e60897273200109d7ac52a26
+DOCS_TYP_FILE_COUNT_BEFORE = 16
+DOCS_TYP_MANIFEST_SHA256_BEFORE = 47ec16d83bea3e3a6dba13228bd770e28c1d6738381ac39ea6e26cae0f24154d
+
+The HTML manifest carries at least one `./api/` page and at least one `./_modules/typsphinx/` page
+(D-11 as amended). The `.typ` manifest carries at least one `./api/` file. The PDF binary itself is
+not recorded (D-09); no docs `.typ` enters the leg (d) corpus manifest (D-10).
+
+~~~text docs-html-manifest
+506002cdacf56d1a07cedbc1854b92fb911fbf0d4ef0f978efc22c7c7f7abd6f  ./.buildinfo
+fcbd3d3eab99e6142ba1488271fd0b7454b38dc3a93b7173c0643545be51bd23  ./_modules/index.html
+276c4ce88aeaf916a1550158ab3c1b3ae465f93839179fb82a6837720071795d  ./_modules/typsphinx/builder.html
+b9e726601f5b372578c78913f1c084aabbf125330a0f9acfb865259a6bf3c765  ./_modules/typsphinx/pdf.html
+8ceb2ee6bb73928560786cf489a4c67c00a6c176047824127fd9ae4db17fc2ee  ./_modules/typsphinx/template_engine.html
+8a57ec2b85954361d0cad649cc6bbc3726e35b6956738273276db29abb006794  ./_modules/typsphinx/translator.html
+f0e44a087975bcedf122e5aaac712dc8f646ecf26b6f0851c8f1efcfa2a022bb  ./_modules/typsphinx/writer.html
+8cb8ff6187b815a980680299fa02cc40a0f95a30e99dba74323d363eb6b8d69e  ./_sources/api/index.rst.txt
+8f871afe4e191ebb117ef987544f4470411507015dc088c21b1367948702cff8  ./_sources/changelog.rst.txt
+c5eda121cfad62f2b2ee809f5ef9220f451ca3dc5cde198240641f0e93cdefb8  ./_sources/contributing.rst.txt
+9a79be44d8dd21ab36e4467999c9dd64e10ab3f194dac8653380817d642b5e39  ./_sources/examples/advanced.rst.txt
+a56455fbe64245b928ebffd9a51e10e2ac2eb687da97779a8f8bbbf365ab3c0c  ./_sources/examples/basic.rst.txt
+5c1e26eabe5f8cbc47d442139d6ebc09ab7226e1e0b0ea80a660e153a893ab1b  ./_sources/examples/index.rst.txt
+3965da05b87b55327ebd81d0325a896025e3066956f0458918df2a004f651c1d  ./_sources/index.rst.txt
+4c095472200f16303e63ce74cdc81182105afc51c8b34618d33a11a0d8617275  ./_sources/installation.rst.txt
+c8b9e05782f7dea3579520a8ecbb6c4963bd9868fc36cf0d56c6888d3c39c0e5  ./_sources/quickstart.rst.txt
+dc014f68f0167346b74c1910f8cc23f4e6f3a20d09c8e7475252f5a1e48f6e60  ./_sources/user_guide/builders.rst.txt
+01874ba0e06d166e87fbaea38de35e12de1e4724048b6c2527754ec40d4a31ad  ./_sources/user_guide/configuration.rst.txt
+6231d81c2bc53e095ed72792f313d03a2911e42992df0f77912c1e7d7a01013d  ./_sources/user_guide/index.rst.txt
+6c05c91f020502cbc61feb41e5226fa0edc81cb547866afecad05910f1e9618b  ./_sources/user_guide/output_layout.rst.txt
+39d7560204f2d1f503ad27dba612179bfe557e626902f1a90ffd847fffab7f0e  ./_sources/user_guide/templates.rst.txt
+eb67bedbfa264bd8a2201ebe07c861abbcbc56d7eaa28c53ff8b84f65ccd450f  ./_static/base-stemmer.js
+656ff1bacd6f260fc7d71b97f9c2f1fcbf692dc84bf469cd952034efcb9eefed  ./_static/basic.css
+0d05cd9e79d53234304667c08f02971de6196c0ffca593c3903b3667b4055ad6  ./_static/debug.css
+6b2524c2723cc6e06cbf056e0b2861d50ba8fdd082ece13378bfb45d7a090528  ./_static/doctools.js
+453e137b79c05b050adf8f358832de0ca99f2ca14c60c5c516b89e5a15f863bc  ./_static/documentation_options.js
+1f995807fde5a820390fb9046e4813a7eb8f20a4684650f14fbdeb4c2ad7ffc5  ./_static/english-stemmer.js
+5c4bc9a16aebf38c4b950f59b8e501ca36495328cb9eb622218bce9064a35e3e  ./_static/file.png
+af1c48fc5b0e0e9423cac068d55cdf22f541648709ae4b9190ee8aa9c2b08150  ./_static/language_data.js
+47e7fc50db3699f1ca41ce9a2ffa202c00c5d1d5180c55f62ba859b1bd6cc008  ./_static/minus.png
+54115199b96a130cba02147c47c0deb43dcc9b9f08b5162bba8642b34980ac63  ./_static/plus.png
+175552429a0952117a332f75fd6cb601f11e7d88dbf80083afcb8482f963f7e1  ./_static/pygments.css
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./_static/scripts/furo-extensions.js
+0df6012bf9183882fc314d1eeaa66fe7705e8694cf27351c4be1f5dc32e9fe6f  ./_static/scripts/furo.js
+3eba718c98abe0ad8dd4401edc9ddfabf979f9bb9b8ac446460b61b03694970d  ./_static/scripts/furo.js.LICENSE.txt
+049d8e3c297854c9e7defecbf64bc92c375b4d94c7bef119ba11c8e8fc723ca2  ./_static/scripts/furo.js.map
+954625d140412a9d3d954d67e2e3aec8f8bd18018cf7600b894298fb157c7780  ./_static/searchtools.js
+e7702bcb03d3eb02e63681f753d88a28bee8f8ed13e50e58ac84a2bc31a5c71d  ./_static/skeleton.css
+c551409f6bae30d602d5b47676696803554e7ceaa458c1c6eb8367b9d2c4dd31  ./_static/sphinx_highlight.js
+3d2b0207711a07313dfb6c8b272295f5f931169e4b2b784c61d00be9d871f8fd  ./_static/styles/furo-extensions.css
+0b35b6ebb81f2aa1fcaee325c096d683e32c1808a9220670a1a3f88300c6915c  ./_static/styles/furo-extensions.css.map
+177f1163121440086f701bf6cb9d2b2ab8fc29fcb754466465edf7b9f60b5aa0  ./_static/styles/furo.css
+b7d40df8a2d2c5cc7727929dce7a482be4506f905ec42588fdbd0571bb1e9a45  ./_static/styles/furo.css.map
+db9cbc4ef6abe555078ef2c5e2b9278fdb94dbb334133f6ec34a771dd6b9de06  ./api/index.html
+3c2896062d8254d3086ce9bde47987e776ba63a367897707a63199dc54d1d341  ./changelog.html
+d82f03a950d9596b800777d13fe55255c1f37dcfa49622756190a81bd9c42f1a  ./contributing.html
+43e48733ccaa5430b351f58b31b73ec1e84f884ef4d3decdeed9afc8db014da3  ./examples/advanced.html
+91257e81747063e99c675d06aad941e0f1b068a5a64eb4fafbd1270aa7d7fbfa  ./examples/basic.html
+031da8637f1726768444578aee08180d1c415fc10cef1979f656c483fd5bdffe  ./examples/index.html
+d4db112a28d5e194e50410822f55c6c54a4f93ecdb2ed2256ecaa7a824c7b0f9  ./genindex.html
+d8c8c30fb6c136781520a2a214ee2f4e2dce92e48f5d5512dc4b31ac0812a148  ./index.html
+8f84da697f1fc6081b6831005c05e490730cb8a04ae664a02aa557b56e0650c9  ./installation.html
+b29d64addd91af1334bcde0cbf0b336b0b6e0a478562f2cb9192061111a4e008  ./objects.inv
+2a767adcb12d8b4c507053e68b46cd3c5aff8ccfeddb9dac8554a41abf4f674b  ./py-modindex.html
+34edd6d6dfb350b8a86cba6e9154776899bed7fd299a513382ebcbce284cef98  ./quickstart.html
+a9bddfd687110ce011c78b855df6e343bd121cae3dbac515f5e07b5aeec2e844  ./search.html
+61611739b5060c301d8c222d5907ff99b5874b52680abcbcff976c3ed6dfd8f2  ./searchindex.js
+336cf0ee504ef9c6df22e0f171abea31c3827379b72a83f7cf10c2ed18da74ec  ./user_guide/builders.html
+fb34ee290c5af874260e5a578d1c895c886c1198b690c46020c445436571ffa8  ./user_guide/configuration.html
+4a81be29e4cff722fb9a7dd89f37ea73ae8b585582767b951a17fa508a789e0a  ./user_guide/index.html
+e1b0cdb8f605fea688e4b75359c494d4f1a9f6017db150e83373aa4324ff6b81  ./user_guide/output_layout.html
+a1e0587e4b0806f8cf4519715e6202eb67a9738c51791c42afc2b6c1a7936949  ./user_guide/templates.html
+~~~
+
+~~~text docs-typ-manifest
+d92da4d356988ffd18e1fc3a016193c61c0f26515be668b32dae96da36391012  ./_template/typst/custom_template.typ
+d5a8d071171917db6ffad78552f7889b4d02daa4fe1c9584b4276930e544f4d9  ./api/index.typ
+033254c41016a2dac55fb5daa5dc43ac38715814b956409b93fa06252e21937c  ./changelog.typ
+ce6d8692b0f312ae18442b8638f7bb3a3a2433795867f756e88e11cdad3c2862  ./contributing.typ
+a5bce6feb54c882a6b90c7c35a0ef04ad17e23fd8f57ea67e4f9111187015e05  ./examples/advanced.typ
+552ca91b9bd2ea9e7bf2d08bd2e3b4f12cf39fca1c7a9e3682b5804ab464bf5a  ./examples/basic.typ
+7d608e0192f97dc6c64c2b656828c633e166356f65038111d20d14eb713ab64e  ./examples/index.typ
+c683082b9a8e0e38d231bd6f8249d256cf00317cc950e34346ea630fcc4191cc  ./index.typ
+9d7ec9161a88e987615c0475b85b80c98da2961661e94611d41e4554648c14ea  ./installation.typ
+8a040fe25449e471894e9e191f41fd8e8687605addf42fb0f72535e0d5fe7933  ./quickstart.typ
+c55a02ac0a6add835f54bd3600d1f739e427ba745c2fa784fa6b792c85021bcc  ./typsphinx.typ
+fa6fd5182f5ab9e3b266efc78878c86799fa3baf35bd2034fd68deded543afc7  ./user_guide/builders.typ
+a1d715a64ad77521217d89913e1d6c67b7cac2ebbf2f9996336f011d2d60bc97  ./user_guide/configuration.typ
+ded81c647f1835e9f1bb6b3750dfedd8304a2d7e7db63e84ef59532f357f1d1e  ./user_guide/index.typ
+cc3163b929f636a7a5ea86003d160941bd512647a394bbbe04184a737f01db32  ./user_guide/output_layout.typ
+a3873ae6ad7de5b9db1de8587044c51c16cf626843120c92f7cc7cb04a6b3904  ./user_guide/templates.typ
+~~~
