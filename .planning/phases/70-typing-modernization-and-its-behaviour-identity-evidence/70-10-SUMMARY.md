@@ -191,3 +191,15 @@ census, the first push and the CI dispatch, then rolls up every SC across the ph
 ---
 *Phase: 70-typing-modernization-and-its-behaviour-identity-evidence*
 *Completed: 2026-09-13*
+
+## Self-Check: PASSED
+
+- `70-AFTER-STATIC-EVIDENCE.md` exists on disk: FOUND
+- `70-10-SUMMARY.md` exists on disk: FOUND
+- Task 1 commit `81084801` present in `git log --oneline --all`: FOUND
+- Task 2 commit `1c83c818` present in `git log --oneline --all`: FOUND
+- SUMMARY commit `c6f2de9c` present in `git log --oneline --all`: FOUND
+- All `<acceptance_criteria>` for both tasks re-verified via each task's exact `<automated>`
+  verify block, both exiting 0 with no `mask differs:`, `automated before pilot:`, `order:`,
+  `verdict:`, `missing token:`, `forbidden token:` or `missing section:` line printed.
+- No `## HALT` heading present in the evidence file.
