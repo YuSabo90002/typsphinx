@@ -4,18 +4,18 @@ milestone: v0.9.4
 milestone_name: Typing Modernization
 current_phase: 71
 current_phase_name: v0.9.4 Close Prep (prep-only, unpublished)
-status: executing
-stopped_at: Phase 71 all 7 plans merged — code review, verification and phase completion pending
-last_updated: "2026-09-13T09:45:00.000Z"
+status: completed
+stopped_at: Phase 71 complete (verified 4/4), milestone ready for /gsd-complete-milestone
+last_updated: "2026-09-13T09:44:19.000Z"
 last_activity: 2026-09-13
-last_activity_desc: Phase 71 wave 2 merged — local green tree (1547 passed/1 skipped twice), 7a42bf99 pushed and CI run 34748483361 12/12 success (a surplus dispatch after HTTP 5xx was cancelled; owner chose the AMENDED reading), trial merge a clean no-op; wave 3 merged — SC#1 observation 2 and D-11 masked-AST 10/10 EQUAL on the close tip; wave 4 merged — REQ_VERDICT_CLOSE = MATCH and 71-HANDOFF.md written
-state_head: f1f7d54a61d74c3972f1df0508ac994c001dda7e
+last_activity_desc: Phase 71 complete — verified 4/4; phase.complete left REL-13 untouched (requirements_updated false), third fence observation MATCH
+state_head: 0e3ba6564572b87c4c486999e4e5975cf837af94
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 20
   completed_plans: 20
-  percent: 50
+  percent: 100
 ---
 
 # Project State
@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-13 — after Phase 70)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** v0.9.4 Typing Modernization — **roadmapped, Phases 70–71, 6/6 v1 requirements mapped**. Drop the `UP006`/`UP035` ruff ignores and move `typsphinx/` + `tests/` onto builtin generics, with behaviour evidenced unchanged by five measurements; the only visible change is API-reference type text. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`); the branch merges to `main` via a PR at `/gsd-complete-milestone` (REL-13). **Phase 70 complete** (2026-09-13: verification passed 5/5, UAT 1/1, Nyquist validated, SECURITY 35/35 closed; 5/6 requirements Complete). Phase 71 executing (7 plans in 4 waves; all 4 waves merged 2026-09-13; verification pending).
+**Current focus:** v0.9.4 Typing Modernization — **roadmapped, Phases 70–71, 6/6 v1 requirements mapped**. Drop the `UP006`/`UP035` ruff ignores and move `typsphinx/` + `tests/` onto builtin generics, with behaviour evidenced unchanged by five measurements; the only visible change is API-reference type text. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`); the branch merges to `main` via a PR at `/gsd-complete-milestone` (REL-13). **Phase 70 complete** (2026-09-13: verification passed 5/5, UAT 1/1, Nyquist validated, SECURITY 35/35 closed; 5/6 requirements Complete). **Phase 71 complete** (2026-09-13: 7/7 plans in 4 waves, verification passed 4/4, code review clean with 1 info; one CHANGELOG bullet under `## [Unreleased]`, CI run `34748483361` 12/12 success on `7a42bf99` — a surplus dispatch created by an HTTP 5xx retry was cancelled and read per the owner's AMENDED decision; REL-13 held open by design, fence MATCH after `phase.complete`). Next: `/gsd-complete-milestone`, following `71-HANDOFF.md` — the REL-13 PR to `main` is the milestone's one irreversible action.
 
 ## Shipped Milestone (v0.9.3 — archived, merged to `main`, NOT published)
 
@@ -194,12 +194,12 @@ land here.
 
 ## Current Position
 
-Phase: 71 — v0.9.4 Close Prep (prep-only, unpublished)
-Plan: 7 of 7 complete (all 4 waves merged)
-Status: Executing Phase 71
-Last activity: 2026-09-13 — Phase 71 wave 2 merged, post-merge gate green (1547 passed, 1 skipped; ruff/black/mypy clean); CI run 34748483361 12/12 success; wave 3 merged (D11_VERDICT = MET); wave 4 merged (REQ_VERDICT_CLOSE = MATCH, 71-HANDOFF.md)
+Phase: 71 — v0.9.4 Close Prep (prep-only, unpublished) (complete)
+Plan: 7 of 7 complete
+Status: All phases of v0.9.4 complete — ready for /gsd-complete-milestone (REL-13 open by design)
+Last activity: 2026-09-13 — Phase 71 complete, verified 4/4
 
-Progress: [█████░░░░░] 50% (1/2 phases)
+Progress: [██████████] 100% (2/2 phases)
 
 ## Active Milestone (v0.9.4 — Typing Modernization)
 
@@ -1219,13 +1219,20 @@ Items acknowledged and carried forward from milestone closes:
 
 **Resume file:** None
 
-Last session: 2026-09-13T06:55:00.000Z
-Stopped at: Phase 70 complete, ready to plan Phase 71
-Resume: `/gsd-discuss-phase 71` (no 71-CONTEXT.md yet) or `/gsd-plan-phase 71`.
+Last session: 2026-09-13T09:44:19.000Z
+Stopped at: Phase 71 complete (verified 4/4); next /gsd-complete-milestone per 71-HANDOFF.md
+Resume: `/gsd-complete-milestone v0.9.4`, following `71-HANDOFF.md`.
 
 ## Operator Next Steps
 
-- **Phase 70 is complete; plan Phase 71 next** (`/gsd-discuss-phase 71` or `/gsd-plan-phase 71`).
+- **Phase 71 is complete; run `/gsd-complete-milestone v0.9.4` next**, following `71-HANDOFF.md`
+  (re-run its trial merge first; the REL-13 PR is the milestone's one irreversible action).
+
+- **A GitHub API call can succeed server-side after returning HTTP 5xx** (71-04: `gh workflow run`
+  created a run despite HTTP 500, and a retry created a second). Before retrying `gh pr create` or
+  `gh pr merge` at the close, check whether the object already exists.
+
+- **Phase 70 was completed before Phase 71** (history).
   Phase 70's worktrees provisioned with
   `env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev --extra docs --python 3.13.13`
   (70-RESEARCH.md); Phase 71 should reuse it. v0.9.4 publishes nothing either. If a later milestone publishes, the v0.9.1 → 0.9.2 precedent points to `0.9.4`

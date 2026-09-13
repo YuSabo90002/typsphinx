@@ -251,7 +251,7 @@ takes zero irreversible action and the merge executes at `/gsd-complete-mileston
 therefore mapped to Phase 71 for coverage purposes only.
 
 - [x] **Phase 70: Typing Modernization and Its Behaviour-Identity Evidence** - Every `typing.Dict`/`List`/`Set`/`Tuple` use in `typsphinx/` and `tests/` is on builtin generics and `Iterator` is on `collections.abc`, `ruff check .` enforces it with the `UP006`/`UP035` ignores gone, `CLAUDE.md` no longer forbids it, and five measurements show nothing changed except API-reference type text (completed 2026-09-13)
-- [ ] **Phase 71: v0.9.4 Close Prep (prep-only, unpublished)** - One CHANGELOG bullet lands under `## [Unreleased]` with `pyproject.toml` still at `0.9.2`, the tree is proven green on runs executed in this phase, and the PR to `main` is prepared behind a checksum fence with zero irreversible action taken
+- [x] **Phase 71: v0.9.4 Close Prep (prep-only, unpublished)** - One CHANGELOG bullet lands under `## [Unreleased]` with `pyproject.toml` still at `0.9.2`, the tree is proven green on runs executed in this phase, and the PR to `main` is prepared behind a checksum fence with zero irreversible action taken (completed 2026-09-13)
 
 ## Phase Details
 
@@ -477,7 +477,7 @@ below tracks the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 70. Typing Modernization and Its Behaviour-Identity Evidence | v0.9.4 | 13/13 | Complete | 2026-09-13 |
-| 71. v0.9.4 Close Prep (prep-only, unpublished) | v0.9.4 | 7/7 | In Progress | - |
+| 71. v0.9.4 Close Prep (prep-only, unpublished) | v0.9.4 | 7/7 | Complete | 2026-09-13 |
 
 ## Roadmap Evolution
 

@@ -289,3 +289,43 @@ reaches it without opening this file separately.
 ---
 *Phase: 71-v0-9-4-close-prep-prep-only-unpublished*
 *Plan: 02, 07*
+
+## Third observation (after phase.complete, orchestrator)
+
+Recorded by the execute-phase orchestrator, outside any plan, at the first of the two entry points
+named in § "For the operator running phase.complete": `phase.complete` reached from
+`/gsd-execute-phase`.
+
+OBS3_AT = 2026-09-13T09:44:19Z
+
+Before `phase.complete 71`, REQUIREMENTS.md, ROADMAP.md and STATE.md were backed up to a scratch
+directory outside the repository, and the backup of REQUIREMENTS.md hashed to
+`4d98e0287552d2dce8f45b7939dfcb0e729523c6869bfa1cd2d1d041119c5636`.
+
+`phase.complete 71` returned `requirements_updated: false`. Unlike the eight prior release-prep
+closes recorded in ROADMAP constraint 10, the release requirement did not flip. The probes after
+the call:
+
+```
+$ sha256sum .planning/REQUIREMENTS.md
+4d98e0287552d2dce8f45b7939dfcb0e729523c6869bfa1cd2d1d041119c5636  .planning/REQUIREMENTS.md
+$ wc -l < .planning/REQUIREMENTS.md
+80
+$ git diff --name-only -- .planning/REQUIREMENTS.md
+(empty)
+$ grep -n 'REL-13' .planning/REQUIREMENTS.md
+24:- [ ] **REL-13**: Close prep only, unpublished: one CHANGELOG bullet under the existing `## [Unreleased]`, in the register of the three bullets already there, naming the API-reference type-text change and noting that the ja translation catalogs pick it up at the next published release; `pyproject.toml` stays `0.9.2`; no tag, no PyPI upload, no GitHub Release. The milestone branch is merged to `main` through a PR, as v0.9.3's REL-12 was. This checkbox is checked only at `/gsd-complete-milestone`, on the observed merge — never by phase-completion tooling.
+33:  wrong for the same reason. Every other part of REL-13 stands, including when this checkbox is
+71:| REL-13 | Phase 71 | Pending — coverage only; checked at `/gsd-complete-milestone` on the observed merge, never by phase-completion tooling |
+75:- Mapped to phases: 6 (Phase 70: 5 — QUA-09, QUA-11, QUA-12, DOC-22, DOC-23; Phase 71: 1 — REL-13)
+```
+
+REQ_SHA256_OBS3 = 4d98e0287552d2dce8f45b7939dfcb0e729523c6869bfa1cd2d1d041119c5636
+REQ_VERDICT_OBS3 = MATCH
+
+Nothing was reverted. The `grep -n` output is line-for-line identical to § "The lines under
+guard". The ROADMAP.md changes (Phase 71 `[x]` and its Progress row set to Complete) were correct
+and kept, with the Status cell padding restored by hand. The STATE.md changes were corrected by
+hand: `phase.complete` deleted `current_phase_name`, left `completed_phases: 1` / `percent: 50`,
+and wrote `Plan: Not started`. The second entry point, the inline transition of
+`/gsd-verify-work`, is still owed this observation if it is ever run for Phase 71.
