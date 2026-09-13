@@ -432,7 +432,7 @@ stands in for the deleted entries.
 
      (Milestone invariant #5; constraints 2, 3, 6.)
 
-**Plans**: 3/6 plans executed (4 waves)
+**Plans**: 5/6 plans executed (4 waves)
 
 Plans:
 **Wave 1**
@@ -446,8 +446,8 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 72-04-PLAN.md — DOC-18 proof: same-environment base/tip pair for SC#3, sidebar and Typst for SC#4, parent divergence re-measured (wave 3)
-- [ ] 72-05-PLAN.md — tip gates: real tox linkcheck and docs-html runs, local gate quartet, scope fence (wave 3)
+- [x] 72-04-PLAN.md — DOC-18 proof: same-environment base/tip pair for SC#3, sidebar and Typst for SC#4, parent divergence re-measured (wave 3)
+- [x] 72-05-PLAN.md — tip gates: real tox linkcheck and docs-html runs, local gate quartet, scope fence (wave 3)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -540,7 +540,7 @@ below tracks the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 72. `tox -e linkcheck` and Root Toctree Deduplication | v0.9.5 | 3/6 | In Progress | - |
+| 72. `tox -e linkcheck` and Root Toctree Deduplication | v0.9.5 | 5/6 | In Progress | - |
 | 73. v0.9.5 Close Prep (prep-only, unpublished) | v0.9.5 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
