@@ -372,4 +372,184 @@ which fire the real, non-dead includes, are absent from this list (untouched).
 each 2 (at least 2).
 
 `SC4_TYPST_VERDICT = MET`: `ROOT_DEAD_INCLUDES_TIP = 0`, `ROOT_DEAD_INCLUDES_BASE = 5` (at least 1),
-`SECTION_GUARDS_TIP = 5`, `EDGES_PER_PAGE_TIP = 1 1 1 1 1`.`
+`SECTION_GUARDS_TIP = 5`, `EDGES_PER_PAGE_TIP = 1 1 1 1 1`.
+
+BASE_HTML_PARENT_EXAMPLES_BASIC = examples/index
+BASE_HTML_PARENT_EXAMPLES_ADVANCED = examples/index
+TIP_HTML_PARENT_EXAMPLES_BASIC = examples/index
+TIP_HTML_PARENT_EXAMPLES_ADVANCED = examples/index
+TIP_ANCESTOR_PARENT_EXAMPLES_BASIC = examples/index
+TIP_ANCESTOR_PARENT_EXAMPLES_ADVANCED = examples/index
+TYPST_PARENT_EXAMPLES_BASIC = examples/index
+TYPST_PARENT_EXAMPLES_ADVANCED = examples/index
+DIVERGENCE_SURVIVES = no
+DIVERGENCE_TODO = none
+SC4_VERDICT = MET
+
+## Parent notions
+
+For each of the base and tip HTML builds of pair `SC3_PAIR = 1`, unpickled
+`<out>/.doctrees/environment.pickle` with `uv run python -c`. For each of the six pages (the five
+plus the `user_guide/output_layout` control), printed (a) the relations parent
+(`env.collect_relations()[d][0]`) and (b) the immediate ancestor (the second element of
+`sphinx.environment.adapters.toctree._get_toctree_ancestors(env.toctree_includes, d)`).
+
+```python
+import pickle, sys
+from sphinx.environment.adapters.toctree import _get_toctree_ancestors as anc
+pages = ["user_guide/configuration", "user_guide/builders", "user_guide/templates",
+         "examples/basic", "examples/advanced", "user_guide/output_layout"]
+env = pickle.load(open(sys.argv[1], "rb"))
+rel = env.collect_relations()
+for d in pages:
+    a = rel[d][0]
+    chain = list(anc(env.toctree_includes, d))
+    b = chain[1] if len(chain) > 1 else None
+    print(f"{d}\t{a}\t{b}")
+```
+
+Run against `html-base/.doctrees/environment.pickle`:
+```
+user_guide/configuration	user_guide/index	user_guide/index
+user_guide/builders	user_guide/index	user_guide/index
+user_guide/templates	user_guide/index	user_guide/index
+examples/basic	examples/index	None
+examples/advanced	examples/index	None
+user_guide/output_layout	user_guide/index	user_guide/index
+```
+
+Run against `html-tip/.doctrees/environment.pickle`:
+```
+user_guide/configuration	user_guide/index	user_guide/index
+user_guide/builders	user_guide/index	user_guide/index
+user_guide/templates	user_guide/index	user_guide/index
+examples/basic	examples/index	examples/index
+examples/advanced	examples/index	examples/index
+user_guide/output_layout	user_guide/index	user_guide/index
+```
+
+Column (c) is the base console `selecting:` token from `p7204_html-base.out` (from the `## HTML
+pair 1` transcript above), `none` where no such message exists; at the tip no `multiple toctrees`
+message exists for any page, so (c) is `none` throughout the tip table. Column (d) is the Typst
+edge parent: the section before `#0>` in the matching edge of each build's include-edges state
+(byte-identical between base and tip, per `## Typst pair` above).
+
+**Base build**, columns page / (a) / (b) / (c) / (d):
+
+| page | (a) relations parent | (b) ancestor parent | (c) console `selecting:` | (d) Typst edge parent |
+|---|---|---|---|---|
+| user_guide/configuration | user_guide/index | user_guide/index | user_guide/index | user_guide/index |
+| user_guide/builders | user_guide/index | user_guide/index | user_guide/index | user_guide/index |
+| user_guide/templates | user_guide/index | user_guide/index | user_guide/index | user_guide/index |
+| examples/basic | examples/index | None | index | examples/index |
+| examples/advanced | examples/index | None | index | examples/index |
+| user_guide/output_layout | user_guide/index | user_guide/index | none | user_guide/index |
+
+**Tip build**, same columns:
+
+| page | (a) relations parent | (b) ancestor parent | (c) console `selecting:` | (d) Typst edge parent |
+|---|---|---|---|---|
+| user_guide/configuration | user_guide/index | user_guide/index | none | user_guide/index |
+| user_guide/builders | user_guide/index | user_guide/index | none | user_guide/index |
+| user_guide/templates | user_guide/index | user_guide/index | none | user_guide/index |
+| examples/basic | examples/index | examples/index | none | examples/index |
+| examples/advanced | examples/index | examples/index | none | examples/index |
+| user_guide/output_layout | user_guide/index | user_guide/index | none | user_guide/index |
+
+At the base, `examples/basic`/`examples/advanced` show column (b) as `None` — not a script bug: at
+base, `toctree_includes["index"]` lists `examples/basic`/`examples/advanced` directly (in addition
+to `toctree_includes["examples/index"]` also listing them), and `_get_toctree_ancestors`'
+last-assignment parent map (iterating `toctree_includes.items()` in key order
+`['examples/index', 'index', 'user_guide/index']`) lets the direct `index` assignment overwrite the
+`examples/index` one, mapping `parent['examples/basic'] = 'index'` — but `'index'` (the root) is
+itself never a *value* in that map (nothing lists it as a child), so the ancestor chain terminates
+after appending only the docname itself and column (b) has no second element. At the tip, with the
+direct root entries removed, only `toctree_includes["examples/index"]` assigns the parent, giving
+`examples/index` for column (b) — matching (a) and (d).
+
+Quoted, with file and line numbers (installed Sphinx 9.1.0, this worktree's `.venv`):
+
+`_check_toc_parents` logs `max(parents)` and feeds nothing (`sphinx/environment/__init__.py:942-960`):
+```python
+942:def _check_toc_parents(toctree_includes: dict[str, list[str]]) -> None:
+943:    toc_parents: dict[str, list[str]] = {}
+944:    for parent, children in toctree_includes.items():
+945:        for child in children:
+946:            toc_parents.setdefault(child, []).append(parent)
+947:
+948:    for doc, parents in sorted(toc_parents.items()):
+949:        if len(parents) > 1:
+950:            logger.info(
+951:                __(
+952:                    'document is referenced in multiple toctrees: %s, selecting: %s <- %s'
+953:                ),
+954:                parents,
+955:                max(parents),
+956:                doc,
+957:                location=doc,
+958:                type='toc',
+959:                subtype='multiple_toc_parents',
+960:            )
+```
+This function only calls `logger.info(...)` — its `max(parents)` computation is never returned or
+stored anywhere; it feeds nothing else in the pipeline.
+
+`collect_relations` is a pre-order traversal from `root_doc`, and the HTML builder reads its
+parent/prev/next from it (`sphinx/environment/__init__.py:778-795`,
+`sphinx/builders/html/__init__.py:492`):
+```python
+778:    def collect_relations(self) -> dict[str, list[str | None]]:
+779:        traversed: set[str] = set()
+780:
+781:        relations = {}
+782:        docnames = _traverse_toctree(
+783:            traversed, None, self.config.root_doc, self.toctree_includes
+784:        )
+...
+793:        relations[docname] = [parent, prev_doc, None]
+794:
+795:        return relations
+```
+```python
+492:        self.relations = self.env.collect_relations()
+```
+
+`_get_toctree_ancestors` builds a last-assignment parent map
+(`sphinx/environment/adapters/toctree.py:562-575`):
+```python
+562:def _get_toctree_ancestors(
+563:    toctree_includes: dict[str, list[str]],
+564:    docname: str,
+565:) -> Set[str]:
+566:    parent: dict[str, str] = {}
+567:    for p, children in toctree_includes.items():
+568:        parent |= dict.fromkeys(children, p)
+569:    ancestors: list[str] = []
+570:    d = docname
+571:    while d in parent and d not in ancestors:
+572:        ancestors.append(d)
+573:        d = parent[d]
+574:    return dict.fromkeys(ancestors).keys()
+```
+
+## Divergence disposition
+
+At the tip, for all six pages, (a) `collect_relations()` and (b) `_get_toctree_ancestors` both
+equal (d) the Typst edge parent: `user_guide/index` for the three User Guide pages and
+`examples/index` for both Examples pages. `DIVERGENCE_SURVIVES = no`. `DIVERGENCE_TODO = none` — no
+todo is filed; `.planning/todos/pending/2026-09-13-html-and-typst-toctree-parents-diverge-after-dedup.md`
+does not exist.
+
+The 2026-08-16 observation, "Sphinx HTML selected `index`", was read from the console `selecting:`
+token (column (c)) — which `_check_toc_parents` computes as `max(parents)` and only logs; it is
+neither `collect_relations()`'s relation (a) nor `_get_toctree_ancestors`'s chain (b), both of which
+the HTML builder (and, per `## Typst pair`, the Typst edge map) actually use. At the tip that
+console token no longer exists at all (`MULTI_TOCTREE_TIP = 0`, no `selecting:` message for any
+page).
+
+## SC#4 verdict
+
+`SC4_HTML_VERDICT = MET` and `SC4_TYPST_VERDICT = MET` (from `## SC#4 HTML and Typst verdicts`
+above), and the divergence disposition is recorded (`DIVERGENCE_SURVIVES = no`).
+
+`SC4_VERDICT = MET`
