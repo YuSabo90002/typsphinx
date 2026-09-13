@@ -278,3 +278,97 @@ $ git ls-remote --heads origin 'gsd/v0.9.5*'
 No decoy branch (`gsd/v0.9.5-milestone`) exists yet, and the canonical branch is not yet on
 `origin` — matches ROADMAP constraint 6's expectation exactly. 72-06 re-measures both immediately
 before its push.
+
+DOC18_EDIT_COMMIT = 3762b9de65440ea88157aa22bcfaa8ee4e5bedb2
+EDIT_MULTI_TOCTREE_COUNT = 0
+EDIT_WARNING_COUNT = 3
+
+## DOC-18 edit
+
+**The edit (owner decision 2026-09-13, the conventional hierarchy).** Deleted exactly five lines
+from `docs/source/index.rst`: `user_guide/configuration`, `user_guide/builders` and
+`user_guide/templates` from the User Guide toctree; `examples/basic` and `examples/advanced` from
+the Examples toctree. `user_guide/index` and `examples/index`, every `:maxdepth:`/`:caption:` line,
+the blank lines between toctrees, and the Getting Started, API Reference and Development toctrees
+are untouched. `user_guide/index.rst`, `examples/index.rst` and `conf.py` were not touched.
+
+**The move (D-08).** `git mv .planning/todos/pending/2026-08-16-root-toctree-duplicates-section-children-in-html-sidebar.md .planning/todos/completed/`,
+content unchanged (blob hash identical, see below).
+
+**One commit for both:**
+```
+$ git commit -m "docs(72-01): list only section indexes in the root toctrees (DOC-18)"
+```
+
+```
+$ git rev-parse HEAD
+3762b9de65440ea88157aa22bcfaa8ee4e5bedb2
+$ git show --name-status --format= HEAD
+R100	.planning/todos/pending/2026-08-16-root-toctree-duplicates-section-children-in-html-sidebar.md	.planning/todos/completed/2026-08-16-root-toctree-duplicates-section-children-in-html-sidebar.md
+M	docs/source/index.rst
+```
+Exactly `M docs/source/index.rst` and one `R100` rename of the 2026-08-16 todo — nothing else.
+
+```
+$ git diff --numstat 34c77f59266acb028c8934ff56715dd4454bdfe8 HEAD -- docs/source/index.rst
+0	5	docs/source/index.rst
+$ git diff -U0 34c77f59266acb028c8934ff56715dd4454bdfe8 HEAD -- docs/source/index.rst
+@@ -43,3 +42,0 @@ Quick Links
+-   user_guide/configuration
+-   user_guide/builders
+-   user_guide/templates
+@@ -52,2 +48,0 @@ Quick Links
+-   examples/basic
+-   examples/advanced
+```
+`0` added, `5` removed — exactly the five entries named above.
+
+Moved-todo blob equality:
+```
+$ git rev-parse 34c77f59266acb028c8934ff56715dd4454bdfe8:.planning/todos/pending/2026-08-16-root-toctree-duplicates-section-children-in-html-sidebar.md
+7cb0f81657165b89037c08a2dc9c4d82a1582d7b
+$ git rev-parse HEAD:.planning/todos/completed/2026-08-16-root-toctree-duplicates-section-children-in-html-sidebar.md
+7cb0f81657165b89037c08a2dc9c4d82a1582d7b
+```
+Identical blob — content unchanged.
+
+The two toctrees as they now read (`docs/source/index.rst`, post-edit):
+```
+.. toctree::
+   :maxdepth: 2
+   :caption: User Guide
+
+   user_guide/index
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Examples
+
+   examples/index
+```
+
+## Post-edit sanity build
+
+Per-task sampling only; the binding SC#3 pair is 72-04's. Archived `HEAD` (post-edit tip) into a
+fresh scratch tree and ran Task 1's HTML build command with the tree/output paths changed to
+`tree-edit`/`html-edit`:
+
+```bash
+git archive HEAD | tar -x -C "$S/tree-edit"
+LANG=C LC_ALL=C uv run sphinx-build -b html "$S/tree-edit/docs/source" "$S/html-edit" \
+  > "$S/p7201_html-edit.out" 2> "$S/p7201_html-edit.err"
+echo "exit:$?"
+```
+```
+exit:0
+```
+
+```
+$ LANG=C LC_ALL=C grep -c 'document is referenced in multiple toctrees' "$S/p7201_html-edit.out"
+0
+$ LANG=C LC_ALL=C grep -E '^build succeeded' "$S/p7201_html-edit.out"
+build succeeded, 3 warnings.
+```
+`EDIT_MULTI_TOCTREE_COUNT = 0`. `EDIT_WARNING_COUNT = 3`, unchanged from `BASE_WARNING_COUNT = 3`
+(the 3 warnings are the pre-existing `visit_toctree` docstring rST errors, constraint 9, untouched
+by this phase). The English `build succeeded` line is present. No HALT.
