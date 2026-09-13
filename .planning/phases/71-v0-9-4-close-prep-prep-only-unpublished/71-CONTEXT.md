@@ -73,7 +73,7 @@ through `workflow_dispatch`.
 
 - **D-05: The milestone branch does not absorb `main` inside this phase. Today there is nothing to absorb.** `origin/main` equals the merge-base (`d14ca458`), measured. SC#3's non-committing trial merge is still run at execution time and transcribed verbatim: `git fetch origin`, then `git merge-tree --write-tree HEAD origin/main` (exit code and tree SHA), `uv lock --check` on that tree's `pyproject.toml` + `uv.lock` extracted to scratch, and `ruff check .` on the merged tree at the merged lock's `ruff` version. It catches the case constraint 4 names, a `main` that moved (a dependabot `ruff` bump, say) between now and execution. Nothing from it is committed.
 
-- **D-06: `71-HANDOFF.md`'s branch-update step is conditional, because `main` is `strict: true`.** If `origin/main` has moved past the merge-base when `/gsd-complete-milestone` runs, merge it into the canonical milestone branch with a merge commit (never a rebase), push, and re-check. Otherwise the step is a recorded no-op. Then:
+- **D-06 — `71-HANDOFF.md`'s branch-update step is conditional, because `main` is `strict: true`.** If `origin/main` has moved past the merge-base when `/gsd-complete-milestone` runs, merge it into the canonical milestone branch with a merge commit (never a rebase), push, and re-check. Otherwise the step is a recorded no-op. Then:
   1. Open the PR from `gsd/v0.9.4-typing-modernization` to `main`.
   2. Wait for the six required checks, named literally as in the domain section, to be green on the head.
   3. Merge with a merge commit, the method #135, #136 and #143 used.
