@@ -235,6 +235,20 @@ None — no external service configuration required.
   `71-CI-EVIDENCE.md` and here; no further action is required of this plan or its successors
   unless the owner revisits that decision.
 
+## Self-Check: PASSED
+
+- `71-SC1-INVARIANTS.md` exists on disk: FOUND.
+- `71-06-SUMMARY.md` exists on disk: FOUND.
+- Commits `bb855abd`, `36d98fcd`, `11474289` all found in `git log --oneline --all`.
+- Task 1's `<acceptance_criteria>` re-checked: all four bullets (Observation 2, phase-scoped
+  diff, post-dispatch commits, code freeze) hold as recorded, with the one known literal-count
+  exception documented above rather than silently passed.
+- Task 2's `<acceptance_criteria>` re-checked: all four bullets (masked-AST table,
+  non-vacuity controls, cross-check, D-11 verdict) hold as recorded, and its own automated
+  verify passed with exit 0.
+- `plan_head_before: 9c66a8505e36af774af9d6c4260206a697a7b0d4`, `commits: 2` (measured via
+  `git rev-list --count 9c66a8505e36af774af9d6c4260206a697a7b0d4..HEAD` before this commit).
+
 ---
 *Phase: 71-v0-9-4-close-prep-prep-only-unpublished*
 *Completed: 2026-09-13*
