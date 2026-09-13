@@ -10,7 +10,7 @@ import posixpath
 import shutil
 from collections.abc import Iterator
 from os import path
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any
 
 from docutils import nodes
 from sphinx.builders import Builder
@@ -733,7 +733,7 @@ class TypstBuilder(Builder):
         # and `_write_typst_files()` lazily derives it on demand -- see
         # that method's own comment for why that is the SAME derivation
         # function, not a second include-decision mechanism.
-        self._master_include_edges: Dict[str, Tuple[str, ...]] = {}
+        self._master_include_edges: dict[str, tuple[str, ...]] = {}
 
         # Phase 53 (TPL-03): the resolved template registry, keyed by
         # registry key. Populated for real in `write()` (mirrors
@@ -743,7 +743,7 @@ class TypstBuilder(Builder):
         # `_write_typst_files()` lazily derives it on demand -- see that
         # method's own comment for why that is the SAME resolution
         # function, not a second registry-resolution mechanism.
-        self._document_template_registry: Dict[str, TemplateRegistryEntry] = {}
+        self._document_template_registry: dict[str, TemplateRegistryEntry] = {}
 
         # Phase 54 (OUT-04): the write-time accumulator of every registry
         # key an ACTUALLY-WRITTEN wrapper resolved, feeding the
@@ -757,7 +757,7 @@ class TypstBuilder(Builder):
         # incremental build.
         self._used_template_keys: set[str] = set()
 
-    def _build_include_edge_map(self) -> Dict[str, Tuple[str, ...]]:
+    def _build_include_edge_map(self) -> dict[str, tuple[str, ...]]:
         """Derive the per-master include-edge mapping (COMP-05/COMP-06).
 
         For every USABLE ``typst_documents`` entry
@@ -794,7 +794,7 @@ class TypstBuilder(Builder):
         """
         toctree_includes = getattr(self.env, "toctree_includes", {}) or {}
         typst_documents = getattr(self.config, "typst_documents", []) or []
-        edge_map: Dict[str, Tuple[str, ...]] = {}
+        edge_map: dict[str, tuple[str, ...]] = {}
         for entry in typst_documents:
             if not _is_usable_typst_documents_entry(entry):
                 continue
@@ -1130,8 +1130,8 @@ class TypstBuilder(Builder):
                 collision(s)"`` (D-02's summary prefix) followed by every
                 offending pair or reservation violation.
         """
-        claims: Dict[str, str] = {}
-        failures: List[Tuple[str, str]] = []
+        claims: dict[str, str] = {}
+        failures: list[tuple[str, str]] = []
 
         def _claim(relpath: str, description: str) -> None:
             key = self._collision_key(relpath)
@@ -1455,7 +1455,7 @@ class TypstBuilder(Builder):
                 through the global Typst template settings instead.
         """
         typst_documents = getattr(self.config, "typst_documents", []) or []
-        used_keys: Set[str] = set()
+        used_keys: set[str] = set()
         for entry in typst_documents:
             if not _is_usable_typst_documents_entry(entry):
                 continue
@@ -1465,7 +1465,7 @@ class TypstBuilder(Builder):
             used_keys.add(resolved_entry.key)
 
         raw_templates_path = getattr(self.config, "templates_path", []) or []
-        templates_path_entries: List[Tuple[str, str]] = []
+        templates_path_entries: list[tuple[str, str]] = []
         for raw_entry in raw_templates_path:
             if not isinstance(raw_entry, str):
                 continue
@@ -1473,7 +1473,7 @@ class TypstBuilder(Builder):
                 (raw_entry, path.join(str(self.srcdir), raw_entry))
             )
 
-        failures: List[Tuple[str, str]] = []
+        failures: list[tuple[str, str]] = []
 
         from typsphinx.template_registry import RESERVED_REGISTRY_KEY
 
@@ -1635,7 +1635,7 @@ class TypstBuilder(Builder):
         """
         return docname + self.out_suffix
 
-    def prepare_writing(self, docnames: Set[str]) -> None:
+    def prepare_writing(self, docnames: set[str]) -> None:
         """
         Prepare for writing the documents.
 
@@ -1653,8 +1653,8 @@ class TypstBuilder(Builder):
 
     def write(
         self,
-        build_docnames: Set[str] | None,
-        updated_docnames: Set[str],
+        build_docnames: set[str] | None,
+        updated_docnames: set[str],
         method: str = "update",
     ) -> None:
         """
@@ -2351,9 +2351,9 @@ class TypstBuilder(Builder):
         from typsphinx.template_registry import RESERVED_REGISTRY_KEY, _violates_conf17
         from typsphinx.writer import TEMPLATE_OUTPUT_DIR
 
-        destinations: Dict[str, Tuple[str, str]] = {}
-        failures: List[Tuple[str, str]] = []
-        to_copy: List[Tuple[str, Any, str, str]] = []
+        destinations: dict[str, tuple[str, str]] = {}
+        failures: list[tuple[str, str]] = []
+        to_copy: list[tuple[str, Any, str, str]] = []
 
         for key in sorted(self._used_template_keys):
             entry = self._document_template_registry[key]
@@ -2549,7 +2549,7 @@ class TypstPDFBuilder(TypstBuilder):
 
         logger.info(f"Compiling {len(typst_documents)} master document(s) to PDF...")
 
-        failures: List[Tuple[str, str]] = []
+        failures: list[tuple[str, str]] = []
 
         for doc_tuple in typst_documents:
             # doc_tuple format: (sourcename, targetname, title, author).

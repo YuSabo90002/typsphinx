@@ -6,7 +6,7 @@ nodes to Typst markup.
 """
 
 import re
-from typing import Any, Dict, List, NamedTuple, Tuple
+from typing import Any, NamedTuple
 
 from docutils import nodes
 from sphinx import addnodes
@@ -123,7 +123,7 @@ class _ReferenceAnchorDecision(NamedTuple):
 
     refuri: str
     refid: str
-    xref: Tuple[str, str] | None
+    xref: tuple[str, str] | None
     opens_wrapper: bool
     next_is_target: bool
     eligible: bool
@@ -341,8 +341,8 @@ _MAX_INCLUDE_CHAIN_DEPTH = 500
 
 
 def derive_master_edge_keys(
-    toctree_includes: Dict[str, List[str]], master_docname: str
-) -> Tuple[str, ...]:
+    toctree_includes: dict[str, list[str]], master_docname: str
+) -> tuple[str, ...]:
     """Walk one master's own include graph and return its published edge
     keys, in document-order discovery order (COMP-05).
 
@@ -407,10 +407,10 @@ def derive_master_edge_keys(
         ExtensionError: If the include chain reaches a depth greater than
             ``_MAX_INCLUDE_CHAIN_DEPTH`` edges below ``master_docname``.
     """
-    traversed: List[str] = [master_docname]
-    edge_keys: List[str] = []
+    traversed: list[str] = [master_docname]
+    edge_keys: list[str] = []
 
-    def walk(parent: str, depth: int, path: Tuple[str, ...]) -> None:
+    def walk(parent: str, depth: int, path: tuple[str, ...]) -> None:
         if depth > _MAX_INCLUDE_CHAIN_DEPTH:
             raise ExtensionError(
                 f"typsphinx: the include chain for master document "
@@ -430,7 +430,7 @@ def derive_master_edge_keys(
     return tuple(edge_keys)
 
 
-def render_include_edge_state(edge_keys: Tuple[str, ...]) -> str:
+def render_include_edge_state(edge_keys: tuple[str, ...]) -> str:
     """Render a wrapper's ``state`` publication line for ``edge_keys``.
 
     The array-literal rendering rule (measured against a real
@@ -531,7 +531,7 @@ class TypstTranslator(SphinxTranslator):
         self.section_level = 0
         self.in_figure = False
         self.in_table = False
-        self.table_colwidths: List[Any] = (
+        self.table_colwidths: list[Any] = (
             []
         )  # Per-column colwidth accumulator (FID-01a D-01); init in
         # visit_table, consumed + reset in depart_table.
@@ -553,7 +553,7 @@ class TypstTranslator(SphinxTranslator):
         self._in_table_caption: bool = (
             False  # Track if currently buffering a table caption title
         )
-        self._caption_saved_list_state: Tuple[bool, bool] | None = (
+        self._caption_saved_list_state: tuple[bool, bool] | None = (
             None  # (in_list_item, list_item_needs_separator) saved across
             # the caption title's buffering, mirrors the admonition-title
             # save/restore idiom
@@ -582,12 +582,12 @@ class TypstTranslator(SphinxTranslator):
         # full snapshot of that scalar set around a NESTED visit_table/
         # depart_table pair only (never for a top-level table, which stays
         # byte-identical) -- see the docstrings on those two methods.
-        self._table_state_stack: List[Dict[str, Any]] = []
+        self._table_state_stack: list[dict[str, Any]] = []
 
         # Figure-specific state
         self.figure_content = []
         self.figure_caption = ""
-        self._saved_body_for_figure_caption: List[Any] | None = (
+        self._saved_body_for_figure_caption: list[Any] | None = (
             None  # Body to restore after buffering a figure caption (buffer-swap idiom)
         )
         self._figure_block_width: str | None = (
@@ -606,7 +606,7 @@ class TypstTranslator(SphinxTranslator):
         # snapshot of that scalar set around a NESTED visit_figure/
         # depart_figure pair only (never for a top-level figure, which stays
         # byte-identical) -- see the docstrings on those two methods.
-        self._figure_state_stack: List[Dict[str, Any]] = []
+        self._figure_state_stack: list[dict[str, Any]] = []
 
         # Whether THIS figure (the one currently open) has a legend child --
         # set in visit_figure from a scan of node.children (the doctree is
@@ -634,7 +634,7 @@ class TypstTranslator(SphinxTranslator):
         # otherwise reset the flag to False), which mis-classifies a paragraph
         # following a nested list as top-level and emits an unseparated
         # `par(...)` right after the nested `list(...)` -> `})par(` syntax error.
-        self._list_item_stack: List[bool] = []
+        self._list_item_stack: list[bool] = []
 
         # Stack of (in_list_item, list_item_needs_separator) pairs pushed by
         # visit_legend and popped by depart_legend (43-REVIEW.md CR-01,
@@ -651,7 +651,7 @@ class TypstTranslator(SphinxTranslator):
         # _list_item_stack immediately above) makes each nesting level
         # independent, exactly like _push_figure_state/_pop_figure_state
         # does for the figure scalars proper.
-        self._legend_list_item_stack: List[Tuple[bool, bool]] = []
+        self._legend_list_item_stack: list[tuple[bool, bool]] = []
         self.in_literal_block = False  # Track if currently in a code block
 
         # SIG-01..SIG-05 monospace-propagation flag (37-EMISSION-CONTRACT.md
@@ -770,8 +770,8 @@ class TypstTranslator(SphinxTranslator):
         self._term_has_content: bool = (
             False  # Track if the term buffer has content for + separator
         )
-        self.current_term_buffer: str | List[str] | None = None
-        self.current_definition_buffer: List[str] | None = None
+        self.current_term_buffer: str | list[str] | None = None
+        self.current_definition_buffer: list[str] | None = None
 
         # Field-body code-mode concat context. A field body written inline on
         # its field line (e.g. ':default: The value of **x**') is COLLAPSED by
@@ -795,7 +795,7 @@ class TypstTranslator(SphinxTranslator):
         # would let depart_field's FID-09 inter-field separator fire between
         # newly-inlined single-value fields and merge them onto one line).
         self._field_body_unwrapped_paragraph: bool = False
-        self._field_body_stack: List[Tuple[bool, bool, bool]] = []
+        self._field_body_stack: list[tuple[bool, bool, bool]] = []
         # Whether the most recently departed field_body used the collapsed
         # inline form (see visit_field_body). depart_field reads this to
         # decide whether the FID-09 inter-field "  " separator applies --
@@ -809,11 +809,11 @@ class TypstTranslator(SphinxTranslator):
         # content. Each entry is the (flag, has_content) attribute-name pair
         # saved by _enter_inline_concat_element and restored by
         # _exit_inline_concat_element (or None when no context was active).
-        self._inline_concat_stack: List[Tuple[str, str] | None] = []
+        self._inline_concat_stack: list[tuple[str, str] | None] = []
         # (term, definition) pairs for the CURRENT (innermost) definition list.
         # Aliases the top of _deflist_items_stack so a nested definition list
         # cannot clobber the enclosing list's collected items.
-        self.definition_list_items: List[Tuple[str, str]] = []
+        self.definition_list_items: list[tuple[str, str]] = []
         # Stacks that make definition-list buffering re-entrant. A definition
         # may CONTAIN a nested definition list (e.g. an autodoc docstring whose
         # first block IS a definition list); each level must save/restore its
@@ -824,9 +824,9 @@ class TypstTranslator(SphinxTranslator):
         # anchor) are then silently dropped, dangling the cross-reference link
         # (GATE-02 fatal #18). Mirrors the _list_item_stack (bug #4) and
         # _inline_concat_stack (bug #5) stack idiom.
-        self._saved_body_stack: List[List[Any]] = []
-        self._deflist_items_stack: List[List[Tuple[str, str]]] = []
-        self._pending_term_stack: List[str | None] = []
+        self._saved_body_stack: list[list[Any]] = []
+        self._deflist_items_stack: list[list[tuple[str, str]]] = []
+        self._pending_term_stack: list[str | None] = []
 
         # Admonition title state (buffer-swap idiom, mirrors definition-list terms)
         self._pending_admonition_title: str | None = (
@@ -835,7 +835,7 @@ class TypstTranslator(SphinxTranslator):
         self._in_admonition_title: bool = (
             False  # Track if currently buffering an admonition title node
         )
-        self._saved_body_for_admonition_title: List[Any] | None = (
+        self._saved_body_for_admonition_title: list[Any] | None = (
             None  # Body to restore after buffering an admonition title
         )
         self._custom_admonition_title: str | None = (
@@ -846,7 +846,7 @@ class TypstTranslator(SphinxTranslator):
             # (D-04/D-05); for todo_node it remains the caller-supplied
             # inert fallback ("Todo"), since todo_node is not a catalog key.
         )
-        self._title_section_ids: List[str] = (
+        self._title_section_ids: list[str] = (
             []  # Parent section's ids, captured in visit_title for the
             # matching depart_title's anchor emission (see visit_title)
         )
@@ -873,7 +873,7 @@ class TypstTranslator(SphinxTranslator):
         # translator instance is constructed by `TypstWriter.translate()`
         # for EVERY document it translates (see that method), so this
         # counter is per-document without any explicit reset here.
-        self._toctree_entry_occurrences: Dict[str, int] = {}
+        self._toctree_entry_occurrences: dict[str, int] = {}
 
     def astext(self) -> str:
         """
@@ -1628,7 +1628,7 @@ class TypstTranslator(SphinxTranslator):
     #: Code-mode concat contexts as (active-flag, has-content-flag) attribute
     #: names, highest precedence first (mirrors the historical elif chain in
     #: visit_Text: desc parameter > link > term).
-    _CONCAT_CONTEXTS: Tuple[Tuple[str, str], ...] = (
+    _CONCAT_CONTEXTS: tuple[tuple[str, str], ...] = (
         ("in_desc_parameter", "_desc_parameter_has_content"),
         ("_in_link", "_link_has_content"),
         ("_in_term", "_term_has_content"),
@@ -1636,7 +1636,7 @@ class TypstTranslator(SphinxTranslator):
         ("_in_attribution", "_attribution_has_content"),
     )
 
-    def _inline_concat_context(self) -> Tuple[str, str] | None:
+    def _inline_concat_context(self) -> tuple[str, str] | None:
         """
         Return the ``(active-flag, has-content-flag)`` attribute-name pair of
         the currently active code-mode concat context (def-list term / link
@@ -5300,7 +5300,7 @@ class TypstTranslator(SphinxTranslator):
             return self._sanitize_label(f"{docname}:{raw_id}")
         return self._sanitize_label(raw_id)
 
-    def _resolve_xref_docname(self, refuri: str) -> Tuple[str, str] | None:
+    def _resolve_xref_docname(self, refuri: str) -> tuple[str, str] | None:
         """Resolve a LOCAL cross-document refuri to ``(target_docname, anchor)``.
 
         Sphinx's reference resolver renders a resolved cross-document

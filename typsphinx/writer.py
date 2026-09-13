@@ -7,7 +7,7 @@ document trees to Typst markup.
 
 import posixpath
 from pathlib import PurePosixPath
-from typing import Any, Tuple
+from typing import Any
 
 from docutils import writers
 from sphinx.util import logging
@@ -281,7 +281,7 @@ class TypstWriter(writers.Writer):
         doctree: Any,
         wrapper_relative_dir: str,
         content_relative_path: str,
-        edge_keys: Tuple[str, ...] = (),
+        edge_keys: tuple[str, ...] = (),
         template_entry: TemplateRegistryEntry | None = None,
     ) -> str:
         """

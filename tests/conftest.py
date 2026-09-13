@@ -3,7 +3,7 @@ pytest configuration and fixtures for typsphinx tests.
 """
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 from docutils import nodes
@@ -81,7 +81,7 @@ def temp_sphinx_app(tmp_path: Path) -> SphinxTestApp:
 
 
 @pytest.fixture
-def sphinx_config() -> Dict[str, Any]:
+def sphinx_config() -> dict[str, Any]:
     """Sample Sphinx configuration for testing."""
     return {
         "project": "Test Project",
