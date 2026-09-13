@@ -1,21 +1,16 @@
 ---
-gsd_state_version: 1.0
-milestone: v0.9.3
-milestone_name: Toolchain and dependency-update repair
-status: Awaiting next milestone
-stopped_at: Milestone v0.9.3 completed and archived — merged to main via PR #143 (58d578f2), nothing published
-last_updated: "2026-09-13T00:40:00.000Z"
+gsd_state_version: "1.0"
+milestone: v0.9.4
+milestone_name: Typing Modernization
+status: planning
+last_updated: "2026-09-13T01:49:39.562Z"
 last_activity: 2026-09-13
-last_activity_desc: Completed quick task 260913-e7n — Issue #91 closed as not reproducible on 0.9.2
-state_head: 58d578f20cc568e54b3e2aacbba87f34b4ebc0d9
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 27
-  completed_plans: 27
-  percent: 100
-current_phase: 69
-current_phase_name: v0.9.3 Close Prep (prep-only, unpublished)
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,7 +20,7 @@ current_phase_name: v0.9.3 Close Prep (prep-only, unpublished)
 See: .planning/PROJECT.md (updated 2026-09-13 — full evolution review at the v0.9.3 close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** none — v0.9.3 completed 2026-09-13 and merged to `main` via PR #143, nothing published; awaiting `/gsd-new-milestone`
+**Current focus:** v0.9.4 Typing Modernization — defining requirements (research first); phases start at 70
 
 ## Shipped Milestone (v0.9.3 — archived, merged to `main`, NOT published)
 
@@ -194,10 +189,10 @@ land here.
 
 ## Current Position
 
-Phase: Milestone v0.9.3 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-09-13 - Completed quick task 260913-e7n: Close Issue #91 as not reproducible on 0.9.2
+Status: Defining requirements
+Last activity: 2026-09-13 — Milestone v0.9.4 started
 
 ## Shipped Milestone (v0.9.0 — archived)
 
