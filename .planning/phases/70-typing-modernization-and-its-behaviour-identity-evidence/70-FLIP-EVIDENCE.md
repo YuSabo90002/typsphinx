@@ -128,3 +128,45 @@ Both exit 0. No `preview` setting anywhere in `pyproject.toml`
 ruff now enforces UP006/UP035 on a tree with nothing left to enforce, and the todo left
 `pending/` in the same commit as the last reference to it.
 
+## Gate quartet (post-flip)
+
+`uv run ruff check .`:
+```
+All checks passed!
+```
+exit:0
+
+`uv run black --check .`:
+```
+All done! ✨ 🍰 ✨
+355 files would be left unchanged.
+```
+exit:0
+
+`uv run mypy typsphinx/ 2>/dev/null`:
+```
+Success: no issues found in 9 source files
+```
+exit:0
+
+MYPY_EXIT_FLIP = 0
+
+`LC_ALL=C uv run pytest -q -rs -p no:cacheprovider`. Summary line (`tail -n 1`):
+```
+================= 1547 passed, 1 skipped in 130.99s (0:02:10) ==================
+```
+exit:0
+
+`PYTEST_RESULT_FLIP = ` from 70-02's token extraction
+(`tail -n 1 | grep -oE '[0-9]+ (passed|failed|skipped|errors?|xfailed|xpassed)' | paste -sd' '`):
+
+PYTEST_RESULT_FLIP = 1547 passed 1 skipped
+
+`PYTEST_RESULT_FLIP` equals `PYTEST_RESULT_BEFORE` (`70-BASELINE-EVIDENCE.md`, `1547 passed 1
+skipped`). Confirmed.
+
+This is the flip plan's own gate. The formal after-side evidence for legs (b) and (e) is
+re-measured in wave 5 by 70-10 and 70-11, never in the plan whose work it audits.
+
+The post-flip tree passes the gate quartet with the stricter lint config.
+
