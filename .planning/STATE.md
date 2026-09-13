@@ -590,6 +590,12 @@ archived `milestones/v0.6.4-ROADMAP.md`. Standing process decisions that carry f
 
 ### Pending Todos
 
+**Measured 2026-09-13: six open in `.planning/todos/pending/`.** The sixth was captured 2026-09-13
+(`doctest-block-unhandled-collapses-examples-to-one-line`, **major**): `doctest_block` has no
+translator handler, so `>>>` examples fall through `unknown_visit()` and lose every line break. Found
+during the Issue #91 re-measurement on a real sphinx-autoapi build (17 occurrences). Not in any
+milestone's scope.
+
 **Measured 2026-08-29: eleven open in `.planning/todos/pending/`.** The eleventh was captured
 2026-08-29 (`inline-image-in-paragraph-emits-unseparated-expression`, **blocker**, owner report,
 reproduced and root-caused at capture time): any image node preceded by sibling content in the same
