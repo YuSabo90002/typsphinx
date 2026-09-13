@@ -5,15 +5,15 @@ milestone_name: Docs Link Check and Navigation
 current_phase: 72
 current_phase_name: "`tox -e linkcheck` and Root Toctree Deduplication"
 status: planning
-stopped_at: Phase 72 context gathered
-last_updated: "2026-09-13T11:23:08.988Z"
+stopped_at: Phase 72 planned
+last_updated: "2026-09-13T12:52:45.000Z"
 last_activity: 2026-09-13
-last_activity_desc: "Phase 72 context gathered (72-CONTEXT.md, D-01..D-09; owner accepted all four recommendations)"
-state_head: a36062a0c04878169a84173c26d035f219c88411
+last_activity_desc: "Phase 72 planned (6 plans in 4 waves; research, validation and pattern map added; plan-checker passed)"
+state_head: 704beabab21fae2d661a2d501ffddce6834d6c90
 progress:
   total_phases: 2
   completed_phases: 0
-  total_plans: 0
+  total_plans: 6
   completed_plans: 0
   percent: 0
 ---
@@ -228,9 +228,9 @@ land here.
 ## Current Position
 
 Phase: 72 of 73 (`tox -e linkcheck` and Root Toctree Deduplication)
-Plan: — (not yet planned)
-Status: Ready to plan
-Last activity: 2026-09-13 — Phase 72 context gathered (`72-CONTEXT.md`, D-01..D-09)
+Plan: 0 of 6 (planned: 72-01..72-06 in 4 waves)
+Status: Ready to execute
+Last activity: 2026-09-13 — Phase 72 planned (6 plans, 4 waves; plan-checker passed)
 
 Progress: [░░░░░░░░░░] 0% (0/2 phases)
 

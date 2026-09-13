@@ -432,7 +432,26 @@ stands in for the deleted entries.
 
      (Milestone invariant #5; constraints 2, 3, 6.)
 
-**Plans**: TBD
+**Plans**: 6 plans (4 waves)
+
+Plans:
+**Wave 1**
+
+- [ ] 72-01-PLAN.md — base: PHASE_BASE_SHA, clean base HTML and Typst builds with positive control, phase-head reads; then the DOC-18 edit and todo move (wave 1)
+- [ ] 72-02-PLAN.md — QUA-13: add [testenv:linkcheck] and pass it on a clean run under D-01..D-03 (wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 72-03-PLAN.md — DOC-24: name tox -e linkcheck on every listing surface found by grep, plus the D-07 todo note (wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 72-04-PLAN.md — DOC-18 proof: same-environment base/tip pair for SC#3, sidebar and Typst for SC#4, parent divergence re-measured (wave 3)
+- [ ] 72-05-PLAN.md — tip gates: real tox linkcheck and docs-html runs, local gate quartet, scope fence (wave 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 72-06-PLAN.md — branch census, first push with tracking, one CI dispatch, job transcript, required checks at close (wave 4)
 
 ### Phase 73: v0.9.5 Close Prep (prep-only, unpublished)
 
