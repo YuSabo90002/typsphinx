@@ -440,7 +440,28 @@ constraint 10's checksum fence is what keeps it there.
      the merge: the merge commit on `origin/main`, `pyproject.toml` still `0.9.2`, no `v0.9.4` tag,
      PyPI 404 for `0.9.4`, and no `v0.9.4` Release.
 
-**Plans**: TBD
+**Plans**: 7 plans (4 waves)
+
+Plans:
+**Wave 1**
+
+- [ ] 71-01-PLAN.md — the one CHANGELOG bullet under the existing Unreleased heading (D-01..D-04), with clean-build docs baselines before and after (wave 1)
+- [ ] 71-02-PLAN.md — REL-13 closeout-guard baseline, SC#1 observation 1 with the D-11 code freeze at phase head, and COVERAGE.md (wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 71-03-PLAN.md — local green-tree proof: full suite twice (once under LC_ALL=C), format/type/lint, version sync, zero-skip changelog gate, clean docs (wave 2)
+- [ ] 71-04-PLAN.md — decoy census, fast-forward push, one CI dispatch, 12-job transcript and ruff verdict from Lint and Format Check (wave 2)
+- [ ] 71-05-PLAN.md — non-committing trial merge of origin/main with merged lock and lint, main protection, merge-method precedent and open-PR census (wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 71-06-PLAN.md — SC#1 observation 2, post-dispatch proof, and D-11 on the close tip: code-freeze diff and masked-AST re-run (wave 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 71-07-PLAN.md — closeout-guard re-verification at phase close and the standalone 71-HANDOFF.md (wave 4)
+
 **UI hint**: no
 
 ## Progress
