@@ -1,7 +1,7 @@
 ---
 phase: 72-tox-e-linkcheck-and-root-toctree-deduplication
 verified: 2026-09-13T00:00:00Z
-status: human_needed
+status: passed
 score: 5/5 must-haves verified
 covered_files:
   - ".planning/REQUIREMENTS.md"

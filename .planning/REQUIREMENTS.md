@@ -10,12 +10,12 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 
 ### Quality
 
-- [ ] **QUA-13**: `tox.ini` gains a `[testenv:linkcheck]` environment, shaped like `docs-html` (`runner = uv-venv-lock-runner`, `extras = docs`, `changedir = docs`), that runs `sphinx-build -b linkcheck source _build/linkcheck`. It is **not** added to `env_list`, because it needs the network. On the tree at execution time it exits 0 with every checked link `working`. The count is measured fresh, never hard-coded (95 `working` on 2026-09-13). Any `linkcheck_*` setting added to `docs/source/conf.py` (ignore patterns, timeouts, retries, rate limits) carries a comment naming the measured failure that required it. None is added speculatively.
+- [x] **QUA-13**: `tox.ini` gains a `[testenv:linkcheck]` environment, shaped like `docs-html` (`runner = uv-venv-lock-runner`, `extras = docs`, `changedir = docs`), that runs `sphinx-build -b linkcheck source _build/linkcheck`. It is **not** added to `env_list`, because it needs the network. On the tree at execution time it exits 0 with every checked link `working`. The count is measured fresh, never hard-coded (95 `working` on 2026-09-13). Any `linkcheck_*` setting added to `docs/source/conf.py` (ignore patterns, timeouts, retries, rate limits) carries a comment naming the measured failure that required it. None is added speculatively.
 
 ### Documentation
 
-- [ ] **DOC-18**: The root `docs/source/index.rst` "User Guide" and "Examples" toctrees list only `user_guide/index` and `examples/index`. The `user_guide/configuration`, `user_guide/builders`, `user_guide/templates`, `examples/basic` and `examples/advanced` entries are removed, so the HTML sidebar shows each page once, nested under its section (owner decision 2026-09-13: the conventional hierarchy, not flat visibility). The fix is gated on a **clean** HTML build (`rm -rf` of the output first). That build must emit **zero** `document is referenced in multiple toctrees` messages (5 measured on 2026-09-13), and its `build succeeded, N warnings.` count must stay unchanged (3 measured). Under `-b typst`, each of the five pages is still included exactly once, through its section index, and the root `index.typ` no longer carries dead state-guarded `include()` lines for them.
-- [ ] **DOC-24**: Every surface that lists the project's tox environments names `tox -e linkcheck` beside `docs-html`/`docs-pdf`. On 2026-09-13 these were `CLAUDE.md` § Commands, `README.md`'s development commands block and `docs/source/contributing.rst`'s tox block. Discovery is by a repo-wide grep for `tox -e docs-pdf` at execution time, never limited to these three.
+- [x] **DOC-18**: The root `docs/source/index.rst` "User Guide" and "Examples" toctrees list only `user_guide/index` and `examples/index`. The `user_guide/configuration`, `user_guide/builders`, `user_guide/templates`, `examples/basic` and `examples/advanced` entries are removed, so the HTML sidebar shows each page once, nested under its section (owner decision 2026-09-13: the conventional hierarchy, not flat visibility). The fix is gated on a **clean** HTML build (`rm -rf` of the output first). That build must emit **zero** `document is referenced in multiple toctrees` messages (5 measured on 2026-09-13), and its `build succeeded, N warnings.` count must stay unchanged (3 measured). Under `-b typst`, each of the five pages is still included exactly once, through its section index, and the root `index.typ` no longer carries dead state-guarded `include()` lines for them.
+- [x] **DOC-24**: Every surface that lists the project's tox environments names `tox -e linkcheck` beside `docs-html`/`docs-pdf`. On 2026-09-13 these were `CLAUDE.md` § Commands, `README.md`'s development commands block and `docs/source/contributing.rst`'s tox block. Discovery is by a repo-wide grep for `tox -e docs-pdf` at execution time, never limited to these three.
 
 ### Release
 
@@ -51,9 +51,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| QUA-13 | Phase 72 | Pending |
-| DOC-18 | Phase 72 | Pending |
-| DOC-24 | Phase 72 | Pending |
+| QUA-13 | Phase 72 | Complete |
+| DOC-18 | Phase 72 | Complete |
+| DOC-24 | Phase 72 | Complete |
 | REL-14 | Phase 73 | Pending |
 
 **Coverage:**

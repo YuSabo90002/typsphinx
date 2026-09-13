@@ -2112,6 +2112,8 @@ commit dump rather than the curated CHANGELOG section (todo filed, D-11).
 
 - ✓ The milestone merged to `main` with nothing published — v0.9.4 Phase 71 (prep-only) + the `/gsd-complete-milestone` merge (REL-13): one CHANGELOG bullet under `## [Unreleased]` as a pure addition, tree green locally (1547 passed / 1 skipped, twice, once under `LC_ALL=C`) and in CI (run `34748483361`, 12/12; a surplus dispatch created by a GitHub HTTP 5xx was cancelled and read per the owner's AMENDED decision), the REQUIREMENTS.md SHA-256 fence matching at every observation — `phase.complete` left REL-13 alone for the first time; then PR #145 merged as `383a07e9` and REL-13 was checked on five observations (merge commit on `origin/main`, `pyproject.toml` `0.9.2`, no `v0.9.4` tag, PyPI 404 for `0.9.4`, no `v0.9.4` Release) — Validated in Phase 71 (71-VERIFICATION.md `passed` 4/4; 7 plans) + the v0.9.4 close (2026-09-13)
 
+- ✓ Sphinx's own link check runs with one command, and the HTML sidebar shows each User Guide and Examples page once — v0.9.5 Phase 72 (QUA-13, DOC-24, DOC-18): `tox.ini` gained `[testenv:linkcheck]` as a pure 8-line append shaped like `docs-html` and kept out of `env_list`; it passed on its first clean run with 95/95 `output.json` rows `working`, on the phase tip as well, with no `linkcheck_*` key in `conf.py` (D-01..D-04). `CLAUDE.md`, `README.md` and `docs/source/contributing.rst` each gained one aligned `tox -e linkcheck` line, found by a fresh grep whose 5 hits all carry a disposition. The root `index.rst` lost exactly its five duplicate entries: a same-venv clean C-locale pair read 5 → 0 `multiple toctrees` messages at an unchanged 3 warnings, the sidebar markup holds each page once under its section index, and the Typst side lost its five dead root guards with one include edge per page. The `examples/basic` "parent divergence" did not survive: HTML's `collect_relations()` parent was already `examples/index` at the base, and the 2026-08-16 reading came from a log-only console token. The branch reached `origin` for the first time with CI run `34761445288` 12/12 `success` — Validated in Phase 72 (72-VERIFICATION.md `passed` 5/5, UAT 1/1, Nyquist validated, SECURITY 26/26 closed; 6 plans in 4 waves)
+
 ### Active
 
 <!-- Cleared 2026-09-13 at the v0.9.4 close. `.planning/REQUIREMENTS.md` is the authoritative,
@@ -2122,11 +2124,11 @@ commit dump rather than the curated CHANGELOG section (todo filed, D-11).
 **Active milestone: v0.9.5 Docs Link Check and Navigation** (started 2026-09-13, Phases from 72).
 Headline commitments — the REQ-ID'd list is `.planning/REQUIREMENTS.md`:
 
-- [ ] `tox -e linkcheck` runs Sphinx's `linkcheck` over `docs/source/` and is listed with the
+- [x] `tox -e linkcheck` runs Sphinx's `linkcheck` over `docs/source/` and is listed with the
       other tox environments (QUA-13, DOC-24). The weekly CI job (QUA-08) was deferred to Future at
-      roadmap review.
-- [ ] The root `index.rst` toctrees list only section indexes, so a clean HTML build emits zero
-      `referenced in multiple toctrees` messages and the sidebar shows each page once (DOC-18).
+      roadmap review. — Validated in Phase 72
+- [x] The root `index.rst` toctrees list only section indexes, so a clean HTML build emits zero
+      `referenced in multiple toctrees` messages and the sidebar shows each page once (DOC-18). — Validated in Phase 72
 - [ ] Close prep, unpublished: merged to `main` by PR, `pyproject.toml` stays `0.9.2`, no tag /
       PyPI / Release.
 
@@ -2508,6 +2510,8 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
+*Last updated: 2026-09-14 — **Phase 72 (`tox -e linkcheck` and Root Toctree Deduplication) complete and verified 5/5**, 6 plans in 4 waves in isolated worktrees, UAT 1/1 (the owner's look at the rendered sidebar), Nyquist validated, SECURITY 26/26 closed. QUA-13, DOC-24 and DOC-18 complete; code review 0 critical / 0 warning / 1 info (a suggestion to mention transient failures in the linkcheck `description`, left for the owner). The branch is on `origin` for the first time, with CI run `34761445288` 12/12 green. Next: Phase 73 (v0.9.5 close prep, unpublished). Prior footer retained below.*
+
 *Last updated: 2026-09-13 — started milestone **v0.9.5 Docs Link Check and Navigation** via `/gsd-new-milestone`. Scope set by the owner to QUA-08 (a weekly, advisory Sphinx `linkcheck` job; 95/95 links `working` when measured — narrowed at roadmap review to the `tox -e linkcheck` environment, QUA-13, with the CI workflow deferred because GitHub cannot dispatch or schedule a workflow absent from the default branch) and DOC-18 (root toctree lists section indexes only; 5 `multiple toctrees` messages measured on a clean build). Owner decisions: merge-only and unpublished (the DOC-18 fix reaches `/en/latest/` but not the default `/en/stable/` until the next release — accepted), hierarchy rather than flat sidebar, no warnings gate. Phase numbering continues at **Phase 72**. Prior footer retained below.*
 
 *Prior: Last updated: 2026-09-13 after the v0.9.4 milestone — **v0.9.4 Typing Modernization completed and merged to `main` via PR #145 (`383a07e9`), not published.** 2 phases, 20 plans, 42 tasks, 6/6 requirements; REL-13 checked on the observed merge. `override_closeout` on Phase 70's fingerprint-stale verification, with the same-day audit standing in. No milestone is active; next is `/gsd-new-milestone`, phase numbering continuing at 72. Prior footer retained below.*

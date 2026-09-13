@@ -2,20 +2,20 @@
 gsd_state_version: 1.0
 milestone: v0.9.5
 milestone_name: Docs Link Check and Navigation
-current_phase: 72
-current_phase_name: "`tox -e linkcheck` and Root Toctree Deduplication"
-status: verifying
-stopped_at: Phase 72 verified human_needed (5/5 automated); awaiting owner look at the rendered HTML sidebar via /gsd-verify-work 72
-last_updated: "2026-09-13T14:22:25.000Z"
-last_activity: 2026-09-13
-last_activity_desc: "Phase 72 code review clean (1 Info); verification human_needed, 5/5 automated, 1 owner sidebar check persisted to 72-UAT.md"
-state_head: 2986b824085b989e7e30a6823440acfb95e4749a
+current_phase: 73
+current_phase_name: v0.9.5 Close Prep (prep-only, unpublished)
+status: planning
+stopped_at: Phase 72 complete, ready to plan Phase 73
+last_updated: "2026-09-13T22:24:18.407Z"
+last_activity: 2026-09-14
+last_activity_desc: Phase 72 complete, transitioned to Phase 73
+state_head: 773f6161d69683b6a070e54772252b2df312faa2
 progress:
   total_phases: 2
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 6
   completed_plans: 6
-  percent: 0
+  percent: 50
 ---
 
 # Project State
@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-13 — full evolution review at the v0.9.4 close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** v0.9.5 Docs Link Check and Navigation — roadmap created, Phases 72–73: Phase 72 `tox -e linkcheck` and root toctree deduplication (QUA-13, DOC-24, DOC-18), Phase 73 close prep (REL-14; merge-only, unpublished). QUA-08 (the weekly advisory CI workflow) was deferred to Future by the owner at roadmap review, 2026-09-13. Phase 72 executing (6 plans in 4 waves; all 4 waves merged 2026-09-13).
+**Current focus:** v0.9.5 Docs Link Check and Navigation — roadmap created, Phases 72–73: Phase 72 `tox -e linkcheck` and root toctree deduplication (QUA-13, DOC-24, DOC-18), Phase 73 close prep (REL-14; merge-only, unpublished). QUA-08 (the weekly advisory CI workflow) was deferred to Future by the owner at roadmap review, 2026-09-13. **Phase 72 complete** (2026-09-14: verification passed 5/5, UAT 1/1, Nyquist validated, SECURITY 26/26 closed; QUA-13, DOC-24 and DOC-18 Complete; branch on `origin`, CI run 34761445288 12/12). Next action: `/gsd-discuss-phase 73`.
 
 ## Shipped Milestone (v0.9.4 — archived, merged to `main`, NOT published)
 
@@ -227,12 +227,12 @@ land here.
 
 ## Current Position
 
-Phase: 72 of 73 (`tox -e linkcheck` and Root Toctree Deduplication)
-Plan: 6 of 6 complete (all 4 waves merged)
-Status: Phase 72 executed and verified 5/5 automated; human verification pending (72-UAT.md, 1 item)
-Last activity: 2026-09-13 — Phase 72 code review clean (1 Info); verification human_needed, 1 owner check persisted to 72-UAT.md
+Phase: 73 of 73 (v0.9.5 Close Prep (prep-only, unpublished))
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-09-14 — Phase 72 complete, transitioned to Phase 73
 
-Progress: [░░░░░░░░░░] 0% (0/2 phases)
+Progress: [█████░░░░░] 50% (1/2 phases)
 
 ## Shipped Milestone (v0.9.0 — archived)
 
@@ -1218,12 +1218,12 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/72-tox-e-linkcheck-and-root-toctree-deduplication/72-CONTEXT.md
+**Resume file:** None
 
-Last session: 2026-09-13T11:23:08.970Z
-Stopped at: Phase 72 context gathered
-Resume: `/gsd-plan-phase 72 --skip-ui` (72-CONTEXT.md D-09). v0.9.4's phase directories are under
-`.planning/milestones/v0.9.4-phases/`; `71-HANDOFF.md` there records its close.
+Last session: 2026-09-13T22:25:04.000Z
+Stopped at: Phase 72 complete, ready to plan Phase 73
+Resume: `/gsd-discuss-phase 73` (Phase 73, v0.9.5 close prep; no phase directory yet). v0.9.4's phase
+directories are under `.planning/milestones/v0.9.4-phases/`; `71-HANDOFF.md` there records its close.
 
 ## Operator Next Steps
 

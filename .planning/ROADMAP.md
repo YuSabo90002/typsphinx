@@ -313,7 +313,7 @@ prep matches v0.9.4's shape. Phase 73 is this project's standing prep-only final
 zero irreversible action, the merge executes at `/gsd-complete-milestone`, and REL-14 is mapped to it
 for coverage only.
 
-- [ ] **Phase 72: `tox -e linkcheck` and Root Toctree Deduplication** - A maintainer runs Sphinx's own link check over `docs/source/` with `tox -e linkcheck`, and every surface listing the tox environments names it. The root `index.rst` toctrees list only the section indexes, so the HTML sidebar shows each User Guide and Examples page once while the Typst output still includes each page exactly once. The milestone branch reaches `origin` with a green 3-OS CI run.
+- [x] **Phase 72: `tox -e linkcheck` and Root Toctree Deduplication** - A maintainer runs Sphinx's own link check over `docs/source/` with `tox -e linkcheck`, and every surface listing the tox environments names it. The root `index.rst` toctrees list only the section indexes, so the HTML sidebar shows each User Guide and Examples page once while the Typst output still includes each page exactly once. The milestone branch reaches `origin` with a green 3-OS CI run. (completed 2026-09-14)
 - [ ] **Phase 73: v0.9.5 Close Prep (prep-only, unpublished)** - CHANGELOG bullet(s) land under `## [Unreleased]` with `pyproject.toml` still at `0.9.2`. The tree is proven green on runs executed in this phase, and the PR to `main` is prepared behind a REL-14 checksum fence with zero irreversible action taken.
 
 ## Phase Details
@@ -540,7 +540,7 @@ below tracks the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 72. `tox -e linkcheck` and Root Toctree Deduplication | v0.9.5 | 6/6 | In Progress | - |
+| 72. `tox -e linkcheck` and Root Toctree Deduplication | v0.9.5 | 6/6 | Complete | 2026-09-14 |
 | 73. v0.9.5 Close Prep (prep-only, unpublished) | v0.9.5 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
