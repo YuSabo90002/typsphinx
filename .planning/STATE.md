@@ -4,8 +4,8 @@ milestone: v0.9.4
 milestone_name: Typing Modernization
 current_phase: 70
 current_phase_name: Typing Modernization and Its Behaviour-Identity Evidence
-status: executing
-stopped_at: Phase 70 all 13 plans merged; code review and phase verification pending
+status: verifying
+stopped_at: Phase 70 verified human_needed (5/5 automated); awaiting owner read of the DOC-23 D-11 classification table via /gsd-verify-work 70
 last_updated: "2026-09-13T04:25:00.000Z"
 last_activity: 2026-09-13
 last_activity_desc: Phase 70 wave 6 merged — branch pushed to origin at e70e31fb (first push), CI run 34742047126 completed success on all 12 jobs incl. both windows-latest and both macos-latest lanes; PHASE_SC_ROLLUP = ALL_MET; code review and verification next
@@ -196,8 +196,8 @@ land here.
 
 Phase: 70 — Typing Modernization and Its Behaviour-Identity Evidence
 Plan: 13 of 13 complete (all 6 waves merged)
-Status: Phase 70 executed; code review and verification pending
-Last activity: 2026-09-13 — Phase 70 wave 6 merged; first push to origin and CI run 34742047126 green on all 12 jobs
+Status: Phase 70 executed and verified 5/5 automated; human verification pending (70-UAT.md, 1 item)
+Last activity: 2026-09-13 — Phase 70 code review clean (1 pre-existing Info); verification human_needed, 1 owner check persisted to 70-UAT.md
 
 Progress: [░░░░░░░░░░] 0% (0/2 phases)
 
