@@ -2,9 +2,14 @@
 gsd_state_version: 1.0
 milestone: v0.9.5
 milestone_name: Docs Link Check and Navigation
+current_phase: 72
+current_phase_name: "`tox -e linkcheck` and Root Toctree Deduplication"
 status: planning
-last_updated: "2026-09-13T10:49:45.000Z"
+stopped_at: Phase 72 context gathered
+last_updated: "2026-09-13T11:23:08.988Z"
 last_activity: 2026-09-13
+last_activity_desc: "Phase 72 context gathered (72-CONTEXT.md, D-01..D-09; owner accepted all four recommendations)"
+state_head: a36062a0c04878169a84173c26d035f219c88411
 progress:
   total_phases: 2
   completed_phases: 0
@@ -225,7 +230,7 @@ land here.
 Phase: 72 of 73 (`tox -e linkcheck` and Root Toctree Deduplication)
 Plan: — (not yet planned)
 Status: Ready to plan
-Last activity: 2026-09-13 — v0.9.5 roadmap revised: QUA-08 deferred to Future by the owner; Phases 72–73, 4/4 v1 requirements mapped
+Last activity: 2026-09-13 — Phase 72 context gathered (`72-CONTEXT.md`, D-01..D-09)
 
 Progress: [░░░░░░░░░░] 0% (0/2 phases)
 
@@ -1213,10 +1218,12 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-09-13
-Stopped at: Milestone v0.9.4 completed, merged to `main` via PR #145 (`383a07e9`) and archived — nothing published
-Resume: `/gsd-new-milestone` for v0.9.5 is in progress (requirements → roadmap). v0.9.4's phase
-directories are under `.planning/milestones/v0.9.4-phases/`; `71-HANDOFF.md` there records its close.
+**Resume file:** .planning/phases/72-tox-e-linkcheck-and-root-toctree-deduplication/72-CONTEXT.md
+
+Last session: 2026-09-13T11:23:08.970Z
+Stopped at: Phase 72 context gathered
+Resume: `/gsd-plan-phase 72 --skip-ui` (72-CONTEXT.md D-09). v0.9.4's phase directories are under
+`.planning/milestones/v0.9.4-phases/`; `71-HANDOFF.md` there records its close.
 
 ## Operator Next Steps
 
