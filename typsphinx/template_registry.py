@@ -26,7 +26,7 @@ This module adds zero new runtime dependencies -- only stdlib.
 
 import os
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any
 
 from sphinx.errors import ExtensionError
 
@@ -212,7 +212,7 @@ class TemplateRegistryEntry:
 
 def resolve_template_registry(
     config: Any, srcdir: str
-) -> Dict[str, TemplateRegistryEntry]:
+) -> dict[str, TemplateRegistryEntry]:
     """Resolve every declared ``typst_document_templates`` entry into a
     ``TemplateRegistryEntry``, plus the synthesized built-in ``"typst"``
     key -- after validating every declared key (D-05, order-independent
@@ -466,7 +466,7 @@ def resolve_template_registry(
     # already proven every key is a `str` and every definition is a `dict`
     # or falsy -- a second, independent guard here would be redundant
     # state that could drift from the first.
-    registry: Dict[str, TemplateRegistryEntry] = {}
+    registry: dict[str, TemplateRegistryEntry] = {}
     for key, definition in declared.items():
         definition = definition or {}
         registry[key] = TemplateRegistryEntry(
@@ -492,7 +492,7 @@ def resolve_template_registry(
 
 
 def resolve_registry_key(
-    registry: Dict[str, TemplateRegistryEntry], entry: tuple
+    registry: dict[str, TemplateRegistryEntry], entry: tuple
 ) -> TemplateRegistryEntry:
     """Resolve one ``typst_documents`` tuple's registry key (TPL-04) to
     its ``TemplateRegistryEntry``.
