@@ -34,14 +34,17 @@ The `typst`/`typstpdf` builders produce correct, compilable **and faithfully-ren
 
 ## Current Milestone: v0.9.5 Docs Link Check and Navigation
 
-**Goal:** make Sphinx's own `linkcheck` a standing, scheduled check over `docs/source/`, and remove
-the duplicated section children from the root toctree so the HTML sidebar matches the document
-hierarchy — closing QUA-08 and DOC-18 — with the milestone merged to `main` and nothing published.
+**Goal:** make Sphinx's own `linkcheck` a one-command check over `docs/source/` (`tox -e linkcheck`),
+and remove the duplicated section children from the root toctree so the HTML sidebar matches the
+document hierarchy — closing DOC-18 — with the milestone merged to `main` and nothing published.
 
 **Target features:**
-- **QUA-08** — a `sphinx-build -b linkcheck` job run on a **weekly schedule** as an **advisory**
-  check (never a required status check, not run on pull requests), invoked through a new
-  `tox -e linkcheck` environment.
+- **QUA-13** — a new `tox -e linkcheck` environment running `sphinx-build -b linkcheck` over
+  `docs/source/`, listed wherever the tox environments are listed (DOC-24). **QUA-08**, the weekly
+  advisory CI workflow that would call it, was scoped in and then **deferred to Future** by the
+  owner at roadmap review (2026-09-13): GitHub runs `schedule` only on the default branch and
+  `workflow_dispatch` only for a workflow file already on the default branch, so it could not be
+  proven on the unmerged milestone branch.
 - **DOC-18** — the root `docs/source/index.rst` toctrees list only each section's `index`
   (`user_guide/index`, `examples/index`), dropping the duplicated `user_guide/configuration`,
   `user_guide/builders`, `user_guide/templates`, `examples/basic` and `examples/advanced` entries,
@@ -57,7 +60,7 @@ hierarchy — closing QUA-08 and DOC-18 — with the milestone merged to `main` 
   `success`) already covers raw URLs in `.rst`/`.md`/`.toml`; what Sphinx's `linkcheck` adds is
   `#anchor` existence (`linkcheck_anchors` defaults on) and URLs reached through autodoc
   docstrings (lychee's `--extensions` has no `py`). That overlap is why the owner chose a weekly
-  schedule over a per-PR job.
+  schedule over a per-PR job (QUA-08, since deferred).
 - A clean HTML build emits **5** `document is referenced in multiple toctrees` messages, not the 4
   the 2026-08-16 todo recorded (`examples/advanced` now also appears). They are **not** counted in
   the `build succeeded, 3 warnings.` summary, so a `-W` gate could not catch this class. The 3
@@ -2119,14 +2122,15 @@ commit dump rather than the curated CHANGELOG section (todo filed, D-11).
 **Active milestone: v0.9.5 Docs Link Check and Navigation** (started 2026-09-13, Phases from 72).
 Headline commitments — the REQ-ID'd list is `.planning/REQUIREMENTS.md`:
 
-- [ ] A weekly, advisory `sphinx-build -b linkcheck` job over `docs/source/`, invoked through
-      `tox -e linkcheck`, never a required check (QUA-08).
+- [ ] `tox -e linkcheck` runs Sphinx's `linkcheck` over `docs/source/` and is listed with the
+      other tox environments (QUA-13, DOC-24). The weekly CI job (QUA-08) was deferred to Future at
+      roadmap review.
 - [ ] The root `index.rst` toctrees list only section indexes, so a clean HTML build emits zero
       `referenced in multiple toctrees` messages and the sidebar shows each page once (DOC-18).
 - [ ] Close prep, unpublished: merged to `main` by PR, `pyproject.toml` stays `0.9.2`, no tag /
       PyPI / Release.
 
-**Candidates carried forward** (everything below except QUA-08 and DOC-18 remains unscheduled) (full dispositions in `.planning/todos/pending/` and in
+**Candidates carried forward** (everything below except DOC-18 remains unscheduled; QUA-08 was scoped in and then deferred again on 2026-09-13) (full dispositions in `.planning/todos/pending/` and in
 `milestones/v0.9.4-REQUIREMENTS.md`'s Future section):
 
 - **NUM-01** — `numref` numbers diverge per master and vanish for figures reachable only from a
@@ -2504,7 +2508,7 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-13 — started milestone **v0.9.5 Docs Link Check and Navigation** via `/gsd-new-milestone`. Scope set by the owner to QUA-08 (a weekly, advisory Sphinx `linkcheck` job; 95/95 links `working` when measured) and DOC-18 (root toctree lists section indexes only; 5 `multiple toctrees` messages measured on a clean build). Owner decisions: merge-only and unpublished (the DOC-18 fix reaches `/en/latest/` but not the default `/en/stable/` until the next release — accepted), hierarchy rather than flat sidebar, no warnings gate. Phase numbering continues at **Phase 72**. Prior footer retained below.*
+*Last updated: 2026-09-13 — started milestone **v0.9.5 Docs Link Check and Navigation** via `/gsd-new-milestone`. Scope set by the owner to QUA-08 (a weekly, advisory Sphinx `linkcheck` job; 95/95 links `working` when measured — narrowed at roadmap review to the `tox -e linkcheck` environment, QUA-13, with the CI workflow deferred because GitHub cannot dispatch or schedule a workflow absent from the default branch) and DOC-18 (root toctree lists section indexes only; 5 `multiple toctrees` messages measured on a clean build). Owner decisions: merge-only and unpublished (the DOC-18 fix reaches `/en/latest/` but not the default `/en/stable/` until the next release — accepted), hierarchy rather than flat sidebar, no warnings gate. Phase numbering continues at **Phase 72**. Prior footer retained below.*
 
 *Prior: Last updated: 2026-09-13 after the v0.9.4 milestone — **v0.9.4 Typing Modernization completed and merged to `main` via PR #145 (`383a07e9`), not published.** 2 phases, 20 plans, 42 tasks, 6/6 requirements; REL-13 checked on the observed merge. `override_closeout` on Phase 70's fingerprint-stale verification, with the same-day audit standing in. No milestone is active; next is `/gsd-new-milestone`, phase numbering continuing at 72. Prior footer retained below.*
 

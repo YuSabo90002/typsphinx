@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v0.9.5
 milestone_name: Docs Link Check and Navigation
 status: planning
-last_updated: "2026-09-13T10:30:52.780Z"
+last_updated: "2026-09-13T10:49:45.000Z"
 last_activity: 2026-09-13
 progress:
-  total_phases: 0
+  total_phases: 2
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,7 +20,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-13 — full evolution review at the v0.9.4 close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** v0.9.5 Docs Link Check and Navigation — defining requirements (QUA-08 weekly advisory linkcheck, DOC-18 root toctree dedup; merge-only, unpublished); phases start at 72
+**Current focus:** v0.9.5 Docs Link Check and Navigation — roadmap created, Phases 72–73: Phase 72 `tox -e linkcheck` and root toctree deduplication (QUA-13, DOC-24, DOC-18), Phase 73 close prep (REL-14; merge-only, unpublished). QUA-08 (the weekly advisory CI workflow) was deferred to Future by the owner at roadmap review, 2026-09-13
 
 ## Shipped Milestone (v0.9.4 — archived, merged to `main`, NOT published)
 
@@ -222,10 +222,12 @@ land here.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-09-13 — Milestone v0.9.5 started
+Phase: 72 of 73 (`tox -e linkcheck` and Root Toctree Deduplication)
+Plan: — (not yet planned)
+Status: Ready to plan
+Last activity: 2026-09-13 — v0.9.5 roadmap revised: QUA-08 deferred to Future by the owner; Phases 72–73, 4/4 v1 requirements mapped
+
+Progress: [░░░░░░░░░░] 0% (0/2 phases)
 
 ## Shipped Milestone (v0.9.0 — archived)
 
