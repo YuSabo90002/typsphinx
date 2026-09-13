@@ -5,15 +5,15 @@ milestone_name: Typing Modernization
 current_phase: 70
 current_phase_name: Typing Modernization and Its Behaviour-Identity Evidence
 status: planning
-stopped_at: Phase 70 context gathered
-last_updated: "2026-09-13T02:35:53.845Z"
+stopped_at: Phase 70 planned (13 plans, 6 waves)
+last_updated: "2026-09-13T04:14:40.000Z"
 last_activity: 2026-09-13
-last_activity_desc: v0.9.4 roadmap created (Phases 70–71, 6/6 requirements mapped)
-state_head: 1f994a79d2811ebd21c80b7e953730cdbcaf32d6
+last_activity_desc: Phase 70 planned — research, pattern map, D-11 amended (owner option (a)), 13 plans in 6 waves; plan-checker passed; decision coverage 11/11
+state_head: be564c958c96171ce108550ac0d87c6b281868ec
 progress:
   total_phases: 2
   completed_phases: 0
-  total_plans: 0
+  total_plans: 13
   completed_plans: 0
   percent: 0
 ---
@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-13 — v0.9.4 Current Milestone scoped after the v0.9.3 close review)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** v0.9.4 Typing Modernization — **roadmapped, Phases 70–71, 6/6 v1 requirements mapped**. Drop the `UP006`/`UP035` ruff ignores and move `typsphinx/` + `tests/` onto builtin generics, with behaviour evidenced unchanged by five measurements; the only visible change is API-reference type text. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`); the branch merges to `main` via a PR at `/gsd-complete-milestone` (REL-13). Next action: `/gsd-plan-phase 70` after the roadmap is approved.
+**Current focus:** v0.9.4 Typing Modernization — **roadmapped, Phases 70–71, 6/6 v1 requirements mapped**. Drop the `UP006`/`UP035` ruff ignores and move `typsphinx/` + `tests/` onto builtin generics, with behaviour evidenced unchanged by five measurements; the only visible change is API-reference type text. Not published (no tag / PyPI / GitHub Release; `pyproject.toml` held at `0.9.2`); the branch merges to `main` via a PR at `/gsd-complete-milestone` (REL-13). Next action: `/gsd-execute-phase 70` (13 plans in 6 waves, planned 2026-09-13).
 
 ## Shipped Milestone (v0.9.3 — archived, merged to `main`, NOT published)
 
@@ -194,10 +194,10 @@ land here.
 
 ## Current Position
 
-Phase: 70 — Typing Modernization and Its Behaviour-Identity Evidence (not started)
-Plan: —
-Status: Ready to plan (roadmap awaiting owner approval)
-Last activity: 2026-09-13 — v0.9.4 roadmap created (Phases 70–71, 6/6 requirements mapped)
+Phase: 70 — Typing Modernization and Its Behaviour-Identity Evidence
+Plan: 0 of 13 complete (70-01..70-13 planned in 6 waves)
+Status: Ready to execute
+Last activity: 2026-09-13 — Phase 70 planned (research, pattern map, D-11 amended, 13 plans; plan-checker passed)
 
 Progress: [░░░░░░░░░░] 0% (0/2 phases)
 
@@ -1217,17 +1217,19 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/70-typing-modernization-and-its-behaviour-identity-evidence/70-CONTEXT.md
+**Resume file:** .planning/phases/70-typing-modernization-and-its-behaviour-identity-evidence/70-01-PLAN.md
 
-Last session: 2026-09-13T02:35:53.826Z
-Stopped at: Phase 70 context gathered
-Resume: `/gsd-plan-phase 70` once the roadmap is approved. Phase 70's first wave is the `CLAUDE.md:75`
-rewrite, which must land before any conversion plan runs.
+Last session: 2026-09-13T04:14:40.000Z
+Stopped at: Phase 70 planned (13 plans, 6 waves)
+Resume: `/gsd-execute-phase 70`. Wave 1 (70-01 `CLAUDE.md:75` rewrite, 70-02/70-03 baseline) must land
+before any conversion plan runs.
 
 ## Operator Next Steps
 
-- **Plan Phase 70 with `/gsd-plan-phase 70`** once the v0.9.4 roadmap is approved. v0.9.4 publishes
-  nothing either. If a later milestone publishes, the v0.9.1 → 0.9.2 precedent points to `0.9.4`
+- **Execute Phase 70 with `/gsd-execute-phase 70`.** Every worktree provisions with
+  `env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev --extra docs --python 3.13.13`
+  (70-RESEARCH.md). D-11 was amended at planning to admit the viewcode `_modules/typsphinx/…` pages
+  (owner option (a)). v0.9.4 publishes nothing either. If a later milestone publishes, the v0.9.1 → 0.9.2 precedent points to `0.9.4`
   with `0.9.3` left unused; that is not decided here.
 
 - **Read the Docs has not been verified since the v0.9.2 close.** The procedure is `63-HANDOFF.md` § 5 in

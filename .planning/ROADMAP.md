@@ -334,7 +334,44 @@ CI dispatch on the post-flip tip.
      individually and green, and `ruff`'s verdict taken from the **`Lint and Format Check`** job
      (step `Run lint with tox`), not from this machine (milestone invariant #5; constraint 8).
 
-**Plans**: TBD
+**Plans**: 13 plans in 6 waves
+
+Plans:
+**Wave 1**
+
+- [ ] 70-01-PLAN.md — DOC-22: rewrite CLAUDE.md:75 as an annotation-style instruction (wave 1)
+- [ ] 70-02-PLAN.md — baseline: PHASE_BASE_SHA, fresh UP006/UP035 census, SC#2 counts, legs (b)/(e) before (wave 1)
+- [ ] 70-03-PLAN.md — baseline: leg (d) corpus pilot, manifest and cross-path control; DOC-23 docs manifests (wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 70-04-PLAN.md — tracer conversion of translator.py and the ledger gate, plus the masked-AST pilot (wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 70-05-PLAN.md — convert builder.py (wave 3)
+- [ ] 70-06-PLAN.md — convert template_engine.py and template_registry.py (wave 3)
+- [ ] 70-07-PLAN.md — convert writer.py and __init__.py, with the one hand edit (wave 3)
+- [ ] 70-08-PLAN.md — convert the remaining three tests/ files (wave 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 70-09-PLAN.md — the flip: drop both ignores and move the todo in one commit, then the gate quartet (wave 4)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [ ] 70-10-PLAN.md — after side: SC#1 history, SC#2 static checks, legs (a), (c) and (e) (wave 5)
+- [ ] 70-11-PLAN.md — after side: legs (b) and (d) on the post-flip tree (wave 5)
+- [ ] 70-12-PLAN.md — DOC-23: clean docs diff with a base-vs-base control and hunk-by-hunk classification (wave 5)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
+- [ ] 70-13-PLAN.md — gate quartet, branch census, first push, one CI dispatch, job transcript and SC roll-up (wave 6)
+
+**Cross-cutting constraints:**
+
+- mypy stdout hashes equal to MYPY_STDOUT_SHA256_BEFORE, and the full pytest result equals PYTEST_RESULT_BEFORE.
+
 **UI hint**: no
 
 ### Phase 71: v0.9.4 Close Prep (prep-only, unpublished)
@@ -411,7 +448,7 @@ below tracks the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 70. Typing Modernization and Its Behaviour-Identity Evidence | v0.9.4 | 0/TBD | Not started | - |
+| 70. Typing Modernization and Its Behaviour-Identity Evidence | v0.9.4 | 0/13 | Not started | - |
 | 71. v0.9.4 Close Prep (prep-only, unpublished) | v0.9.4 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
