@@ -246,7 +246,8 @@ NON_SUCCESS_JOBS = 0
 ```
 Lint and Format Check	Install dependencies	2026-09-13T06:09:40.3979771Z  + ruff==0.16.6
 ```
-CI_RUFF_VERSION = 0.16.6 — equal to `LOCK_RUFF_VERSION_TIP` (0.16.6).
+CI_RUFF_VERSION = 0.16.6
+(equal to `LOCK_RUFF_VERSION_TIP`, 0.16.6)
 
 `Run lint with tox` step, `commands[0]> black --check .` line and verdict:
 ```
