@@ -269,3 +269,185 @@ file itself is written.
 The merge `/gsd-complete-milestone` may run (`origin/main` into the milestone branch) is measured
 conflict-free and reproducible from its recorded inputs, a no-op while `main` sits at the
 milestone base, with a valid merged lock, and this branch is untouched by the measurement.
+
+## Head check (Task 2)
+
+```
+$ test -f .git; echo "exit:$?"
+exit:0
+$ pwd -P
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a7407c28186c095e6
+$ grep -c typsphinx-fhs-run "$(command -v uv)"
+2
+$ git fetch origin
+(no output)
+```
+
+## Merged-tree lint
+
+D-05 and SC#3 require this: the trial merge must pass `ruff check .` on the merged tree, at the
+merged lock's `ruff`. `MAIN_MOVED = no`, so this is not constraint 4's case, and it still runs.
+
+```
+$ mkdir -p /tmp/tmp.X9Br1OkXSk/p7105_lint_scratch
+$ echo /tmp/tmp.X9Br1OkXSk/p7105_lint_scratch
+/tmp/tmp.X9Br1OkXSk/p7105_lint_scratch
+$ git archive --format=tar -o /tmp/tmp.X9Br1OkXSk/p7105_lint_archive.tar "$MERGE_TREE"
+(no output)
+$ tar -xf /tmp/tmp.X9Br1OkXSk/p7105_lint_archive.tar -C /tmp/tmp.X9Br1OkXSk/p7105_lint_scratch
+(no output)
+```
+
+From the worktree root:
+
+```
+$ uv --directory /tmp/tmp.X9Br1OkXSk/p7105_lint_scratch sync --locked --extra dev --no-install-project
+[... hash-verified install from the merged uv.lock only, resolving packages including
+ruff==0.16.6 ...]
+```
+
+This is a hash-verified install from the merged `uv.lock` only.
+
+```
+$ uv --directory /tmp/tmp.X9Br1OkXSk/p7105_lint_scratch run --no-sync ruff --version
+ruff 0.16.6
+```
+
+```
+MERGED_RUFF_RUN_VERSION = 0.16.6
+```
+
+Equal to `MERGED_RUFF_LOCK_VERSION` recorded above.
+
+```
+$ uv --directory /tmp/tmp.X9Br1OkXSk/p7105_lint_scratch run --no-sync ruff check .; echo "exit:$?"
+All checks passed!
+exit:0
+```
+
+```
+MERGED_RUFF_EXIT = 0
+```
+
+```
+$ uv --directory /tmp/tmp.X9Br1OkXSk/p7105_lint_scratch run --no-sync black --check .; echo "exit:$?"
+All done! ✨ 🍰 ✨
+355 files would be left unchanged.
+exit:0
+```
+
+```
+MERGED_BLACK_EXIT = 0
+```
+
+```
+$ rm -rf /tmp/tmp.X9Br1OkXSk/p7105_lint_scratch /tmp/tmp.X9Br1OkXSk/p7105_lint_archive.tar
+(no output)
+```
+
+Both exits are 0 — no `## FINDING: merged-tree lint` section is needed. Nothing was fixed because
+nothing failed.
+
+## main protection (D-06)
+
+```
+$ gh api repos/YuSabo90002/typsphinx/branches/main/protection --jq '.required_status_checks'
+{"checks":[{"app_id":15368,"context":"Test Python 3.12 on ubuntu-latest"},{"app_id":15368,"context":"Lint and Format Check"},{"app_id":15368,"context":"Type Check"},{"app_id":15368,"context":"Code Coverage"},{"app_id":15368,"context":"Build Package"},{"app_id":15368,"context":"Test Python 3.13 on ubuntu-latest"}],"contexts":["Test Python 3.12 on ubuntu-latest","Lint and Format Check","Type Check","Code Coverage","Build Package","Test Python 3.13 on ubuntu-latest"],"contexts_url":"https://api.github.com/repos/YuSabo90002/typsphinx/branches/main/protection/required_status_checks/contexts","strict":true,"url":"https://api.github.com/repos/YuSabo90002/typsphinx/branches/main/protection/required_status_checks"}
+```
+
+```
+PROTECTION_STRICT = true
+PROTECTION_CONTEXTS_COUNT = 6
+```
+
+The six required contexts, verbatim:
+1. Test Python 3.12 on ubuntu-latest
+2. Lint and Format Check
+3. Type Check
+4. Code Coverage
+5. Build Package
+6. Test Python 3.13 on ubuntu-latest
+
+**Why the handoff's branch-update step is conditional (D-06):** under `strict: true` the PR
+cannot merge until the branch is up to date with `main`. If `main` has moved by the time the
+handoff reaches this step, the trial merge above must be re-measured and the branch updated with
+a merge commit before opening the PR; today (`MAIN_MOVED = no`), the step is a recorded no-op.
+
+## Merge-method precedent (D-06)
+
+```
+$ git log --first-parent --format='%h %s' origin/main | grep -E ' Merge pull request #(135|136|143) '
+58d578f2 Merge pull request #143 from YuSabo90002/gsd/v0.9.3-toolchain-and-dependency-update-repair
+45962faa Merge pull request #136 from YuSabo90002/gsd/v0.9.2-inline-image-blocker-fix-and-release
+9db2274c Merge pull request #135 from YuSabo90002/gsd/v0.9.1-windows-path-correctness
+```
+
+```
+MERGE_PRECEDENT_HITS = 3
+```
+
+```
+$ git log --first-parent --format='%h %s' -8 origin/main
+d14ca458 Merge pull request #144 from YuSabo90002/docs/issue-91-close-and-doctest-todo
+5d59dbb6 Merge pull request #139 from YuSabo90002/dependabot/uv/tox-4.61.4
+31480b6b Merge pull request #140 from YuSabo90002/dependabot/uv/sphinx-intl-2.4.0
+cf6856c6 Merge pull request #141 from YuSabo90002/dependabot/uv/pre-commit-4.6.2
+fd0c24f7 Merge pull request #142 from YuSabo90002/dependabot/uv/mypy-2.3.1
+4dfdd664 chore: remove REQUIREMENTS.md for v0.9.3 milestone
+d0e2f4e0 chore: archive v0.9.3 milestone files
+58d578f2 Merge pull request #143 from YuSabo90002/gsd/v0.9.3-toolchain-and-dependency-update-repair
+```
+
+Every prior milestone PR (#135, #136, #143) and every dependabot/docs PR reaching `main` in
+between merged with a merge commit — never a squash or a rebase. The REL-13 PR follows the same
+method (D-06).
+
+## Open pull requests (D-12)
+
+```
+$ gh pr list --state all --limit 5 --json number
+[{"number":144},{"number":143},{"number":142},{"number":141},{"number":140}]
+```
+
+Positive control: the unscoped listing returns five real PR numbers — proving the command
+reached GitHub and the repository genuinely has PR history.
+
+```
+$ date -u +%FT%TZ
+2026-09-13T08:48:59Z
+```
+
+```
+PR_CENSUS_AT = 2026-09-13T08:48:59Z
+```
+
+```
+$ gh pr list --state open --json number,title,author,headRefName,baseRefName,updatedAt
+[]
+```
+
+```
+OPEN_PRS = 0
+DEPENDABOT_OPEN_PRS = 0
+```
+
+No pull request is open at census time, so no row is tabulated. No merge, close, comment or
+rebase request was made against any pull request (D-12). A dependabot `ruff` bump merged to
+`main` after this census is caught by the handoff's re-run of the trial merge.
+
+## What the handoff can rely on
+
+| Fact | Value | Key(s) |
+|------|-------|--------|
+| Conflict-free merge, no-op | `origin/main` merges into this branch with zero conflicts; nothing to absorb today | `MERGE_RC = 0`, `MERGE_TREE`, `TRIAL_IS_NOOP = yes` |
+| Valid merged lock | `uv lock --check` passes against the merged `pyproject.toml`/`uv.lock` | `LOCK_CHECK_EXIT = 0` |
+| Merged ruff version and lint result | 0.16.6; clean at that version | `MERGED_RUFF_LOCK_VERSION = 0.16.6`, `MERGED_RUFF_RUN_VERSION = 0.16.6`, `MERGED_RUFF_EXIT = 0`, `MERGED_BLACK_EXIT = 0` |
+| Strict protection, six checks | `strict: true`, exactly the six named contexts | `PROTECTION_STRICT = true`, `PROTECTION_CONTEXTS_COUNT = 6` |
+| Merge-commit method | Every prior milestone PR (#135, #136, #143) merged with a merge commit, never squash/rebase | `MERGE_PRECEDENT_HITS = 3` |
+| PR census time and result | No open PR at census time, left untouched | `PR_CENSUS_AT`, `OPEN_PRS = 0`, `DEPENDABOT_OPEN_PRS = 0` |
+
+```
+TRIAL_MERGE_VERDICT = MET
+```
+
+`MERGE_RC`, `LOCK_CHECK_EXIT`, `MERGED_RUFF_EXIT` and `MERGED_BLACK_EXIT` are all `0`.
