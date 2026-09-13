@@ -1,6 +1,6 @@
 ---
 created: 2026-07-22T23:55:07+09:00
-title: `sphinx-build -b linkcheck` の CI ジョブを追加する
+title: "`sphinx-build -b linkcheck` の CI ジョブを追加する"
 area: ci, docs
 files:
 
@@ -10,8 +10,8 @@ files:
   - docs/source/conf.py (`linkcheck_ignore` 等の Sphinx linkcheck 設定を書く先)
 
 audit_acknowledged:
-  milestone: v0.9.1
-  at: 2026-08-29
+  milestone: v0.9.3
+  at: 2026-09-13
 ---
 
 ## Problem
