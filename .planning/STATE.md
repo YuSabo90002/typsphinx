@@ -5,11 +5,11 @@ milestone_name: Docs Link Check and Navigation
 current_phase: 73
 current_phase_name: v0.9.5 Close Prep (prep-only, unpublished)
 status: planning
-stopped_at: Phase 72 complete, ready to plan Phase 73
-last_updated: "2026-09-13T22:24:18.407Z"
+stopped_at: Phase 73 context gathered
+last_updated: "2026-09-14T12:36:30.116Z"
 last_activity: 2026-09-14
-last_activity_desc: Phase 72 complete, transitioned to Phase 73
-state_head: 773f6161d69683b6a070e54772252b2df312faa2
+last_activity_desc: Phase 73 context gathered (73-CONTEXT.md, D-01..D-15)
+state_head: 048a8a2f9da16ed51e60f305fa7b091e0e9bc8fb
 progress:
   total_phases: 2
   completed_phases: 1
@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-13 — full evolution review at the v0.9.4 close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** v0.9.5 Docs Link Check and Navigation — roadmap created, Phases 72–73: Phase 72 `tox -e linkcheck` and root toctree deduplication (QUA-13, DOC-24, DOC-18), Phase 73 close prep (REL-14; merge-only, unpublished). QUA-08 (the weekly advisory CI workflow) was deferred to Future by the owner at roadmap review, 2026-09-13. **Phase 72 complete** (2026-09-14: verification passed 5/5, UAT 1/1, Nyquist validated, SECURITY 26/26 closed; QUA-13, DOC-24 and DOC-18 Complete; branch on `origin`, CI run 34761445288 12/12). Next action: `/gsd-discuss-phase 73`.
+**Current focus:** v0.9.5 Docs Link Check and Navigation — roadmap created, Phases 72–73: Phase 72 `tox -e linkcheck` and root toctree deduplication (QUA-13, DOC-24, DOC-18), Phase 73 close prep (REL-14; merge-only, unpublished). QUA-08 (the weekly advisory CI workflow) was deferred to Future by the owner at roadmap review, 2026-09-13. **Phase 72 complete** (2026-09-14: verification passed 5/5, UAT 1/1, Nyquist validated, SECURITY 26/26 closed; QUA-13, DOC-24 and DOC-18 Complete; branch on `origin`, CI run 34761445288 12/12). **Phase 73 context gathered** (2026-09-14: CHANGELOG as `### Added` + `### Fixed` bullets; Dependabot #146–#150 left untouched, merged after the milestone PR). Next action: `/gsd-plan-phase 73 --skip-ui`.
 
 ## Shipped Milestone (v0.9.4 — archived, merged to `main`, NOT published)
 
@@ -1218,11 +1218,11 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** None
+**Resume file:** .planning/phases/73-v0-9-5-close-prep-prep-only-unpublished/73-CONTEXT.md
 
-Last session: 2026-09-13T22:25:04.000Z
-Stopped at: Phase 72 complete, ready to plan Phase 73
-Resume: `/gsd-discuss-phase 73` (Phase 73, v0.9.5 close prep; no phase directory yet). v0.9.4's phase
+Last session: 2026-09-14T12:36:30.088Z
+Stopped at: Phase 73 context gathered
+Resume: `/gsd-plan-phase 73 --skip-ui` (Phase 73, v0.9.5 close prep; context in `73-CONTEXT.md`). v0.9.4's phase
 directories are under `.planning/milestones/v0.9.4-phases/`; `71-HANDOFF.md` there records its close.
 
 ## Operator Next Steps
