@@ -15,7 +15,7 @@ affects: [74-release-prep, complete-milestone]
 actuals:
   tokens: 5935
   tasks: 2
-  commits: 3
+  commits: 4
 plan_head_before: c6bc641aa1745e6413b4f33c4d0c572a962da430
 
 tech-stack:
@@ -163,7 +163,7 @@ None - no external service configuration required.
 - All plan-level `<verification>` items re-run and confirmed passing (region order, bullet count,
   version-literal absence, pure-addition diff, docs baselines, changelog page gate).
 - Commit count measured against `plan_head_before` (`c6bc641aa1745e6413b4f33c4d0c572a962da430`):
-  3 commits (Task 1, Task 2, this SUMMARY).
+  4 commits (Task 1, Task 2, initial SUMMARY, this correction commit — the final, stable count).
 
 ---
 *Phase: 73-v0-9-5-close-prep-prep-only-unpublished*
