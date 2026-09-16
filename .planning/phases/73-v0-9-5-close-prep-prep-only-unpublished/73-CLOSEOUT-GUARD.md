@@ -250,6 +250,152 @@ $ git status --porcelain .planning/REQUIREMENTS.md
 Byte-unchanged. REL-14 remains `- [ ]` and Pending, exactly as recorded in § "The lines under
 guard" above.
 
+## Re-verification at phase close
+
+Plan 73-07's own re-run, inside this plan's isolated worktree
+(`worktree-agent-a636a3db27a239f62`), of exactly the commands § "Re-verification protocol (phase
+close)" names, against the tree as it stands at this plan's own point in the phase (wave 4, after
+plans 73-01 through 73-06 have merged).
+
+```
+$ date -u +"%Y-%m-%dT%H:%M:%SZ"
+2026-09-16T10:43:55Z
+```
+
+Key line:
+
+```
+CLOSE_AT = 2026-09-16T10:43:55Z
+```
+
+```
+$ test -f .git; echo "exit:$?"
+exit:0
+
+$ pwd -P
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a636a3db27a239f62
+
+$ git rev-parse HEAD
+b716107f30a6180e9accb734011231010fe2a793
+```
+
+```
+$ git merge-base --is-ancestor c6bc641aa1745e6413b4f33c4d0c572a962da430 HEAD; echo "exit:$?"
+exit:0
+```
+
+`PHASE_BASE_SHA` is an ancestor of this plan's own HEAD.
+
+```
+$ sha256sum .planning/REQUIREMENTS.md
+7a21a1e48d7abfe4f1e8696dbcb40c5ffe0da4fc95bc9a790ee8501a5812bcad  .planning/REQUIREMENTS.md
+```
+
+| | Digest |
+|---|---|
+| `REQ_SHA256_BASE` (§ "Baseline") | `7a21a1e48d7abfe4f1e8696dbcb40c5ffe0da4fc95bc9a790ee8501a5812bcad` |
+| `REQ_SHA256_CLOSE` (this section) | `7a21a1e48d7abfe4f1e8696dbcb40c5ffe0da4fc95bc9a790ee8501a5812bcad` |
+
+Key line:
+
+```
+REQ_SHA256_CLOSE = 7a21a1e48d7abfe4f1e8696dbcb40c5ffe0da4fc95bc9a790ee8501a5812bcad
+```
+
+MATCH against `REQ_SHA256_BASE`.
+
+```
+$ wc -l .planning/REQUIREMENTS.md
+70 .planning/REQUIREMENTS.md
+```
+
+Key line:
+
+```
+REQ_LINES_CLOSE = 70
+```
+
+MATCH against `REQ_LINES_BASE = 70`.
+
+```
+$ git diff --name-only -- .planning/REQUIREMENTS.md
+(no output)
+```
+
+MATCH — empty.
+
+```
+$ git log --oneline "c6bc641aa1745e6413b4f33c4d0c572a962da430"..HEAD -- .planning/REQUIREMENTS.md
+(no output)
+```
+
+MATCH — empty. No commit in the phase, through this plan's own tip, touched `.planning/REQUIREMENTS.md`.
+
+```
+$ git status --porcelain .planning/REQUIREMENTS.md
+(no output)
+```
+
+**The REL-14 grep, compared line by line, in file order, against § "The lines under guard" (edge: ordering):**
+
+```
+$ grep -n 'REL-14' .planning/REQUIREMENTS.md
+22:- [ ] **REL-14**: Close prep only, unpublished. CHANGELOG bullet(s) go under the existing `## [Unreleased]`, in the register of the four bullets already there, and name the docs sidebar fix and the new `tox -e linkcheck` environment (owner decision 2026-09-13; revised the same day when QUA-08, the CI job, was deferred — no bullet may claim a CI job that does not exist). `pyproject.toml` stays `0.9.2`. There is no tag, no PyPI upload and no GitHub Release. The milestone branch is merged to `main` through a PR, as REL-12 and REL-13 were. This checkbox is checked only at `/gsd-complete-milestone`, on the observed merge, and never by phase-completion tooling.
+57:| REL-14 | Phase 73 | Pending |
+62:- Mapped to phases: 4 (Phase 72: QUA-13, DOC-24, DOC-18 · Phase 73: REL-14)
+65:- REL-14 is mapped to Phase 73 for coverage only; its checkbox is checked at
+```
+
+Byte-identical, line by line, in file order, to § "The lines under guard" above (lines 22, 57, 62,
+65). MATCH.
+
+```
+$ grep -c 'REL-14' .planning/REQUIREMENTS.md
+4
+```
+
+Equal to `REL14_HITS_BASE = 4`. MATCH.
+
+| Probe | Baseline | Close | Verdict |
+|---|---|---|---|
+| `REQ_SHA256_*` | `7a21a1e4…12bcad` | `7a21a1e4…12bcad` | MATCH |
+| `REQ_LINES_*` | 70 | 70 | MATCH |
+| `git diff --name-only` | — | empty | MATCH |
+| `git log … -- REQUIREMENTS.md` | — | empty | MATCH |
+| `grep -n 'REL-14'` (4 lines) | lines 22, 57, 62, 65 | identical, line by line | MATCH |
+| `grep -c 'REL-14'` | 4 | 4 | MATCH |
+
+REL-14's checkbox and Traceability row, read directly from the file at this plan's own point in
+the phase (never inferred from any SUMMARY frontmatter — every plan of this phase, including this
+one, declares `requirements-completed: []`):
+
+```
+- [ ] **REL-14**: …
+```
+
+```
+| REL-14 | Phase 73 | Pending |
+```
+
+Every comparison holds:
+
+```
+REQ_VERDICT_CLOSE = MATCH
+```
+
+No divergence occurred, so no `### Divergence detected and reverted` subsection is written and no
+`git checkout -- .planning/REQUIREMENTS.md` was needed.
+
+§ "For the operator running phase.complete" (above) is present and unedited by this task — it was
+read in full as part of this task's `<read_first>` and confirmed to be the same section 73-02
+wrote, byte for byte, with no re-ordering.
+
+The decisive third observation — the one that runs after `phase.complete`-family tooling actually
+executes, outside any plan's reach — is still owed. `73-HANDOFF.md` (plan 73-07, Task 2)
+reproduces the procedure inline so the operator reaches it without opening this file separately.
+The orchestrator appends the actual `## Third observation (after phase.complete, orchestrator)`
+section here once that tooling has run.
+
 ---
 *Phase: 73-v0-9-5-close-prep-prep-only-unpublished*
-*Plan: 02*
+*Plan: 02, 07*
