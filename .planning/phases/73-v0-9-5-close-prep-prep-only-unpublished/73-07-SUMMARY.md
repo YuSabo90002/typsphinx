@@ -15,7 +15,8 @@ affects: [complete-milestone, release-prep]
 actuals:
   tokens: 7016
   tasks: 2
-  commits: 2
+  commits: 3
+plan_head_before: b716107f30a6180e9accb734011231010fe2a793
 
 tech-stack:
   added: []
@@ -139,6 +140,7 @@ None - no external service configuration required.
 - `git log --oneline --all | grep -q 1b29560e` — FOUND
 - `git log --oneline --all | grep -q e619613b` — FOUND
 - Both tasks' `<acceptance_criteria>` and `<verify>` blocks re-run in full above; all PASSED.
+- Measured commit count for this plan: `git rev-list --count b716107f30a6180e9accb734011231010fe2a793..HEAD` = 3 (Task 1, Task 2, and this SUMMARY's own metadata commit), matching `commits: 3` in the frontmatter above.
 
 ---
 *Phase: 73-v0-9-5-close-prep-prep-only-unpublished*
