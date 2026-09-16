@@ -1,21 +1,16 @@
 ---
-gsd_state_version: 1.0
-milestone: v0.9.5
-milestone_name: Docs Link Check and Navigation
-status: Awaiting next milestone
-stopped_at: Milestone v0.9.5 completed and archived — merged to main via PR #151 (43fd7c13), nothing published
-last_updated: "2026-09-16T12:10:00.000Z"
+gsd_state_version: "1.0"
+milestone: v0.9.6
+milestone_name: Doctest block rendering and release
+status: planning
+last_updated: "2026-09-16T12:31:45.771Z"
 last_activity: 2026-09-16
-last_activity_desc: Milestone v0.9.5 completed, merged to main via PR #151 and archived — no tag, no PyPI, no Release
-state_head: 43fd7c137fd28977727ff071b19e5059c85c09d9
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 13
-  completed_plans: 13
-  percent: 100
-current_phase: 73
-current_phase_name: v0.9.5 Close Prep (prep-only, unpublished)
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -277,12 +272,10 @@ land here.
 
 ## Current Position
 
-Phase: Milestone v0.9.5 complete — no phase active
-Plan: — (13/13 plans across Phases 72–73)
-Status: Awaiting next milestone; next phase number is 74
-Last activity: 2026-09-16 — Milestone v0.9.5 completed, merged to `main` via PR #151 (`43fd7c13`) and archived
-
-Progress: [██████████] 100% (2/2 phases, 13/13 plans, 4/4 v1 requirements)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-09-16 — Milestone v0.9.6 started
 
 ## Shipped Milestone (v0.9.0 — archived)
 
