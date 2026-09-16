@@ -313,3 +313,310 @@ conflict-free and reproducible from its recorded inputs. It is **not** a no-op: 
 absorbing all five Dependabot pull requests (#146–#150) between planning and this plan's
 execution — D-07's case, caught live rather than assumed. The merged lock is valid, and this
 branch is untouched by the measurement.
+
+## Head check (Task 2)
+
+```
+$ test -f .git; echo "exit:$?"
+exit:0
+$ pwd -P
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a9698df66160af27c
+$ grep -c typsphinx-fhs-run "$(command -v uv)"
+2
+$ git fetch origin
+(no output)
+```
+
+## Merged-tree lint
+
+D-09 and SC#3 require this: the trial merge must pass `ruff check .` on the merged tree, at the
+merged lock's `ruff`. `MAIN_MOVED = yes` here (D-07's case — `main` absorbed the `ruff` bump from
+#147), so under D-07 this count is authoritative for the conditional branch update.
+
+```
+$ mkdir -p /tmp/tmp.nxzTyUJGQS/p7305_lint_scratch
+$ echo /tmp/tmp.nxzTyUJGQS/p7305_lint_scratch
+/tmp/tmp.nxzTyUJGQS/p7305_lint_scratch
+$ git archive --format=tar -o /tmp/tmp.nxzTyUJGQS/p7305_lint_archive.tar "$MERGE_TREE"
+(no output)
+$ tar -xf /tmp/tmp.nxzTyUJGQS/p7305_lint_archive.tar -C /tmp/tmp.nxzTyUJGQS/p7305_lint_scratch
+(no output)
+```
+
+From the worktree root:
+
+```
+$ uv --directory /tmp/tmp.nxzTyUJGQS/p7305_lint_scratch sync --locked --extra dev --no-install-project
+[... hash-verified install from the merged uv.lock only, resolving packages including
+ruff==0.16.7 ...]
+```
+
+This is a hash-verified install from the merged `uv.lock` only.
+
+```
+$ uv --directory /tmp/tmp.nxzTyUJGQS/p7305_lint_scratch run --no-sync ruff --version
+ruff 0.16.7
+```
+
+```
+MERGED_RUFF_RUN_VERSION = 0.16.7
+```
+
+Equal to `MERGED_RUFF_LOCK_VERSION` recorded above.
+
+```
+$ uv --directory /tmp/tmp.nxzTyUJGQS/p7305_lint_scratch run --no-sync ruff check .; echo "exit:$?"
+All checks passed!
+exit:0
+```
+
+```
+MERGED_RUFF_EXIT = 0
+```
+
+```
+$ uv --directory /tmp/tmp.nxzTyUJGQS/p7305_lint_scratch run --no-sync black --check .; echo "exit:$?"
+All done! ✨ 🍰 ✨
+355 files would be left unchanged.
+exit:0
+```
+
+```
+MERGED_BLACK_EXIT = 0
+```
+
+```
+$ rm -rf /tmp/tmp.nxzTyUJGQS/p7305_lint_scratch /tmp/tmp.nxzTyUJGQS/p7305_lint_archive.tar
+(no output)
+```
+
+Both exits are 0 — no `## FINDING: merged-tree lint` section is needed. Nothing was fixed because
+nothing failed. The merged tree — which now includes the `ruff` 0.16.6 -> 0.16.7 bump from #147 —
+lints cleanly at that bumped version. No documentation build of the merged tree was run (D-07).
+
+## main protection (D-09)
+
+```
+$ gh api repos/YuSabo90002/typsphinx/branches/main/protection/required_status_checks --jq .strict
+true
+```
+
+```
+PROTECTION_STRICT = true
+```
+
+```
+$ gh api repos/YuSabo90002/typsphinx/branches/main/protection/required_status_checks --jq '[.contexts[]] | sort | join("|")'
+Build Package|Code Coverage|Lint and Format Check|Test Python 3.12 on ubuntu-latest|Test Python 3.13 on ubuntu-latest|Type Check
+```
+
+```
+PROTECTION_CONTEXTS = Build Package|Code Coverage|Lint and Format Check|Test Python 3.12 on ubuntu-latest|Test Python 3.13 on ubuntu-latest|Type Check
+PROTECTION_CONTEXTS_COUNT = 6
+```
+
+The six required contexts, verbatim:
+1. Build Package
+2. Code Coverage
+3. Lint and Format Check
+4. Test Python 3.12 on ubuntu-latest
+5. Test Python 3.13 on ubuntu-latest
+6. Type Check
+
+This equals `REQUIRED_CONTEXTS_HEAD` in `72-BASE-EVIDENCE.md` exactly.
+
+**Why the handoff's branch-update step is conditional (D-10):** under `strict: true` the pull
+request cannot merge until the branch is up to date with `main`. `main` has already moved by the
+time this plan reaches this step (`MAIN_MOVED = yes`, Task 1), so the trial merge above must be
+re-measured immediately before the real merge and the branch updated with a merge commit before
+opening the pull request. Had `main` not moved, this step would instead be a recorded no-op.
+
+## Merge-method precedent (D-10)
+
+```
+$ git log --first-parent --format='%h %s' origin/main | grep -E ' Merge pull request #(143|145) '
+383a07e9 Merge pull request #145 from YuSabo90002/gsd/v0.9.4-typing-modernization
+58d578f2 Merge pull request #143 from YuSabo90002/gsd/v0.9.3-toolchain-and-dependency-update-repair
+```
+
+```
+MERGE_PRECEDENT_HITS = 2
+```
+
+```
+$ git log --first-parent --format='%h %s' -12 origin/main
+6e2b7899 Merge pull request #146 from YuSabo90002/dependabot/uv/build-1.6.1
+96162f3a Merge pull request #148 from YuSabo90002/dependabot/uv/pypdf-6.18.0
+5bb304c1 Merge pull request #147 from YuSabo90002/dependabot/uv/ruff-0.16.7
+81cc2b3e Merge pull request #149 from YuSabo90002/dependabot/uv/twine-7.0.0
+a32e0be2 Merge pull request #150 from YuSabo90002/dependabot/uv/sphinx-autodoc-typehints-3.13.6
+098a8ff6 chore: remove REQUIREMENTS.md for v0.9.4 milestone
+95ba4862 chore: archive v0.9.4 milestone files
+383a07e9 Merge pull request #145 from YuSabo90002/gsd/v0.9.4-typing-modernization
+d14ca458 Merge pull request #144 from YuSabo90002/docs/issue-91-close-and-doctest-todo
+5d59dbb6 Merge pull request #139 from YuSabo90002/dependabot/uv/tox-4.61.4
+31480b6b Merge pull request #140 from YuSabo90002/dependabot/uv/sphinx-intl-2.4.0
+cf6856c6 Merge pull request #141 from YuSabo90002/dependabot/uv/pre-commit-4.6.2
+```
+
+Both previous milestone pull requests (#143, v0.9.3; #145, v0.9.4) merged with a merge commit,
+never a squash or a rebase — visible on `origin/main`'s first-parent history above. At the v0.9.3
+close, Dependabot pull requests merged after #143 (#142, #141, visible further back in the same
+history). This milestone's own five Dependabot pull requests (#146-#150) have now already merged
+after #145, the v0.9.4 milestone pull request, following the same order.
+
+## Dependabot and open pull requests (D-06)
+
+```
+$ gh pr list --state all --limit 5 --json number
+[{"number":150},{"number":149},{"number":148},{"number":147},{"number":146}]
+```
+
+Positive control: the unscoped listing returns five real pull-request numbers — proving the
+command reached GitHub and the repository genuinely has pull-request history.
+
+```
+$ gh pr list --state open --json number,title,author,headRefName,baseRefName,updatedAt
+[]
+```
+
+```
+$ gh api user -q .login
+YuSabo90002
+```
+
+```
+GH_ACTOR = YuSabo90002
+```
+
+```
+$ date -u +%FT%TZ
+2026-09-16T10:17:02Z
+```
+
+```
+PR_CENSUS_AT = 2026-09-16T10:17:02Z
+```
+
+No pull request is open at census time — all five of #146-#150 have already merged into `main`
+since planning (measured live in Task 1's `## Fetch and divergence`, `MAIN_MOVED = yes`). Each is
+recorded below from its own `gh pr view`, not from the open listing:
+
+```
+$ gh pr view 146 --json number,title,state,author,headRefName,baseRefName,files,mergeable,updatedAt
+{"author":{"is_bot":true,"login":"app/dependabot"},"baseRefName":"main","files":[{"path":"uv.lock","additions":3,"deletions":3,"changeType":"MODIFIED"}],"headRefName":"dependabot/uv/build-1.6.1","mergeable":"UNKNOWN","number":146,"state":"MERGED","title":"chore(deps): bump build from 1.5.0 to 1.6.1","updatedAt":"2026-09-14T16:04:02Z"}
+
+$ gh pr view 146 --json comments,reviews -q '[.comments[], .reviews[] | select(.author.login == "YuSabo90002")] | length'
+0
+```
+
+```
+PR_146_STATE = MERGED
+PR_146_PACKAGE = build
+PR_146_RANGE = 1.5.0 -> 1.6.1
+PR_146_FILES = uv.lock
+PR_146_ACTOR_TOUCHES = 0
+```
+
+```
+$ gh pr view 147 --json number,title,state,author,headRefName,baseRefName,files,mergeable,updatedAt
+{"author":{"is_bot":true,"login":"app/dependabot"},"baseRefName":"main","files":[{"path":"uv.lock","additions":21,"deletions":21,"changeType":"MODIFIED"}],"headRefName":"dependabot/uv/ruff-0.16.7","mergeable":"UNKNOWN","number":147,"state":"MERGED","title":"chore(deps): bump ruff from 0.16.6 to 0.16.7","updatedAt":"2026-09-14T15:40:42Z"}
+
+$ gh pr view 147 --json comments,reviews -q '[.comments[], .reviews[] | select(.author.login == "YuSabo90002")] | length'
+0
+```
+
+```
+PR_147_STATE = MERGED
+PR_147_PACKAGE = ruff
+PR_147_RANGE = 0.16.6 -> 0.16.7
+PR_147_FILES = uv.lock
+PR_147_ACTOR_TOUCHES = 0
+```
+
+```
+$ gh pr view 148 --json number,title,state,author,headRefName,baseRefName,files,mergeable,updatedAt
+{"author":{"is_bot":true,"login":"app/dependabot"},"baseRefName":"main","files":[{"path":"uv.lock","additions":3,"deletions":3,"changeType":"MODIFIED"}],"headRefName":"dependabot/uv/pypdf-6.18.0","mergeable":"UNKNOWN","number":148,"state":"MERGED","title":"chore(deps): bump pypdf from 6.14.2 to 6.18.1","updatedAt":"2026-09-14T15:52:06Z"}
+
+$ gh pr view 148 --json comments,reviews -q '[.comments[], .reviews[] | select(.author.login == "YuSabo90002")] | length'
+0
+```
+
+```
+PR_148_STATE = MERGED
+PR_148_PACKAGE = pypdf
+PR_148_RANGE = 6.14.2 -> 6.18.1
+PR_148_FILES = uv.lock
+PR_148_ACTOR_TOUCHES = 0
+```
+
+```
+$ gh pr view 149 --json number,title,state,author,headRefName,baseRefName,files,mergeable,updatedAt
+{"author":{"is_bot":true,"login":"app/dependabot"},"baseRefName":"main","files":[{"path":"uv.lock","additions":3,"deletions":3,"changeType":"MODIFIED"}],"headRefName":"dependabot/uv/twine-7.0.0","mergeable":"UNKNOWN","number":149,"state":"MERGED","title":"chore(deps): bump twine from 6.2.0 to 7.0.0","updatedAt":"2026-09-14T15:18:49Z"}
+
+$ gh pr view 149 --json comments,reviews -q '[.comments[], .reviews[] | select(.author.login == "YuSabo90002")] | length'
+0
+```
+
+```
+PR_149_STATE = MERGED
+PR_149_PACKAGE = twine
+PR_149_RANGE = 6.2.0 -> 7.0.0
+PR_149_FILES = uv.lock
+PR_149_ACTOR_TOUCHES = 0
+```
+
+```
+$ gh pr view 150 --json number,title,state,author,headRefName,baseRefName,files,mergeable,updatedAt
+{"author":{"is_bot":true,"login":"app/dependabot"},"baseRefName":"main","files":[{"path":"uv.lock","additions":3,"deletions":3,"changeType":"MODIFIED"}],"headRefName":"dependabot/uv/sphinx-autodoc-typehints-3.13.6","mergeable":"UNKNOWN","number":150,"state":"MERGED","title":"chore(deps): bump sphinx-autodoc-typehints from 3.0.1 to 3.13.6","updatedAt":"2026-09-14T15:13:56Z"}
+
+$ gh pr view 150 --json comments,reviews -q '[.comments[], .reviews[] | select(.author.login == "YuSabo90002")] | length'
+0
+```
+
+```
+PR_150_STATE = MERGED
+PR_150_PACKAGE = sphinx-autodoc-typehints
+PR_150_RANGE = 3.0.1 -> 3.13.6
+PR_150_FILES = uv.lock
+PR_150_ACTOR_TOUCHES = 0
+```
+
+| Pull request | Package | Range | State | Files | Actor touches |
+|---|---|---|---|---|---|
+| #146 | build | 1.5.0 -> 1.6.1 | MERGED | uv.lock | 0 |
+| #147 | ruff | 0.16.6 -> 0.16.7 | MERGED | uv.lock | 0 |
+| #148 | pypdf | 6.14.2 -> 6.18.1 | MERGED | uv.lock | 0 |
+| #149 | twine | 6.2.0 -> 7.0.0 | MERGED | uv.lock | 0 |
+| #150 | sphinx-autodoc-typehints | 3.0.1 -> 3.13.6 | MERGED | uv.lock | 0 |
+
+No other pull request is open.
+
+```
+OPEN_PRS = 0
+DEPENDABOT_OPEN_PRS = 0
+```
+
+No merge, close, comment, review, label or rebase request was made against any of #146-#150, or
+any other pull request (D-06). All five of #146-#150 merged outside this phase — before this
+plan's own execution began — confirmed above with `MAIN_MOVED = yes` in Task 1 (D-07). The order
+the handoff records held here too: the milestone pull request (#145) merged first, then the
+Dependabot pull requests (#146-#150) rebased and merged themselves in sequence afterward — no
+manual action from this phase or its plans was needed or taken.
+
+## What the handoff can rely on
+
+| Fact | Value | Key(s) |
+|------|-------|--------|
+| Conflict-free merge, not a no-op | `origin/main` merges into this branch with zero conflicts; `main` moved by absorbing all five Dependabot pull requests | `MERGE_RC = 0`, `MERGE_TREE`, `TRIAL_IS_NOOP = no`, `MAIN_MOVED = yes` |
+| Valid merged lock | `uv lock --check` passes against the merged `pyproject.toml`/`uv.lock` | `LOCK_CHECK_EXIT = 0` |
+| Merged ruff version and lint result | 0.16.7 (bumped from 0.16.6 by #147); clean at that version | `MERGED_RUFF_LOCK_VERSION = 0.16.7`, `MERGED_RUFF_RUN_VERSION = 0.16.7`, `MERGED_RUFF_EXIT = 0`, `MERGED_BLACK_EXIT = 0` |
+| Strict protection, six checks | `strict: true`, exactly the six named contexts, equal to Phase 72's base reading | `PROTECTION_STRICT = true`, `PROTECTION_CONTEXTS_COUNT = 6` |
+| Merge-commit method | Both prior milestone pull requests (#143, #145) merged with a merge commit, never squash/rebase | `MERGE_PRECEDENT_HITS = 2` |
+| Dependabot census time and result | Zero open at census time; all five already merged outside this phase, untouched by it | `PR_CENSUS_AT`, `OPEN_PRS = 0`, `DEPENDABOT_OPEN_PRS = 0` |
+
+```
+TRIAL_MERGE_VERDICT = MET
+```
+
+`MERGE_RC`, `LOCK_CHECK_EXIT`, `MERGED_RUFF_EXIT` and `MERGED_BLACK_EXIT` are all `0`.
