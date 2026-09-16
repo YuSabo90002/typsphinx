@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A `tox -e linkcheck` environment checks the documentation's external links, including
+  their `#anchor` targets (QUA-13, DOC-24).** It runs Sphinx's link-check builder over the
+  documentation sources; because it needs the network, it is not part of a plain `tox` run,
+  and it is contributor tooling, listed alongside `docs-html` and `docs-pdf`. This has no
+  effect on installing or using typsphinx.
+
 ### Changed
 
 - **Contributor tooling returns to `tox-uv` from `tox-uv-bare` (TOX-01, TOX-02, TOX-03, TOX-04).**
@@ -43,6 +51,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   on installing or using typsphinx. The Typst output typsphinx generates and its runtime
   behaviour are unchanged: the `.typ` output is byte-identical across the test-fixture corpus of
   167 projects.
+
+### Fixed
+
+- **The HTML documentation's sidebar now lists each User Guide and Examples page exactly
+  once, nested under its section (DOC-18).** Previously each of those pages was also listed
+  a second time beside its section, so Sphinx no longer reports them as referenced in
+  multiple toctrees. This has no effect on installing or using typsphinx.
 
 ### Planned for Future Releases
 - BibTeX/bibliography support
