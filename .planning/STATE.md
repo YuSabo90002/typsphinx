@@ -4,12 +4,12 @@ milestone: v0.9.5
 milestone_name: Docs Link Check and Navigation
 current_phase: 73
 current_phase_name: v0.9.5 Close Prep (prep-only, unpublished)
-status: planning
+status: executing
 stopped_at: Phase 73 planned
-last_updated: "2026-09-16T09:45:54.317Z"
+last_updated: "2026-09-16T09:49:31.637Z"
 last_activity: 2026-09-16
-last_activity_desc: "Phase 73 planned (7 plans in 4 waves; research, validation and pattern map added; plan-checker passed; decision coverage 15/15)"
-state_head: 9d276727d16dcfa20191c69567f11b024411bfa3
+last_activity_desc: Phase 73 execution started
+state_head: dbb40d732e2e31abc2a6d44ce3716768ae684eda
 progress:
   total_phases: 2
   completed_phases: 1
@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-13 — full evolution review at the v0.9.4 close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** v0.9.5 Docs Link Check and Navigation — roadmap created, Phases 72–73: Phase 72 `tox -e linkcheck` and root toctree deduplication (QUA-13, DOC-24, DOC-18), Phase 73 close prep (REL-14; merge-only, unpublished). QUA-08 (the weekly advisory CI workflow) was deferred to Future by the owner at roadmap review, 2026-09-13. **Phase 72 complete** (2026-09-14: verification passed 5/5, UAT 1/1, Nyquist validated, SECURITY 26/26 closed; QUA-13, DOC-24 and DOC-18 Complete; branch on `origin`, CI run 34761445288 12/12). **Phase 73 context gathered** (2026-09-14: CHANGELOG as `### Added` + `### Fixed` bullets; Dependabot #146–#150 left untouched, merged after the milestone PR). Next action: `/gsd-plan-phase 73 --skip-ui`.
+**Current focus:** v0.9.5 Docs Link Check and Navigation — roadmap created, Phases 72–73: Phase 72 `tox -e linkcheck` and root toctree deduplication (QUA-13, DOC-24, DOC-18), Phase 73 close prep (REL-14; merge-only, unpublished). QUA-08 (the weekly advisory CI workflow) was deferred to Future by the owner at roadmap review, 2026-09-13. **Phase 72 complete** (2026-09-14: verification passed 5/5, UAT 1/1, Nyquist validated, SECURITY 26/26 closed; QUA-13, DOC-24 and DOC-18 Complete; branch on `origin`, CI run 34761445288 12/12). **Phase 73 context gathered** (2026-09-14: CHANGELOG as `### Added` + `### Fixed` bullets; Dependabot #146–#150 left untouched, merged after the milestone PR). **Phase 73 planned and now executing** (2026-09-16: 7 plans in 4 waves; plan-checker passed; decision coverage 15/15).
 
 ## Shipped Milestone (v0.9.4 — archived, merged to `main`, NOT published)
 
@@ -227,10 +227,10 @@ land here.
 
 ## Current Position
 
-Phase: 73 (v0.9.5 Close Prep (prep-only, unpublished)) — READY TO EXECUTE
-Plan: 0 of 7 complete (plans created, none executed)
-Status: Ready to execute
-Last activity: 2026-09-16 — Phase 73 planned (7 plans in 4 waves; plan-checker passed)
+Phase: 73 (v0.9.5 Close Prep (prep-only, unpublished)) — EXECUTING
+Plan: 1 of 7
+Status: Executing Phase 73
+Last activity: 2026-09-16 — Phase 73 execution started
 
 Progress: [█████░░░░░] 50% (1/2 phases)
 
