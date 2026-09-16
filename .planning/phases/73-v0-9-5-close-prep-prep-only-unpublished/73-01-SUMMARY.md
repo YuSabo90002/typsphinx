@@ -15,7 +15,8 @@ affects: [74-release-prep, complete-milestone]
 actuals:
   tokens: 5935
   tasks: 2
-  commits: 2
+  commits: 3
+plan_head_before: c6bc641aa1745e6413b4f33c4d0c572a962da430
 
 tech-stack:
   added: []
@@ -152,6 +153,17 @@ None - no external service configuration required.
   Release, pull request, push, or Dependabot action) — those remain scoped to plan 73-04.
 - `.planning/REQUIREMENTS.md` is untouched; `requirements-completed: []` per D-08. REL-14 closes at
   `/gsd-complete-milestone`, never in a plan.
+
+## Self-Check: PASSED
+
+- `CHANGELOG.md` exists on disk: FOUND
+- `.planning/phases/73-v0-9-5-close-prep-prep-only-unpublished/73-CHANGELOG-EVIDENCE.md` exists: FOUND
+- Task commit `c787d764` (Task 1) present in `git log`: FOUND
+- Task commit `a108cba2` (Task 2) present in `git log`: FOUND
+- All plan-level `<verification>` items re-run and confirmed passing (region order, bullet count,
+  version-literal absence, pure-addition diff, docs baselines, changelog page gate).
+- Commit count measured against `plan_head_before` (`c6bc641aa1745e6413b4f33c4d0c572a962da430`):
+  3 commits (Task 1, Task 2, this SUMMARY).
 
 ---
 *Phase: 73-v0-9-5-close-prep-prep-only-unpublished*
