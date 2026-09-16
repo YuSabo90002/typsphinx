@@ -228,9 +228,9 @@ land here.
 ## Current Position
 
 Phase: 73 (v0.9.5 Close Prep (prep-only, unpublished)) — EXECUTING
-Plan: 2 of 7 complete (wave 1 merged)
+Plan: 5 of 7 complete (waves 1-2 merged)
 Status: Executing Phase 73
-Last activity: 2026-09-16 — Phase 73 wave 1 complete (73-01, 73-02 merged; post-merge suite 1547 passed / 1 skipped)
+Last activity: 2026-09-16 — Phase 73 wave 2 complete (73-03/04/05 merged; CI run 35083828156 12/12 success on a54a2d8a; post-merge suite 1547 passed / 1 skipped)
 
 Progress: [█████░░░░░] 50% (1/2 phases)
 
