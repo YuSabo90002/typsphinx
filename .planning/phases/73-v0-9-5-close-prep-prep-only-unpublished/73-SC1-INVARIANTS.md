@@ -668,6 +668,237 @@ The fence held across the whole phase, including after 73-04's push and CI dispa
 unclaimed version numbers (`0.9.3`, `0.9.4`, `0.9.5`) remain unclaimed (D-11) at this second,
 separately-timestamped observation.
 
+## Milestone fences on the close tip (D-13)
+
+`MILESTONE_BASE` (`098a8ff64cf008822eef9dc69f75102ded3f7bc1`), read from § "Milestone fences (D-13)"
+of observation 1 above.
+
+```
+$ git diff --stat 098a8ff64cf008822eef9dc69f75102ded3f7bc1 HEAD -- typsphinx/ .github/workflows/
+(no output)
+```
+
+Key line:
+
+```
+CLOSE_MILESTONE_CODE_WORKFLOW_DIFF = empty
+```
+
+Still empty on the close tip — no line, hunk, or file under `typsphinx/` or `.github/workflows/`
+changed between the milestone base and this plan's own tip, after two more waves and a full CI
+dispatch since observation 1's identical check.
+
+```
+$ git ls-tree -r --name-only HEAD -- typsphinx/ .github/workflows/ | wc -l
+16
+```
+
+Key line:
+
+```
+CLOSE_PATHSPEC_TRACKED_FILES = 16
+```
+
+The pathspec still names 16 real tracked files at the close tip — unchanged from observation 1's
+`PATHSPEC_TRACKED_FILES = 16`, so the empty diff above is not a typo'd or non-existent path.
+
+```
+$ git diff --name-only 098a8ff64cf008822eef9dc69f75102ded3f7bc1 HEAD -- . ':(exclude).planning' | LC_ALL=C sort | tr '\n' ' '
+CHANGELOG.md CLAUDE.md README.md docs/source/contributing.rst docs/source/index.rst tox.ini
+```
+
+Key line:
+
+```
+CLOSE_MILESTONE_PRODUCT_FILES = CHANGELOG.md CLAUDE.md README.md docs/source/contributing.rst docs/source/index.rst tox.ini
+```
+
+This equals Phase 72's `PRODUCT_DIFF_FILES` (`CLAUDE.md README.md docs/source/contributing.rst
+docs/source/index.rst tox.ini`) with `CHANGELOG.md` added, C-sorted — the five files Phase 72
+already proved changed since the milestone base, plus this phase's own `CHANGELOG.md` edit, and
+nothing else. The widened-diff control from observation 1 (`MILESTONE_PRODUCT_FILES_OBS1`) carried
+only the five Phase 72 files, because at that point in the phase `CHANGELOG.md` had not yet been
+authored on this worktree's own tip when Phase 72's file was written — this close-tip reading adds
+exactly the one file this phase itself authored, `CHANGELOG.md`, and nothing else, which is the
+"why both controls are needed" argument observation 1 already made, now confirmed at the tip too:
+an anchor mistake would have produced either the same five-file list (if a broken anchor happened
+to equal the observation-1 anchor) or an empty/wildly-different list, not a widened list gaining
+exactly the one file this phase authored.
+
+```
+$ git log --format=%h -G '^version = ' 098a8ff64cf008822eef9dc69f75102ded3f7bc1..HEAD -- pyproject.toml
+(no output)
+```
+
+Key line:
+
+```
+CLOSE_VERSION_BUMP_COMMITS = 0
+```
+
+No commit in the milestone range, through the close tip, touched a `version = ` line in
+`pyproject.toml`.
+
+```
+$ git fetch origin main
+From https://github.com/YuSabo90002/typsphinx
+ * branch              main       -> FETCH_HEAD
+
+$ git merge-base HEAD origin/main
+098a8ff64cf008822eef9dc69f75102ded3f7bc1
+```
+
+Key line:
+
+```
+CLOSE_MAIN_ABSORBED = no
+```
+
+Still equal to `MILESTONE_BASE` — this branch has not absorbed any of `origin/main`'s later
+commits (the five merged Dependabot pull requests #146–#150, per `73-PREFLIGHT-EVIDENCE.md`), even
+at the close tip.
+
+**Why the scoped diff and the two controls are needed together, restated at the close tip.** An
+empty scoped diff from a wrong or stale anchor would be indistinguishable from a genuine empty
+diff — the pathspec control proves the anchor's pathspec still resolves to real tracked files (16
+of them, unchanged from observation 1), and the widened-diff control proves the anchor is still
+real, reachable and earlier than this plan's own tip: it lists exactly Phase 72's five files plus
+this phase's one, not zero and not an unrelated set. If the scoped diff had been empty because the
+anchor was broken, the widened diff would not have reproduced this specific six-file list.
+
+## The phase-scoped product diff
+
+`PHASE_BASE_SHA` (`c6bc641aa1745e6413b4f33c4d0c572a962da430`), read from `73-CLOSEOUT-GUARD.md` §
+"Baseline".
+
+```
+$ git diff --numstat c6bc641aa1745e6413b4f33c4d0c572a962da430 HEAD -- . ':(exclude).planning'
+15	0	CHANGELOG.md
+```
+
+Key line:
+
+```
+PHASE_PRODUCT_FILES = CHANGELOG.md
+```
+
+Exactly one row, `CHANGELOG.md`, 15 additions, 0 deletions — the same single-file delta
+`73-GREEN-TREE-EVIDENCE.md` already measured from this same anchor, now confirmed at the close
+tip after wave 2's own tracking commits and this plan's Task 1 commit landed on top.
+
+```
+$ git diff --name-only c6bc641aa1745e6413b4f33c4d0c572a962da430 HEAD -- typsphinx/ tests/ .github/ pyproject.toml uv.lock tox.ini docs/
+(no output)
+```
+
+Key line:
+
+```
+PHASE_OTHER_PRODUCT_DIFF = empty
+```
+
+None of `typsphinx/`, `tests/`, `.github/`, `pyproject.toml`, `uv.lock`, `tox.ini` or `docs/`
+changed anywhere in this phase — the phase's only product-tree effect, end to end, is the
+`CHANGELOG.md` addition.
+
+## Commits after the CI dispatch
+
+`PUSHED_SHA` (`a54a2d8a3b06b388c7ee004e5cfbe3405431421d`), read from `73-CI-EVIDENCE.md` § "Tip
+identity and fence".
+
+```
+$ git merge-base --is-ancestor a54a2d8a3b06b388c7ee004e5cfbe3405431421d HEAD; echo "exit:$?"
+exit:0
+```
+
+`PUSHED_SHA` is an ancestor of this plan's own HEAD.
+
+```
+$ git log --oneline a54a2d8a3b06b388c7ee004e5cfbe3405431421d..HEAD
+7fed9a6d docs(73-06): record SC#1 observation 2 of 2, two waves after observation 1
+b3e05b6e docs(phase-73): update tracking after wave 2
+709ce358 chore: merge executor worktree (worktree-agent-a2740f7c01295f306)
+71fe708f chore: merge executor worktree (worktree-agent-ae72cfbb6dc9782ba)
+fcda11cc chore: merge executor worktree (worktree-agent-a9698df66160af27c)
+66f6f2e8 docs(73-04): record measured commit count and plan_head_before in summary
+f8a1de1f docs(73-04): append self-check results to summary
+001d8b24 docs(73-04): complete push-and-CI-dispatch plan
+31c7f251 docs(73-03): add plan summary
+c0ad34f9 docs(73-04): record all-green CI verdict, job census, and required-checks close
+451eb72c docs(73-03): docs builds, linkcheck, executed-vs-skipped, SC#3 local verdict MET
+d3f67230 docs(73-05): record plan_head_before in SUMMARY frontmatter
+eb0f1f3e docs(73-05): complete REL-14 update-step pre-flight plan
+34e79ef1 docs(73-03): LC_ALL=C suite, format/type/lint, version-sync, changelog gate
+59521c57 docs(73-05): merged-tree lint, main protection, and Dependabot census recorded
+35147d05 docs(73-03): tree identity, product delta and non-absorption, full suite green
+baad4336 docs(73-05): trial-merge origin/main, non-committing, D-07 case caught live
+84d405d7 docs(73-04): record push and CI dispatch evidence for phase tip
+```
+
+Eighteen commits after `PUSHED_SHA`: wave 2's three plans (73-03, 73-04, 73-05), their merge
+commits, the wave-2 tracking-update commit, and this plan's own Task 1 commit.
+
+```
+$ git diff --name-only a54a2d8a3b06b388c7ee004e5cfbe3405431421d HEAD -- . ':(exclude).planning'
+(no output)
+```
+
+Key line:
+
+```
+POST_DISPATCH_PRODUCT_FILES = 0
+```
+
+Empty — every one of those eighteen commits touches only `.planning/`.
+
+```
+$ gh run list --workflow=release.yml --limit 20 --json headSha
+[{"headSha":"45962faad21520c72ac9f1e14c7f684050826bb6"},{"headSha":"68b92e24e6ca3df410ca0435d226629ef7ef1e2e"},{"headSha":"78e01e53641433a34c1bd8834b6252187fcae4ba"},{"headSha":"48bf135428bb093a77a432d93d16088ce6930342"},{"headSha":"75fd8ed55f4fca206474f9e3aa934921588b52d5"},{"headSha":"839d77f38ffa67f18696265b361f7dcef92f679b"},{"headSha":"2bf6ef318773b239e4ab20b41fbe40ce91337584"},{"headSha":"7f6db629351aa1229a2a07614b6a6f201001ad80"},{"headSha":"54b8fc90df0359b049a1cd9936f03c76d1169f74"},{"headSha":"27e77403f1d62ebec9f36c2c4a9b7c8e16067fc9"},{"headSha":"cc26b4723f671c0ac0dfdae687b6bee722aa6dd0"},{"headSha":"ea153bfca933b92ea23fdfa72efba2afb100f29b"},{"headSha":"dae500a1f2065691972e03cc70a9bf73a90cd26f"},{"headSha":"a2aca47b367b6a4320be6785202cacffad937c5e"},{"headSha":"415498a8cfa7dc21aa09871d4d3b061ed7ba48a2"},{"headSha":"445af8c4b8a30d924d30341bd87b476fa7d0b486"},{"headSha":"0ed33d10acbee8fa935850bcf77404d55832edc9"},{"headSha":"08aeb4b3cfba2293103aefa201b85c89397f50f3"},{"headSha":"28a80a6cc13288eb8c75612693d34a25ae865142"},{"headSha":"c1e2db714cfacd8ef96759ccdebf6e09f5c9152a"}]
+```
+
+No entry's `headSha` equals `PUSHED_SHA` — no `release.yml` run has ever fired at that tip.
+
+```
+$ gh run list --workflow=ci.yml --branch gsd/v0.9.5-docs-link-check-and-navigation --event workflow_dispatch --limit 50 --json databaseId,headSha,createdAt
+[{"createdAt":"2026-09-16T10:13:43Z","databaseId":35083828156,"headSha":"a54a2d8a3b06b388c7ee004e5cfbe3405431421d"},{"createdAt":"2026-09-13T14:01:06Z","databaseId":34761445288,"headSha":"0b2595df21399363f50e5e1a55935f470e0df00d"}]
+```
+
+Exactly one row carries `headSha` equal to `PUSHED_SHA` — run `35083828156`, this phase's own
+single dispatch (`73-CI-EVIDENCE.md`). The other row (`34761445288`) is Phase 72's own dispatch at
+its own tip, not this phase's.
+
+**The D-12 reading.** The single dispatch (`35083828156`) ran on the tip carrying every
+product-tree change of the phase — `PUSHED_SHA` equals `73-CI-EVIDENCE.md`'s own `BASE_73_04`, and
+that file's § "Tip identity and fence" already showed the pushed tree byte-identical to that
+worktree's HEAD, which carried the phase's own `CHANGELOG.md` edit (wave 1) and nothing else since.
+Every commit landing after `PUSHED_SHA` — eighteen commits, listed above — touches only
+`.planning/`, which no CI job reads (`POST_DISPATCH_PRODUCT_FILES = 0`). No release.yml run has
+ever fired at `PUSHED_SHA` either. The post-dispatch commits are therefore not a stale-tip
+violation, and no second dispatch is warranted.
+
+## SC#1 verdict
+
+All of the following hold:
+- Both observations (1 and 2) hold with every positive control (§ "Observation 1 of 2" and
+  § "Observation 2 of 2" above).
+- `CLOSE_MILESTONE_CODE_WORKFLOW_DIFF = empty`.
+- `CLOSE_MILESTONE_PRODUCT_FILES` matches Phase 72's five files plus `CHANGELOG.md`.
+- `CLOSE_VERSION_BUMP_COMMITS = 0`.
+- `PHASE_PRODUCT_FILES = CHANGELOG.md`.
+- `POST_DISPATCH_PRODUCT_FILES = 0`.
+- `CLOSE_MAIN_ABSORBED = no`.
+
+```
+SC1_VERDICT = MET
+```
+
+ROADMAP SC#1 is discharged in full: the tree is proven unpublished-shaped twice, 32 minutes 46
+seconds apart, with every remote probe positively controlled and unchanged between the two
+readings; `pyproject.toml` still reads `0.9.2` with zero version-bump commits across the whole
+milestone; and across the whole milestone `git diff --stat 098a8ff6..HEAD -- typsphinx/
+.github/workflows/` is empty (D-13), with the phase's own product-tree effect confined to exactly
+`CHANGELOG.md` and every post-dispatch commit confirmed planning-only.
+
 ---
 *Phase: 73-v0-9-5-close-prep-prep-only-unpublished*
 *Plan: 02, 06*
