@@ -280,9 +280,13 @@ Last activity: 2026-09-16 — v0.9.6 roadmap created: Phases 74–75, 5/5 v1 req
 Progress: [░░░░░░░░░░] 0% (0/2 phases)
 
 Milestone base for every scope fence: `6cc44f22` (= `main`'s tip). The milestone branch
-`gsd/v0.9.6-doctest-block-rendering-and-release` is checked out at `94497c0a`, `main` + 2
-`.planning/`-only commits, and has **not** been pushed to `origin`; the first push happens in Phase
-74. No `gsd/v0.9.6-milestone` decoy exists yet.
+`gsd/v0.9.6-doctest-block-rendering-and-release` is checked out at `3b284126`, `main` + 4
+`.planning/`-only commits (milestone start, requirements, roadmap, todo tag), and has **not** been
+pushed to `origin`; the first push happens in Phase 74. No `gsd/v0.9.6-milestone` decoy exists: the
+commit helper created one at the milestone-start commit and it was renamed to the canonical
+config-derived slug the same minute, which every later `gsd_run query commit` confirmed by warning
+that the resolved milestone branch is absent and committing on the current branch instead. Re-measure
+the branch census at the phase base rather than trusting these counts.
 
 ## Shipped Milestone (v0.9.0 — archived)
 
