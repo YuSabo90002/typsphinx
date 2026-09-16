@@ -214,6 +214,141 @@ so an unchanged suite count is the expected outcome, not coincidence.
 
 No failure occurred, so no `## HALT` heading is written and no test id needs to be quoted.
 
+## Head check and provisioning (Task 2 re-run)
+
+```
+$ date -u +%FT%TZ
+2026-09-16T10:20:00Z
+
+$ pwd -P
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae72cfbb6dc9782ba
+
+$ test -f .git; echo "exit:$?"
+exit:0
+
+$ grep -c typsphinx-fhs-run "$(command -v uv)"
+2
+```
+
+Provisioning already completed in Task 1 (same worktree, same `.venv`); no re-provisioning needed
+or performed for Task 2.
+
+## Full suite under LC_ALL=C
+
+The full pytest suite is run a second time under `LC_ALL=C` because CI runs in English, and
+warning-text assertions in this project have failed only on CI before, never locally under the
+host's own locale (ROADMAP SC#3) — this run closes that gap by reproducing the CI locale here.
+
+```
+$ LC_ALL=C uv run pytest -q -rs -p no:cacheprovider > "$SCRATCH_73_03/p7303_lcallc.log" 2>&1; echo "exit:$?"
+exit:0
+```
+
+Summary, verbatim from `$SCRATCH_73_03/p7303_lcallc.log`:
+```
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_corpus_gate.py:530: SC#3 before/after measurement is env-gated -- set TYPSPHINX_CORPUS_REPORT=1 to run it (RESEARCH Open Question 1)
+================= 1547 passed, 1 skipped in 125.44s (0:02:05) ==================
+```
+
+```
+LCALLC_SUMMARY = 1547 passed, 1 skipped
+LCALLC_PASSED = 1547
+LCALLC_FAILED = 0
+```
+
+No failure occurred, so no `## HALT` heading is written.
+
+## Format, type and lint
+
+```
+$ uv run black --check .; echo "exit:$?"
+All done! ✨ 🍰 ✨
+355 files would be left unchanged.
+exit:0
+```
+BLACK_EXIT = 0
+
+```
+$ uv run mypy typsphinx/; echo "exit:$?"
+Success: no issues found in 9 source files
+exit:0
+```
+MYPY_EXIT = 0
+
+```
+$ uv run ruff --version
+ruff 0.16.6
+```
+RUFF_LOCAL_VERSION = 0.16.6
+
+```
+$ grep -A1 -xF 'name = "ruff"' uv.lock
+name = "ruff"
+version = "0.16.6"
+```
+`RUFF_LOCAL_VERSION` (0.16.6) equals the ruff version pinned in `uv.lock` (0.16.6).
+
+```
+$ uv run ruff check .; echo "exit:$?"
+All checks passed!
+exit:0
+```
+RUFF_LOCAL_EXIT = 0
+
+CI's `Lint and Format Check` job holds lint authority; plan 73-04 (running in parallel) reads its
+verdict from the CI run. This local run is additive evidence, not a substitute.
+
+## Version-sync family
+
+```
+$ uv run pytest tests/test_readme_version_sync.py tests/test_preview_version_sync.py -v -p no:cacheprovider
+tests/test_readme_version_sync.py::test_readme_status_version_matches_pyproject PASSED [ 25%]
+tests/test_preview_version_sync.py::test_preview_versions_identical_across_declaration_sites PASSED [ 50%]
+tests/test_preview_version_sync.py::test_all_four_packages_declared PASSED [ 75%]
+tests/test_preview_version_sync.py::test_example_templates_match_canonical_versions PASSED [100%]
+
+============================== 4 passed in 0.03s ===============================
+```
+
+```
+$ uv run pytest tests/test_extension.py -k version_matches_pyproject_toml -v -p no:cacheprovider
+tests/test_extension.py::test_version_matches_pyproject_toml PASSED      [100%]
+
+======================= 1 passed, 5 deselected in 0.03s ========================
+```
+
+VERSION_SYNC_FAILED = 0
+
+This runs even though no version literal moves in this phase: it is the mechanism that would catch
+one moving, and constraint 2 keeps the `@preview` count at four with no version change in this
+phase.
+
+## Changelog page gate
+
+```
+$ LC_ALL=C uv run pytest tests/test_changelog_page_gate.py -v -rs -p no:cacheprovider
+tests/test_changelog_page_gate.py::TestPublishedChangelogPageDelegates::test_page_delegates_to_changelog_md PASSED [ 16%]
+tests/test_changelog_page_gate.py::TestPublishedChangelogPageDelegates::test_page_carries_no_hand_maintained_release_history PASSED [ 33%]
+tests/test_changelog_page_gate.py::TestChangelogPageContentCoverage::test_rendered_page_carries_every_release PASSED [ 50%]
+tests/test_changelog_page_gate.py::TestChangelogPageContentCoverage::test_rendered_page_has_one_changelog_heading PASSED [ 66%]
+tests/test_changelog_page_gate.py::TestChangelogPageContentCoverage::test_build_emits_no_changelog_warnings PASSED [ 83%]
+tests/test_changelog_page_gate.py::TestChangelogIncludeCompilesToPdf::test_included_changelog_reaches_the_pdf PASSED [100%]
+
+============================== 6 passed in 3.89s ===============================
+```
+
+```
+CHANGELOG_GATE_SUMMARY = 6 passed
+CHANGELOG_GATE_SKIPPED = 0
+```
+
+No skip occurred — the docs extra (`myst_parser`, confirmed importable in Task 1's Tree Identity
+section) is present in this worktree's `.venv`, so both build-dependent test classes
+(`TestChangelogPageContentCoverage`, `TestChangelogIncludeCompilesToPdf`) ran rather than skipping.
+A skip here would mean the docs extra is missing; provisioning was already confirmed correct in
+Task 1, so no re-provisioning or re-run was needed.
+
 ---
 *Phase: 73-v0-9-5-close-prep-prep-only-unpublished*
-*Plan: 03 (Task 1)*
+*Plan: 03 (Tasks 1-2)*
