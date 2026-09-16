@@ -349,6 +349,214 @@ section) is present in this worktree's `.venv`, so both build-dependent test cla
 A skip here would mean the docs extra is missing; provisioning was already confirmed correct in
 Task 1, so no re-provisioning or re-run was needed.
 
+## Head check and provisioning (Task 3 re-run)
+
+```
+$ date -u +%FT%TZ
+2026-09-16T10:22:00Z
+
+$ pwd -P
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae72cfbb6dc9782ba
+
+$ test -f .git; echo "exit:$?"
+exit:0
+
+$ grep -c typsphinx-fhs-run "$(command -v uv)"
+2
+```
+
+Provisioning already completed in Task 1 (same worktree, same `.venv`); no re-provisioning
+performed for Task 3.
+
+## Docs builds on the merged tree
+
+`73-CHANGELOG-EVIDENCE.md`'s clean phase-base baselines, read with the key reader:
+```
+DOCS_HTML_WARN_BASE = 3
+DOCS_PDF_WARN_BASE = 5
+```
+
+`rm -rf docs/_build`, then `LANG=C LC_ALL=C uv run tox -e docs-html`, logged to
+`$SCRATCH_73_03/p7303_html.log`:
+
+```
+$ rm -rf docs/_build && LANG=C LC_ALL=C uv run tox -e docs-html; echo "exit:$?"
+exit:0
+```
+
+~~~text docs-html-final-warnings
+:21: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+:21: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+:6: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae72cfbb6dc9782ba/typsphinx/translator.py:docstring of typsphinx.translator.TypstTranslator.visit_toctree:6: WARNING: Block quote ends without a blank line; unexpected unindent. [docutils]
+~~~
+
+```
+build succeeded, 3 warnings.
+```
+
+```
+DOCS_HTML_WARN_FINAL = 3
+MULTI_TOCTREE_HTML_FINAL = 0
+```
+
+`DOCS_HTML_WARN_FINAL` (3) equals `DOCS_HTML_WARN_BASE` (3), and the WARNING lines are identical
+apart from the worktree path prefix (`agent-ae72cfbb6dc9782ba` here vs. `agent-af4a9f698bf799c4a`
+in 73-01's worktree) — no new warning, no drift.
+
+`rm -rf docs/_build`, then `LANG=C LC_ALL=C uv run tox -e docs-pdf`, logged to
+`$SCRATCH_73_03/p7303_pdf.log`:
+
+```
+$ rm -rf docs/_build && LANG=C LC_ALL=C uv run tox -e docs-pdf; echo "exit:$?"
+exit:0
+```
+
+~~~text docs-pdf-final-warnings
+:21: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+:21: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+:6: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-ae72cfbb6dc9782ba/typsphinx/translator.py:docstring of typsphinx.translator.TypstTranslator.visit_toctree:6: WARNING: Block quote ends without a blank line; unexpected unindent. [docutils]
+WARNING: unknown node type: <doctest_block classes="doctest" xml:space="preserve">>>> compute_content_include_path("", "index.typ")
+WARNING: unknown node type: <doctest_block classes="doctest" xml:space="preserve">>>> compute_template_import_path("typst", "base.typ")
+~~~
+
+```
+build succeeded, 5 warnings.
+```
+
+```
+DOCS_PDF_WARN_FINAL = 5
+MULTI_TOCTREE_PDF_FINAL = 0
+```
+
+`DOCS_PDF_WARN_FINAL` (5) equals `DOCS_PDF_WARN_BASE` (5), and the WARNING lines are identical
+apart from the worktree path prefix — no new warning, no drift.
+
+```
+$ head -c 5 "$SCRATCH_73_03/p7303_final.pdf"
+%PDF-
+
+$ ls -l "$SCRATCH_73_03/p7303_final.pdf"
+-rw-r--r-- 1 yuta users 2794665 ... p7303_final.pdf
+```
+
+PDF_MAGIC = %PDF-
+
+Both interpreters are the same nixpkgs `python3-3.13.13` (recorded in Task 1's Tree Identity
+section for both this worktree and the main checkout, and 73-01's `PYVENV_VERSION_73_01 = 3.13.13`
+in `73-CHANGELOG-EVIDENCE.md`), so the equal counts trace to an unchanged docs tree, not to a
+masked interpreter difference. Neither multiple-toctrees final count is non-zero, so no
+`## HALT: docs warning drift` or `## HALT: multiple toctrees on the merged tree` is written.
+
+## Linkcheck
+
+Run 1, from a clean output directory:
+
+```
+$ rm -rf docs/_build/linkcheck
+$ uv run tox -e linkcheck > "$SCRATCH_73_03/p7303_linkcheck_run1.log" 2>&1; echo "exit:$?"
+exit:0
+```
+
+```
+LINKCHECK_RUN_1_EXIT = 0
+```
+
+`output.json` copied to `$SCRATCH_73_03/p7303_linkcheck_run1_output.json` (95 lines) and read with
+`uv run python -c`:
+
+```
+TOTAL 95
+WORKING 95
+CENSUS {'working': 95}
+```
+
+```
+LINKCHECK_RUN_1_TOTAL = 95
+LINKCHECK_RUN_1_WORKING = 95
+LINKCHECK_RUN_1_STATUS_CENSUS = working:95
+```
+
+Every row is `working` and exit is 0 — this run passes; no non-`working` row to quote; no second
+run needed.
+
+```
+LINKCHECK_RUNS = 1
+LINKCHECK_PASS_RUN = 1
+LINKCHECK_TOTAL = 95
+LINKCHECK_WORKING = 95
+LINKCHECK_VERDICT = PASS
+```
+
+Phase 72's `TIP_LINKCHECK_TOTAL` (context only, never a threshold — constraint 8):
+```
+$ grep -n 'TIP_LINKCHECK_TOTAL' .planning/phases/72-tox-e-linkcheck-and-root-toctree-deduplication/72-GATES-EVIDENCE.md
+86:TIP_LINKCHECK_TOTAL = 95
+```
+The count (95) is identical to Phase 72's, which is expected since the only product-tree change
+since the phase base is `CHANGELOG.md`, containing no links.
+
+```
+$ grep -c '^linkcheck_' docs/source/conf.py || true
+0
+
+$ git diff --name-only c6bc641aa1745e6413b4f33c4d0c572a962da430 -- docs/source/conf.py
+(no output)
+```
+
+No `linkcheck_` key was added to `docs/source/conf.py`, and the file is unchanged since the phase
+base (D-05: `CHANGELOG.md` is the only product-tree file this phase authors).
+
+## Division of authority
+
+- `73-CHANGELOG-EVIDENCE.md` — the pre-edit versus post-edit CHANGELOG.md comparison in one tree
+  (73-01's own worktree).
+- This file (`73-GREEN-TREE-EVIDENCE.md`) — the full pytest suite (twice), format/type/local lint,
+  the version-sync family, the changelog page gate, the final-tree docs builds against 73-01's
+  clean baseline, and the linkcheck verdict.
+- `73-CI-EVIDENCE.md` (plan 73-04, running in parallel with this plan) — the three-OS CI matrix and
+  the lint verdict authority.
+- `73-PREFLIGHT-EVIDENCE.md` (plan 73-05, running in parallel with this plan) — the trial merge
+  against `origin/main`.
+
+This file does not read 73-04's or 73-05's results; they run in parallel and share no file with
+this plan. Plan 73-07 sets all evidence side by side in the phase handoff.
+
+## Executed versus skipped
+
+| Gate | Outcome | Reason |
+|------|---------|--------|
+| Tree identity (`typsphinx.__file__`, `myst_parser`, interpreter pair) | executed-green | Both trees on the same interpreter (3.13.13); worktree copy confirmed |
+| Product-tree delta from `PHASE_BASE_SHA` | executed-green | Exactly `CHANGELOG.md`, 15 insertions, 0 deletions; `docs/source/conf.py` unchanged |
+| Non-absorption (`origin/main` merge-base) | executed-green | Merge-base equals `MILESTONE_BASE`; `main` not absorbed |
+| Full pytest suite | executed-green | 1547 passed, 1 skipped (env-gated), 0 failed |
+| Full pytest suite under `LC_ALL=C` | executed-green | 1547 passed, 1 skipped (env-gated), 0 failed |
+| `black --check .` | executed-green | exit 0 |
+| `mypy typsphinx/` | executed-green | exit 0 |
+| `ruff check .` | executed-green | exit 0; local version 0.16.6 matches `uv.lock` |
+| Version-sync family (readme, preview, extension) | executed-green | 5 tests, 0 failed |
+| Changelog page gate | executed-green | 6 passed, 0 skipped |
+| `docs-html` clean build | executed-green | 3 warnings, matches phase-base baseline, 0 multiple-toctrees |
+| `docs-pdf` clean build | executed-green | 5 warnings, matches phase-base baseline, 0 multiple-toctrees, PDF begins `%PDF-` |
+| `tox -e linkcheck` | executed-green | Run 1 of 1: 95/95 rows `working`, exit 0 |
+
+Nothing in this plan's scope was not-executable; every gate attempted ran and is reported above.
+
+## SC#3 local verdict
+
+Checking all conditions:
+- `FULL_FAILED = 0`, `LCALLC_FAILED = 0` — met
+- `BLACK_EXIT = 0`, `MYPY_EXIT = 0`, `RUFF_LOCAL_EXIT = 0`, `VERSION_SYNC_FAILED = 0` — met
+- `CHANGELOG_GATE_SKIPPED = 0` — met
+- `DOCS_HTML_WARN_FINAL = DOCS_HTML_WARN_BASE` (3 = 3), `DOCS_PDF_WARN_FINAL = DOCS_PDF_WARN_BASE`
+  (5 = 5), both `MULTI_TOCTREE_*_FINAL = 0`, `PDF_MAGIC = %PDF-` — met
+- `LINKCHECK_VERDICT = PASS` — met
+
+```
+SC3_LOCAL_VERDICT = MET
+```
+
 ---
 *Phase: 73-v0-9-5-close-prep-prep-only-unpublished*
-*Plan: 03 (Tasks 1-2)*
+*Plan: 03 (Tasks 1-3)*
