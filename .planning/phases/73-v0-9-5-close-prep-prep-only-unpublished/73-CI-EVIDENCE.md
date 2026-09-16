@@ -288,6 +288,194 @@ One dispatch call, exit code 0. No retry needed.
 The milestone branch is on origin at the phase tip (`PUSHED_SHA`), with no decoy and no tag, and
 one CI run (`RUN_ID`) is dispatched against exactly that tip. Task 2 observes it to completion.
 
+## Run
+
+Waited in the foreground: `timeout 590 gh run watch 35083828156 --interval 30` (Bash tool
+`timeout` 600000, no `run_in_background`). The run finished inside the first watch window; the
+watch call itself exited 0 and printed the full job tree through completion.
+
+```
+$ gh run view 35083828156 --json status,conclusion,workflowName,headSha,url,createdAt,updatedAt
+{"conclusion":"success","createdAt":"2026-09-16T10:13:43Z","headSha":"a54a2d8a3b06b388c7ee004e5cfbe3405431421d","status":"completed","updatedAt":"2026-09-16T10:20:12Z","url":"https://github.com/YuSabo90002/typsphinx/actions/runs/35083828156","workflowName":"CI"}
+```
+
+Key lines:
+```
+RUN_HEAD_SHA = a54a2d8a3b06b388c7ee004e5cfbe3405431421d
+```
+```
+RUN_CONCLUSION = success
+```
+
+## Job census
+
+`gh run view "$RUNID" --json jobs --jq '.jobs[] | [.name, .conclusion] | @tsv'`:
+
+| # | Job | Conclusion |
+|---|-----|------------|
+| 1 | Type Check | success |
+| 2 | Lint and Format Check | success |
+| 3 | Integration Test - advanced | success |
+| 4 | Integration Test - basic | success |
+| 5 | Build Package | success |
+| 6 | Test Python 3.13 on macos-latest | success |
+| 7 | Test Python 3.12 on windows-latest | success |
+| 8 | Test Python 3.12 on ubuntu-latest | success |
+| 9 | Test Python 3.13 on windows-latest | success |
+| 10 | Test Python 3.12 on macos-latest | success |
+| 11 | Code Coverage | success |
+| 12 | Test Python 3.13 on ubuntu-latest | success |
+
+Key lines:
+```
+JOB_COUNT = 12
+```
+```
+NON_SUCCESS_JOBS = 0
+```
+
+Sorted job-name set compared with Phase 72's run `34761445288`:
+```
+$ gh run view 35083828156 --json jobs -q '[.jobs[].name] | sort | join("|")'
+Build Package|Code Coverage|Integration Test - advanced|Integration Test - basic|Lint and Format Check|Test Python 3.12 on macos-latest|Test Python 3.12 on ubuntu-latest|Test Python 3.12 on windows-latest|Test Python 3.13 on macos-latest|Test Python 3.13 on ubuntu-latest|Test Python 3.13 on windows-latest|Type Check
+
+$ gh run view 34761445288 --json jobs -q '[.jobs[].name] | sort | join("|")'
+Build Package|Code Coverage|Integration Test - advanced|Integration Test - basic|Lint and Format Check|Test Python 3.12 on macos-latest|Test Python 3.12 on ubuntu-latest|Test Python 3.12 on windows-latest|Test Python 3.13 on macos-latest|Test Python 3.13 on ubuntu-latest|Test Python 3.13 on windows-latest|Type Check
+```
+Identical sets — `ci.yml` has not changed since Phase 72 (constraint 3, no workflow edit this
+phase).
+
+Key line:
+```
+JOB_NAMES_MATCH_PHASE72 = yes
+```
+
+## windows-latest lanes
+
+| Job | Conclusion |
+|-----|------------|
+| Test Python 3.12 on windows-latest | success |
+| Test Python 3.13 on windows-latest | success |
+
+## macos-latest lanes
+
+| Job | Conclusion |
+|-----|------------|
+| Test Python 3.12 on macos-latest | success |
+| Test Python 3.13 on macos-latest | success |
+
+## Lint through tox
+
+`Lint and Format Check` job id: `104753859496`. Quoted from `gh run view --job 104753859496
+--log`:
+
+The dependency-install step's `+ ruff==` line:
+```
+Lint and Format Check	Install dependencies	2026-09-16T10:13:58.6407837Z  + ruff==0.16.6
+```
+
+Key line:
+```
+CI_RUFF_VERSION = 0.16.6
+```
+
+`Run lint with tox` step, `commands[0]> black --check .` line and verdict:
+```
+Lint and Format Check	Run lint with tox	2026-09-16T10:13:59.4557091Z lint: commands[0]> black --check .
+Lint and Format Check	Run lint with tox	2026-09-16T10:14:03.9089826Z All done! ✨ 🍰 ✨
+Lint and Format Check	Run lint with tox	2026-09-16T10:14:03.9090905Z 355 files would be left unchanged.
+```
+(The step also printed a benign `Warning: Python 3.12 cannot parse code formatted for Python 3.13`
+diagnostic ahead of the verdict; `black --check .` still exited clean, per `All done!` above.)
+
+`commands[1]> ruff check .` line and verdict:
+```
+Lint and Format Check	Run lint with tox	2026-09-16T10:14:03.9372847Z lint: commands[1]> ruff check .
+Lint and Format Check	Run lint with tox	2026-09-16T10:14:03.9961540Z All checks passed!
+```
+
+`lint: OK` line:
+```
+Lint and Format Check	Run lint with tox	2026-09-16T10:14:03.9982181Z   lint: OK (4.69=setup[0.15]+cmd[4.48,0.06] seconds)
+```
+
+CI is the lint authority. 73-03's local ruff run is set beside this one in 73-07's handoff, not
+here.
+
+## Dispatch count and no release run
+
+```
+$ gh run list --workflow=ci.yml --branch gsd/v0.9.5-docs-link-check-and-navigation --event workflow_dispatch --limit 50 --json databaseId,headSha,status,conclusion
+[{"conclusion":"success","databaseId":35083828156,"headSha":"a54a2d8a3b06b388c7ee004e5cfbe3405431421d","status":"completed"},{"conclusion":"success","databaseId":34761445288,"headSha":"0b2595df21399363f50e5e1a55935f470e0df00d","status":"completed"}]
+```
+Exactly one row at `PUSHED_SHA` (the other is Phase 72's own dispatched run at its own tip).
+
+Key line:
+```
+DISPATCH_COUNT = 1
+```
+
+```
+$ gh run list --workflow=release.yml --limit 20 --json headSha
+```
+(20 rows returned, none matching `a54a2d8a3b06b388c7ee004e5cfbe3405431421d` — the most recent is
+the v0.9.2 release tag commit `45962faad21520c72ac9f1e14c7f684050826bb6`.)
+
+Key line:
+```
+RELEASE_RUNS_AT_PUSHED = 0
+```
+
+## Required checks at phase close
+
+```
+$ gh api repos/YuSabo90002/typsphinx/branches/main/protection/required_status_checks --jq .strict
+true
+
+$ gh api repos/YuSabo90002/typsphinx/branches/main/protection/required_status_checks --jq '[.contexts[]] | sort | join("|")'
+Build Package|Code Coverage|Lint and Format Check|Test Python 3.12 on ubuntu-latest|Test Python 3.13 on ubuntu-latest|Type Check
+```
+
+Key lines:
+```
+REQUIRED_STRICT_CLOSE = true
+```
+```
+REQUIRED_CONTEXTS_CLOSE = Build Package|Code Coverage|Lint and Format Check|Test Python 3.12 on ubuntu-latest|Test Python 3.13 on ubuntu-latest|Type Check
+```
+
+Both equal `REQUIRED_STRICT_HEAD` (`true`) and `REQUIRED_CONTEXTS_HEAD` (the same six contexts)
+from `72-BASE-EVIDENCE.md`.
+
+Key line:
+```
+REQUIRED_CHECKS_UNCHANGED = yes
+```
+
+## D-12 final tip
+
+- This run (`RUN_ID = 35083828156`) is the phase's single dispatch.
+- `PUSHED_SHA` (`a54a2d8a3b06b388c7ee004e5cfbe3405431421d`) carries every product-tree change of
+  the phase, including the CHANGELOG edit.
+- Every later commit of this phase touches only `.planning/`, which no CI job reads; plan 73-06
+  proves this with an empty product-tree diff from `PUSHED_SHA`.
+- No second dispatch is warranted: the run completed all-green, the job set matches Phase 72's,
+  and `main`'s required checks are unchanged.
+
+## SC#3 CI verdict
+
+The run is completed and success, `NON_SUCCESS_JOBS = 0`, `JOB_NAMES_MATCH_PHASE72 = yes`, all
+four named lanes are success, `DISPATCH_COUNT = 1`, and `REQUIRED_CHECKS_UNCHANGED = yes`.
+
+```
+SC3_CI_VERDICT = MET
+```
+
+ROADMAP SC#3's CI half is discharged: one fresh three-OS run dispatched on this phase's own tip,
+every job conclusion transcribed, both `windows-latest` and both `macos-latest` lanes named, and
+`ruff` green in `Lint and Format Check`, with the required contexts equal to the six read at
+Phase 72's base.
+
 ---
 *Phase: 73-v0-9-5-close-prep-prep-only-unpublished*
 *Plan: 04*
