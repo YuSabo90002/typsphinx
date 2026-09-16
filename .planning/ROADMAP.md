@@ -525,7 +525,7 @@ constraint 10's checksum fence is what keeps it there.
 
      (REL-14; constraint 10.)
 
-**Plans**: 6/7 plans executed (4 waves)
+**Plans**: 7/7 plans executed (4 waves)
 
 Plans:
 **Wave 1**
@@ -545,7 +545,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 73-07-PLAN.md — close the REL-14 fence and write 73-HANDOFF.md for /gsd-complete-milestone (wave 4)
+- [x] 73-07-PLAN.md — close the REL-14 fence and write 73-HANDOFF.md for /gsd-complete-milestone (wave 4)
 
 ## Progress
 
@@ -561,7 +561,7 @@ below tracks the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 72. `tox -e linkcheck` and Root Toctree Deduplication | v0.9.5 | 6/6 | Complete | 2026-09-14 |
-| 73. v0.9.5 Close Prep (prep-only, unpublished) | v0.9.5 | 6/7 | In Progress | - |
+| 73. v0.9.5 Close Prep (prep-only, unpublished) | v0.9.5 | 7/7 | In Progress | - |
 
 ## Roadmap Evolution
 
