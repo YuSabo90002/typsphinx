@@ -525,13 +525,13 @@ constraint 10's checksum fence is what keeps it there.
 
      (REL-14; constraint 10.)
 
-**Plans**: 7 plans (4 waves)
+**Plans**: 2/7 plans executed (4 waves)
 
 Plans:
 **Wave 1**
 
-- [ ] 73-01-PLAN.md — CHANGELOG: insert `### Added` (tox -e linkcheck) and `### Fixed` (docs sidebar) under `## [Unreleased]` as a two-hunk pure addition, with clean docs builds either side (wave 1)
-- [ ] 73-02-PLAN.md — phase-head anchors: the REL-14 checksum fence, SC#1 observation 1 with positive controls, and the reasoned COVERAGE.md (wave 1)
+- [x] 73-01-PLAN.md — CHANGELOG: insert `### Added` (tox -e linkcheck) and `### Fixed` (docs sidebar) under `## [Unreleased]` as a two-hunk pure addition, with clean docs builds either side (wave 1)
+- [x] 73-02-PLAN.md — phase-head anchors: the REL-14 checksum fence, SC#1 observation 1 with positive controls, and the reasoned COVERAGE.md (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -561,7 +561,7 @@ below tracks the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 72. `tox -e linkcheck` and Root Toctree Deduplication | v0.9.5 | 6/6 | Complete | 2026-09-14 |
-| 73. v0.9.5 Close Prep (prep-only, unpublished) | v0.9.5 | 0/7 | Planned | - |
+| 73. v0.9.5 Close Prep (prep-only, unpublished) | v0.9.5 | 2/7 | In Progress | - |
 
 ## Roadmap Evolution
 
