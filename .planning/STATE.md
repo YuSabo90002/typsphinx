@@ -2,30 +2,80 @@
 gsd_state_version: 1.0
 milestone: v0.9.5
 milestone_name: Docs Link Check and Navigation
-current_phase: 73
-current_phase_name: v0.9.5 Close Prep (prep-only, unpublished)
-status: completed
-stopped_at: Phase 73 complete — all phases complete
-last_updated: "2026-09-16T11:05:32.921Z"
+status: Awaiting next milestone
+stopped_at: Milestone v0.9.5 completed and archived — merged to main via PR #151 (43fd7c13), nothing published
+last_updated: "2026-09-16T12:10:00.000Z"
 last_activity: 2026-09-16
-last_activity_desc: Phase 73 complete
-state_head: 2a85d98a53fa1b176db184fa9ae814c45d994518
+last_activity_desc: Milestone v0.9.5 completed, merged to main via PR #151 and archived — no tag, no PyPI, no Release
+state_head: 43fd7c137fd28977727ff071b19e5059c85c09d9
 progress:
   total_phases: 2
   completed_phases: 2
   total_plans: 13
   completed_plans: 13
   percent: 100
+current_phase: 73
+current_phase_name: v0.9.5 Close Prep (prep-only, unpublished)
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-09-13 — full evolution review at the v0.9.4 close)
+See: .planning/PROJECT.md (updated 2026-09-16 — full evolution review at the v0.9.5 close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** v0.9.5 Docs Link Check and Navigation — roadmap created, Phases 72–73: Phase 72 `tox -e linkcheck` and root toctree deduplication (QUA-13, DOC-24, DOC-18), Phase 73 close prep (REL-14; merge-only, unpublished). QUA-08 (the weekly advisory CI workflow) was deferred to Future by the owner at roadmap review, 2026-09-13. **Phase 72 complete** (2026-09-14: verification passed 5/5, UAT 1/1, Nyquist validated, SECURITY 26/26 closed; QUA-13, DOC-24 and DOC-18 Complete; branch on `origin`, CI run 34761445288 12/12). **Phase 73 context gathered** (2026-09-14: CHANGELOG as `### Added` + `### Fixed` bullets; Dependabot #146–#150 left untouched, merged after the milestone PR). **Phase 73 planned and now executing** (2026-09-16: 7 plans in 4 waves; plan-checker passed; decision coverage 15/15).
+**Current focus:** none — **v0.9.5 Docs Link Check and Navigation is complete and archived** (2026-09-16). Two phases (72–73), 13 plans, 31 tasks, 4/4 v1 requirements complete; merged to `main` as `43fd7c13` via PR #151, 15/15 checks green, with no tag, no PyPI upload and no GitHub Release. Start the next milestone with `/gsd-new-milestone`; phase numbering continues at **74**.
+
+## Shipped Milestone (v0.9.5 — archived, merged to `main`, NOT published)
+
+Full phase detail, binding constraints and success criteria:
+[milestones/v0.9.5-ROADMAP.md](milestones/v0.9.5-ROADMAP.md). Requirements as they stood at close:
+[milestones/v0.9.5-REQUIREMENTS.md](milestones/v0.9.5-REQUIREMENTS.md). Audit:
+[milestones/v0.9.5-MILESTONE-AUDIT.md](milestones/v0.9.5-MILESTONE-AUDIT.md). Phase directories:
+`.planning/milestones/v0.9.5-phases/`. No research was run this milestone (owner decision) and
+`.planning/quick/` was empty at the close.
+
+**Completed 2026-09-16; nothing published.** 2 phases (72–73), 13 plans, 31 tasks, **4/4 v1
+requirements complete**. `origin/main` **had** moved from the milestone base `098a8ff6` — Dependabot's
+#146–#150 all merged on 2026-09-14 — so the close ran the handoff's conditional update:
+`git merge --no-ff origin/main` into the branch (one file, `uv.lock`, +33/−33), then `uv lock --check`
+exit 0 and the merged tree clean under the new ruff 0.16.7. **PR #151** merged the branch into `main`
+as `43fd7c13` (a merge commit; 15/15 checks green, including both `windows-latest` and both
+`macos-latest` lanes). No tag, no PyPI upload, no GitHub Release; `pyproject.toml` stays `0.9.2` and
+the CHANGELOG bullets are under `## [Unreleased]`, now six bullets from three unpublished milestones.
+REL-14 was checked on five observations after the merge: the merge commit on `origin/main`,
+`version = "0.9.2"`, no `v0.9.5` tag with `v0.9.2` present as positive control, PyPI 404 for `0.9.5`
+against 200 for `0.9.2`, and no `v0.9.5` Release.
+
+**Closeout: `override_closeout`.** For the first time, *every* phase in the milestone read
+`verification_status: stale` / `phase_complete: false` from `init.manager`, while both
+VERIFICATION.md files themselves read `status: passed` (72 at 5/5, 73 at 4/4, zero overrides
+applied). The cause is the known fingerprint drift: `.planning/` tracking commits landing after each
+verification and touching files it covers — Phase 72 by its own `phase.complete`, UAT, security and
+validation commits, Phase 73 by `2a85d98a` (code review), `722a2c30` (`phase.complete`) and
+`29baea5f` (the third fence observation). Neither phase's own work changed, and the same-day
+`v0.9.5-MILESTONE-AUDIT.md` (`tech_debt`; requirements 3/4 with REL-14 held by design, phases 2/2,
+integration 6/6, flows 3/3, zero gaps) re-checked both. The pre-close artifact audit reported **no
+open items**; 12 items acknowledged at prior closes remain suppressed, and none were newly
+acknowledged here.
+
+**What it delivered.** `tox.ini` carries a new `[testenv:linkcheck]` running Sphinx's own
+`sphinx-build -b linkcheck` over `docs/source/` — 95/95 links `working` on a clean run, no
+`conf.py` timing key — kept outside `env_list` so plain `tox` never reaches the network, and named on
+all three surfaces a fresh repo-wide grep found: `CLAUDE.md`, `README.md` and
+`docs/source/contributing.rst` (QUA-13, DOC-24). The root `docs/source/index.rst` toctrees no longer
+duplicate their five section-index children, so `document is referenced in multiple toctrees`
+messages went 5 → 0 with docs-html warnings 3 → 3 and docs-pdf 5 → 5, and every page still included
+exactly once under `-b typst` (DOC-18). `typsphinx/` and `.github/workflows/` were untouched for the
+whole milestone, fenced and re-measured at two separated observations.
+
+**Carried.** QUA-08, the weekly advisory linkcheck CI workflow, was scoped in at roadmap creation and
+deferred to Future the same day — GitHub runs `schedule` only on the default branch and
+`workflow_dispatch` only for a workflow file already there, so it could not be proven on the unmerged
+milestone branch. The obstacle is now gone: the environment it would call is on `main`. The
+release-checkbox auto-flip fired again at Phase 73's `phase.complete` (9 of the 10 prior release-prep
+closes), was caught by the constraint-10 SHA-256 fence and reverted before commit.
 
 ## Shipped Milestone (v0.9.4 — archived, merged to `main`, NOT published)
 
@@ -227,12 +277,12 @@ land here.
 
 ## Current Position
 
-Phase: 73 (v0.9.5 Close Prep (prep-only, unpublished)) — COMPLETE
-Plan: 7 of 7 complete
-Status: All phases complete — milestone v0.9.5 ready for /gsd-complete-milestone
-Last activity: 2026-09-16 — Phase 73 complete
+Phase: Milestone v0.9.5 complete — no phase active
+Plan: — (13/13 plans across Phases 72–73)
+Status: Awaiting next milestone; next phase number is 74
+Last activity: 2026-09-16 — Milestone v0.9.5 completed, merged to `main` via PR #151 (`43fd7c13`) and archived
 
-Progress: [██████████] 100% (2/2 phases)
+Progress: [██████████] 100% (2/2 phases, 13/13 plans, 4/4 v1 requirements)
 
 ## Shipped Milestone (v0.9.0 — archived)
 
@@ -1215,37 +1265,47 @@ Items acknowledged and carried forward from milestone closes:
 | Verification | All six v0.9.3 phases fingerprint-stale at close (`init.manager`), so the close is `override_closeout` | Accepted by the owner — the staleness comes from later legitimate edits to covered files, and the same-day `v0.9.3-MILESTONE-AUDIT.md` re-checked every phase | v0.9.3 close |
 | Todo (translator) | 2026-09-13-doctest-block-unhandled-collapses-examples-to-one-line — `doctest_block` has no translator handler, so `>>>` examples lose every line break (Future TRN-01, `severity: major`) | Acknowledged, deferred — captured during the Issue #91 re-measurement; a behaviour change, out of v0.9.4's scope by construction. The `audit-open acknowledge` writer added stray blank lines to the frontmatter; the one inside `files:` was removed by hand and `audit-open` re-read 0 open | v0.9.4 close |
 | Verification | Phase 70 fingerprint-stale at close (`init.manager`: `phase_complete: false`), so the close is `override_closeout` | Accepted by the owner — the only covered-file change after verification is `5292a85b`, REL-13's AMENDED block in `REQUIREMENTS.md`; the same-day `v0.9.4-MILESTONE-AUDIT.md` re-checked the phase | v0.9.4 close |
+| Verification | **Both** v0.9.5 phases (72 and 73) fingerprint-stale at close (`init.manager`: `phase_complete: false`), so the close is `override_closeout` | Accepted by the owner — both VERIFICATION.md files themselves read `status: passed` (5/5 and 4/4, zero overrides); the staleness comes only from `.planning/` tracking commits landing after each verification and touching covered files, and the same-day `v0.9.5-MILESTONE-AUDIT.md` (`tech_debt`, no gaps) re-checked both. Third consecutive close overridden for this reason, and the first where every phase went stale | v0.9.5 close |
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/73-v0-9-5-close-prep-prep-only-unpublished/73-CONTEXT.md
+**Resume file:** none — no phase is active.
 
-Last session: 2026-09-14T12:36:30.088Z
-Stopped at: Phase 73 complete — all phases complete
-Resume: `/gsd-complete-milestone` (Phase 73 verified 4/4; REL-14 still `[ ]` behind its checksum fence;
-the handoff is `73-HANDOFF.md`). v0.9.4's phase directories are under
-`.planning/milestones/v0.9.4-phases/`; `71-HANDOFF.md` there records its close.
+Last session: 2026-09-16T12:10:00.000Z
+Stopped at: Milestone v0.9.5 completed and archived
+Resume: `/gsd-new-milestone` (phase numbering continues at **74**). v0.9.5's phase directories are
+under `.planning/milestones/v0.9.5-phases/`; `73-HANDOFF.md` there records the close procedure this
+milestone actually followed, including the REL-14 five-observation check and the conditional
+`origin/main` branch update.
 
 ## Operator Next Steps
 
-- **Start the next milestone with `/gsd-new-milestone`.** Phase numbering continues at **72**.
-  `0.9.3` and `0.9.4` are both unclaimed, not decided (71 D-08). `## [Unreleased]` holds four
-  bullets from two unpublished milestones; the next release-prep phase promotes all four into its
+- **Start the next milestone with `/gsd-new-milestone`.** Phase numbering continues at **74**.
+  `0.9.3`, `0.9.4` and `0.9.5` are all unclaimed, not decided (73 D-11). `## [Unreleased]` holds six
+  bullets from three unpublished milestones; the next release-prep phase promotes all six into its
   own versioned section.
+
+- **QUA-08's obstacle is gone.** The weekly advisory linkcheck CI workflow was deferred because a new
+  workflow file cannot be scheduled or `workflow_dispatch`-ed from an unmerged milestone branch. The
+  environment it would call (`tox -e linkcheck`) is now on `main`, so a side PR to `main` is the
+  route whenever it is picked up.
 
 - **Read the Docs has not been verified since the v0.9.2 close.** The procedure is `63-HANDOFF.md` § 5 in
   `.planning/milestones/v0.9.2-phases/`. `latest` rebuilds from `main` on its own and should now show
-  the four `## [Unreleased]` bullets and the `dict[…]` API type text. ja `latest` follows `main` through
-  the daily `update-pin.yml` schedule. `stable` is unaffected, because nothing was tagged.
+  the six `## [Unreleased]` bullets and the deduplicated sidebar. ja `latest` follows `main` through
+  the daily `update-pin.yml` schedule. `stable` is unaffected, because nothing was tagged — the
+  DOC-18 sidebar fix does **not** reach `/en/stable/` until the next published release, which the
+  owner accepted at scoping.
 
-- **No pull request is open** (measured at the close pre-flight, 2026-09-13).
+- **No pull request is open** (measured at this close, 2026-09-16, after #151 merged; #146–#150 had
+  all merged on 2026-09-14).
 
-- **`### Known Limitations` is still undecided.** v0.9.4 published nothing, so it did not force the
+- **`### Known Limitations` is still undecided.** v0.9.5 published nothing, so it did not force the
   question. It stays open for the next release cycle.
 
-- **Milestone branches are not deleted on merge.** `gsd/v0.9.4-typing-modernization` still exists
-  locally and on `origin` at `334b4da7`.
+- **Milestone branches are not deleted on merge.** `gsd/v0.9.5-docs-link-check-and-navigation` still
+  exists locally and on `origin` at `1d8c76c6`.
 
-- **Audit tech debt (non-blocking)** is listed in `milestones/v0.9.4-MILESTONE-AUDIT.md`
-  `tech_debt:`: 7 items across the two phases. Phase 71 never ran Nyquist validation or the security
-  audit, though both are enabled.
+- **Audit tech debt (non-blocking)** is listed in `milestones/v0.9.5-MILESTONE-AUDIT.md`
+  `tech_debt:`: 6 items across the two phases. Phase 73 never ran Nyquist validation or the security
+  audit, though both are enabled; `[testenv:linkcheck]` has no failure-tolerance override (LNK-01).

@@ -28,55 +28,42 @@ As of **v0.5.0 (shipped 2026-07-11)** the extension tracks the current ecosystem
 
 **v0.9.4 (completed 2026-09-13 — merged to `main`, not published)** retired a lint deferral that had stood since 2026-07-22. `pyproject.toml` no longer ignores ruff's `UP006`/`UP035`, and every `typing.Dict`/`List`/`Set`/`Tuple` in `typsphinx/` and `tests/` is on builtin generics, with `Iterator` from `collections.abc`; `ruff check .` enforces it. Behaviour was evidenced unchanged by five measurements (masked-AST hashes, pytest counts, zero assertion edits, a byte-identical 167-project `.typ` corpus, identical `mypy` output). The only user-visible change is API-reference type text, `Dict[str, Any]` → `dict[str, Any]`. Merged as PR #145; `pyproject.toml` stays at `0.9.2`, and `## [Unreleased]` now carries four bullets from two unpublished milestones.
 
+**v0.9.5 (completed 2026-09-16 — merged to `main`, not published)** turned the standard on the project's own documentation surface. `tox.ini` gained a `[testenv:linkcheck]` environment, outside `env_list` so plain `tox` does not run it, that runs Sphinx's own `sphinx-build -b linkcheck` over `docs/source/` — 95/95 links `working` on a clean run, with no `conf.py` timing key needed — and every surface that lists the tox environments (`CLAUDE.md`, `README.md`, `docs/source/contributing.rst`) names it. What it adds over `links.yml`'s existing repo-wide lychee check is `#anchor` existence and URLs reached through autodoc docstrings. Separately, the root `docs/source/index.rst` toctrees stopped duplicating their five section-index children, so the furo sidebar renders the conventional hierarchy and a clean HTML build emits zero `document is referenced in multiple toctrees` messages (5 before), with the Typst output still including each page exactly once and both docs warning counts unchanged. Nothing under `typsphinx/` and no workflow file changed. Merged as PR #151; `pyproject.toml` stays at `0.9.2`, and `## [Unreleased]` now carries six bullets from three unpublished milestones.
+
 ## Core Value
 
 The `typst`/`typstpdf` builders produce correct, compilable **and faithfully-rendered** output on the **current** ecosystem — Sphinx 9 and typst 0.15+ — with the runtime pins raised forward, the bundled `@preview` packages compiling cleanly (no `kai`-class breaks), and real-world documentation sets rendering to PDF that matches the source rather than merely compiling fatal-free. The same standard applies to the publishing surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. **From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct** — an API reference page has to read as a reference document, not as text that happens to compile.
 
-## Current Milestone: v0.9.5 Docs Link Check and Navigation
+## Shipped Milestone: v0.9.5 Docs Link Check and Navigation (completed 2026-09-16 — merged, NOT published)
 
-**Goal:** make Sphinx's own `linkcheck` a one-command check over `docs/source/` (`tox -e linkcheck`),
-and remove the duplicated section children from the root toctree so the HTML sidebar matches the
-document hierarchy — closing DOC-18 — with the milestone merged to `main` and nothing published.
+**Goal achieved; nothing published.** Two phases (72–73), 13 plans, 31 tasks, **4/4 v1
+requirements complete**. REL-14, the milestone's one irreversible step, was the merge itself: PR #151
+to `main` as `43fd7c13`, 15/15 checks green including both `windows-latest` and both `macos-latest`
+lanes, with no tag, no PyPI upload, no GitHub Release and `pyproject.toml` still at `0.9.2`.
+`override_closeout`: both phases' verifications read fingerprint-stale after later `.planning/`
+tracking commits touched files they cover (Phase 72 by its own `phase.complete`/UAT/security
+commits, Phase 73 by its code-review, `phase.complete` and third-fence-observation commits); both
+VERIFICATION.md files themselves read `passed` (5/5 and 4/4, zero overrides), and the same-day
+`v0.9.5-MILESTONE-AUDIT.md` (`tech_debt`, no requirement, integration or flow gaps) stood in.
 
-**Target features:**
-- **QUA-13** — a new `tox -e linkcheck` environment running `sphinx-build -b linkcheck` over
-  `docs/source/`, listed wherever the tox environments are listed (DOC-24). **QUA-08**, the weekly
-  advisory CI workflow that would call it, was scoped in and then **deferred to Future** by the
-  owner at roadmap review (2026-09-13): GitHub runs `schedule` only on the default branch and
-  `workflow_dispatch` only for a workflow file already on the default branch, so it could not be
-  proven on the unmerged milestone branch.
-- **DOC-18** — the root `docs/source/index.rst` toctrees list only each section's `index`
-  (`user_guide/index`, `examples/index`), dropping the duplicated `user_guide/configuration`,
-  `user_guide/builders`, `user_guide/templates`, `examples/basic` and `examples/advanced` entries,
-  so the sidebar renders the conventional hierarchy (owner decision 2026-09-13: hierarchy, not
-  flat visibility).
-- Final phase is **close prep only, unpublished** (owner decision 2026-09-13, same shape as v0.9.3
-  and v0.9.4): merged to `main` by PR; no tag, no PyPI upload, no GitHub Release;
-  `pyproject.toml` stays `0.9.2`.
+**What it delivered.** (1) **`tox -e linkcheck`** (QUA-13, DOC-24) — a new `[testenv:linkcheck]`
+shaped exactly like `docs-html` and kept outside `env_list`, green from day one at 95/95 links
+`working`, listed on all three surfaces a fresh repo-wide grep found. (2) **The sidebar matches the
+hierarchy** (DOC-18) — the five duplicated section children are gone from the root toctrees,
+`multiple toctrees` messages 5 → 0, docs-html warnings 3 → 3 and docs-pdf 5 → 5, each page still
+included exactly once under `-b typst`. (3) **The close proven unpublished-shaped twice**, at
+observations 33 minutes apart, each with positive controls on version, tag, PyPI, GitHub Release and
+the release workflow, and a milestone fence showing `typsphinx/` and `.github/workflows/` untouched
+for the whole milestone.
 
-**Key context (measured 2026-09-13, before scoping):**
-- A clean `sphinx-build -b linkcheck docs/source` today reports **95 links, all `working`, exit 0**
-  — the new job is green from day one. `links.yml`'s repo-wide lychee check (advisory, last 10 runs
-  `success`) already covers raw URLs in `.rst`/`.md`/`.toml`; what Sphinx's `linkcheck` adds is
-  `#anchor` existence (`linkcheck_anchors` defaults on) and URLs reached through autodoc
-  docstrings (lychee's `--extensions` has no `py`). That overlap is why the owner chose a weekly
-  schedule over a per-PR job (QUA-08, since deferred).
-- A clean HTML build emits **5** `document is referenced in multiple toctrees` messages, not the 4
-  the 2026-08-16 todo recorded (`examples/advanced` now also appears). They are **not** counted in
-  the `build succeeded, 3 warnings.` summary, so a `-W` gate could not catch this class. The 3
-  counted warnings are rST errors in `TypstTranslator.visit_toctree`'s docstring. A warnings gate
-  and that docstring fix are **out of scope** for this milestone.
-- **Visibility limit, accepted by the owner:** `https://typsphinx.readthedocs.io/` 302-redirects to
-  `/en/stable/`, built from tag `v0.9.2` (`45962faa`). Without a release the DOC-18 sidebar fix
-  appears on `/en/latest/` (rebuilt on every `main` push) and on ja `latest` (via the translations
-  repo's daily pin update), but not on the default `stable` pages until the next published release.
-- The PDF is unaffected by DOC-18 (the include-edge state guard already deduplicates); the fix must
-  be verified as zero `multiple toctrees` messages on a clean build plus each page still included
-  exactly once under `-b typst`.
-- Research: see the Step 8 decision recorded in STATE.md. Phase numbering continues at
-  **Phase 72**; worktree-isolated execution is the standing mode.
-- Milestone branch: `gsd/v0.9.5-docs-link-check-and-navigation` (created by hand from `main` @
-  `098a8ff6` to pre-empt the commit helper's `gsd/vX.Y-milestone` decoy).
+**Accepted and carried.** QUA-08, the weekly advisory CI job that would call `tox -e linkcheck`, was
+scoped in and then deferred to Future by the owner at roadmap review (2026-09-13): GitHub runs
+`schedule` only on the default branch and `workflow_dispatch` only for a workflow file already
+there, so it could not be proven on the unmerged milestone branch. Phase 73 ran neither Nyquist
+validation nor the security audit. `[testenv:linkcheck]` carries no failure-tolerance override, so a
+transient external URL fails the env locally with no guidance. The release-checkbox auto-flip fired
+again at Phase 73's close — 9 of the 10 prior release-prep closes — and was caught by the
+constraint-10 fence and reverted before commit; the fence stays in place.
 
 ## Shipped Milestone: v0.9.4 Typing Modernization (completed 2026-09-13 — merged, NOT published)
 
@@ -2112,28 +2099,27 @@ commit dump rather than the curated CHANGELOG section (todo filed, D-11).
 
 - ✓ The milestone merged to `main` with nothing published — v0.9.4 Phase 71 (prep-only) + the `/gsd-complete-milestone` merge (REL-13): one CHANGELOG bullet under `## [Unreleased]` as a pure addition, tree green locally (1547 passed / 1 skipped, twice, once under `LC_ALL=C`) and in CI (run `34748483361`, 12/12; a surplus dispatch created by a GitHub HTTP 5xx was cancelled and read per the owner's AMENDED decision), the REQUIREMENTS.md SHA-256 fence matching at every observation — `phase.complete` left REL-13 alone for the first time; then PR #145 merged as `383a07e9` and REL-13 was checked on five observations (merge commit on `origin/main`, `pyproject.toml` `0.9.2`, no `v0.9.4` tag, PyPI 404 for `0.9.4`, no `v0.9.4` Release) — Validated in Phase 71 (71-VERIFICATION.md `passed` 4/4; 7 plans) + the v0.9.4 close (2026-09-13)
 
+- ✓ Sphinx's own link check runs over `docs/source/` with one command, and every surface listing the tox environments names it — v0.9.5 Phase 72 (QUA-13, DOC-24): `tox.ini`'s new `[testenv:linkcheck]` is shaped exactly like `docs-html` and sits outside `env_list`, so plain `tox` does not run it. A fresh run reports **95 links, 95 `working`**, zero non-transient and zero transient failures, exit 0, with no `linkcheck_*` key added to `conf.py`. `CLAUDE.md`, `README.md` and `docs/source/contributing.rst` — the three surfaces a fresh repo-wide grep found — all list it, and the 2026-07-22 linkcheck-CI todo carries a D-07 status note and stays open in `todos/pending/` (QUA-08 deferred) — Validated in Phase 72 (72-VERIFICATION.md `passed` 5/5, UAT 1/1, SECURITY 26/26 closed; 6 plans)
+
+- ✓ The HTML sidebar shows each User Guide and Examples page once, and the Typst output still includes each page exactly once — v0.9.5 Phase 72 (DOC-18): the root `docs/source/index.rst` toctrees list only `user_guide/index` and `examples/index`, dropping the five duplicated children. A clean build's `document is referenced in multiple toctrees` messages went **5 → 0** (`MULTI_TOCTREE_BASE = 5`, `MULTI_TOCTREE_TIP = 0`) with the counted warning totals unchanged (docs-html 3 → 3, docs-pdf 5 → 5) and every page still included exactly once under `-b typst`. The narrower HTML-vs-Typst `examples/basic` parent divergence was re-measured at the phase tip and did **not** survive (`DIVERGENCE_SURVIVES = no`), so no todo was filed — Validated in Phase 72 (72-VERIFICATION.md `passed` 5/5; 6 plans)
+
+- ✓ The milestone merged to `main` with nothing published — v0.9.5 Phase 73 (prep-only) + the `/gsd-complete-milestone` merge (REL-14): two CHANGELOG bullets under `## [Unreleased]` (`### Added` for the linkcheck environment, `### Fixed` for the sidebar dedup) as a pure addition — 15 added lines, 0 removed, headings 23 → 23, no version literal moved — the tree green locally (1547 passed / 1 skipped, twice, once under `LC_ALL=C`; ruff/black/mypy clean; both docs environments clean-built; `tox -e linkcheck` 95/95) and in CI (run `35083828156`, 12/12 including both `windows-latest` and both `macos-latest` lanes), and the REQUIREMENTS.md SHA-256 fence matching at every observation — the auto-flip fired at `phase.complete` and was reverted before commit; then PR #151 merged as `43fd7c13` and REL-14 was checked on five observations (merge commit on `origin/main`, `pyproject.toml` `0.9.2`, no `v0.9.5` tag with `v0.9.2` as positive control, PyPI 404 for `0.9.5` and 200 for `0.9.2`, no `v0.9.5` Release) — Validated in Phase 73 (73-VERIFICATION.md `passed` 4/4; 7 plans) + the v0.9.5 close (2026-09-16)
+
 - ✓ Sphinx's own link check runs with one command, and the HTML sidebar shows each User Guide and Examples page once — v0.9.5 Phase 72 (QUA-13, DOC-24, DOC-18): `tox.ini` gained `[testenv:linkcheck]` as a pure 8-line append shaped like `docs-html` and kept out of `env_list`; it passed on its first clean run with 95/95 `output.json` rows `working`, on the phase tip as well, with no `linkcheck_*` key in `conf.py` (D-01..D-04). `CLAUDE.md`, `README.md` and `docs/source/contributing.rst` each gained one aligned `tox -e linkcheck` line, found by a fresh grep whose 5 hits all carry a disposition. The root `index.rst` lost exactly its five duplicate entries: a same-venv clean C-locale pair read 5 → 0 `multiple toctrees` messages at an unchanged 3 warnings, the sidebar markup holds each page once under its section index, and the Typst side lost its five dead root guards with one include edge per page. The `examples/basic` "parent divergence" did not survive: HTML's `collect_relations()` parent was already `examples/index` at the base, and the 2026-08-16 reading came from a log-only console token. The branch reached `origin` for the first time with CI run `34761445288` 12/12 `success` — Validated in Phase 72 (72-VERIFICATION.md `passed` 5/5, UAT 1/1, Nyquist validated, SECURITY 26/26 closed; 6 plans in 4 waves)
 
 ### Active
 
-<!-- Cleared 2026-09-13 at the v0.9.4 close. `.planning/REQUIREMENTS.md` is the authoritative,
+<!-- Cleared 2026-09-16 at the v0.9.5 close. `.planning/REQUIREMENTS.md` is the authoritative,
      REQ-ID'd list and is deleted at each milestone close; this section only ever carries the active
      milestone's headline commitments, and is re-scoped by `/gsd-new-milestone`. Completed
      milestones' lists are retained collapsed below. -->
 
-**Active milestone: v0.9.5 Docs Link Check and Navigation** (started 2026-09-13, Phases from 72).
-Headline commitments — the REQ-ID'd list is `.planning/REQUIREMENTS.md`:
+**No milestone is active.** v0.9.5 completed 2026-09-16 and merged to `main` via PR #151, nothing
+published. Start the next milestone with `/gsd-new-milestone`; phase numbering continues at **74**.
 
-- [x] `tox -e linkcheck` runs Sphinx's `linkcheck` over `docs/source/` and is listed with the
-      other tox environments (QUA-13, DOC-24). The weekly CI job (QUA-08) was deferred to Future at
-      roadmap review. — Validated in Phase 72
-- [x] The root `index.rst` toctrees list only section indexes, so a clean HTML build emits zero
-      `referenced in multiple toctrees` messages and the sidebar shows each page once (DOC-18). — Validated in Phase 72
-- [ ] Close prep, unpublished: merged to `main` by PR, `pyproject.toml` stays `0.9.2`, no tag /
-      PyPI / Release.
-
-**Candidates carried forward** (everything below except DOC-18 remains unscheduled; QUA-08 was scoped in and then deferred again on 2026-09-13) (full dispositions in `.planning/todos/pending/` and in
-`milestones/v0.9.4-REQUIREMENTS.md`'s Future section):
+**Candidates carried forward** (none scheduled; QUA-08 was scoped into v0.9.5 and then deferred to
+Future again on 2026-09-13) (full dispositions in `.planning/todos/pending/` and in
+`milestones/v0.9.5-REQUIREMENTS.md`'s Future section):
 
 - **NUM-01** — `numref` numbers diverge per master and vanish for figures reachable only from a
   non-root master. Excluded from every published surface by D-07 (v0.8.0) and carried unscoped
@@ -2148,11 +2134,32 @@ Headline commitments — the REQ-ID'd list is `.planning/REQUIREMENTS.md`:
   so `-c`/confdir projects are uncovered. Shipped silent by D-09 (v0.9.0) and still silent.
 - **WR-03** — the "Custom template not found" warning fires three times instead of two for one narrow
   shape (54.1 WR-01).
-- **QUA-08** (`sphinx-build -b linkcheck` CI job), **DOC-18** (the root `index.rst` toctree
-  duplicates section children in the HTML sidebar), and the dormant seeds **SEED-001**,
-  **SEED-003**, **SEED-004** — `typst-py` upstream maintenance slowing, the largest structural risk
-  on the horizon and never scoped into any milestone — and **SEED-005** (GSD workstreams).
+- **QUA-08** — a weekly advisory CI workflow calling `tox -e linkcheck`. Scoped into v0.9.5 and
+  deferred to Future at roadmap review (2026-09-13): GitHub runs `schedule` only on the default
+  branch and `workflow_dispatch` only for a workflow file already there, so it could not be proven
+  on the unmerged milestone branch. The environment it would call now exists on `main`, so the
+  obstacle is gone for the next milestone.
+- **LNK-01** — `[testenv:linkcheck]` has no failure-tolerance override or accept-list, unlike
+  `links.yml`'s advisory lychee job, so a single flaky external URL fails the env locally with no
+  guidance in the surrounding docs. Info finding from 72-REVIEW.md, accepted at the v0.9.5 close.
+- The dormant seeds **SEED-001**, **SEED-003**, **SEED-004** — `typst-py` upstream maintenance
+  slowing, the largest structural risk on the horizon and never scoped into any milestone — and
+  **SEED-005** (GSD workstreams). **QUA-13**, **DOC-24** and **DOC-18** closed in v0.9.5;
   **QUA-09** closed in v0.9.4; **QUA-10** and **CI-01** closed in v0.9.3.
+
+<details>
+<summary>v0.9.5's Active list (complete, merged 2026-09-16, not published) — retained for reference</summary>
+
+- [x] `tox -e linkcheck` runs Sphinx's `linkcheck` over `docs/source/` and is listed with the
+      other tox environments (QUA-13, DOC-24). The weekly CI job (QUA-08) was deferred to Future at
+      roadmap review — Phase 72.
+- [x] The root `index.rst` toctrees list only section indexes, so a clean HTML build emits zero
+      `referenced in multiple toctrees` messages and the sidebar shows each page once (DOC-18) — Phase 72.
+- [x] Close prep, unpublished: CHANGELOG bullets under `## [Unreleased]`, `pyproject.toml` stays
+      `0.9.2`, no tag / PyPI / Release.
+      Merged to `main` via PR #151 (REL-14) — Phase 73 + the close.
+
+</details>
 
 <details>
 <summary>v0.9.4's Active list (complete, merged 2026-09-13, not published) — retained for reference</summary>
@@ -2389,13 +2396,18 @@ more than one master produces a complete PDF for each:
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
+| **Close v0.9.5 as `override_closeout` on both phases' fingerprint-stale verifications** (owner, 2026-09-16) | Both 72-VERIFICATION.md and 73-VERIFICATION.md read `passed` (5/5 and 4/4, zero overrides); staleness came only from later `.planning/` tracking commits touching covered files, and the same-day `v0.9.5-MILESTONE-AUDIT.md` (`tech_debt`, no gaps) re-checked both | — Pending. Third consecutive close overridden for this tooling reason, and the first where **every** phase in the milestone went stale; the v0.9.3 row's prediction held again |
+| **Defer QUA-08, the weekly advisory linkcheck CI workflow, to Future at roadmap review** (owner, 2026-09-13) | GitHub runs `schedule` only on the default branch and `workflow_dispatch` only for a workflow file already there, so a new workflow could not be proven on the unmerged milestone branch — the milestone would have shipped an unexercised file | ✓ Good — v0.9.5 shipped only what it could prove, and the environment the job would call is now on `main`, so the obstacle is gone for whichever milestone picks QUA-08 up |
+| **Fix DOC-18 by hierarchy, not by flat visibility** (owner, 2026-09-13) | The root toctrees duplicated their section children to make every page visible at the top level; the conventional Sphinx shape is a nested sidebar, and the duplication is what produced the 5 `multiple toctrees` messages | ✓ Good — messages 5 → 0, both docs warning counts unchanged, each page still included exactly once under `-b typst`, and the narrower HTML-vs-Typst `examples/basic` parent divergence re-measured at the phase tip did not survive |
+| **Keep `tox -e linkcheck` outside `env_list`** (Phase 72, 2026-09-13) | An environment that reaches the network on every plain `tox` run makes the default task runner fail on a third party's outage | ✓ Good — `tox` is unchanged for everyone; the check is one explicit command, green at 95/95 on a clean run with no `conf.py` timing key. The accepted cost is carried as LNK-01: no failure-tolerance override, so a flaky URL fails the env locally with no guidance |
+| **Hold REL-14 at `[ ]` behind a SHA-256 fence and check it only at `/gsd-complete-milestone`, on the observed merge** (Phase 73, constraint 10) | The auto-flip had landed at 8 of the 9 prior release-prep closes; the one non-firing close was treated as an outlier, not a fix | ✓ Good — it fired again at Phase 73's `phase.complete` (9 of 10), was caught by the fence and reverted before commit, and REL-14 was checked only after PR #151 merged, on five positively-controlled observations |
 | **Close v0.9.4 as `override_closeout` on Phase 70's fingerprint-stale verification rather than re-run `/gsd-verify-work`** (owner, 2026-09-13) | The only covered-file change after verification was `5292a85b`, REL-13's AMENDED block in `REQUIREMENTS.md`; the same-day audit re-checked the phase | — Pending. Second consecutive close overridden for this tooling reason; the v0.9.3 row's prediction held |
 | **Rewrite `CLAUDE.md`'s prohibition before any conversion, worded true on both sides of the ignore flip** (owner, 2026-09-13) | A standing instruction that was false for part of the milestone would mislead worktree executors reading it mid-phase | ✓ Good — proven byte-identical and true at the pre-flip and post-flip commits; no executor hit a contradicting instruction |
 | **Prove "behaviour unchanged" on five independent legs, with the masked-AST harness piloted on two files before automation** (Phase 70, 2026-09-13) | A mechanical rename is still a claim; each leg covers a failure the others miss (structure, test outcome, test edits, emitted output, type checker) | ✓ Good — all five MET; the pilot's two mutation controls proved the harness could fail before it was trusted on ten files |
 | **Switch dependabot to the native `uv` ecosystem instead of a custom lockfile-regeneration workflow** (owner, AMENDED 2026-09-02) | Every failure mode research found for the custom workflow — forced read-only `GITHUB_TOKEN`, `pull_request_target` exposure, `GITHUB_TOKEN` pushes not retriggering CI, dependabot force-pushing over foreign commits — belongs to that workflow and disappears with the switch | ✓ Good — proven on dependabot's own #138, which updated `pyproject.toml` and `uv.lock` in one commit and ran the full CI. Grouped updates under `uv` remain unobserved (Sphinx `docutils<0.23` cap), recorded rather than claimed |
 | **Merge a `dependabot.yml`-only PR to `main` mid-milestone** (owner, Phase 66 AMENDED 2026-09-12) | Dependabot reads its config only from the default branch, so no `uv` PR could open before the milestone PR merged; the Phase 67 proof would have been unreachable | ✓ Good — byte-identical content on both branches kept REL-12's merge conflict-free; the close's trial merge exited 0 |
 | **Leave CI unchanged: no `nix` job, `setup-uv` stays `latest`, `@v7` not bumped** (owner, 2026-09-02) | Windows cannot run nix and its lanes are load-bearing; the FHS wrapper is useless on runners with a real loader | — Pending. The accepted cost is that `flake.nix` is load-bearing with zero CI coverage and an unexercisable darwin branch. Revisit if a `flake.nix` break ever reaches a contributor before the maintainer |
-| **Close v0.9.3 as `override_closeout` rather than re-run `/gsd-verify-work` on six fingerprint-stale phases** (owner, 2026-09-13) | Staleness came from later legitimate edits to covered files (`REQUIREMENTS.md`, the Phase 68 review fix, the owner-requested CHANGELOG wording); the same-day audit re-checked every phase | — Pending. The fingerprint includes a shared tracking file, so every earlier phase goes stale by construction; expect the same at the next multi-phase close unless the tooling changes. **Confirmed at the v0.9.4 close** (Phase 70 stale for the same reason) |
+| **Close v0.9.3 as `override_closeout` rather than re-run `/gsd-verify-work` on six fingerprint-stale phases** (owner, 2026-09-13) | Staleness came from later legitimate edits to covered files (`REQUIREMENTS.md`, the Phase 68 review fix, the owner-requested CHANGELOG wording); the same-day audit re-checked every phase | — Pending. The fingerprint includes a shared tracking file, so every earlier phase goes stale by construction; expect the same at the next multi-phase close unless the tooling changes. **Confirmed at the v0.9.4 close** (Phase 70 stale for the same reason) and again at the v0.9.5 close (both Phases 72 and 73 stale) |
 | **Amend the fix's mechanism on a live measurement before writing it, rather than implementing the requirement literally** (Phase 62, AMENDED D-08, owner-acknowledged 2026-08-30) | IMG-10 specified driving the separator triad from `visit_image()`'s non-`in_figure` branch. A 27-document / 18-master probe measured that form leaving **4 of 18 masters still refused** — both legend shapes (a legend image has `in_figure == True` and never reaches that branch), the field-list-body concat shape (a *new* refusal, `cannot apply unary '+' to content`), and `index` transitively | ✓ Good — the leading half was hoisted above the `if self.in_figure:` split and the trailing half made concat-aware: 18/18 compiling, both branch bodies still textually unmodified so the literal success criterion held, and the diff a 9-line pure insertion. Delivered strictly more of the requirement, never less. Second consecutive milestone in which a locked decision was falsified by measurement and closed with an `AMENDED` block |
 | **Keep the fix and its gate in one phase** (v0.9.2 roadmap, following `research/ARCHITECTURE.md` Q5) | A phase boundary between them would let "fixed" be claimed before "proven by a real compile" — the precise failure mode that let this defect ship in 0.9.0 and survive three milestones of translator work | ✓ Good — the RED was recorded against a genuinely restored pre-fix `translator.py` inside the same phase, transcribed verbatim with a positive control, and the fix restored with `git status --porcelain` empty. A gate observed only green would have satisfied nothing |
 | **Pin the one non-byte-identical PASS shape to an exact committed delta rather than soften its assertion to "compiles"** (Phase 62 planning, D-06 not weakened) | 8 of the 9 must-keep-passing shapes are byte-identical under the fix; the ninth (an image first in its paragraph) gains exactly one empty line. Relaxing the whole set to "still compiles" would have hidden any future drift in the other eight | ✓ Good — two committed goldens plus an exact-delta assertion. The regression surface stays as tight after the fix as before it |
@@ -2510,6 +2522,8 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
+*Last updated: 2026-09-16 after the **v0.9.5 Docs Link Check and Navigation** milestone close (`/gsd-complete-milestone`) — full evolution review complete. Two phases (72–73), 13 plans, 31 tasks, **4/4 v1 requirements complete**, merged to `main` as PR #151 (`43fd7c13`, 15/15 checks green) with **nothing published**: no tag, no PyPI upload, no GitHub Release, `pyproject.toml` still `0.9.2`, and `## [Unreleased]` now carrying six bullets from three unpublished milestones. Closeout `override_closeout` — both phases' verifications read fingerprint-stale from later `.planning/` tracking commits while both VERIFICATION.md files themselves read `passed`; the pre-close artifact audit reported no open items (12 previously acknowledged items still suppressed). REL-14 was checked on five positively-controlled observations after the merge. Archived to `milestones/v0.9.5-ROADMAP.md` / `v0.9.5-REQUIREMENTS.md` / `v0.9.5-MILESTONE-AUDIT.md` with phase directories under `milestones/v0.9.5-phases/`; `.planning/REQUIREMENTS.md` removed (a fresh one comes from `/gsd-new-milestone`); ROADMAP.md collapsed to a one-line milestone entry. Phase numbering continues at **74**. Prior footer retained below.*
+
 *Last updated: 2026-09-14 — **Phase 72 (`tox -e linkcheck` and Root Toctree Deduplication) complete and verified 5/5**, 6 plans in 4 waves in isolated worktrees, UAT 1/1 (the owner's look at the rendered sidebar), Nyquist validated, SECURITY 26/26 closed. QUA-13, DOC-24 and DOC-18 complete; code review 0 critical / 0 warning / 1 info (a suggestion to mention transient failures in the linkcheck `description`, left for the owner). The branch is on `origin` for the first time, with CI run `34761445288` 12/12 green. Next: Phase 73 (v0.9.5 close prep, unpublished). Prior footer retained below.*
 
 *Last updated: 2026-09-13 — started milestone **v0.9.5 Docs Link Check and Navigation** via `/gsd-new-milestone`. Scope set by the owner to QUA-08 (a weekly, advisory Sphinx `linkcheck` job; 95/95 links `working` when measured — narrowed at roadmap review to the `tox -e linkcheck` environment, QUA-13, with the CI workflow deferred because GitHub cannot dispatch or schedule a workflow absent from the default branch) and DOC-18 (root toctree lists section indexes only; 5 `multiple toctrees` messages measured on a clean build). Owner decisions: merge-only and unpublished (the DOC-18 fix reaches `/en/latest/` but not the default `/en/stable/` until the next release — accepted), hierarchy rather than flat sidebar, no warnings gate. Phase numbering continues at **Phase 72**. Prior footer retained below.*

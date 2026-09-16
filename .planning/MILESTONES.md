@@ -1,5 +1,106 @@
 # Milestones: typsphinx
 
+## v0.9.5 Docs Link Check and Navigation (Completed: 2026-09-16 — **NOT published**, merged to `main`)
+
+**Delivered:** the project's own documentation surface gets a one-command link check and a sidebar
+that matches its hierarchy. `tox.ini` carries a new `[testenv:linkcheck]` running Sphinx's own
+`sphinx-build -b linkcheck` over `docs/source/`, kept outside `env_list` so plain `tox` never
+reaches the network, and every surface that lists the tox environments names it. The root
+`docs/source/index.rst` toctrees no longer duplicate their five section-index children, so the furo
+sidebar renders the conventional hierarchy and a clean HTML build emits zero `document is referenced
+in multiple toctrees` messages. Nothing under `typsphinx/` and no workflow file changed. Nothing was
+released: no tag, no PyPI upload, no GitHub Release, `pyproject.toml` still at `0.9.2`. The two
+CHANGELOG bullets wait under `## [Unreleased]` beside v0.9.3's three and v0.9.4's one — six bullets
+from three unpublished milestones.
+
+**Closeout:** override_closeout, on a real `v0.9.5-MILESTONE-AUDIT.md` (`status: tech_debt`,
+requirements 3/4 before the close with REL-14 held by design, phases 2/2 verified, integration 6/6,
+flows 3/3, zero gaps in all three gap buckets). The override has one cause, and for the first time
+it covers **every** phase in the milestone: `init.manager` reported both Phase 72 and Phase 73 as
+`verification_status: stale` / `phase_complete: false`, while both VERIFICATION.md files themselves
+read `status: passed` (5/5 and 4/4 must-haves, zero overrides applied). Staleness came only from
+`.planning/` tracking commits landing after each verification and touching files it covers — Phase
+72 by its own `phase.complete`, UAT, security and validation commits, Phase 73 by `2a85d98a`
+(code review), `722a2c30` (`phase.complete`) and `29baea5f` (the third fence observation). Neither
+phase's own work changed; the owner accepted the override without re-running `/gsd-verify-work`.
+Known verification overrides: **0 newly acknowledged, 12 carried forward from prior closes** (see
+STATE.md Deferred Items). The pre-close artifact audit reported **no open items** in any category.
+**Phases:** 2 (72–73) · **Plans:** 13 · **Tasks:** 31
+**Requirements:** 4/4 v1 requirements complete; REL-14 checked at this close, after the merge was observed. QUA-08 was scoped in at roadmap creation and deferred to Future the same day, so it maps to no phase.
+**Timeline:** 2026-09-13 19:31 JST (first milestone commit) → 2026-09-16 21:05 JST (PR #151 merged) — three calendar days, with Phase 72 landing on 2026-09-14 and Phase 73 executing on 2026-09-16
+**Git:** milestone branch `gsd/v0.9.5-docs-link-check-and-navigation` (101 commits before the close)
+merged to `main` as `43fd7c13` via **PR #151**, 15/15 checks green including both `windows-latest`
+and both `macos-latest` lanes. Merge commit, not squash. `origin/main` **had** moved from the
+milestone base `098a8ff6` — Dependabot's #146–#150 all merged on 2026-09-14 — so the close ran the
+handoff's conditional update: `git merge --no-ff origin/main` into the branch (one file, `uv.lock`,
++33/−33), then `uv lock --check` exit 0 and the merged tree clean under the new ruff 0.16.7. No tag.
+Branch kept.
+**Code delta (milestone scope, excl. `.planning/`):** 6 files, +26 / −5 lines. `docs/source/index.rst`
+(−5, the duplicated toctree children), `tox.ini` (+8, the new environment), `CHANGELOG.md` (+15),
+and one line each in `CLAUDE.md`, `README.md` and `docs/source/contributing.rst`. **`typsphinx/` and
+`.github/workflows/` untouched for the whole milestone**, fenced and re-measured at two separated
+observations. Zero runtime and dev dependencies added by this milestone, no new `typst_*` config
+value, no `@preview` change.
+
+**Key accomplishments:**
+
+- **`tox -e linkcheck` exists and is green from day one** (QUA-13, Phase 72). The new
+  `[testenv:linkcheck]` is shaped exactly like the existing `docs-html` environment and sits outside
+  `env_list`, so plain `tox` is unchanged for everyone. A fresh run reports **95 links, 95
+  `working`**, zero non-transient and zero transient failures, exit 0 — with no `linkcheck_*` key
+  added to `conf.py`. What it adds over `links.yml`'s existing repo-wide lychee check is `#anchor`
+  existence and URLs reached through autodoc docstrings, which lychee's extension filter cannot see.
+
+- **Every surface that lists the environments names it** (DOC-24, Phase 72). The three surfaces came
+  from a fresh repo-wide grep rather than from the requirement's own wording: `CLAUDE.md`,
+  `README.md` and `docs/source/contributing.rst`. The 2026-07-22 linkcheck-CI todo received a D-07
+  status note and stays open in `todos/pending/`, since QUA-08 was deferred.
+
+- **The sidebar matches the hierarchy** (DOC-18, Phase 72). The five duplicated section children are
+  gone from the root toctrees: `MULTI_TOCTREE_BASE = 5` → `MULTI_TOCTREE_TIP = 0`, with the counted
+  warning totals unchanged (docs-html 3 → 3, docs-pdf 5 → 5) and every page still included exactly
+  once under `-b typst`. The owner read the rendered furo sidebar at UAT (1/1, zero issues). The
+  narrower HTML-vs-Typst `examples/basic` parent divergence was re-measured at the phase tip and did
+  **not** survive (`DIVERGENCE_SURVIVES = no`), so no todo was filed.
+
+- **The close was proven unpublished-shaped twice, 33 minutes apart** (Phase 73 SC#1). Both
+  observations ran the same version, tag, PyPI, GitHub-Release, release-workflow and PR probes, each
+  with a positive control, and spanned the phase's only push and CI dispatch. The milestone fence
+  `git diff --stat 098a8ff6..HEAD -- typsphinx/ .github/workflows/` was empty at both, each with a
+  pathspec control and a widened-diff control. All eighteen commits after the CI dispatch touch only
+  `.planning/`.
+
+- **Close prep, then the merge** (REL-14, Phase 73 + this close). Two CHANGELOG subsections landed as
+  a pure addition under `## [Unreleased]` — 15 added lines, 0 removed, headings 23 → 23, zero version
+  literals moved. The tree was green locally (1547 passed / 1 skipped, twice, once under `LC_ALL=C`;
+  ruff/black/mypy clean; both docs environments clean-built; `tox -e linkcheck` 95/95) and in CI (run
+  `35083828156`, 12/12). The trial merge caught D-07's case live — all five Dependabot PRs had
+  already merged into `main`, bumping ruff to 0.16.7 — so the handoff's conditional branch update ran
+  for real. At this close PR #151 merged, and REL-14 was checked on five observations: the merge
+  commit on `origin/main`, `pyproject.toml` still `0.9.2`, no `v0.9.5` tag with `v0.9.2` as the
+  positive control, PyPI 404 for `0.9.5` against 200 for `0.9.2`, and no `v0.9.5` Release.
+
+- **The release-checkbox fence caught the flip again.** `phase.complete 73` flipped
+  `REQUIREMENTS.md:22`/`:57` to `[x]`/Complete against the CONTEXT decision; the constraint-10
+  SHA-256 fence caught it and it was reverted before commit (`29baea5f`). That is **9 of the 10**
+  prior release-prep closes. The one non-firing close — v0.9.4's Phase 71 — remains an outlier, not
+  a fix, and the fence stays in place.
+
+**Known limitations:** Phase 73 never ran Nyquist validation (73-VALIDATION.md still `draft`) or the
+security audit (no `73-SECURITY.md`), though both are enabled; Phase 72 ran both (SECURITY 26/26
+closed). `[testenv:linkcheck]` has no failure-tolerance override or accept-list, unlike `links.yml`'s
+advisory lychee job, so a single flaky external URL fails the env locally with no guidance in the
+surrounding docs (carried as LNK-01). 72-VERIFICATION.md's frontmatter says `status: passed` while
+its body line says `human_needed` — the frontmatter is correct, since 72-UAT.md closed the one human
+item, but the body line is stale (the same shape as v0.9.4's 70-VERIFICATION.md). CHANGELOG.md's
+DOC-18 bullet states the sidebar fix unconditionally and gives a changelog-only reader no signal that
+the narrower `examples/basic` parent question was a deliberate Non-Goal. **The DOC-18 fix reaches
+`/en/latest/` on the `main` push and ja `latest` through the translations repo's daily pin update,
+but not the default `/en/stable/` pages, which stay on tag `v0.9.2` until the next published
+release** — accepted by the owner at scoping.
+
+---
+
 ## v0.9.4 Typing Modernization (Completed: 2026-09-13 — **NOT published**, merged to `main`)
 
 **Delivered:** ruff's `UP006`/`UP035` deferral, standing since 2026-07-22, is retired.
