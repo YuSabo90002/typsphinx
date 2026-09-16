@@ -4,6 +4,7 @@ title: "`doctest_block` has no translator handler — `>>>` examples fall throug
 area: translator
 severity: major
 source: Issue #91 investigation (2026-09-13) — a real sphinx-autoapi build of typsphinx's own package
+resolves_phase: 74
 files:
   - typsphinx/translator.py:5819  # unknown_visit() — where doctest_block currently lands (warning only, children still visited)
   - typsphinx/translator.py:5832  # unknown_departure()
