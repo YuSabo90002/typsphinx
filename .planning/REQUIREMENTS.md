@@ -53,18 +53,29 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TRN-01 | Phase [N] | Pending |
-| TRN-02 | Phase [N] | Pending |
-| QUA-14 | Phase [N] | Pending |
-| REL-15 | Phase [N] | Pending |
-| REL-16 | Phase [N] | Pending |
+| TRN-01 | Phase 74 | Pending |
+| TRN-02 | Phase 74 | Pending |
+| QUA-14 | Phase 74 | Pending |
+| REL-15 | Phase 75 | Pending |
+| REL-16 | Phase 75 | Pending |
 
 **Coverage:**
 
 - v1 requirements: 5 total
-- Mapped to phases: 0 (roadmap not yet created)
-- Unmapped: 5
+- Mapped to phases: 5
+- Unmapped: 0
+- Duplicated across phases: 0
+
+Phase numbering continues from v0.9.5's Phase 73. Phase 74 is the work phase (the `doctest_block`
+handler, its two-context real-compile gate, and the docstring reST errors); Phase 75 is the
+prep-only release phase.
+
+**REL-15 is mapped to Phase 75 for coverage only.** Its checkbox is checked at
+`/gsd-complete-milestone`, against observed publish evidence, and never by phase-completion tooling
+(ROADMAP constraints 1 and 9). **REL-16 does close inside Phase 75** — "settled on the record" is a
+phase artifact — which is why that phase's `REQUIREMENTS.md` fence is line-scoped to REL-15 rather
+than whole-file.
 
 ---
 *Requirements defined: 2026-09-16*
-*Last updated: 2026-09-16 at milestone start (`/gsd-new-milestone`)*
+*Last updated: 2026-09-16 — traceability filled in at roadmap creation (Phases 74–75)*

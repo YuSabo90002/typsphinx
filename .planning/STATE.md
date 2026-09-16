@@ -3,10 +3,10 @@ gsd_state_version: "1.0"
 milestone: v0.9.6
 milestone_name: Doctest block rendering and release
 status: planning
-last_updated: "2026-09-16T12:31:45.771Z"
+last_updated: "2026-09-16T13:40:00.000Z"
 last_activity: 2026-09-16
 progress:
-  total_phases: 0
+  total_phases: 2
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,7 +20,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-16 — full evolution review at the v0.9.5 close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** none — **v0.9.5 Docs Link Check and Navigation is complete and archived** (2026-09-16). Two phases (72–73), 13 plans, 31 tasks, 4/4 v1 requirements complete; merged to `main` as `43fd7c13` via PR #151, 15/15 checks green, with no tag, no PyPI upload and no GitHub Release. Start the next milestone with `/gsd-new-milestone`; phase numbering continues at **74**.
+**Current focus:** **v0.9.6 Doctest block rendering and release** — roadmap created 2026-09-16. Two phases (74–75), 5/5 v1 requirements mapped, zero orphans. Phase 74 gives `doctest_block` the translator handler it has never had (TRN-01, TRN-02) and clears the docutils reST errors this project's own docstrings raise in the same build (QUA-14); Phase 75 is prep-only release work (REL-15, REL-16). **This milestone publishes**, after three merge-only milestones: `pyproject.toml` `0.9.2` → `0.9.6`, the six carried `## [Unreleased]` bullets promoted into `## [0.9.6]`, then tag → PyPI → GitHub Release at `/gsd-complete-milestone`. Next: `/gsd-plan-phase 74`.
 
 ## Shipped Milestone (v0.9.5 — archived, merged to `main`, NOT published)
 
@@ -272,10 +272,17 @@ land here.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-09-16 — Milestone v0.9.6 started
+Phase: 74 of 75 (The `doctest_block` Handler, Its Real-Compile Gate, and the Docstring reST Errors)
+Plan: — (not yet planned)
+Status: Ready to plan
+Last activity: 2026-09-16 — v0.9.6 roadmap created: Phases 74–75, 5/5 v1 requirements mapped, zero orphans, zero duplicates
+
+Progress: [░░░░░░░░░░] 0% (0/2 phases)
+
+Milestone base for every scope fence: `6cc44f22` (= `main`'s tip). The milestone branch
+`gsd/v0.9.6-doctest-block-rendering-and-release` is checked out at `94497c0a`, `main` + 2
+`.planning/`-only commits, and has **not** been pushed to `origin`; the first push happens in Phase
+74. No `gsd/v0.9.6-milestone` decoy exists yet.
 
 ## Shipped Milestone (v0.9.0 — archived)
 
@@ -986,6 +993,23 @@ to `.planning/milestones/v0.9.4-quick/` at the v0.9.4 close.
 
 ### Roadmap Evolution
 
+- **2026-09-16** — v0.9.6 roadmap created: **Phases 74–75**, 5/5 v1 requirements mapped, zero
+  orphans, zero duplicates, continuing numbering from v0.9.5's Phase 73. No research was run (owner
+  decision — the technical facts were measured at scoping and are embedded in `REQUIREMENTS.md`).
+  Two phases at `granularity: standard` (nominally 4–6), below the range for the reason v0.9.4 and
+  v0.9.5 recorded. Baked in: **(a)** TRN-01, TRN-02 and QUA-14 share Phase 74 because they share one
+  acceptance instrument — the clean `-b typst` build of `docs/source`, whose
+  `build succeeded, N warnings.` ledger TRN-01 drives to zero on one message class while QUA-14
+  drives the other to zero and neither may raise the total. **(b)** TRN-02 is the shape requirement
+  (which two contexts, and a recorded-RED real-compile fixture per context), not a verification
+  phase for TRN-01. **(c)** REL-15 maps to Phase 75 for coverage only and is checked at
+  `/gsd-complete-milestone` on observed publish evidence, while REL-16 *does* close inside the
+  phase — so, for the first time in a release-prep phase here, the `REQUIREMENTS.md` fence is
+  line-scoped to REL-15 rather than whole-file. **(d)** QUA-14's discovery is written so a census
+  limited to `TypstTranslator.visit_toctree` fails the criterion; the census comes from the base
+  build's own output over the whole tree. **(e)** The 3-OS CI run and the first push carry no
+  REQ-ID; they are held by 74 SC#4 and 75 SC#4.
+
 - **2026-09-13** — v0.9.4 roadmap created: **Phases 70–71**, 6/6 v1 requirements mapped, zero
   orphans, zero duplicates, continuing numbering from v0.9.3's Phase 69. Two phases at
   `granularity: standard` (nominally 4–6). That is below the range because the milestone is one
@@ -1262,21 +1286,24 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** none — no phase is active.
+**Resume file:** none — no phase is active yet; Phase 74 has not been planned.
 
-Last session: 2026-09-16T12:10:00.000Z
-Stopped at: Milestone v0.9.5 completed and archived
-Resume: `/gsd-new-milestone` (phase numbering continues at **74**). v0.9.5's phase directories are
-under `.planning/milestones/v0.9.5-phases/`; `73-HANDOFF.md` there records the close procedure this
-milestone actually followed, including the REL-14 five-observation check and the conditional
-`origin/main` branch update.
+Last session: 2026-09-16T13:40:00.000Z
+Stopped at: v0.9.6 roadmap created (Phases 74–75), awaiting phase planning
+Resume: `/gsd-plan-phase 74`. The roadmap's 13 binding constraints are in `.planning/ROADMAP.md`
+under the active-milestone section and should not be re-derived. v0.9.5's phase directories are
+under `.planning/milestones/v0.9.5-phases/`; `73-HANDOFF.md` there records the merge-only close
+procedure, and `.planning/milestones/v0.9.2-phases/63-HANDOFF.md` records the last **published**
+close — the one Phase 75's handoff should be modelled on, since this milestone publishes.
 
 ## Operator Next Steps
 
-- **Start the next milestone with `/gsd-new-milestone`.** Phase numbering continues at **74**.
-  `0.9.3`, `0.9.4` and `0.9.5` are all unclaimed, not decided (73 D-11). `## [Unreleased]` holds six
-  bullets from three unpublished milestones; the next release-prep phase promotes all six into its
-  own versioned section.
+- **Plan Phase 74 with `/gsd-plan-phase 74`.** The v0.9.6 roadmap is created: Phases 74–75, 5/5
+  requirements mapped. `0.9.3`, `0.9.4` and `0.9.5` stay permanently unclaimed — the owner chose
+  `0.9.6` on 2026-09-16 to keep the milestone number and the released version aligned. `##
+  [Unreleased]` holds six bullets from three unpublished milestones, and **Phase 75 promotes all six
+  into `## [0.9.6]`** together with this milestone's own, moving the tail link block in the same
+  phase.
 
 - **QUA-08's obstacle is gone.** The weekly advisory linkcheck CI workflow was deferred because a new
   workflow file cannot be scheduled or `workflow_dispatch`-ed from an unmerged milestone branch. The
@@ -1293,11 +1320,15 @@ milestone actually followed, including the REL-14 five-observation check and the
 - **No pull request is open** (measured at this close, 2026-09-16, after #151 merged; #146–#150 had
   all merged on 2026-09-14).
 
-- **`### Known Limitations` is still undecided.** v0.9.5 published nothing, so it did not force the
-  question. It stays open for the next release cycle.
+- **`### Known Limitations` is now forced, as REL-16.** v0.9.5 could leave it open only because it
+  published nothing. v0.9.6 publishes, so Phase 75 either carries a `### Known Limitations` section
+  in `## [0.9.6]` naming NUM-01, the converted-image rehome collision and the `typst_documents`
+  duplicate-target cluster, or records the owner's decline and the reason. It cannot stay implicit.
 
 - **Milestone branches are not deleted on merge.** `gsd/v0.9.5-docs-link-check-and-navigation` still
-  exists locally and on `origin` at `1d8c76c6`.
+  exists locally and on `origin` at `1d8c76c6`. The v0.9.6 branch
+  `gsd/v0.9.6-doctest-block-rendering-and-release` is **local only** so far (measured 2026-09-16);
+  its first push is Phase 74's work, after a fresh decoy census.
 
 - **Audit tech debt (non-blocking)** is listed in `milestones/v0.9.5-MILESTONE-AUDIT.md`
   `tech_debt:`: 6 items across the two phases. Phase 73 never ran Nyquist validation or the security
