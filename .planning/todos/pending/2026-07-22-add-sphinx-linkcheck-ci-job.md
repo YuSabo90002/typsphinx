@@ -39,3 +39,9 @@ Phase 22.4 は grep ベースの手動検証（`curl` による実測）で発�
 - 導入初期は「失敗しても `main` をブロックしない」扱い（advisory ジョブ、必須チェックにしない）から
   始め、安定性を見てから required 化を検討する — `drift.yml` が advisory ジョブとして運用されている
   前例（`.planning/PROJECT.md` の D-07「drift ジョブは常に advisory」）に倣う。
+
+## Status note (Phase 72, v0.9.5)
+
+- `tox.ini` now has the `[testenv:linkcheck]` environment the first Solution bullet asks for. It runs `sphinx-build -b linkcheck source _build/linkcheck` from `docs/`, and it is not in `env_list` (Phase 72, QUA-13).
+- The still-open part is the CI job that would run it. That is **QUA-08**, a Future requirement in `.planning/REQUIREMENTS.md`, deferred by the owner on 2026-09-13.
+- A future pickup must plan a side PR to `main` from the start, because GitHub runs `schedule` only on the default branch and `workflow_dispatch` only for a workflow file on it (ROADMAP v0.9.5 constraint 4). v0.9.3 did the same for `dependabot.yml`, in PR #137.

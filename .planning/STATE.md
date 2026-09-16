@@ -1,21 +1,21 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.9.4
-milestone_name: Typing Modernization
-status: Awaiting next milestone
-stopped_at: Milestone v0.9.4 completed and archived — merged to main via PR #145 (383a07e9), nothing published
-last_updated: "2026-09-13T10:12:57.000Z"
-last_activity: 2026-09-13
-last_activity_desc: Milestone v0.9.4 completed, merged to main via PR #145 and archived — no tag, no PyPI, no Release
-state_head: 383a07e970766e9edd57694e6f85a1643e0d0369
+milestone: v0.9.5
+milestone_name: Docs Link Check and Navigation
+current_phase: 73
+current_phase_name: v0.9.5 Close Prep (prep-only, unpublished)
+status: completed
+stopped_at: Phase 73 complete — all phases complete
+last_updated: "2026-09-16T11:05:32.921Z"
+last_activity: 2026-09-16
+last_activity_desc: Phase 73 complete
+state_head: 2a85d98a53fa1b176db184fa9ae814c45d994518
 progress:
   total_phases: 2
   completed_phases: 2
-  total_plans: 20
-  completed_plans: 20
+  total_plans: 13
+  completed_plans: 13
   percent: 100
-current_phase: 71
-current_phase_name: v0.9.4 Close Prep (prep-only, unpublished)
 ---
 
 # Project State
@@ -25,7 +25,7 @@ current_phase_name: v0.9.4 Close Prep (prep-only, unpublished)
 See: .planning/PROJECT.md (updated 2026-09-13 — full evolution review at the v0.9.4 close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** none — v0.9.4 completed 2026-09-13 and merged to `main` via PR #145, nothing published; awaiting `/gsd-new-milestone`
+**Current focus:** v0.9.5 Docs Link Check and Navigation — roadmap created, Phases 72–73: Phase 72 `tox -e linkcheck` and root toctree deduplication (QUA-13, DOC-24, DOC-18), Phase 73 close prep (REL-14; merge-only, unpublished). QUA-08 (the weekly advisory CI workflow) was deferred to Future by the owner at roadmap review, 2026-09-13. **Phase 72 complete** (2026-09-14: verification passed 5/5, UAT 1/1, Nyquist validated, SECURITY 26/26 closed; QUA-13, DOC-24 and DOC-18 Complete; branch on `origin`, CI run 34761445288 12/12). **Phase 73 context gathered** (2026-09-14: CHANGELOG as `### Added` + `### Fixed` bullets; Dependabot #146–#150 left untouched, merged after the milestone PR). **Phase 73 planned and now executing** (2026-09-16: 7 plans in 4 waves; plan-checker passed; decision coverage 15/15).
 
 ## Shipped Milestone (v0.9.4 — archived, merged to `main`, NOT published)
 
@@ -227,10 +227,12 @@ land here.
 
 ## Current Position
 
-Phase: Milestone v0.9.4 complete
-Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-09-13 — Milestone v0.9.4 completed, merged to `main` via PR #145 and archived
+Phase: 73 (v0.9.5 Close Prep (prep-only, unpublished)) — COMPLETE
+Plan: 7 of 7 complete
+Status: All phases complete — milestone v0.9.5 ready for /gsd-complete-milestone
+Last activity: 2026-09-16 — Phase 73 complete
+
+Progress: [██████████] 100% (2/2 phases)
 
 ## Shipped Milestone (v0.9.0 — archived)
 
@@ -1216,10 +1218,13 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-Last session: 2026-09-13
-Stopped at: Milestone v0.9.4 completed, merged to `main` via PR #145 (`383a07e9`) and archived — nothing published
-Resume: `/gsd-new-milestone`. This milestone's phase directories are under
-`.planning/milestones/v0.9.4-phases/`; `71-HANDOFF.md` there records the close procedure that ran.
+**Resume file:** .planning/phases/73-v0-9-5-close-prep-prep-only-unpublished/73-CONTEXT.md
+
+Last session: 2026-09-14T12:36:30.088Z
+Stopped at: Phase 73 complete — all phases complete
+Resume: `/gsd-complete-milestone` (Phase 73 verified 4/4; REL-14 still `[ ]` behind its checksum fence;
+the handoff is `73-HANDOFF.md`). v0.9.4's phase directories are under
+`.planning/milestones/v0.9.4-phases/`; `71-HANDOFF.md` there records its close.
 
 ## Operator Next Steps
 

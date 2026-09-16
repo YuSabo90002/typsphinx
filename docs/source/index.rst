@@ -40,17 +40,12 @@ Quick Links
    :caption: User Guide
 
    user_guide/index
-   user_guide/configuration
-   user_guide/builders
-   user_guide/templates
 
 .. toctree::
    :maxdepth: 2
    :caption: Examples
 
    examples/index
-   examples/basic
-   examples/advanced
 
 .. toctree::
    :maxdepth: 2

@@ -261,6 +261,7 @@ uv run tox -e py312         # Run tests on Python 3.12
 uv run tox -e docs-html     # Build HTML documentation
 uv run tox -e docs-pdf      # Build PDF documentation
 uv run tox -e docs          # Build both HTML and PDF docs
+uv run tox -e linkcheck     # Check external links and anchors (needs network; not run by plain tox)
 ```
 
 ### Testing Strategy
