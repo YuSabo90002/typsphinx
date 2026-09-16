@@ -525,7 +525,27 @@ constraint 10's checksum fence is what keeps it there.
 
      (REL-14; constraint 10.)
 
-**Plans**: TBD
+**Plans**: 7 plans (4 waves)
+
+Plans:
+**Wave 1**
+
+- [ ] 73-01-PLAN.md — CHANGELOG: insert `### Added` (tox -e linkcheck) and `### Fixed` (docs sidebar) under `## [Unreleased]` as a two-hunk pure addition, with clean docs builds either side (wave 1)
+- [ ] 73-02-PLAN.md — phase-head anchors: the REL-14 checksum fence, SC#1 observation 1 with positive controls, and the reasoned COVERAGE.md (wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 73-03-PLAN.md — local green tree: full pytest twice (once LC_ALL=C), black/mypy/ruff, version sync, changelog gate, both docs builds and tox -e linkcheck (wave 2)
+- [ ] 73-04-PLAN.md — decoy census, the single fast-forward push of the canonical branch, one CI dispatch, and the full job transcript (wave 2)
+- [ ] 73-05-PLAN.md — non-committing trial merge of origin/main, merged-tree uv lock --check and lint, branch protection read, Dependabot census left untouched (wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 73-06-PLAN.md — SC#1 observation 2 on the close tip, the typsphinx/ and .github/workflows/ fence with controls, post-dispatch commits planning-only (wave 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 73-07-PLAN.md — close the REL-14 fence and write 73-HANDOFF.md for /gsd-complete-milestone (wave 4)
 
 ## Progress
 
@@ -541,7 +561,7 @@ below tracks the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 72. `tox -e linkcheck` and Root Toctree Deduplication | v0.9.5 | 6/6 | Complete | 2026-09-14 |
-| 73. v0.9.5 Close Prep (prep-only, unpublished) | v0.9.5 | 0/TBD | Not started | - |
+| 73. v0.9.5 Close Prep (prep-only, unpublished) | v0.9.5 | 0/7 | Planned | - |
 
 ## Roadmap Evolution
 
