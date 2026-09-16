@@ -140,6 +140,18 @@ None - no external service configuration required.
 - 73-07's handoff sets 73-03's local ruff run beside this plan's CI-authoritative lint verdict.
 - No blockers or concerns.
 
+## Self-Check: PASSED
+
+- `73-CI-EVIDENCE.md` exists on disk: FOUND
+- `73-04-SUMMARY.md` exists on disk: FOUND
+- Commit `84d405d7` (Task 1) present in `git log --oneline --all`: FOUND
+- Commit `c0ad34f9` (Task 2) present in `git log --oneline --all`: FOUND
+- Commit `001d8b24` (plan metadata) present in `git log --oneline --all`: FOUND
+- Both tasks' `<verify><automated>` shell assertions re-run against the committed evidence file:
+  `TASK1_VERIFY_PASS`, `TASK2_VERIFY_PASS`
+- `plan_head_before: a54a2d8a3b06b388c7ee004e5cfbe3405431421d`, measured commit count
+  (`git rev-list --count a54a2d8a3b06b388c7ee004e5cfbe3405431421d..HEAD` before this commit): 2
+
 ---
 *Phase: 73-v0-9-5-close-prep-prep-only-unpublished*
 *Completed: 2026-09-16*
