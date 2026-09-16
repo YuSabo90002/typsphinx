@@ -4,18 +4,18 @@ milestone: v0.9.5
 milestone_name: Docs Link Check and Navigation
 current_phase: 73
 current_phase_name: v0.9.5 Close Prep (prep-only, unpublished)
-status: executing
-stopped_at: Phase 73 planned
-last_updated: "2026-09-16T09:49:31.637Z"
+status: completed
+stopped_at: Phase 73 complete — all phases complete
+last_updated: "2026-09-16T11:05:32.921Z"
 last_activity: 2026-09-16
-last_activity_desc: Phase 73 execution started
-state_head: dbb40d732e2e31abc2a6d44ce3716768ae684eda
+last_activity_desc: Phase 73 complete
+state_head: 2a85d98a53fa1b176db184fa9ae814c45d994518
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 13
-  completed_plans: 6
-  percent: 50
+  completed_plans: 13
+  percent: 100
 ---
 
 # Project State
@@ -227,12 +227,12 @@ land here.
 
 ## Current Position
 
-Phase: 73 (v0.9.5 Close Prep (prep-only, unpublished)) — EXECUTING
-Plan: 7 of 7 complete (all waves merged)
-Status: Executing Phase 73
-Last activity: 2026-09-16 — Phase 73 wave 4 complete (73-07 merged; all 7 plans done, awaiting verification)
+Phase: 73 (v0.9.5 Close Prep (prep-only, unpublished)) — COMPLETE
+Plan: 7 of 7 complete
+Status: All phases complete — milestone v0.9.5 ready for /gsd-complete-milestone
+Last activity: 2026-09-16 — Phase 73 complete
 
-Progress: [█████░░░░░] 50% (1/2 phases)
+Progress: [██████████] 100% (2/2 phases)
 
 ## Shipped Milestone (v0.9.0 — archived)
 
@@ -1221,9 +1221,10 @@ Items acknowledged and carried forward from milestone closes:
 **Resume file:** .planning/phases/73-v0-9-5-close-prep-prep-only-unpublished/73-CONTEXT.md
 
 Last session: 2026-09-14T12:36:30.088Z
-Stopped at: Phase 73 context gathered
-Resume: `/gsd-plan-phase 73 --skip-ui` (Phase 73, v0.9.5 close prep; context in `73-CONTEXT.md`). v0.9.4's phase
-directories are under `.planning/milestones/v0.9.4-phases/`; `71-HANDOFF.md` there records its close.
+Stopped at: Phase 73 complete — all phases complete
+Resume: `/gsd-complete-milestone` (Phase 73 verified 4/4; REL-14 still `[ ]` behind its checksum fence;
+the handoff is `73-HANDOFF.md`). v0.9.4's phase directories are under
+`.planning/milestones/v0.9.4-phases/`; `71-HANDOFF.md` there records its close.
 
 ## Operator Next Steps
 
