@@ -374,6 +374,12 @@ was.
      expression and abort the compile, the way the v0.9.2 image defect did. The fixture's compile
      passing is what proves the discipline holds (TRN-02).
 
+     *AMENDED 2026-09-20 (post-research, owner-approved):* this project's own `api/index.typ` carries
+     no `terms.item(...)` doctest shape (measured count 0; the shape exists in the 2026-09-13
+     sphinx-autoapi run), and a definition-list body never sets `in_list_item`. Context (b) therefore
+     carries two shapes — a definition-list item (the autoapi position) and a bullet-list item (the
+     `in_list_item` discipline) — both non-first, both recorded RED (74-CONTEXT.md D-06).
+
   3. **The docutils message class is discovered by a fresh full build and cleared everywhere it
      occurs, with the build's total not rising.**
 
