@@ -6,6 +6,15 @@ PYVENV_HOME = /nix/store/l9k0anq0z7zz81zcwy035jfwap9ga6rl-python3-3.13.13/bin
 PYVENV_VERSION_INFO = 3.13.13
 AFTER_TOCTREE_ATTRIBUTED_COUNT = 0
 AFTER_TOCTREE_RAW_TOTAL = 4
+FIX_RAW_UNEXPECTED_INDENTATION = 0
+FIX_RAW_BLOCK_QUOTE_ENDS = 0
+FIX_RAW_TOTAL = 0
+FIX_ATTRIBUTED_COUNT = 0
+FIX_WARNING_COUNT = 0
+FIX_DOCTEST_UNKNOWN_COUNT = 0
+ADDED_BLANK_LINES = 4
+REMOVED_LINES = 0
+QUA14_FIX_VERDICT = MET
 
 ## Head check and fix list
 
@@ -144,3 +153,170 @@ tests/test_doctest_block_render_gate.py ...........                      [100%]
 Diff shape for this task (`git diff -U0 "$BASE_74_04" HEAD -- typsphinx/translator.py`, checked
 before commit): three hunks, each adding exactly one empty line, none removing anything, and all
 three lying within `visit_toctree`'s docstring region (file lines ~5470-5490).
+
+## quote_path repair
+
+**Probe before** the edit, reconstructed from the pre-fix file content (`git show BASE_74_04 --
+typsphinx/pathfmt.py`) run through the same napoleon-plus-docutils pipeline as
+`p7404_docprobe.py`, verbatim:
+
+```
+typsphinx.pathfmt.quote_path	19	ERROR	Unexpected indentation.
+typsphinx.pathfmt.quote_path	21	WARNING	Block quote ends without a blank line; unexpected unindent.
+```
+
+This reproduces the two lines 74-01 attributed to `quote_path` exactly (docstring-relative lines
+19 ERROR and 21 WARNING).
+
+**Repair.** Exactly one empty line inserted in `typsphinx/pathfmt.py`, between
+`Delimiter rule (D-01), applied to the normalized string:` and the first bullet,
+`` - no apostrophe present -> wrap in apostrophes (``'...'``) ``. No other character changed.
+
+Per D-07, this docstring is repaired even though autodoc never renders it: the census reaches it
+through `sphinx-autodoc-typehints`' probe-parse of the name imported into `builder.py` and
+`writer.py` (`from typsphinx.pathfmt import quote_path`), which is evaluated as a documentable
+candidate and probe-parsed even though it is excluded from the rendered page (imported members are
+excluded by default).
+
+**Probe after** (`uv run python "$S/p7404_docprobe.py" typsphinx.pathfmt.quote_path`): zero output,
+exit `0`. No residue — the single inserted blank line was needed and sufficient.
+
+Lint after the edit:
+
+```
+$ uv run ruff check typsphinx/pathfmt.py
+All checks passed!
+$ uv run black --check typsphinx/pathfmt.py
+All done! [ok]
+1 file would be left unchanged.
+```
+
+## Post-fix build
+
+Build command:
+
+```
+rm -rf "$S/after-fix"
+env LANG=C LC_ALL=C uv run python -m sphinx -b typst docs/source "$S/after-fix"
+```
+
+stdout and stderr both redirected to `$S/p7404_after-fix.log`. Exit: `0`.
+
+English summary line, verbatim:
+
+```
+build succeeded.
+```
+
+`FIX_WARNING_COUNT` = `0` (the `build succeeded.` form with no `N warnings` suffix, which is at
+most `BASE_WARNING_COUNT` = `5`).
+
+`FIX_RAW_UNEXPECTED_INDENTATION` = `0`
+(`LANG=C LC_ALL=C grep -o 'Unexpected indentation' "$S/p7404_after-fix.log" | wc -l`).
+
+`FIX_RAW_BLOCK_QUOTE_ENDS` = `0`
+(`LANG=C LC_ALL=C grep -o 'Block quote ends without a blank line' "$S/p7404_after-fix.log" | wc -l`).
+
+`FIX_RAW_TOTAL` = `0` (their sum).
+
+`FIX_ATTRIBUTED_COUNT` = `0`
+(`LANG=C LC_ALL=C grep -cE '\.py:docstring of [A-Za-z0-9_.]+:[0-9]+: (ERROR|WARNING): (Unexpected indentation|Block quote ends without a blank line)' "$S/p7404_after-fix.log"`).
+
+`FIX_DOCTEST_UNKNOWN_COUNT` = `0`
+(`LANG=C LC_ALL=C grep -o 'unknown node type: .doctest_block' "$S/p7404_after-fix.log" | wc -l` —
+zero since 74-03's handler).
+
+`LANG=C LC_ALL=C grep -nE 'ERROR:|WARNING:' "$S/p7404_after-fix.log"` produced **no output** — the
+post-fix build carries zero `WARNING:`/`ERROR:` lines of any kind. Every remaining line of the log
+is a routine build-progress line (`writing output... [docname] done`, etc.); the full log ends:
+
+```
+...
+writing output... [user_guide/templates] done
+typst: wrote 1 wrapper file(s) -- compile these: typsphinx.typ
+build succeeded.
+```
+
+No raw census line remains; no `## HALT` is needed.
+
+## Diff shape
+
+`git diff "$BASE_74_04" HEAD -- typsphinx/`, verbatim (`-U0`, both files, sole content diff of this
+plan):
+
+```
+diff --git a/typsphinx/pathfmt.py b/typsphinx/pathfmt.py
+index edcee460..1bdd2efe 100644
+--- a/typsphinx/pathfmt.py
++++ b/typsphinx/pathfmt.py
+@@ -62,0 +63 @@ def quote_path(value: str | os.PathLike[str] | None) -> str:
++
+diff --git a/typsphinx/translator.py b/typsphinx/translator.py
+index 629f918b..ba2fd225 100644
+--- a/typsphinx/translator.py
++++ b/typsphinx/translator.py
+@@ -5470,0 +5471 @@ class TypstTranslator(SphinxTranslator):
++
+@@ -5483,0 +5485 @@ class TypstTranslator(SphinxTranslator):
++
+@@ -5485,0 +5488 @@ class TypstTranslator(SphinxTranslator):
++
+```
+
+`ADDED_BLANK_LINES` = `4` (one in `pathfmt.py`, three in `translator.py`; every added line is
+exactly empty, `git diff -U0 ... | grep -E '^\+' | grep -vE '^\+\+\+ '` is four bare `+` lines with
+nothing else).
+
+`REMOVED_LINES` = `0` (`git diff -U0 "$BASE_74_04" HEAD -- typsphinx | grep -E '^-' | grep -vE '^--- '` is empty).
+
+| File | Docstring | Census line cleared |
+|------|-----------|----------------------|
+| `typsphinx/translator.py` | `TypstTranslator.visit_toctree` | `:5: ERROR Unexpected indentation` (after Requirement 13 heading) |
+| `typsphinx/translator.py` | `TypstTranslator.visit_toctree` | `:6: WARNING Block quote ends` / a second `:21: ERROR` occurrence (before the Issue #5 nested bullet) |
+| `typsphinx/translator.py` | `TypstTranslator.visit_toctree` | `:21: ERROR Unexpected indentation` (before the Issue #7 nested bullet) |
+| `typsphinx/pathfmt.py` | `quote_path` | `:19: ERROR` / `:21: WARNING` (both cleared by the single inserted blank line before the Delimiter rule bullet list) |
+
+Files changed since `BASE_74_04` under `typsphinx/`: exactly `typsphinx/pathfmt.py` and
+`typsphinx/translator.py` (`git diff --name-only "$BASE_74_04" HEAD -- typsphinx`, sorted).
+
+## Lint and tests
+
+```
+$ uv run ruff check .
+All checks passed!
+$ uv run black --check .
+All done! [ok]
+358 files would be left unchanged.
+$ uv run mypy typsphinx/
+Success: no issues found in 9 source files
+$ uv run pytest tests/test_translator.py tests/test_doctest_block_render_gate.py -q -p no:cacheprovider
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+collected 133 items
+
+tests/test_translator.py ............................................... [ 35%]
+........................................................................ [ 89%]
+...                                                                      [ 91%]
+tests/test_doctest_block_render_gate.py ...........                      [100%]
+
+============================= 133 passed in 0.65s ==============================
+```
+
+All exits `0`.
+
+## Verdict
+
+`QUA14_FIX_VERDICT` = `MET`:
+
+- All four raw/attributed keys are `0`: `FIX_RAW_UNEXPECTED_INDENTATION = 0`,
+  `FIX_RAW_BLOCK_QUOTE_ENDS = 0`, `FIX_RAW_TOTAL = 0`, `FIX_ATTRIBUTED_COUNT = 0`.
+- `FIX_WARNING_COUNT = 0`, which is at most `BASE_WARNING_COUNT = 5`.
+- `FIX_DOCTEST_UNKNOWN_COUNT = 0`.
+- `REMOVED_LINES = 0`, and every one of the `ADDED_BLANK_LINES = 4` added lines is empty.
+- Lint (`ruff`, `black`) and type-check (`mypy`) are green; the targeted test subset is green.
+
+Both docstrings the base census named (`FIX_LIST`) are repaired in their own reST, with only empty
+lines added and none removed, and a clean C-locale rebuild of `docs/source` reports zero raw and
+zero attributed lines of either QUA-14 message class, with the total warning count not risen —
+`docs/source/conf.py`, `docs/source/api/index.rst`, and every non-docstring line under `typsphinx/`
+are unchanged by this plan.
