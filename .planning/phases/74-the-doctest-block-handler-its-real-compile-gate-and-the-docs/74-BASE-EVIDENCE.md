@@ -271,3 +271,60 @@ either QUA-14 message class that the build census did not already surface.
 
 **Positive control (constraint 5):** `BASE_RAW_TOTAL` (10) and `BASE_ATTRIBUTED_COUNT` (3) are both
 at least 1. Positive control passes.
+
+## Phase-head remote reads
+
+REQUIRED_STRICT_HEAD = true
+REQUIRED_CONTEXTS_HEAD = Build Package|Code Coverage|Lint and Format Check|Test Python 3.12 on ubuntu-latest|Test Python 3.13 on ubuntu-latest|Type Check
+REQUIRED_CONTEXT_COUNT_HEAD = 6
+ORIGIN_MAIN_AT_HEAD = 6cc44f22a01f1e9d2080a8220fca2dc2cdcb264b
+MAIN_MOVED = no
+
+- `gh auth status; echo "exit:$?"` -> `exit:0`. Authenticated as `YuSabo90002`.
+- `gh api repos/YuSabo90002/typsphinx/branches/main/protection/required_status_checks --jq .strict`
+  -> `true` (`REQUIRED_STRICT_HEAD`).
+- `... --jq '[.contexts[]] | sort | join("|")'` -> the six-context sorted string above
+  (`REQUIRED_CONTEXTS_HEAD`), `... --jq '.contexts | length'` -> `6`
+  (`REQUIRED_CONTEXT_COUNT_HEAD`).
+- `git ls-remote origin refs/heads/main` -> `6cc44f22a01f1e9d2080a8220fca2dc2cdcb264b`
+  (`ORIGIN_MAIN_AT_HEAD`). `MAIN_MOVED` = `no`, since it equals
+  `6cc44f22a01f1e9d2080a8220fca2dc2cdcb264b`. This is a record for `/gsd-complete-milestone`, not
+  a gate.
+
+## Branch census at phase head
+
+HEAD_LOCAL_DECOY = absent
+ORIGIN_BRANCH_AT_HEAD = none
+
+`git branch --list 'gsd/*' -v`, verbatim:
+
+```
+  gsd/v0.9.4-typing-modernization                334b4da7 docs(v0.9.4): add milestone audit report
+  gsd/v0.9.5-docs-link-check-and-navigation      1d8c76c6 Merge origin/main into gsd/v0.9.5-docs-link-check-and-navigation
++ gsd/v0.9.6-doctest-block-rendering-and-release 8ea10273 docs(state): begin phase 74 execution
+```
+
+`git ls-remote --heads origin 'refs/heads/gsd/v0.9.6*'` -> no output (empty). No `gsd/v0.9.6*`
+branch exists on origin yet.
+
+- `HEAD_LOCAL_DECOY` = `absent`: `git branch --list 'gsd/v0.9.6-milestone'` printed nothing — no
+  local decoy branch exists.
+- `ORIGIN_BRANCH_AT_HEAD` = `none`: `git ls-remote origin refs/heads/gsd/v0.9.6-doctest-block-rendering-and-release`
+  printed nothing. Expected — the branch has never been pushed. Nothing is changed here;
+  constraint 10's decoy handling runs in 74-07, immediately before the push.
+
+## Reference CI job set
+
+REFERENCE_CI_RUN_ID = 35083828156
+REFERENCE_JOB_NAMES = Build Package|Code Coverage|Integration Test - advanced|Integration Test - basic|Lint and Format Check|Test Python 3.12 on macos-latest|Test Python 3.12 on ubuntu-latest|Test Python 3.12 on windows-latest|Test Python 3.13 on macos-latest|Test Python 3.13 on ubuntu-latest|Test Python 3.13 on windows-latest|Type Check
+REFERENCE_JOB_COUNT = 12
+CI_YML_CHANGED_SINCE_MILESTONE_BASE = no
+
+- `REFERENCE_CI_RUN_ID` = `sed -n 's/^RUN_ID = //p'` over `73-CI-EVIDENCE.md` = `35083828156`,
+  matching the planning-time context measurement.
+- `REFERENCE_JOB_NAMES` = `gh run view 35083828156 --json jobs --jq '[.jobs[].name] | sort | join("|")'`,
+  the twelve-job sorted string above. `REFERENCE_JOB_COUNT` = `gh run view 35083828156 --json jobs --jq '.jobs | length'`
+  = `12`.
+- `CI_YML_CHANGED_SINCE_MILESTONE_BASE` = `no`:
+  `git diff --name-only 6cc44f22a01f1e9d2080a8220fca2dc2cdcb264b HEAD -- .github/workflows/ci.yml`
+  printed nothing.
