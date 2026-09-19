@@ -219,3 +219,141 @@ RUN_URL = https://github.com/YuSabo90002/typsphinx/actions/runs/35476044079
 
 The milestone branch is on origin at the green phase tip (`PUSHED_SHA`), with no decoy and no tag,
 and one CI run (`RUN_ID`) is dispatched against exactly that tip. Task 2 observes it to completion.
+
+## Run
+
+Waited in the foreground: `timeout 590 gh run watch 35476044079 --interval 30` (Bash tool `timeout`
+600000, no `run_in_background`). The run finished inside the first watch window; the watch call
+exited 0 and printed the full job tree through completion.
+
+`gh run view "$RUNID" --json status,conclusion,workflowName,headSha,url,createdAt,updatedAt`:
+```
+{"conclusion":"success","createdAt":"2026-09-19T23:24:33Z","headSha":"e54d47d0b00d77f600d1aa27b0f78a031db055c7","status":"completed","updatedAt":"2026-09-19T23:31:25Z","url":"https://github.com/YuSabo90002/typsphinx/actions/runs/35476044079","workflowName":"CI"}
+```
+
+RUN_HEAD_SHA = e54d47d0b00d77f600d1aa27b0f78a031db055c7
+
+RUN_CONCLUSION = success
+
+## Job census
+
+`gh run view "$RUNID" --json jobs --jq '.jobs[] | [.name, .conclusion] | @tsv'`:
+
+| # | Job | Conclusion |
+|---|-----|------------|
+| 1 | Build Package | success |
+| 2 | Type Check | success |
+| 3 | Lint and Format Check | success |
+| 4 | Integration Test - advanced | success |
+| 5 | Code Coverage | success |
+| 6 | Test Python 3.13 on macos-latest | success |
+| 7 | Test Python 3.12 on windows-latest | success |
+| 8 | Test Python 3.13 on ubuntu-latest | success |
+| 9 | Test Python 3.12 on ubuntu-latest | success |
+| 10 | Test Python 3.13 on windows-latest | success |
+| 11 | Integration Test - basic | success |
+| 12 | Test Python 3.12 on macos-latest | success |
+
+JOB_COUNT = 12
+
+NON_SUCCESS_JOBS = 0
+
+Sorted job-name set, `gh run view 35476044079 --json jobs --jq '[.jobs[].name] | sort | join("|")'`:
+```
+Build Package|Code Coverage|Integration Test - advanced|Integration Test - basic|Lint and Format Check|Test Python 3.12 on macos-latest|Test Python 3.12 on ubuntu-latest|Test Python 3.12 on windows-latest|Test Python 3.13 on macos-latest|Test Python 3.13 on ubuntu-latest|Test Python 3.13 on windows-latest|Type Check
+```
+Identical to `REFERENCE_JOB_NAMES` in `74-BASE-EVIDENCE.md` — `ci.yml` has not changed since the
+reference run (constraint 7, no workflow edit this phase).
+
+JOB_NAMES_MATCH_REFERENCE = yes
+
+## windows-latest lanes
+
+| Job | Conclusion |
+|-----|------------|
+| Test Python 3.12 on windows-latest | success |
+| Test Python 3.13 on windows-latest | success |
+
+## macos-latest lanes
+
+| Job | Conclusion |
+|-----|------------|
+| Test Python 3.12 on macos-latest | success |
+| Test Python 3.13 on macos-latest | success |
+
+## Lint through tox
+
+`Lint and Format Check` job id: `105985354942`. Quoted from
+`gh run view --job 105985354942 --log`:
+
+`Run lint with tox` step, `commands[0]> black --check .` line and verdict:
+```
+Lint and Format Check	Run lint with tox	2026-09-19T23:24:49.3685192Z lint: commands[0]> black --check .
+Lint and Format Check	Run lint with tox	2026-09-19T23:24:53.9983607Z All done! ✨ 🍰 ✨
+Lint and Format Check	Run lint with tox	2026-09-19T23:24:53.9984381Z 357 files would be left unchanged.
+```
+(The step also printed a benign `Warning: Python 3.12 cannot parse code formatted for Python 3.13`
+diagnostic ahead of the verdict; `black --check .` still exited clean, per `All done!` above.)
+
+`commands[1]> ruff check .` line and verdict:
+```
+Lint and Format Check	Run lint with tox	2026-09-19T23:24:54.0220687Z lint: commands[1]> ruff check .
+Lint and Format Check	Run lint with tox	2026-09-19T23:24:54.0817351Z All checks passed!
+```
+
+`lint: OK` line:
+```
+Lint and Format Check	Run lint with tox	2026-09-19T23:24:54.0838495Z   lint: OK (4.88=setup[0.16]+cmd[4.65,0.06] seconds)
+```
+This shows the runner ran the same lint through tox that this worktree ran locally in 74-06.
+
+## Dispatch count and no release run
+
+`gh run list --workflow=ci.yml --branch gsd/v0.9.6-doctest-block-rendering-and-release --event workflow_dispatch --limit 50 --json headSha`:
+```
+[{"headSha":"e54d47d0b00d77f600d1aa27b0f78a031db055c7"}]
+```
+
+DISPATCH_COUNT = 1
+
+`gh run list --workflow=release.yml --limit 20 --json headSha`:
+```
+(20 rows returned, none matching e54d47d0b00d77f600d1aa27b0f78a031db055c7 — the most recent is the
+v0.9.2 release tag commit 45962faad21520c72ac9f1e14c7f684050826bb6)
+```
+
+RELEASE_RUNS_AT_PUSHED = 0
+
+## Required checks at phase close
+
+`gh api repos/YuSabo90002/typsphinx/branches/main/protection/required_status_checks --jq .strict`:
+```
+true
+```
+
+`... --jq '[.contexts[]] | sort | join("|")'`:
+```
+Build Package|Code Coverage|Lint and Format Check|Test Python 3.12 on ubuntu-latest|Test Python 3.13 on ubuntu-latest|Type Check
+```
+
+REQUIRED_STRICT_CLOSE = true
+
+REQUIRED_CONTEXTS_CLOSE = Build Package|Code Coverage|Lint and Format Check|Test Python 3.12 on ubuntu-latest|Test Python 3.13 on ubuntu-latest|Type Check
+
+Both equal `REQUIRED_STRICT_HEAD` (`true`) and `REQUIRED_CONTEXTS_HEAD` (the same six contexts) from
+`74-BASE-EVIDENCE.md`.
+
+REQUIRED_CHECKS_UNCHANGED = yes
+
+## SC4 CI verdict
+
+The run is completed and success, `NON_SUCCESS_JOBS = 0`, `JOB_NAMES_MATCH_REFERENCE = yes`, all
+four named `windows-latest`/`macos-latest` lanes are success, `DISPATCH_COUNT = 1`,
+`RELEASE_RUNS_AT_PUSHED = 0` and `REQUIRED_CHECKS_UNCHANGED = yes`.
+
+SC4_CI_VERDICT = MET
+
+ROADMAP SC4's remote half is discharged: the milestone branch is on origin, and a completed, green
+three-OS CI run on the phase tip is transcribed job by job, with no decoy, no tag, exactly one
+dispatch, no release run at the pushed SHA, and `main`'s required checks unchanged from phase head
+to phase close.
