@@ -417,7 +417,7 @@ was.
        lanes are named individually and green. `main`'s required status checks are read at phase
        head and phase close and give the same set both times (constraints 7, 10, 11).
 
-**Plans**: 3/7 plans executed (5 waves)
+**Plans**: 4/7 plans executed (5 waves)
 
 Plans:
 
@@ -432,7 +432,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 74-04-PLAN.md — QUA-14 repairs from the census: blank lines in visit_toctree's and quote_path's docstrings, proven by a clean rebuild (wave 3)
+- [x] 74-04-PLAN.md — QUA-14 repairs from the census: blank lines in visit_toctree's and quote_path's docstrings, proven by a clean rebuild (wave 3)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -577,7 +577,7 @@ below tracks the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 74. The `doctest_block` Handler, Its Real-Compile Gate, and the Docstring reST Errors | v0.9.6 | 3/7 | In Progress | - |
+| 74. The `doctest_block` Handler, Its Real-Compile Gate, and the Docstring reST Errors | v0.9.6 | 4/7 | In Progress | - |
 | 75. v0.9.6 Release Prep (prep-only) | v0.9.6 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
