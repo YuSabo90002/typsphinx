@@ -288,7 +288,7 @@ recorded as over-fragmentation. Phase 75 is this project's standing prep-only fi
 structure v0.9.3 (69), v0.9.4 (71) and v0.9.5 (73) used — with the difference that this one bumps a
 version and promotes a CHANGELOG section, because this milestone publishes.
 
-- [ ] **Phase 74: The `doctest_block` Handler, Its Real-Compile Gate, and the Docstring reST Errors** - A `>>>` example renders in Typst output as a code block with its line structure intact and a language tag the handler supplies itself, in both positions autodoc/napoleon place one, each proven by a recorded-RED fixture through a real `typst.compile()`. The same clean `-b typst` build of `docs/source` reports zero `doctest_block` unknown-node warnings and zero docutils indentation/block-quote messages from typsphinx's own docstrings, with the total warning count not risen.
+- [x] **Phase 74: The `doctest_block` Handler, Its Real-Compile Gate, and the Docstring reST Errors** - A `>>>` example renders in Typst output as a code block with its line structure intact and a language tag the handler supplies itself, in both positions autodoc/napoleon place one, each proven by a recorded-RED fixture through a real `typst.compile()`. The same clean `-b typst` build of `docs/source` reports zero `doctest_block` unknown-node warnings and zero docutils indentation/block-quote messages from typsphinx's own docstrings, with the total warning count not risen. (completed 2026-09-20)
 - [ ] **Phase 75: v0.9.6 Release Prep (prep-only)** - `pyproject.toml` reads `0.9.6` with `uv.lock` regenerated in the same commit, the six carried `## [Unreleased]` bullets are promoted into a curated `## [0.9.6]` section with the tail link block moved to match, the `### Known Limitations` question is settled on the record either way, and the bumped tree is proven green — with zero irreversible action taken and REL-15 held by a checksum fence.
 
 ## Phase Details
@@ -577,7 +577,7 @@ below tracks the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 74. The `doctest_block` Handler, Its Real-Compile Gate, and the Docstring reST Errors | v0.9.6 | 7/7 | In Progress | - |
+| 74. The `doctest_block` Handler, Its Real-Compile Gate, and the Docstring reST Errors | v0.9.6 | 7/7 | Complete | 2026-09-20 |
 | 75. v0.9.6 Release Prep (prep-only) | v0.9.6 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution

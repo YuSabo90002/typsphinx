@@ -2,20 +2,20 @@
 gsd_state_version: "1.0"
 milestone: v0.9.6
 milestone_name: Doctest block rendering and release
-current_phase: 74
-current_phase_name: The `doctest_block` Handler, Its Real-Compile Gate, and the Docstring reST Errors
-status: executing
-stopped_at: Phase 74 planned (7 plans, 5 waves)
-last_updated: "2026-09-19T22:01:20.969Z"
+current_phase: 75
+current_phase_name: v0.9.6 Release Prep (prep-only)
+status: planning
+stopped_at: Phase 74 complete, ready to plan Phase 75
+last_updated: "2026-09-19T23:54:22.137Z"
 last_activity: 2026-09-20
-last_activity_desc: Phase 74 execution started
-state_head: 2dc03211580d7b628ebad6374749a566a331d9d7
+last_activity_desc: Phase 74 complete, transitioned to Phase 75
+state_head: 07f04da486a9eaf907e8d095a2355c6506f78afd
 progress:
   total_phases: 2
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 7
-  completed_plans: 0
-  percent: 0
+  completed_plans: 7
+  percent: 50
 ---
 
 # Project State
@@ -277,17 +277,18 @@ land here.
 
 ## Current Position
 
-Phase: 74 (The `doctest_block` Handler, Its Real-Compile Gate, and the Docstring reST Errors) — EXECUTING
-Plan: 1 of 7
-Status: Executing Phase 74
-Last activity: 2026-09-20 — Phase 74 execution started
+Phase: 75 — v0.9.6 Release Prep (prep-only)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-09-20 — Phase 74 complete, transitioned to Phase 75
 
-Progress: [░░░░░░░░░░] 0% (0/2 phases)
+Progress: [█████░░░░░] 50% (1/2 phases)
 
 Milestone base for every scope fence: `6cc44f22` (= `main`'s tip). The milestone branch
-`gsd/v0.9.6-doctest-block-rendering-and-release` is checked out at `3b284126`, `main` + 4
-`.planning/`-only commits (milestone start, requirements, roadmap, todo tag), and has **not** been
-pushed to `origin`; the first push happens in Phase 74. No `gsd/v0.9.6-milestone` decoy exists: the
+`gsd/v0.9.6-doctest-block-rendering-and-release` was pushed to `origin` for the first time in Phase
+74 (74-07, 2026-09-20) at `e54d47d0`; CI run `35476044079` on that SHA is 12/12 green. The local tip
+has since advanced by `.planning/`-only commits, so `origin` is behind the local branch outside
+`.planning/` by nothing at all. No `gsd/v0.9.6-milestone` decoy exists: the
 commit helper created one at the milestone-start commit and it was renamed to the canonical
 config-derived slug the same minute, which every later `gsd_run query commit` confirmed by warning
 that the resolved milestone branch is absent and committing on the current branch instead. Re-measure
@@ -1295,11 +1296,11 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** `.planning/phases/74-the-doctest-block-handler-its-real-compile-gate-and-the-docs/74-01-PLAN.md`
+**Resume file:** `.planning/phases/74-the-doctest-block-handler-its-real-compile-gate-and-the-docs/74-VERIFICATION.md`
 
-Last session: 2026-09-20T00:00:00.000Z
-Stopped at: Phase 74 planned (7 plans, 5 waves)
-Resume: `/gsd-execute-phase 74`. The roadmap's 13 binding constraints are in `.planning/ROADMAP.md`
+Last session: 2026-09-20 (Phase 74 executed end to end)
+Stopped at: Phase 74 complete, ready to plan Phase 75
+Resume: `/gsd-plan-phase 75`. The roadmap's 13 binding constraints are in `.planning/ROADMAP.md`
 under the active-milestone section and should not be re-derived. v0.9.5's phase directories are
 under `.planning/milestones/v0.9.5-phases/`; `73-HANDOFF.md` there records the merge-only close
 procedure, and `.planning/milestones/v0.9.2-phases/63-HANDOFF.md` records the last **published**
@@ -1307,7 +1308,10 @@ close — the one Phase 75's handoff should be modelled on, since this milestone
 
 ## Operator Next Steps
 
-- **Execute Phase 74 with `/gsd-execute-phase 74`.** Planned 2026-09-20 (7 plans, 5 waves). 74-05 records `FINDING-D04` (autodoc-rendered hunks caused by D-04) for owner acknowledgement; 74-07 halts for the orchestrator if a `gsd/v0.9.6-milestone` decoy carries unique commits. The v0.9.6 roadmap is created: Phases 74–75, 5/5
+- **Phase 74 is complete** (2026-09-20: 7 plans in 5 waves, verification 4/4, TRN-01/TRN-02/QUA-14
+  Complete; branch on `origin` at `e54d47d0`, CI run `35476044079` 12/12). `74-SECURITY.md` is not
+  yet written — security enforcement is on, so run `/gsd-secure-phase 74` before advancing.
+  **Next: `/gsd-plan-phase 75`.** The v0.9.6 roadmap is created: Phases 74–75, 5/5
   requirements mapped. `0.9.3`, `0.9.4` and `0.9.5` stay permanently unclaimed — the owner chose
   `0.9.6` on 2026-09-16 to keep the milestone number and the released version aligned. `##
   [Unreleased]` holds six bullets from three unpublished milestones, and **Phase 75 promotes all six
