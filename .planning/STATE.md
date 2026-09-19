@@ -3,8 +3,8 @@ gsd_state_version: "1.0"
 milestone: v0.9.6
 milestone_name: Doctest block rendering and release
 status: planning
-last_updated: "2026-09-16T13:40:00.000Z"
-last_activity: 2026-09-16
+last_updated: "2026-09-19T00:00:00.000Z"
+last_activity: 2026-09-19
 progress:
   total_phases: 2
   completed_phases: 0
@@ -275,7 +275,7 @@ land here.
 Phase: 74 of 75 (The `doctest_block` Handler, Its Real-Compile Gate, and the Docstring reST Errors)
 Plan: — (not yet planned)
 Status: Ready to plan
-Last activity: 2026-09-16 — v0.9.6 roadmap created: Phases 74–75, 5/5 v1 requirements mapped, zero orphans, zero duplicates
+Last activity: 2026-09-19 — Phase 74 context gathered (`74-CONTEXT.md`, D-01..D-05: fence tag `python`, fallback in the literal-block language line, whole-tree base/tip diff)
 
 Progress: [░░░░░░░░░░] 0% (0/2 phases)
 
@@ -1290,10 +1290,10 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** none — no phase is active yet; Phase 74 has not been planned.
+**Resume file:** `.planning/phases/74-the-doctest-block-handler-its-real-compile-gate-and-the-docs/74-CONTEXT.md`
 
-Last session: 2026-09-16T13:40:00.000Z
-Stopped at: v0.9.6 roadmap created (Phases 74–75), awaiting phase planning
+Last session: 2026-09-19T00:00:00.000Z
+Stopped at: Phase 74 context gathered
 Resume: `/gsd-plan-phase 74`. The roadmap's 13 binding constraints are in `.planning/ROADMAP.md`
 under the active-milestone section and should not be re-derived. v0.9.5's phase directories are
 under `.planning/milestones/v0.9.5-phases/`; `73-HANDOFF.md` there records the merge-only close
