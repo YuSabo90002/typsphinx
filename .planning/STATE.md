@@ -3,12 +3,12 @@ gsd_state_version: "1.0"
 milestone: v0.9.6
 milestone_name: Doctest block rendering and release
 status: planning
-last_updated: "2026-09-19T00:00:00.000Z"
-last_activity: 2026-09-19
+last_updated: "2026-09-20T00:00:00.000Z"
+last_activity: 2026-09-20
 progress:
   total_phases: 2
   completed_phases: 0
-  total_plans: 0
+  total_plans: 7
   completed_plans: 0
   percent: 0
 ---
@@ -20,7 +20,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-16 — full evolution review at the v0.9.5 close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** **v0.9.6 Doctest block rendering and release** — roadmap created 2026-09-16. Two phases (74–75), 5/5 v1 requirements mapped, zero orphans. Phase 74 gives `doctest_block` the translator handler it has never had (TRN-01, TRN-02) and clears the docutils reST errors this project's own docstrings raise in the same build (QUA-14); Phase 75 is prep-only release work (REL-15, REL-16). **This milestone publishes**, after three merge-only milestones: `pyproject.toml` `0.9.2` → `0.9.6`, the six carried `## [Unreleased]` bullets promoted into `## [0.9.6]`, then tag → PyPI → GitHub Release at `/gsd-complete-milestone`. Next: `/gsd-plan-phase 74`.
+**Current focus:** **v0.9.6 Doctest block rendering and release** — roadmap created 2026-09-16. Two phases (74–75), 5/5 v1 requirements mapped, zero orphans. Phase 74 gives `doctest_block` the translator handler it has never had (TRN-01, TRN-02) and clears the docutils reST errors this project's own docstrings raise in the same build (QUA-14); Phase 75 is prep-only release work (REL-15, REL-16). **This milestone publishes**, after three merge-only milestones: `pyproject.toml` `0.9.2` → `0.9.6`, the six carried `## [Unreleased]` bullets promoted into `## [0.9.6]`, then tag → PyPI → GitHub Release at `/gsd-complete-milestone`. Phase 74 planned 2026-09-20: 7 plans in 5 waves. Next: `/gsd-execute-phase 74`.
 
 ## Shipped Milestone (v0.9.5 — archived, merged to `main`, NOT published)
 
@@ -273,9 +273,9 @@ land here.
 ## Current Position
 
 Phase: 74 of 75 (The `doctest_block` Handler, Its Real-Compile Gate, and the Docstring reST Errors)
-Plan: — (not yet planned)
-Status: Ready to plan
-Last activity: 2026-09-19 — Phase 74 context gathered (`74-CONTEXT.md`, D-01..D-05: fence tag `python`, fallback in the literal-block language line, whole-tree base/tip diff)
+Plan: 0 of 7 (5 waves: 74-01/74-02 → 74-03 → 74-04 → 74-05/74-06 → 74-07)
+Status: Ready to execute
+Last activity: 2026-09-20 — Phase 74 planned: research (`74-RESEARCH.md`), post-research AMENDED D-06/D-07 (owner-approved), `74-VALIDATION.md`, `74-PATTERNS.md`, 7 PLAN.md files; plan-checker passed, decision coverage 7/7
 
 Progress: [░░░░░░░░░░] 0% (0/2 phases)
 
@@ -1290,11 +1290,11 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** `.planning/phases/74-the-doctest-block-handler-its-real-compile-gate-and-the-docs/74-CONTEXT.md`
+**Resume file:** `.planning/phases/74-the-doctest-block-handler-its-real-compile-gate-and-the-docs/74-01-PLAN.md`
 
-Last session: 2026-09-19T00:00:00.000Z
-Stopped at: Phase 74 context gathered
-Resume: `/gsd-plan-phase 74`. The roadmap's 13 binding constraints are in `.planning/ROADMAP.md`
+Last session: 2026-09-20T00:00:00.000Z
+Stopped at: Phase 74 planned (7 plans, 5 waves)
+Resume: `/gsd-execute-phase 74`. The roadmap's 13 binding constraints are in `.planning/ROADMAP.md`
 under the active-milestone section and should not be re-derived. v0.9.5's phase directories are
 under `.planning/milestones/v0.9.5-phases/`; `73-HANDOFF.md` there records the merge-only close
 procedure, and `.planning/milestones/v0.9.2-phases/63-HANDOFF.md` records the last **published**
@@ -1302,7 +1302,7 @@ close — the one Phase 75's handoff should be modelled on, since this milestone
 
 ## Operator Next Steps
 
-- **Plan Phase 74 with `/gsd-plan-phase 74`.** The v0.9.6 roadmap is created: Phases 74–75, 5/5
+- **Execute Phase 74 with `/gsd-execute-phase 74`.** Planned 2026-09-20 (7 plans, 5 waves). 74-05 records `FINDING-D04` (autodoc-rendered hunks caused by D-04) for owner acknowledgement; 74-07 halts for the orchestrator if a `gsd/v0.9.6-milestone` decoy carries unique commits. The v0.9.6 roadmap is created: Phases 74–75, 5/5
   requirements mapped. `0.9.3`, `0.9.4` and `0.9.5` stay permanently unclaimed — the owner chose
   `0.9.6` on 2026-09-16 to keep the milestone number and the released version aligned. `##
   [Unreleased]` holds six bullets from three unpublished milestones, and **Phase 75 promotes all six

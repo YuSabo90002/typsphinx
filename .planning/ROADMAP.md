@@ -421,12 +421,26 @@ was.
 
 Plans:
 
+**Wave 1**
+
 - [ ] 74-01-PLAN.md — base: PHASE_BASE_SHA, clean C-locale base -b typst build with positive controls, QUA-14 raw and attributed census with FIX_LIST (D-07), phase-head reads (wave 1)
 - [ ] 74-02-PLAN.md — GATE-01 gate and fixture, context (a) and context (b) shapes (b1)/(b2) per D-06, recorded RED on a tree without the handler (wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 74-03-PLAN.md — the doctest_block handler per D-01..D-04, the unchanged gate green through real compiles, unit tests, GREEN record (wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 74-04-PLAN.md — QUA-14 repairs from the census: blank lines in visit_toctree's and quote_path's docstrings, proven by a clean rebuild (wave 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 74-05-PLAN.md — tip evidence: SC1 and SC3 against a same-venv base rebuild, the D-05 whole-tree diff classified, rendered meaning unchanged (wave 4)
 - [ ] 74-06-PLAN.md — local gates (lint trio, full pytest plain and LC_ALL=C, @preview), the scope fence with controls, COVERAGE.md (wave 4)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 74-07-PLAN.md — branch census, first push with tracking, one CI dispatch waited on to completion, required checks at close (wave 5)
 
 **UI hint**: no
