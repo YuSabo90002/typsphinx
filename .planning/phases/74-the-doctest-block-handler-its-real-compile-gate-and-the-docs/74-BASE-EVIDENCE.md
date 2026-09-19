@@ -136,3 +136,138 @@ outputs on one physical `.typ` line each.
 - `BASE_API_TERMS_ITEM_COUNT` = `0` (`grep -c 'terms\.item' "$S/base-typst/api/index.typ" || true`).
   This confirms the D-06 amendment's measurement: this project's own `api/index.typ` carries no
   `terms.item(...)` doctest shape at the base. Recorded as context; it gates nothing here.
+
+## QUA-14 census
+
+BASE_RAW_UNEXPECTED_INDENTATION = 6
+BASE_RAW_BLOCK_QUOTE_ENDS = 4
+BASE_RAW_TOTAL = 10
+BASE_ATTRIBUTED_COUNT = 3
+BASE_UNATTRIBUTED_COUNT = 7
+BASE_UNATTRIBUTED_UNMATCHED = 0
+FIX_LIST = typsphinx.pathfmt.quote_path|typsphinx.translator.TypstTranslator.visit_toctree
+FIX_LIST_COUNT = 2
+
+All greps below run as `LANG=C LC_ALL=C` over `$S/p7401_base-typst.log` (`$L`), the same log Task 1
+built. `|| true` is used on every grep whose count may be 0.
+
+`BASE_RAW_UNEXPECTED_INDENTATION` = `grep -o 'Unexpected indentation' "$L" | wc -l` = `6`.
+`BASE_RAW_BLOCK_QUOTE_ENDS` = `grep -o 'Block quote ends without a blank line' "$L" | wc -l` = `4`.
+`BASE_RAW_TOTAL` = their sum = `10`.
+
+### Raw lines
+
+`grep -nE 'Unexpected indentation|Block quote ends without a blank line' "$L"`, verbatim:
+
+```
+12::19: (ERROR/3) Unexpected indentation.
+13::21: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+14::19: (ERROR/3) Unexpected indentation.
+15::21: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+16::5: (ERROR/3) Unexpected indentation.
+17::6: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+18::21: (ERROR/3) Unexpected indentation.
+33:/home/yuta/Documents/typsphinx/.claude/worktrees/agent-ac2d204a5bc5e0bdf/typsphinx/translator.py:docstring of typsphinx.translator.TypstTranslator.visit_toctree:5: ERROR: Unexpected indentation. [docutils]
+34:/home/yuta/Documents/typsphinx/.claude/worktrees/agent-ac2d204a5bc5e0bdf/typsphinx/translator.py:docstring of typsphinx.translator.TypstTranslator.visit_toctree:6: WARNING: Block quote ends without a blank line; unexpected unindent. [docutils]
+35:/home/yuta/Documents/typsphinx/.claude/worktrees/agent-ac2d204a5bc5e0bdf/typsphinx/translator.py:docstring of typsphinx.translator.TypstTranslator.visit_toctree:21: ERROR: Unexpected indentation. [docutils]
+```
+
+10 raw lines total, matching `BASE_RAW_TOTAL`.
+
+### Attributed lines
+
+Filter: `grep -nE '\.py:docstring of [A-Za-z0-9_.]+:[0-9]+: (ERROR|WARNING): (Unexpected indentation|Block quote ends without a blank line)' "$L"`, verbatim:
+
+```
+33:/home/yuta/Documents/typsphinx/.claude/worktrees/agent-ac2d204a5bc5e0bdf/typsphinx/translator.py:docstring of typsphinx.translator.TypstTranslator.visit_toctree:5: ERROR: Unexpected indentation. [docutils]
+34:/home/yuta/Documents/typsphinx/.claude/worktrees/agent-ac2d204a5bc5e0bdf/typsphinx/translator.py:docstring of typsphinx.translator.TypstTranslator.visit_toctree:6: WARNING: Block quote ends without a blank line; unexpected unindent. [docutils]
+35:/home/yuta/Documents/typsphinx/.claude/worktrees/agent-ac2d204a5bc5e0bdf/typsphinx/translator.py:docstring of typsphinx.translator.TypstTranslator.visit_toctree:21: ERROR: Unexpected indentation. [docutils]
+```
+
+All three originate in `typsphinx/translator.py`, fully qualified name
+`typsphinx.translator.TypstTranslator.visit_toctree`, docstring-relative lines 5, 6 and 21.
+`BASE_ATTRIBUTED_COUNT` = `3`.
+
+### Unattributed lines
+
+The raw lines that do not contain `.py:docstring of `
+(`grep -nE '...' "$L" | grep -v '\.py:docstring of '`), verbatim:
+
+```
+12::19: (ERROR/3) Unexpected indentation.
+13::21: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+14::19: (ERROR/3) Unexpected indentation.
+15::21: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+16::5: (ERROR/3) Unexpected indentation.
+17::6: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+18::21: (ERROR/3) Unexpected indentation.
+```
+
+`BASE_UNATTRIBUTED_COUNT` = `7`. `BASE_ATTRIBUTED_COUNT` (3) + `BASE_UNATTRIBUTED_COUNT` (7) = `10`
+= `BASE_RAW_TOTAL`.
+
+### Docstring probe
+
+Scratch helper `$S/p7401_docstring_probe.py` (never committed), run with `uv run python`. It walks
+every module under `typsphinx` via `pkgutil.walk_packages`, visits every function, class, and
+function defined directly in a class body whose defining source file (`inspect.getsourcefile`) is
+under this worktree's `typsphinx/` directory, converts each such object's own `__doc__` with
+`inspect.cleandoc()` then `sphinx.ext.napoleon.docstring.GoogleDocstring(...).lines()`, and parses
+the joined result with `docutils.core.publish_doctree()`, printing one tab-separated row per system
+message matching either QUA-14 message class (fully qualified name, docstring-relative line, level
+word, message).
+
+Full output, verbatim:
+
+```
+typsphinx.pathfmt.quote_path	19	ERROR	<string>:19: (ERROR/3) Unexpected indentation.
+typsphinx.pathfmt.quote_path	21	WARNING	<string>:21: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+typsphinx.translator.TypstTranslator.visit_toctree	5	ERROR	<string>:5: (ERROR/3) Unexpected indentation.
+typsphinx.translator.TypstTranslator.visit_toctree	6	WARNING	<string>:6: (WARNING/2) Block quote ends without a blank line; unexpected unindent.
+typsphinx.translator.TypstTranslator.visit_toctree	21	ERROR	<string>:21: (ERROR/3) Unexpected indentation.
+```
+
+No skipped modules and no probing errors were reported on stderr (checked: zero `# skip module` /
+`# error probing` lines). Among every typsphinx-defined function, class and method under
+`typsphinx/`, exactly two docstrings raise either QUA-14 message class:
+`typsphinx.pathfmt.quote_path` (19 ERROR, 21 WARNING) and
+`typsphinx.translator.TypstTranslator.visit_toctree` (5 ERROR, 6 WARNING, 21 ERROR).
+
+### Attribution table
+
+| Census line(s) | Line | Class | Probe match |
+|---|---|---|---|
+| unattributed #1, #3 (`:19: (ERROR/3)`) | 19 | Unexpected indentation (ERROR) | `typsphinx.pathfmt.quote_path` |
+| unattributed #2, #4 (`:21: (WARNING/2)`) | 21 | Block quote ends (WARNING) | `typsphinx.pathfmt.quote_path` |
+| unattributed #5 (`:5: (ERROR/3)`) | 5 | Unexpected indentation (ERROR) | `typsphinx.translator.TypstTranslator.visit_toctree` |
+| unattributed #6 (`:6: (WARNING/2)`) | 6 | Block quote ends (WARNING) | `typsphinx.translator.TypstTranslator.visit_toctree` |
+| unattributed #7 (`:21: (ERROR/3)`) | 21 | Unexpected indentation (ERROR) | `typsphinx.translator.TypstTranslator.visit_toctree` |
+| attributed (`visit_toctree:5: ERROR`) | 5 | Unexpected indentation (ERROR) | confirmed: probe reproduces line 5 ERROR for `typsphinx.translator.TypstTranslator.visit_toctree` |
+| attributed (`visit_toctree:6: WARNING`) | 6 | Block quote ends (WARNING) | confirmed: probe reproduces line 6 WARNING for `typsphinx.translator.TypstTranslator.visit_toctree` |
+| attributed (`visit_toctree:21: ERROR`) | 21 | Unexpected indentation (ERROR) | confirmed: probe reproduces line 21 ERROR for `typsphinx.translator.TypstTranslator.visit_toctree` |
+
+Every one of the 7 unattributed lines is matched to a probe row by (docstring-relative line, message
+class) pair; no pair matches more than one docstring. `BASE_UNATTRIBUTED_UNMATCHED` = `0`.
+
+### Fix list
+
+`FIX_LIST` = the `|`-joined, `LC_ALL=C`-sorted, de-duplicated fully qualified names of every
+docstring named in the attributed lines (§ Attributed lines) and in the attribution table's probe
+matches (§ Attribution table):
+
+```
+typsphinx.pathfmt.quote_path|typsphinx.translator.TypstTranslator.visit_toctree
+```
+
+`FIX_LIST_COUNT` = `2`. This is the whole census over the whole log (constraint 6), never narrowed to
+`visit_toctree` alone — per D-07, `typsphinx.pathfmt.quote_path` is included because the probe
+attributes both its unattributed census lines (`:19` ERROR, `:21` WARNING) to it.
+
+#### Probe-only rows (not in the build census)
+
+None. Every probe row found (`quote_path` at 19/21, `visit_toctree` at 5/6/21) corresponds exactly to
+a line the build log actually reported — the probe found no additional typsphinx docstring raising
+either QUA-14 message class that the build census did not already surface.
+
+**Positive control (constraint 5):** `BASE_RAW_TOTAL` (10) and `BASE_ATTRIBUTED_COUNT` (3) are both
+at least 1. Positive control passes.
