@@ -34,6 +34,12 @@ D05_UNEXPLAINED_HUNKS = 0
 D05_REMOVED_FENCE_LINES = 0
 D05_REMOVED_COLLAPSED_RUNS = 2
 D05_ADDED_PYTHON_FENCES = 2
+HTML_VISIT_TOCTREE_WORDS_EQUAL = yes
+TYP_VISIT_TOCTREE_WORDS_EQUAL = yes
+QUOTE_PATH_RENDERED = no
+SC1_VERDICT = MET
+SC3_VERDICT = MET
+D05_VERDICT = MET
 
 ## Head check and provisioning
 
@@ -488,3 +494,230 @@ into `$S/p7405_d05-1.diff`. `D05_HUNK_COUNT` = `6` (`grep -c '^@@' "$S/p7405_d05
 
 The literal-block emission path for pre-existing code blocks is unchanged: every removed line is
 either a collapsed doctest run (TRN-01) or QUA-14 docstring prose, never a fence delimiter.
+
+## Tip HTML build
+
+Build command (through the `docs_link` workaround, § "Head check and provisioning"):
+
+```
+rm -rf "$S/tip-html"
+LANG=C LC_ALL=C uv run python -m sphinx -b html docs_link "$S/tip-html" > "$S/p7405_tip-html.log" 2>&1
+```
+
+Exit `0`. English summary line, verbatim:
+
+```
+build succeeded.
+```
+
+## Rendered meaning (SC3)
+
+Scratch helper `$S/p7405_region.py` (never committed). It takes a mode (`html` or `typ`) and a
+path, and writes the sorted word tokens of `visit_toctree`'s rendered entry, one per line, with
+every token equal to a lone `-` dropped (the base renders the list's bullet markers as that lone
+token; the repair turns the same content into real list items, so a bullet-marker count is exactly
+the token class this comparison must not be sensitive to).
+
+- `html` mode parses `api/index.html` with `html.parser`. It finds the `<dt>` whose `id` is
+  `typsphinx.translator.TypstTranslator.visit_toctree`, then collects the data of the immediately
+  following `<dd>` until that `<dd>` closes, tracking nested `<dd>` open/close depth so a
+  field-list's own inner `<dd>`s (Parameters, Return type) do not truncate the region early.
+- `typ` mode takes the lines after the metadata line ending `TypstTranslator.visit_toctree>]`, up
+  to the next line starting `block(sticky: true`, and collects the contents of every
+  `text("...")` string literal.
+
+Run on the base and tip of both formats:
+
+```
+$ uv run python "$S/p7405_region.py" html "$S/base-html/api/index.html" > "$S/p7405_html-base.tokens"
+$ uv run python "$S/p7405_region.py" html "$S/tip-html/api/index.html" > "$S/p7405_html-tip.tokens"
+$ uv run python "$S/p7405_region.py" typ "$S/base-typst/api/index.typ" > "$S/p7405_typ-base.tokens"
+$ uv run python "$S/p7405_region.py" typ "$S/tip-typst/api/index.typ" > "$S/p7405_typ-tip.tokens"
+```
+
+All four exit `0`. Token counts: HTML base/tip both `318` lines; `.typ` base/tip both `329` lines.
+
+`HTML_VISIT_TOCTREE_WORDS_EQUAL` = `yes` (`cmp -s "$S/p7405_html-base.tokens" "$S/p7405_html-tip.tokens"`
+exits `0`). `TYP_VISIT_TOCTREE_WORDS_EQUAL` = `yes` (`cmp -s "$S/p7405_typ-base.tokens" "$S/p7405_typ-tip.tokens"`
+exits `0`).
+
+Both formats' base and tip regions, verbatim, so a reader sees that only the list structure
+changed:
+
+**HTML base** (`sed -n '2789,2845p' "$S/base-html/api/index.html"`):
+
+```html
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_toctree">
+<span class="sig-name descname"><span class="pre">visit_toctree</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_toctree"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_toctree" title="Link to this definition">¶</a></dt>
+<dd><p>Visit a toctree node (Sphinx table of contents tree).</p>
+<p>Requirement 13: Multi-document integration and toctree processing
+- Generate a compile-time state guard for each include-file entry</p>
+<blockquote>
+<div><p>(Phase 49, COMP-05/COMP-06 – see below)</p>
+</div></blockquote>
+<ul>
+<li><p>D-07: apply <cite>set heading(offset: heading.offset + 1)</cite> – a
+context-relative increment, not an absolute assignment – to
+lower heading levels. <cite>set</cite> is an absolute assignment on Typst's
+style chain, so a nested toctree scope would otherwise <em>replace</em>
+its parent's offset instead of adding to it, and nested toctrees
+would not compose. An included document's <cite>.typ</cite> is also a
+single shared file that different masters may include at
+different depths, so no single absolute value could be correct
+at every include site; a relative expression evaluated at
+layout time removes the need for one to exist.</p></li>
+<li><p>Issue #5: Fix relative paths for nested toctrees
+- Calculate relative paths from current document</p></li>
+<li><p>Issue #7: Simplify toctree output with single content block
+- Generate single #[…] block containing all guards
+- D-07: apply <cite>heading.offset + 1</cite> once per toctree, inside a</p>
+<blockquote>
+<div><p><cite>context { … }</cite> block (required because <cite>heading.offset</cite> is
+a context-dependent style query)</p>
+</div></blockquote>
+</li>
+</ul>
+<p>Phase 49 (COMP-05/D-03): reads the toctree's INCLUDE-FILE list
+(<cite>node["includefiles"]</cite>), never its entry list
+(<cite>node["entries"]</cite>). Sphinx's own <cite>parse_content</cite> appends a
+<cite>self</cite>/external-URL entry only to <cite>entries</cite>, never to
+<cite>includefiles</cite> (<cite>sphinx/directives/other.py:146-149</cite>), so those
+entries produce no guard here at all – closing the
+<cite>TypstError: file not found (searched at …/self.typ)</cite> compile
+fatal as a structural consequence of reading the right list, not a
+separate patch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>node</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Node</span></code></span>) – The toctree node</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This method generates Typst #include() directives for each toctree entry
+within a single content block #[…] to apply heading offset without
+displaying the block delimiters in the output. This simplifies the
+generated Typst code and improves readability.</p>
+<p>Phase 49: each <cite>#include()</cite> directive is now wrapped in its own
+one-line compile-time guard (<cite>render_include_guard()</cite>), still
+emitted within that same single content block, rather than as
+an unconditional call.</p>
+</dd></dl>
+```
+
+**HTML tip** (`sed -n '2833,2890p' "$S/tip-html/api/index.html"`):
+
+```html
+<dt class="sig sig-object py" id="typsphinx.translator.TypstTranslator.visit_toctree">
+<span class="sig-name descname"><span class="pre">visit_toctree</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/typsphinx/translator.html#TypstTranslator.visit_toctree"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#typsphinx.translator.TypstTranslator.visit_toctree" title="Link to this definition">¶</a></dt>
+<dd><p>Visit a toctree node (Sphinx table of contents tree).</p>
+<p>Requirement 13: Multi-document integration and toctree processing</p>
+<ul class="simple">
+<li><p>Generate a compile-time state guard for each include-file entry
+(Phase 49, COMP-05/COMP-06 – see below)</p></li>
+<li><p>D-07: apply <cite>set heading(offset: heading.offset + 1)</cite> – a
+context-relative increment, not an absolute assignment – to
+lower heading levels. <cite>set</cite> is an absolute assignment on Typst's
+style chain, so a nested toctree scope would otherwise <em>replace</em>
+its parent's offset instead of adding to it, and nested toctrees
+would not compose. An included document's <cite>.typ</cite> is also a
+single shared file that different masters may include at
+different depths, so no single absolute value could be correct
+at every include site; a relative expression evaluated at
+layout time removes the need for one to exist.</p></li>
+<li><p>Issue #5: Fix relative paths for nested toctrees</p>
+<ul>
+<li><p>Calculate relative paths from current document</p></li>
+</ul>
+</li>
+<li><p>Issue #7: Simplify toctree output with single content block</p>
+<ul>
+<li><p>Generate single #[…] block containing all guards</p></li>
+<li><p>D-07: apply <cite>heading.offset + 1</cite> once per toctree, inside a
+<cite>context { … }</cite> block (required because <cite>heading.offset</cite> is
+a context-dependent style query)</p></li>
+</ul>
+</li>
+</ul>
+<p>Phase 49 (COMP-05/D-03): reads the toctree's INCLUDE-FILE list
+(<cite>node["includefiles"]</cite>), never its entry list
+(<cite>node["entries"]</cite>). Sphinx's own <cite>parse_content</cite> appends a
+<cite>self</cite>/external-URL entry only to <cite>entries</cite>, never to
+<cite>includefiles</cite> (<cite>sphinx/directives/other.py:146-149</cite>), so those
+entries produce no guard here at all – closing the
+<cite>TypstError: file not found (searched at …/self.typ)</cite> compile
+fatal as a structural consequence of reading the right list, not a
+separate patch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>node</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Node</span></code></span>) – The toctree node</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This method generates Typst #include() directives for each toctree entry
+within a single content block #[…] to apply heading offset without
+displaying the block delimiters in the output. This simplifies the
+generated Typst code and improves readability.</p>
+<p>Phase 49: each <cite>#include()</cite> directive is now wrapped in its own
+one-line compile-time guard (<cite>render_include_guard()</cite>), still
+emitted within that same single content block, rather than as
+an unconditional call.</p>
+</dd></dl>
+```
+
+The `.typ` base and tip regions are already transcribed verbatim above (`## D-05 whole-tree diff`
+§ "### Hunks", hunks H5/H6 and their surrounding context) — the same `visit_toctree` entry, from
+the metadata line at `3196` (tip) to the `depart_toctree` `block(sticky: true` at `3285` (tip).
+
+Comparing base and tip in both formats: the "Requirement 13" run-on paragraph plus block quote
+becomes a paragraph plus a bulleted list item; the "Issue #5" and "Issue #7" bullets each gain a
+nested sub-list for the sentence that followed a bare ` - ` separator in the base. Every other
+sentence — the D-07 heading-offset rationale, the Phase 49 COMP-05/D-03 paragraph, the Parameters
+and Return type fields, and the entire "Notes" section — is byte-identical in both formats between
+base and tip. Only list structure changed; the documented meaning did not.
+
+## quote_path rendering
+
+- `grep -c 'quote_path>' "$S/tip-typst/api/index.typ"` = `0`.
+- `grep -c 'quote_path>' "$S/base-typst/api/index.typ"` = `0`.
+- `grep -c 'id="[^"]*quote_path"' "$S/tip-html/api/index.html"` = `0`.
+- `grep -c 'id="[^"]*quote_path"' "$S/base-html/api/index.html"` = `0`.
+
+`QUOTE_PATH_RENDERED` = `no`: all four are `0`. `quote_path` is never a rendered API entry in
+either format, in base or tip — its docstring repair (D-07) is proven entirely by the raw census
+(`74-QUA14-EVIDENCE.md`), never by a rendered-output comparison, because there is no rendered
+output to compare.
+
+## Verdicts
+
+`SC1_VERDICT` = `MET`:
+- `TIP_DOCTEST_UNKNOWN_COUNT = 0`, with `REBUILT_BASE_DOCTEST_UNKNOWN_COUNT = 2` (at least 1).
+- `TIP_API_COLLAPSED_RUNS = 0`.
+- `TIP_API_EXAMPLE_PROMPTS = 3`.
+- `TIP_FENCE_TAG = python` and `TIP_CODLY_ABOVE_FENCE = yes`.
+
+`SC3_VERDICT` = `MET`:
+- `TIP_RAW_TOTAL = 0` and `TIP_ATTRIBUTED_COUNT = 0`, with the rebuilt base at least 1 on both
+  (`REBUILT_BASE_RAW_TOTAL = 10`, `REBUILT_BASE_ATTRIBUTED_COUNT = 3`).
+- `NOT_RISEN = yes`.
+- Both words-equal keys are `yes`.
+
+`D05_VERDICT` = `MET`: `D05_UNEXPLAINED_HUNKS = 0` and `D05_REMOVED_FENCE_LINES = 0`.
+
+### D-05 findings for owner acknowledgement
+
+- **H3** (`api/index.typ` `@@ -2121,7 +2139,7 @@`): `visit_literal_block`'s rendered `node`
+  parameter type widens from `literal_block` to `literal_block | doctest_block` — the D-04
+  annotation change self-documenting through autodoc, exactly as predicted at planning time.
+- **H4** (`api/index.typ` `@@ -2137,7 +2155,72 @@`): `depart_literal_block`'s rendered `node`
+  parameter type widens the same way, and two new API entries appear —
+  `TypstTranslator.visit_doctest_block` and `TypstTranslator.depart_doctest_block` — the D-04
+  delegating methods and their docstrings, which did not exist on the base because the handler
+  did not exist on the base.
+
+Both findings are the D-04 self-documentation the phase's own decision record predicted, not an
+unexplained or unaccounted-for difference.
