@@ -882,3 +882,286 @@ Every required RED test failed (RED pytest run, 8/8), `RED_REFUSAL_COUNT` is 10 
 `RED_FAILED_MASTERS` contains `context_a_paragraph`, and every sentinel (`ctx_a_paragraph`,
 `ctx_b1_definition`, `ctx_b2_bullet`) appears in a warning chunk (RED direct build, sentinel-to-chunk
 mapping above).
+
+## GREEN tree identity
+
+SCRATCH_74_03 = /tmp/tmp.5umbRliY3a
+
+GREEN_TREE_SHA = 255d1648fa68421d5d10e6abfef68bd6cece8458
+
+GATE_UNCHANGED_SINCE_RED = yes
+
+`git diff --quiet "$RED_TREE_SHA" "$GREEN_TREE_SHA" -- tests/test_doctest_block_render_gate.py tests/fixtures/doctest_block_render_gate` exits 0 -- the gate module and fixture are byte-identical between RED and this GREEN commit.
+
+`git diff "$PHASE_BASE_SHA" "$GREEN_TREE_SHA" -- typsphinx/` verbatim:
+
+````diff
+diff --git a/typsphinx/translator.py b/typsphinx/translator.py
+index 0391897c..629f918b 100644
+--- a/typsphinx/translator.py
++++ b/typsphinx/translator.py
+@@ -2428,7 +2428,9 @@ class TypstTranslator(SphinxTranslator):
+         else:
+             self.in_list_item = False
+ 
+-    def visit_literal_block(self, node: nodes.literal_block) -> None:
++    def visit_literal_block(
++        self, node: nodes.literal_block | nodes.doctest_block
++    ) -> None:
+         """
+         Visit a literal block (code block) node.
+ 
+@@ -2567,13 +2569,23 @@ class TypstTranslator(SphinxTranslator):
+ 
+         # Typst code block syntax: ```language\ncode\n```
+         # Extract language if specified
+-        language = node.get("language", "")
++        # Sphinx's HighlightLanguageTransform only assigns `language` to
++        # `literal_block` nodes, so a doctest_block always arrives with none
++        # -- a non-empty language already on the node is honoured (D-02),
++        # `highlight_language` is deliberately not followed, and the "python"
++        # fallback is keyed on the node class, so every literal_block keeps
++        # its current output (D-03).
++        language = node.get("language", "") or (
++            "python" if isinstance(node, nodes.doctest_block) else ""
++        )
+         if language:
+             self.add_text(f"```{language}\n")
+         else:
+             self.add_text("```\n")
+ 
+-    def depart_literal_block(self, node: nodes.literal_block) -> None:
++    def depart_literal_block(
++        self, node: nodes.literal_block | nodes.doctest_block
++    ) -> None:
+         """
+         Depart a literal block (code block) node.
+ 
+@@ -2613,6 +2625,45 @@ class TypstTranslator(SphinxTranslator):
+         if self.in_list_item:
+             self.list_item_needs_separator = True
+ 
++    def visit_doctest_block(self, node: nodes.doctest_block) -> None:
++        """
++        Visit a doctest block (a ``>>>`` interactive example) node.
++
++        docutils' parser builds a ``doctest_block`` for any line beginning
++        with ``>>> `` (``Body.doctest`` in ``docutils/parsers/rst/states.py``),
++        so a reST author cannot opt out of this node appearing in a doctree.
++
++        ``doctest_block`` is a sibling of ``literal_block`` under
++        ``FixedTextElement``, not a subclass of it, so it needs its own
++        dispatch entry rather than being reached through ``literal_block``'s.
++
++        This method delegates wholesale to ``visit_literal_block``: the
++        fence, the codly configuration, id anchors and the list-item
++        separator discipline are all shared, with no second emission path.
++        This is the same shape Sphinx's own writers use for this node --
++        a delegating call in the HTML5 writer, a class-attribute alias in
++        the LaTeX and Texinfo writers.
++
++        The ``python`` fence language is supplied in ``visit_literal_block``
++        itself when the node carries none.
++
++        Args:
++            node: The doctest block node.
++        """
++        self.visit_literal_block(node)
++
++    def depart_doctest_block(self, node: nodes.doctest_block) -> None:
++        """
++        Depart a doctest block (a ``>>>`` interactive example) node.
++
++        Delegates wholesale to ``depart_literal_block``, matching
++        ``visit_doctest_block``.
++
++        Args:
++            node: The doctest block node.
++        """
++        self.depart_literal_block(node)
++
+     def visit_definition_list(self, node: nodes.definition_list) -> None:
+         """
+         Visit a definition list node.
+````
+
+TRANSLATOR_REMOVED_LINES = 3
+
+The diff removes exactly the two literal-block signature lines and the old `language = node.get("language", "")` line -- every other hunk is additions, and every hunk lies between `visit_literal_block` (line 2431) and `visit_definition_list` (line 2667).
+
+## GREEN pytest run
+
+Command: `uv run pytest tests/test_doctest_block_render_gate.py -rA -p no:cacheprovider`, stdout and stderr both redirected into `$S/p7403_green-pytest.txt`, then `echo "exit:$?"`.
+
+GREEN_PYTEST_EXIT = 0
+
+GREEN_PASSED_COUNT = 11
+
+GREEN_FAILED_COUNT = 0
+
+Full verbatim `-rA` transcript:
+
+````
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/yuta/Documents/typsphinx/.claude/worktrees/agent-adf519d728475519c/.venv/bin/python
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-adf519d728475519c
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collecting ... collected 11 items
+
+tests/test_doctest_block_render_gate.py::TestDoctestBlockRenderGate::test_build_exits_zero_without_compile_failure PASSED [  9%]
+tests/test_doctest_block_render_gate.py::TestDoctestBlockRenderGate::test_build_reports_no_doctest_block_unknown_node PASSED [ 18%]
+tests/test_doctest_block_render_gate.py::TestDoctestBlockRenderGate::test_no_unknown_node_warning_for_shape[ctx_a_paragraph] PASSED [ 27%]
+tests/test_doctest_block_render_gate.py::TestDoctestBlockRenderGate::test_no_unknown_node_warning_for_shape[ctx_b1_definition] PASSED [ 36%]
+tests/test_doctest_block_render_gate.py::TestDoctestBlockRenderGate::test_no_unknown_node_warning_for_shape[ctx_b2_bullet] PASSED [ 45%]
+tests/test_doctest_block_render_gate.py::TestDoctestBlockRenderGate::test_master_writes_pdf[index] PASSED [ 54%]
+tests/test_doctest_block_render_gate.py::TestDoctestBlockRenderGate::test_master_writes_pdf[context_a_paragraph] PASSED [ 63%]
+tests/test_doctest_block_render_gate.py::TestDoctestBlockRenderGate::test_master_writes_pdf[context_b_nonfirst_positions] PASSED [ 72%]
+tests/test_doctest_block_render_gate.py::TestDoctestBlockRenderGate::test_context_a_paragraph_line_structure PASSED [ 81%]
+tests/test_doctest_block_render_gate.py::TestDoctestBlockRenderGate::test_context_b1_definition_list_line_structure PASSED [ 90%]
+tests/test_doctest_block_render_gate.py::TestDoctestBlockRenderGate::test_context_b2_bullet_list_item_line_structure PASSED [100%]
+
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED tests/test_doctest_block_render_gate.py::TestDoctestBlockRenderGate::test_build_exits_zero_without_compile_failure
+PASSED tests/test_doctest_block_render_gate.py::TestDoctestBlockRenderGate::test_build_reports_no_doctest_block_unknown_node
+PASSED tests/test_doctest_block_render_gate.py::TestDoctestBlockRenderGate::test_no_unknown_node_warning_for_shape[ctx_a_paragraph]
+PASSED tests/test_doctest_block_render_gate.py::TestDoctestBlockRenderGate::test_no_unknown_node_warning_for_shape[ctx_b1_definition]
+PASSED tests/test_doctest_block_render_gate.py::TestDoctestBlockRenderGate::test_no_unknown_node_warning_for_shape[ctx_b2_bullet]
+PASSED tests/test_doctest_block_render_gate.py::TestDoctestBlockRenderGate::test_master_writes_pdf[index]
+PASSED tests/test_doctest_block_render_gate.py::TestDoctestBlockRenderGate::test_master_writes_pdf[context_a_paragraph]
+PASSED tests/test_doctest_block_render_gate.py::TestDoctestBlockRenderGate::test_master_writes_pdf[context_b_nonfirst_positions]
+PASSED tests/test_doctest_block_render_gate.py::TestDoctestBlockRenderGate::test_context_a_paragraph_line_structure
+PASSED tests/test_doctest_block_render_gate.py::TestDoctestBlockRenderGate::test_context_b1_definition_list_line_structure
+PASSED tests/test_doctest_block_render_gate.py::TestDoctestBlockRenderGate::test_context_b2_bullet_list_item_line_structure
+============================== 11 passed in 0.58s ==============================
+````
+
+## GREEN direct build
+
+Command: `rm -rf "$S/green-build"`, then `LANG=C LC_ALL=C uv run python -m sphinx -b typstpdf tests/fixtures/doctest_block_render_gate "$S/green-build"`, stdout and stderr both redirected into `$S/p7403_green-build.log`.
+
+GREEN_BUILD_EXIT = 0
+
+GREEN_DOCTEST_UNKNOWN_COUNT = 0
+
+GREEN_PDFS_WRITTEN = context_a_paragraph-out.pdf|context_b_nonfirst_positions-out.pdf|index-out.pdf
+
+Full verbatim log:
+
+````
+Running Sphinx v9.1.0
+loading translations [en]... done
+making output directory... done
+building [mo]: targets for 0 po files that are out of date
+writing output... 
+building [typstpdf]: targets for 3 source files that are out of date
+updating environment: [new config] 3 added, 0 changed, 0 removed
+reading sources... [ 33%] context_a_paragraph
+reading sources... [ 67%] context_b_nonfirst_positions
+reading sources... [100%] index
+
+looking for now-outdated files... none found
+pickling environment... done
+checking consistency... done
+preparing documents... done
+writing output... [context_a_paragraph] done
+writing output... [context_b_nonfirst_positions] done
+writing output... [index] done
+typst: wrote 3 wrapper file(s) -- compile these: context_a_paragraph-out.typ, context_b_nonfirst_positions-out.typ, index-out.typ
+Compiling 3 master document(s) to PDF...
+Generated PDF: /tmp/tmp.5umbRliY3a/green-build/index-out.pdf
+Generated PDF: /tmp/tmp.5umbRliY3a/green-build/context_a_paragraph-out.pdf
+Generated PDF: /tmp/tmp.5umbRliY3a/green-build/context_b_nonfirst_positions-out.pdf
+build succeeded.
+````
+
+## GREEN emitted regions
+
+`context_a_paragraph.typ`, the line before `codly(number-format: none)` through the line after the closing fence (lines 16-27):
+
+````
+    16	
+    17	codly(number-format: none)
+    18	```python
+    19	>>> ctx_a_paragraph = "naïve #1 \\ `x`"
+    20	>>> for part in ctx_a_paragraph.split():
+    21	...     print(part)
+    22	naïve
+    23	#1
+    24	\
+    25	`x`
+    26	```
+    27	
+````
+
+`context_b_nonfirst_positions.typ` shape (b1), the line before `codly(number-format: none)` through the line after the closing fence (lines 18-25):
+
+````
+    18	
+    19	codly(number-format: none)
+    20	```python
+    21	>>> ctx_b1_definition = [1, 2]
+    22	>>> sum(ctx_b1_definition)
+    23	3
+    24	```}))
+    25	
+````
+
+`context_b_nonfirst_positions.typ` shape (b2), the line before `codly(number-format: none)` through the line after the closing fence (lines 33-41):
+
+````
+    33	{
+    34	codly(number-format: none)
+    35	```python
+    36	>>> ctx_b2_bullet = {"k": 1}
+    37	>>> ctx_b2_bullet["k"]
+    38	1
+    39	```
+    40	}
+    41	
+````
+
+## Separator mechanism per shape (D-06)
+
+SEPARATOR_MECHANISM_A = container-level-depart-newline
+
+Context (a) is a plain paragraph position, not a list item. `depart_literal_block`'s non-list, non-captioned branch (`typsphinx/translator.py:2617-2622` at `GREEN_TREE_SHA`, the `else: self.add_text("\n")` arm) emits the trailing newline visible at line 27 of the emitted region above, which is what separates the closing fence from the following `par({text("Trailing paragraph after the doctest block.")})`. That separation was exactly what was missing pre-handler and caused the `expected semicolon or line break` compile refusal recorded in RED.
+
+SEPARATOR_MECHANISM_B1 = definition-buffer
+
+Shape (b1) is a definition-list item. `visit_definition` (`typsphinx/translator.py:2913-2935` at `GREEN_TREE_SHA`) swaps `self.body` to a fresh `current_definition_buffer` list and never sets `in_list_item`, so the leading paragraph's own `par({...})` call precedes the fence via ordinary buffered concatenation (line 17 of the emitted region: `par({text("Leading paragraph of the definition.")})` followed by a blank line then the fence), and the definition's own closing `}))` follows the fence directly (line 24) rather than through the list-item separator machinery.
+
+SEPARATOR_MECHANISM_B2 = in-list-item-separator
+
+Shape (b2) is a bullet-list item. `visit_list_item` (`typsphinx/translator.py:2373-2407` at `GREEN_TREE_SHA`) sets `self.in_list_item = True` and resets `self.list_item_needs_separator = False` on entry (line 2398). After the leading paragraph departs, `list_item_needs_separator` is armed (the shared literal-block-adjacent re-arm at `typsphinx/translator.py:2625-2626`, mirrored by the analogous re-arm on the paragraph path). `visit_literal_block` then emits the separator newline (`typsphinx/translator.py:2463-2464`, `if self.in_list_item and self.list_item_needs_separator: self.add_text("\n")`) and opens the `{ }` list-item wrapper (`typsphinx/translator.py:2489,2494`) -- visible as the bare `{` at line 33 of the emitted region. `depart_literal_block` re-arms `list_item_needs_separator = True` (`typsphinx/translator.py:2625-2626`) so the trailing paragraph in the same item is separated in turn.
+
+Each description above was confirmed by reading the emitted region reproduced in `## GREEN emitted regions`, not transcribed from this plan.
+
+## Tag and reason (SC1, D-01)
+
+FENCE_TAG = python
+
+D-01's measured reason, quoted from `74-CONTEXT.md`: "The same two-prompt doctest fragment was compiled under five fences. `pycon`, no tag, `text` and a nonexistent `bogusxyz` all produced a byte-identical PDF (11531 bytes, SHA-256 prefix `5428a015b02591d5`). Only `python` differed (12654 bytes, `9bb09e20e0d2d05a`). An SVG compile counted per glyph: under `pycon` all 58 glyphs were `#000000`. Under `python`, the 28-character function name was blue `#4b69c6`, the 24 string-literal characters green `#198810`, `>>>` red `#d73948`, and the 3 punctuation glyphs black. `@preview/codly-languages:0.1.10`'s `lib.typ` has a `python` entry (name "Python", Python icon, `#306998`) and zero `pycon` entries."
+
+Re-read where the local cache has it, via `grep -cE '^\s+python:'` and the matching `pycon:` grep over `~/.cache/typst/packages/preview/codly-languages/0.1.10/lib.typ`:
+
+CODLY_LANG_PYTHON_ENTRIES = 1
+
+CODLY_LANG_PYCON_ENTRIES = 0
+
+## Lint
+
+`uv run ruff check .`, `uv run black --check .` and `uv run mypy typsphinx/`, run at `GREEN_TREE_SHA`, each exiting 0.
+
+LINT_RUFF_EXIT = 0
+
+LINT_BLACK_EXIT = 0
+
+LINT_MYPY_EXIT = 0
+
+## GREEN verdict
+
+GREEN_VERDICT = MET
+
+`GATE_UNCHANGED_SINCE_RED` is `yes`; `GREEN_PYTEST_EXIT` is `0` with `GREEN_FAILED_COUNT` `0` and `GREEN_PASSED_COUNT` `11`; `GREEN_BUILD_EXIT` is `0` with `GREEN_DOCTEST_UNKNOWN_COUNT` `0`; all three PDFs (`context_a_paragraph-out.pdf`, `context_b_nonfirst_positions-out.pdf`, `index-out.pdf`) were written with valid `%PDF` magic; and all three lint exits are `0`. The RED transcript above (`## RED direct build`, `## RED pytest run`) remains the positive control: the same gate, unchanged since `RED_TREE_SHA`, previously failed and now passes.
