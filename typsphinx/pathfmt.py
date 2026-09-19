@@ -60,6 +60,7 @@ def quote_path(value: str | os.PathLike[str] | None) -> str:
     call is load-bearing, not defensive redundancy.
 
     Delimiter rule (D-01), applied to the normalized string:
+
     - no apostrophe present -> wrap in apostrophes (``'...'``)
     - apostrophe present, no double quote -> wrap in double quotes
       (``"..."``) so an embedded apostrophe cannot close the delimiter
