@@ -2,9 +2,14 @@
 gsd_state_version: "1.0"
 milestone: v0.9.6
 milestone_name: Doctest block rendering and release
-status: planning
-last_updated: "2026-09-20T00:00:00.000Z"
+current_phase: 74
+current_phase_name: The `doctest_block` Handler, Its Real-Compile Gate, and the Docstring reST Errors
+status: executing
+stopped_at: Phase 74 planned (7 plans, 5 waves)
+last_updated: "2026-09-19T22:01:20.969Z"
 last_activity: 2026-09-20
+last_activity_desc: Phase 74 execution started
+state_head: 2dc03211580d7b628ebad6374749a566a331d9d7
 progress:
   total_phases: 2
   completed_phases: 0
@@ -20,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-16 — full evolution review at the v0.9.5 close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** **v0.9.6 Doctest block rendering and release** — roadmap created 2026-09-16. Two phases (74–75), 5/5 v1 requirements mapped, zero orphans. Phase 74 gives `doctest_block` the translator handler it has never had (TRN-01, TRN-02) and clears the docutils reST errors this project's own docstrings raise in the same build (QUA-14); Phase 75 is prep-only release work (REL-15, REL-16). **This milestone publishes**, after three merge-only milestones: `pyproject.toml` `0.9.2` → `0.9.6`, the six carried `## [Unreleased]` bullets promoted into `## [0.9.6]`, then tag → PyPI → GitHub Release at `/gsd-complete-milestone`. Phase 74 planned 2026-09-20: 7 plans in 5 waves. Next: `/gsd-execute-phase 74`.
+**Current focus:** **v0.9.6 Doctest block rendering and release** — roadmap created 2026-09-16. Two phases (74–75), 5/5 v1 requirements mapped, zero orphans. Phase 74 gives `doctest_block` the translator handler it has never had (TRN-01, TRN-02) and clears the docutils reST errors this project's own docstrings raise in the same build (QUA-14); Phase 75 is prep-only release work (REL-15, REL-16). **This milestone publishes**, after three merge-only milestones: `pyproject.toml` `0.9.2` → `0.9.6`, the six carried `## [Unreleased]` bullets promoted into `## [0.9.6]`, then tag → PyPI → GitHub Release at `/gsd-complete-milestone`. **Phase 74 planned and now executing** (2026-09-20: 7 plans in 5 waves; plan-checker passed; decision coverage 7/7).
 
 ## Shipped Milestone (v0.9.5 — archived, merged to `main`, NOT published)
 
@@ -272,10 +277,10 @@ land here.
 
 ## Current Position
 
-Phase: 74 of 75 (The `doctest_block` Handler, Its Real-Compile Gate, and the Docstring reST Errors)
-Plan: 0 of 7 (5 waves: 74-01/74-02 → 74-03 → 74-04 → 74-05/74-06 → 74-07)
-Status: Ready to execute
-Last activity: 2026-09-20 — Phase 74 planned: research (`74-RESEARCH.md`), post-research AMENDED D-06/D-07 (owner-approved), `74-VALIDATION.md`, `74-PATTERNS.md`, 7 PLAN.md files; plan-checker passed, decision coverage 7/7
+Phase: 74 (The `doctest_block` Handler, Its Real-Compile Gate, and the Docstring reST Errors) — EXECUTING
+Plan: 1 of 7
+Status: Executing Phase 74
+Last activity: 2026-09-20 — Phase 74 execution started
 
 Progress: [░░░░░░░░░░] 0% (0/2 phases)
 
