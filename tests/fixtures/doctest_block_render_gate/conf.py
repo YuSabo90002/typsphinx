@@ -34,4 +34,10 @@ typst_documents = [
         "Context A - Doctest Block In Paragraph Position",
         "Test Author",
     ),
+    (
+        "context_b_nonfirst_positions",
+        "context_b_nonfirst_positions-out.typ",
+        "Context B - Doctest Block At A Non-First Position",
+        "Test Author",
+    ),
 ]

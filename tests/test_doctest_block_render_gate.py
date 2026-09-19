@@ -57,10 +57,8 @@ except ImportError:
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "doctest_block_render_gate"
 
-# Task 1 (tracer): context (a) only. Task 2 widens both lists to the full
-# three-master / three-shape D-06 set.
-MASTER_DOCNAMES = ["index", "context_a_paragraph"]
-SHAPE_SENTINELS = ["ctx_a_paragraph"]
+MASTER_DOCNAMES = ["index", "context_a_paragraph", "context_b_nonfirst_positions"]
+SHAPE_SENTINELS = ["ctx_a_paragraph", "ctx_b1_definition", "ctx_b2_bullet"]
 
 UNKNOWN_DOCTEST_BLOCK = "unknown node type: <doctest_block"
 FENCE_OPEN = "codly(number-format: none)\n```python\n"
@@ -242,4 +240,55 @@ class TestDoctestBlockRenderGate:
         assert trailing_index > fence_index, (
             "Expected the trailing paragraph to appear AFTER the fence in "
             f"source order:\n{typ_text}"
+        )
+
+    def test_context_b1_definition_list_line_structure(self, doctest_block_build):
+        _, build_dir = doctest_block_build
+        typ_text = _read_typ(build_dir, "context_b_nonfirst_positions")
+        block = _source_doctest_block(
+            "context_b_nonfirst_positions.rst", "ctx_b1_definition"
+        )
+
+        assert 'terms.item(text("Examples:")' in typ_text, (
+            "Expected the definition-list term 'Examples:' to appear as a "
+            f"terms.item(...) call:\n{typ_text}"
+        )
+        assert FENCE_OPEN + block + "\n```" in typ_text, (
+            "Expected shape (b1)'s doctest block inside a codly-styled python "
+            f"fence, lines verbatim and in source order:\n{typ_text}"
+        )
+        assert 'text(">>> ' not in typ_text, (
+            'Found a collapsed text(">>> ...") run -- the doctest block was '
+            f"not routed through the code-block emission path:\n{typ_text}"
+        )
+        leading_index = typ_text.index("Leading paragraph of the definition.")
+        fence_index = typ_text.index(FENCE_OPEN)
+        assert leading_index < fence_index, (
+            "Expected the leading paragraph of the definition to appear BEFORE "
+            f"the fence in source order:\n{typ_text}"
+        )
+
+    def test_context_b2_bullet_list_item_line_structure(self, doctest_block_build):
+        _, build_dir = doctest_block_build
+        typ_text = _read_typ(build_dir, "context_b_nonfirst_positions")
+        block = _source_doctest_block(
+            "context_b_nonfirst_positions.rst", "ctx_b2_bullet"
+        )
+
+        # The list-item `{ }` wrapper visit_literal_block opens only when
+        # in_list_item is true.
+        assert "{\n" + FENCE_OPEN + block + "\n```\n}" in typ_text, (
+            "Expected shape (b2)'s doctest block inside the list-item { } "
+            f"wrapper AND a codly-styled python fence:\n{typ_text}"
+        )
+        assert 'text(">>> ' not in typ_text, (
+            'Found a collapsed text(">>> ...") run -- the doctest block was '
+            f"not routed through the code-block emission path:\n{typ_text}"
+        )
+        leading_index = typ_text.index("Leading paragraph in the list item.")
+        fence_index = typ_text.index(FENCE_OPEN + block)
+        trailing_index = typ_text.index("Trailing paragraph in the same list item.")
+        assert leading_index < fence_index < trailing_index, (
+            "Expected leading paragraph, then the fence, then the trailing "
+            f"paragraph, in that source order:\n{typ_text}"
         )

@@ -7,3 +7,4 @@ them through ``#include()``.
 .. toctree::
 
    context_a_paragraph
+   context_b_nonfirst_positions
