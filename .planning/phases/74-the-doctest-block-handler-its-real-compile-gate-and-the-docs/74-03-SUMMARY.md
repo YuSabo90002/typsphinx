@@ -179,3 +179,12 @@ fixes) and the remaining evidence/CI/release plans in this phase's later waves. 
 ---
 *Phase: 74-the-doctest-block-handler-its-real-compile-gate-and-the-docs*
 *Completed: 2026-09-19*
+
+## Self-Check: PASSED
+
+- `typsphinx/translator.py` exists on disk: FOUND
+- `74-03-SUMMARY.md` exists on disk: FOUND
+- Commits `255d1648`, `d8f65c51`, `ca5a6250`, `fbaf8d00` all present in `git log --oneline -5`
+- All eleven `tests/test_doctest_block_render_gate.py` tests re-verified PASSING
+- Full repository test suite re-run: 1558 passed, 5 skipped, 0 failed
+- `uv run mypy typsphinx/`, `uv run ruff check .`, `uv run black --check .` all exit 0
