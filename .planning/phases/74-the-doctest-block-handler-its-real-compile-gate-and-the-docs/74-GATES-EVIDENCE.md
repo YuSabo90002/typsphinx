@@ -133,3 +133,125 @@ $ git diff --name-only 6cc44f22a01f1e9d2080a8220fca2dc2cdcb264b HEAD -- typsphin
 None of the three `@preview` declaration sites (`typsphinx/templates/base.typ`,
 `typsphinx/writer.py`, `typsphinx/template_engine.py`) changed since the milestone base
 `6cc44f22`.
+
+## Scope fence: typsphinx/
+
+All ranges below are `6cc44f22a01f1e9d2080a8220fca2dc2cdcb264b..HEAD`, the milestone base per
+constraint 10.
+
+```
+$ git diff --stat 6cc44f22..HEAD -- typsphinx/
+ typsphinx/pathfmt.py    |  1 +
+ typsphinx/translator.py | 60 ++++++++++++++++++++++++++++++++++++++++++++++---
+ 2 files changed, 58 insertions(+), 3 deletions(-)
+```
+
+TYPSPHINX_DIFF_FILES = typsphinx/pathfmt.py|typsphinx/translator.py
+
+Pathspec control — `git diff --name-only 6cc44f22..HEAD -- typsphinx/translator.py` is
+non-empty (`typsphinx/translator.py`), proving the pathspec matches a real change.
+
+Widened-diff control — `git diff --name-only 6cc44f22..HEAD` (no pathspec) lists 33 files
+across three top-level directories: `.planning` (25), `tests` (6), `typsphinx` (2), including
+`tests/test_doctest_block_render_gate.py` — proving the range carries this phase's work and the
+fence is not vacuous.
+
+Region scope. Anchor lines in the tip: `visit_literal_block` at line 2431, `visit_definition_list`
+at line 2667 (handler region is `[2431, 2667)`), `visit_toctree` at line 5466 (docstring region
+is `(5466, 5526)`, i.e. within 60 lines after `def visit_toctree`).
+
+`translator.py` hunks (new-side start line, via `git diff -U0`), each tabulated with its region:
+
+| New-side start | Region |
+|---|---|
+| 2431 | handler region (`visit_literal_block`/`visit_doctest_block` signature widening) |
+| 2572 | handler region (language-resolution fallback line) |
+| 2586 | handler region (`depart_literal_block` signature widening) |
+| 2628 | handler region (new `visit_doctest_block`/`depart_doctest_block` methods) |
+| 5471 | `visit_toctree` docstring (within 60 lines after `def visit_toctree`) |
+| 5485 | `visit_toctree` docstring |
+| 5488 | `visit_toctree` docstring |
+
+`pathfmt.py` hunks: anchor `def quote_path` at line 46 (in-scope window `(46, 86)`).
+
+| New-side start | Region |
+|---|---|
+| 63 | within 40 lines after `def quote_path` |
+
+The single `pathfmt.py` hunk (`@@ -62,0 +63 @@ ... +`) adds exactly one empty line and removes
+nothing.
+
+TRANSLATOR_HUNKS_OUTSIDE_SCOPE = 0
+
+## Standing invariants
+
+```
+$ git diff --name-only 6cc44f22..HEAD -- .github flake.nix
+(empty)
+$ git ls-files -- .github/workflows/ci.yml flake.nix
+.github/workflows/ci.yml
+flake.nix
+$ git diff --name-only 6cc44f22..HEAD -- pyproject.toml uv.lock typsphinx/__init__.py
+(empty)
+$ git show HEAD:pyproject.toml | grep -m1 '^version = '
+version = "0.9.2"
+$ git show 6cc44f22:pyproject.toml | grep -m1 '^version = '
+version = "0.9.2"
+```
+
+WORKFLOWS_FLAKE_UNTOUCHED = yes
+PYPROJECT_UV_LOCK_INIT_UNTOUCHED = yes
+VERSION_AT_CLOSE = 0.9.2
+
+## Test-edit census
+
+```
+$ git diff --name-status 6cc44f22..HEAD -- tests/
+A	tests/fixtures/doctest_block_render_gate/conf.py
+A	tests/fixtures/doctest_block_render_gate/context_a_paragraph.rst
+A	tests/fixtures/doctest_block_render_gate/context_b_nonfirst_positions.rst
+A	tests/fixtures/doctest_block_render_gate/index.rst
+A	tests/test_doctest_block_render_gate.py
+M	tests/test_translator.py
+$ git diff --numstat 6cc44f22..HEAD -- tests/test_translator.py
+72	0	tests/test_translator.py
+```
+
+Every row is `A` except one `M` row for `tests/test_translator.py`, whose numstat deletions are 0.
+
+PREEXISTING_TEST_DELETIONS = 0
+MODIFIED_TEST_FILES = tests/test_translator.py
+
+## API coverage declaration
+
+`COVERAGE.md` (this phase directory) holds exactly one line:
+```
+No external API integration: typsphinx translator node handler, test fixture and docstring text only.
+```
+
+```
+$ node gsd-core/bin/gsd-tools.cjs check api-coverage.verify-pre .planning/phases/74-the-doctest-block-handler-its-real-compile-gate-and-the-docs
+{
+  "block": false,
+  "passed": true,
+  "coverage_present": true,
+  "matrix": "COVERAGE.md",
+  "counts": { "surface": 0, "integrate": 0, "optout": 0 },
+  "none_declared": true,
+  "detected": true,
+  "signals": [
+    { "verb": "(surface)", "noun": "api" },
+    { "verb": "integration", "noun": "api" }
+  ],
+  "message": "api-coverage: COVERAGE.md declares no external API integration, overriding 2 detected signal(s) — confirm the declaration is accurate"
+}
+```
+
+API_COVERAGE_PASSED = true
+
+## SC4 local verdict
+
+Every Task 1 key reads 0 (or 4 for the package count), `TRANSLATOR_HUNKS_OUTSIDE_SCOPE = 0`, the
+three standing-invariant keys hold, and `PREEXISTING_TEST_DELETIONS = 0`.
+
+SC4_LOCAL_VERDICT = MET
