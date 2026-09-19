@@ -5468,6 +5468,7 @@ class TypstTranslator(SphinxTranslator):
         Visit a toctree node (Sphinx table of contents tree).
 
         Requirement 13: Multi-document integration and toctree processing
+
         - Generate a compile-time state guard for each include-file entry
           (Phase 49, COMP-05/COMP-06 -- see below)
         - D-07: apply `set heading(offset: heading.offset + 1)` -- a
@@ -5481,8 +5482,10 @@ class TypstTranslator(SphinxTranslator):
           at every include site; a relative expression evaluated at
           layout time removes the need for one to exist.
         - Issue #5: Fix relative paths for nested toctrees
+
           - Calculate relative paths from current document
         - Issue #7: Simplify toctree output with single content block
+
           - Generate single #[...] block containing all guards
           - D-07: apply `heading.offset + 1` once per toctree, inside a
             `context { ... }` block (required because `heading.offset` is
