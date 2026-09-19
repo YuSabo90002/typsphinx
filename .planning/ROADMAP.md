@@ -417,7 +417,7 @@ was.
        lanes are named individually and green. `main`'s required status checks are read at phase
        head and phase close and give the same set both times (constraints 7, 10, 11).
 
-**Plans**: 6/7 plans executed (5 waves)
+**Plans**: 7/7 plans executed (5 waves)
 
 Plans:
 
@@ -441,7 +441,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 74-07-PLAN.md — branch census, first push with tracking, one CI dispatch waited on to completion, required checks at close (wave 5)
+- [x] 74-07-PLAN.md — branch census, first push with tracking, one CI dispatch waited on to completion, required checks at close (wave 5)
 
 **UI hint**: no
 
@@ -577,7 +577,7 @@ below tracks the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 74. The `doctest_block` Handler, Its Real-Compile Gate, and the Docstring reST Errors | v0.9.6 | 6/7 | In Progress | - |
+| 74. The `doctest_block` Handler, Its Real-Compile Gate, and the Docstring reST Errors | v0.9.6 | 7/7 | In Progress | - |
 | 75. v0.9.6 Release Prep (prep-only) | v0.9.6 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
