@@ -417,14 +417,14 @@ was.
        lanes are named individually and green. `main`'s required status checks are read at phase
        head and phase close and give the same set both times (constraints 7, 10, 11).
 
-**Plans**: 7 plans (5 waves)
+**Plans**: 2/7 plans executed (5 waves)
 
 Plans:
 
 **Wave 1**
 
-- [ ] 74-01-PLAN.md — base: PHASE_BASE_SHA, clean C-locale base -b typst build with positive controls, QUA-14 raw and attributed census with FIX_LIST (D-07), phase-head reads (wave 1)
-- [ ] 74-02-PLAN.md — GATE-01 gate and fixture, context (a) and context (b) shapes (b1)/(b2) per D-06, recorded RED on a tree without the handler (wave 1)
+- [x] 74-01-PLAN.md — base: PHASE_BASE_SHA, clean C-locale base -b typst build with positive controls, QUA-14 raw and attributed census with FIX_LIST (D-07), phase-head reads (wave 1)
+- [x] 74-02-PLAN.md — GATE-01 gate and fixture, context (a) and context (b) shapes (b1)/(b2) per D-06, recorded RED on a tree without the handler (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -577,7 +577,7 @@ below tracks the active milestone only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 74. The `doctest_block` Handler, Its Real-Compile Gate, and the Docstring reST Errors | v0.9.6 | 0/7 | Planned | - |
+| 74. The `doctest_block` Handler, Its Real-Compile Gate, and the Docstring reST Errors | v0.9.6 | 2/7 | In Progress | - |
 | 75. v0.9.6 Release Prep (prep-only) | v0.9.6 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
