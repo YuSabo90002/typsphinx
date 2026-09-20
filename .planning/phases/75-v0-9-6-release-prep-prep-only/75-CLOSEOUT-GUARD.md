@@ -338,6 +338,135 @@ $ git status --porcelain .planning/REQUIREMENTS.md
 Byte-unchanged. REL-15 remains `- [ ]` and Pending, exactly as recorded in § "The lines under
 guard" above.
 
+## Re-verification at phase close
+
+Run by plan 75-07, inside its own isolated worktree, at `2026-09-20T11:26:20Z` — the second of the
+three named observations (§ "For the operator running phase.complete" above; the third happens
+after `phase.complete`-family tooling, outside any plan's reach).
+
+```
+$ sha256sum .planning/REQUIREMENTS.md
+481e2091ced842747944e80c6e0bdaafc7b2a2385f5e179e77e6b1e62dca603f  .planning/REQUIREMENTS.md
+
+$ wc -l < .planning/REQUIREMENTS.md
+81
+
+$ git diff --name-only -- .planning/REQUIREMENTS.md
+(no output)
+
+$ git diff --name-only 526a21d352696cb65c570d07d75ef8c7e3aa96a1 HEAD -- .planning/REQUIREMENTS.md
+(no output)
+```
+
+```
+REQ_SHA256_CLOSE = 481e2091ced842747944e80c6e0bdaafc7b2a2385f5e179e77e6b1e62dca603f
+REQ_LINES_CLOSE = 81
+```
+
+Both equal `REQ_SHA256_BASE` (`481e2091ced842747944e80c6e0bdaafc7b2a2385f5e179e77e6b1e62dca603f`) and
+`REQ_LINES_BASE` (`81`) exactly, and both diffs are empty — the working tree and the whole phase
+range alike.
+
+```
+$ grep -n 'REL-15' .planning/REQUIREMENTS.md
+22:- [ ] **REL-15**: v0.9.6 is published. `pyproject.toml` goes `0.9.2` → `0.9.6` as the sole version literal, with `uv.lock` regenerated in the same change and `uv sync --extra dev --locked` green. The six bullets standing under `## [Unreleased]` — carried from v0.9.3, v0.9.4 and v0.9.5 — are promoted into a new `## [0.9.6]` section together with this milestone's own bullets, and the link block at the file's end is updated in the same phase: the `[Unreleased]` compare target moves up to `v0.9.6` and a `[0.9.6]` releases/tag link is added. The milestone branch merges to `main` through a PR with CI green across the Linux, Windows and macOS lanes; tag `v0.9.6` is pushed; `release.yml` publishes the wheel and sdist to PyPI and creates the GitHub Release. **This checkbox is checked only at `/gsd-complete-milestone`, against observed evidence (merge commit on `origin/main`'s first-parent history, `git ls-remote --tags origin`, a PyPI 200 for `0.9.6`, and `gh release list`), and never by phase-completion tooling** — `phase.complete` has flipped REL rows against an explicit decision before. Note that `release.yml`'s `create-release` job has end-to-end evidence from the v0.7.1 publish (run `31462027486`) and v0.8.0 (run `31861043480`) but has never run on a v0.9.x tag.
+59:| REL-15 | Phase 75 | Pending |
+73:**REL-15 is mapped to Phase 75 for coverage only.** Its checkbox is checked at
+76:phase artifact — which is why that phase's `REQUIREMENTS.md` fence is line-scoped to REL-15 rather
+```
+
+Byte-identical, line for line, to § "The lines under guard" above (lines 22, 59, 73, 76).
+
+```
+REL15_LINES_MATCH = yes
+```
+
+The two direct reads SC5 requires:
+
+```
+$ grep -m1 -E '^- \[.\] \*\*REL-15\*\*' .planning/REQUIREMENTS.md
+- [ ] **REL-15**: v0.9.6 is published. ...
+
+$ grep -m1 -E '^\| REL-15 \|' .planning/REQUIREMENTS.md
+| REL-15 | Phase 75 | Pending |
+```
+
+```
+REL15_CHECKBOX_AT_CLOSE = - [ ] **REL-15**
+REL15_TRACEABILITY_AT_CLOSE = | REL-15 | Phase 75 | Pending |
+```
+
+REL-15's checkbox still reads unchecked and its traceability row still reads `Pending`, read
+directly out of the file.
+
+`grep -n 'REL-16' .planning/REQUIREMENTS.md` at the same timestamp:
+
+```
+23:- [ ] **REL-16**: The `### Known Limitations` question is settled on the record for this release. Either `## [0.9.6]` carries such a section naming the carried major defects (NUM-01's per-master `numref` divergence, the converted-image rehome collision, the `typst_documents` duplicate-target cluster), or the release-prep phase's decision record states that the owner declined it and why. v0.9.0's MILESTONES.md entry has a `### Known limitations shipped` precedent, and v0.7.1's D-27 has a precedent for declining one in full; v0.9.5 could leave the question open only because it published nothing. It cannot be left implicit here.
+30:- **NUM-01**: `:numref:` numbers diverge per master and vanish for figures reachable only from a non-root master. Only its *disclosure* is in scope this milestone, via REL-16; the fix is not.
+47:| Fixing NUM-01, the converted-image rehome collision, or the `typst_documents` duplicate-target cluster | Carried major defects, unchanged in scope. REL-16 decides whether they are *disclosed* in the `## [0.9.6]` notes, not whether they are fixed |
+60:| REL-16 | Phase 75 | Pending |
+75:(ROADMAP constraints 1 and 9). **REL-16 does close inside Phase 75** — "settled on the record" is a
+```
+
+REL-16's checkbox (line 23) and traceability row (line 60) have **not yet moved** — as expected, since
+no plan in this phase edits the file and phase-completion tooling has not yet run.
+
+```
+FENCE_CLOSE_VERDICT = MATCH
+```
+
+The digest, the line count, both empty diffs, and the byte-identical REL-15 transcript all hold.
+
+**`.planning/ROADMAP.md` and `.planning/STATE.md` against the scratch backups (75-01's).**
+
+```
+$ diff /tmp/tmp.Ea8hUnFA4z/p7501_ROADMAP.md .planning/ROADMAP.md
+562c562
+< **Plans**: 7 plans (4 waves)
+---
+> **Plans**: 6/7 plans executed (4 waves)
+568c568
+< - [ ] 75-01-PLAN.md — Closeout-guard baseline on REL-15, the clean C-locale documentation ledger at
+---
+> - [x] 75-01-PLAN.md — Closeout-guard baseline on REL-15, the clean C-locale documentation ledger at
+570c570
+< - [ ] 75-02-PLAN.md — Phase 74's leftovers: delete the five untracked `probe_*.typ` scratch files,
+---
+> - [x] 75-02-PLAN.md — Phase 74's leftovers: delete the five untracked `probe_*.typ` scratch files,
+572c572
+< - [ ] 75-03-PLAN.md — The one commit: version `0.9.6` across `pyproject.toml` / `uv.lock` /
+---
+> - [x] 75-03-PLAN.md — The one commit: version `0.9.6` across `pyproject.toml` / `uv.lock` /
+579c579
+< - [ ] 75-04-PLAN.md — Green-tree evidence on the bumped tip: lint trio, pytest twice, clean
+---
+> - [x] 75-04-PLAN.md — Green-tree evidence on the bumped tip: lint trio, pytest twice, clean
+581c581
+< - [ ] 75-05-PLAN.md — Non-committing trial merge against `origin/main`, `main`'s protection and
+---
+> - [x] 75-05-PLAN.md — Non-committing trial merge against `origin/main`, `main`'s protection and
+586c586
+< - [ ] 75-06-PLAN.md — Push the bumped tip and dispatch exactly one CI run, waited to completion with
+---
+> - [x] 75-06-PLAN.md — Push the bumped tip and dispatch exactly one CI run, waited to completion with
+611c611
+< | 75. v0.9.6 Release Prep (prep-only) | v0.9.6 | 0/TBD | Not started | - |
+---
+> | 75. v0.9.6 Release Prep (prep-only) | v0.9.6 | 6/7 | In Progress | - |
+```
+
+Every hunk is the expected, legitimate per-plan progress tracking (75-01 through 75-06 checkboxes
+flipping to `[x]` and the progress table row advancing as each plan finished) — none of it is a
+REQUIREMENTS-style unwarranted rewrite, no wrapped-line orphaning, no Status-cell mangling.
+
+```
+$ diff /tmp/tmp.Ea8hUnFA4z/p7501_STATE.md .planning/STATE.md
+(no output, exit:0)
+```
+
+`STATE.md` is byte-identical to its 75-01 scratch backup — no drift at all.
+
 ---
 *Phase: 75-v0-9-6-release-prep-prep-only*
 *Plan: 01*
