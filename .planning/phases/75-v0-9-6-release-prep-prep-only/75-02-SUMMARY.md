@@ -129,3 +129,8 @@ None - no external service configuration required.
 ---
 *Phase: 75-v0-9-6-release-prep-prep-only*
 *Completed: 2026-09-20*
+
+## Self-Check: PASSED
+
+All four key files found on disk; all four commit hashes (`2c9d0c48`, `bc975d59`, `40805ab0`,
+`9e5c5286`) found in `git log --oneline -5`.
