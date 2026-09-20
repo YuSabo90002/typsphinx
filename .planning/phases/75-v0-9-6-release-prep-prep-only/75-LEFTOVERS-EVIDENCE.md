@@ -141,3 +141,24 @@ GITIGNORE_UNCHANGED = yes
 D-13 rejected an ignore rule for these files as a product-tree commit outside the file set REL-15
 names; the fix taken here is deletion alone, with `.gitignore` left unchanged in both the main
 checkout and this worktree.
+
+## D-14: IN-01 filed, not fixed
+
+TODO_PATH = .planning/todos/pending/2026-09-20-literal-block-docstring-args-still-name-only-the-literal-block-node.md
+
+TODO_PENDING_COUNT = 4
+
+```
+$ ls .planning/todos/pending/ | wc -l
+4
+
+$ git diff --name-only -- typsphinx
+(empty)
+```
+
+`74-REVIEW.md`'s unresolved Info finding IN-01 — `visit_literal_block` / `depart_literal_block`
+still document `node: The literal block node` although both signatures were widened to
+`nodes.literal_block | nodes.doctest_block` — is filed as a pending todo rather than fixed here.
+The re-measured line numbers (`translator.py:2444-2445` and `:2594-2595`) match the review's cited
+ranges within one line (the review counted from the docstring's leading blank line). No line under
+`typsphinx/` was changed or is dirty.
