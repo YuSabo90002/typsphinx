@@ -559,7 +559,7 @@ typsphinx.
 - **The tail link block is this phase's work, not a follow-up.** REL-15 names it explicitly; a
   version bump that leaves `[Unreleased]` comparing against `v0.9.2` is incomplete.
 
-**Plans**: 3/7 plans executed (4 waves)
+**Plans**: 5/7 plans executed (4 waves)
 
 Plans:
 
@@ -576,9 +576,9 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 75-04-PLAN.md — Green-tree evidence on the bumped tip: lint trio, pytest twice, clean
+- [x] 75-04-PLAN.md — Green-tree evidence on the bumped tip: lint trio, pytest twice, clean
       `docs-html` / `docs-pdf` re-proving Phase 74's zero counts, clean `linkcheck` (wave 2)
-- [ ] 75-05-PLAN.md — Non-committing trial merge against `origin/main`, `main`'s protection and
+- [x] 75-05-PLAN.md — Non-committing trial merge against `origin/main`, `main`'s protection and
       merge method read live, fresh branch and pull-request census (wave 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
@@ -608,7 +608,7 @@ below tracks the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 74. The `doctest_block` Handler, Its Real-Compile Gate, and the Docstring reST Errors | v0.9.6 | 7/7 | Complete | 2026-09-20 |
-| 75. v0.9.6 Release Prep (prep-only) | v0.9.6 | 3/7 | In Progress | - |
+| 75. v0.9.6 Release Prep (prep-only) | v0.9.6 | 5/7 | In Progress | - |
 
 ## Roadmap Evolution
 
