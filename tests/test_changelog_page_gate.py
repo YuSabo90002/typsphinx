@@ -64,6 +64,7 @@ RELEASE_VERSIONS = (
     "0.8.0",
     "0.9.0",
     "0.9.2",
+    "0.9.6",
 )
 
 # A per-release heading pattern and a "current release" marker, built from
