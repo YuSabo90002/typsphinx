@@ -122,6 +122,14 @@ None - no external service configuration required.
 - `origin`'s milestone branch head is `b63e5d453d604350b55c51a1a77918985d6dad7c`, reached by fast-forward, with a completed, fully green three-OS CI run of its own (RUN_ID 35507024851) and no irreversible action (no tag, no release run, no pull request) taken alongside it.
 - Ready for 75-07 (fence and probe observation 2, scope fence, `75-HANDOFF.md`, the REL-16 settlement record).
 
+## Self-Check: PASSED
+- `75-CI-EVIDENCE.md` exists on disk: FOUND
+- Commit `4b900995` (Task 1) exists in git log: FOUND
+- Commit `394b50f1` (Task 2) exists in git log: FOUND
+- Commit `05a8af01` (this SUMMARY) exists in git log: FOUND
+- Both tasks' full `<verify><automated>` blocks re-run and passed (see plan-verify scripts executed during this session)
+- Plan-level `<verification>` re-confirmed: origin head = `PUSHED_SHA` by fast-forward with bump + census-guard test + no tag; exactly one `workflow_dispatch` run, completed/success, all jobs transcribed, four lanes named; zero `release.yml` runs at that SHA and no PR opened; `SC4_CI_VERDICT = MET` with required checks unchanged since Phase 74's close
+
 ---
 *Phase: 75-v0-9-6-release-prep-prep-only*
 *Completed: 2026-09-20*
