@@ -559,7 +559,24 @@ typsphinx.
 - **The tail link block is this phase's work, not a follow-up.** REL-15 names it explicitly; a
   version bump that leaves `[Unreleased]` comparing against `v0.9.2` is incomplete.
 
-**Plans**: TBD
+**Plans**: 7 plans (4 waves)
+
+- [ ] 75-01-PLAN.md — Closeout-guard baseline on REL-15, the clean C-locale documentation ledger at
+      this phase's own base, and SC5 probe observation 1 of 2 (wave 1)
+- [ ] 75-02-PLAN.md — Phase 74's leftovers: delete the five untracked `probe_*.typ` scratch files,
+      file IN-01 as a pending todo, write `COVERAGE.md` (wave 1)
+- [ ] 75-03-PLAN.md — The one commit: version `0.9.6` across `pyproject.toml` / `uv.lock` /
+      `README.md` / `RELEASE_VERSIONS`, the curated `## [0.9.6]` section with its
+      `### Known Limitations`, the fresh `## [Unreleased]` and the moved tail links, then the
+      extractor transcript (wave 1)
+- [ ] 75-04-PLAN.md — Green-tree evidence on the bumped tip: lint trio, pytest twice, clean
+      `docs-html` / `docs-pdf` re-proving Phase 74's zero counts, clean `linkcheck` (wave 2)
+- [ ] 75-05-PLAN.md — Non-committing trial merge against `origin/main`, `main`'s protection and
+      merge method read live, fresh branch and pull-request census (wave 2)
+- [ ] 75-06-PLAN.md — Push the bumped tip and dispatch exactly one CI run, waited to completion with
+      every job transcribed (wave 3)
+- [ ] 75-07-PLAN.md — Fence and probe observation 2, the scope fence with controls, `75-HANDOFF.md`,
+      the REL-16 settlement record and the SC1–SC5 roll-up (wave 4)
 
 **UI hint**: no
 

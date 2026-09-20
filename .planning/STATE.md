@@ -4,11 +4,11 @@ milestone: v0.9.6
 milestone_name: Doctest block rendering and release
 current_phase: 75
 current_phase_name: v0.9.6 Release Prep (prep-only)
-status: planning
-stopped_at: Phase 75 context gathered
-last_updated: "2026-09-20T06:28:25.405Z"
+status: planned
+stopped_at: Phase 75 planned — 7 plans in 4 waves, ready to execute
+last_updated: "2026-09-20T14:40:00.000Z"
 last_activity: 2026-09-20
-last_activity_desc: Phase 75 context gathered (75-CONTEXT.md, 15 decisions)
+last_activity_desc: Phase 75 planned (7 PLAN.md files, 4 waves, 19 tasks)
 state_head: c41b5b806f2959cb70a47ec08a496f8f5ce025a1
 progress:
   total_phases: 2
@@ -278,11 +278,23 @@ land here.
 ## Current Position
 
 Phase: 75 — v0.9.6 Release Prep (prep-only)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-09-20 — Phase 74 complete, transitioned to Phase 75
+Plan: 0/7 complete
+Status: Planned — ready to execute
+Last activity: 2026-09-20 — Phase 75 planned: 7 plans, 4 waves, 19 tasks
 
 Progress: [█████░░░░░] 50% (1/2 phases)
+
+**Phase 75's wave structure.** Wave 1 runs 75-01 (the REL-15 fence baseline, the clean C-locale
+`docs-html`/`docs-pdf` ledger at the phase base, SC5 probe observation 1), 75-02 (delete the five
+untracked `probe_*.typ`, file IN-01, `COVERAGE.md`) and 75-03 (the **one** five-file commit:
+`pyproject.toml`, `uv.lock`, `README.md`, `CHANGELOG.md` and `tests/test_changelog_page_gate.py`
+together — the AMENDED union; bump and CHANGELOG cannot be split). Wave 2 runs 75-04 (green-tree
+evidence on the bumped tip) and 75-05 (non-committing trial merge, `main` protection, fresh
+Dependabot census). Wave 3 runs 75-06 (push, exactly one CI dispatch on the bumped tip, so the run
+finally covers `tests/test_docstring_rest_census_guard.py`). Wave 4 runs 75-07 (fence and probe
+observation 2, scope fence, `75-HANDOFF.md`, the REL-16 settlement record). Every plan declares
+`requirements-completed: []`; REL-15's checkbox stays `[ ]` and closes at
+`/gsd-complete-milestone`, REL-16's is moved by phase-completion tooling at close, never by a plan.
 
 Milestone base for every scope fence: `6cc44f22` (= `main`'s tip). The milestone branch
 `gsd/v0.9.6-doctest-block-rendering-and-release` was pushed to `origin` for the first time in Phase
