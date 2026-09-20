@@ -197,3 +197,17 @@ required step, not a footnote.
 ---
 *Phase: 75-v0-9-6-release-prep-prep-only*
 *Completed: 2026-09-20*
+
+## Self-Check: PASSED
+
+- `75-HANDOFF.md` found on disk at the path declared in frontmatter.
+- All four commit hashes (`376e19a8`, `351d0910`, `53dce1b9`, `4489c2ed`) found in `git log --oneline`.
+- All three tasks' automated `<verify>` blocks re-run against the final committed tree: Task 1
+  `ALL PASS`, Task 2 `ALL PASS TASK 2`, Task 3 `ALL PASS TASK 3`.
+- Plan-level `<verification>` re-confirmed: fence MATCHes at phase close with REL-15's checkbox
+  read directly as unchecked; every SC5 probe at observation 2 is empty/zero with its control
+  present; both scope fences hold with controls and `POST_DISPATCH_PRODUCT_FILES = 0`;
+  `75-HANDOFF.md` carries every required check/SHA/run-id/digest inline; anchored `### Known
+  Limitations` count is 2 with `PHASE_VERDICT = MET`.
+- `.planning/REQUIREMENTS.md` unchanged across the whole plan (`git diff --name-only` empty against
+  both the plan base and the working tree at every check).
