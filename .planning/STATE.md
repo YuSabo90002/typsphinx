@@ -5,11 +5,11 @@ milestone_name: Doctest block rendering and release
 current_phase: 75
 current_phase_name: v0.9.6 Release Prep (prep-only)
 status: planning
-stopped_at: Phase 74 complete, ready to plan Phase 75
-last_updated: "2026-09-19T23:54:22.137Z"
+stopped_at: Phase 75 context gathered
+last_updated: "2026-09-20T06:28:25.405Z"
 last_activity: 2026-09-20
-last_activity_desc: Phase 74 complete, transitioned to Phase 75
-state_head: 07f04da486a9eaf907e8d095a2355c6506f78afd
+last_activity_desc: Phase 75 context gathered (75-CONTEXT.md, 15 decisions)
+state_head: c41b5b806f2959cb70a47ec08a496f8f5ce025a1
 progress:
   total_phases: 2
   completed_phases: 1
@@ -1296,10 +1296,10 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** `.planning/phases/74-the-doctest-block-handler-its-real-compile-gate-and-the-docs/74-VERIFICATION.md`
+**Resume file:** `.planning/phases/75-v0-9-6-release-prep-prep-only/75-CONTEXT.md`
 
-Last session: 2026-09-20 (Phase 74 executed end to end)
-Stopped at: Phase 74 complete, ready to plan Phase 75
+Last session: 2026-09-20 (Phase 75 context gathered)
+Stopped at: Phase 75 context gathered
 Resume: `/gsd-plan-phase 75`. The roadmap's 13 binding constraints are in `.planning/ROADMAP.md`
 under the active-milestone section and should not be re-derived. v0.9.5's phase directories are
 under `.planning/milestones/v0.9.5-phases/`; `73-HANDOFF.md` there records the merge-only close
