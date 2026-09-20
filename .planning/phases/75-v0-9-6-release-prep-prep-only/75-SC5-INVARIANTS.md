@@ -428,6 +428,92 @@ observation-2 probe above is empty/zero with its `v0.9.2` control present; both 
 exactly as recorded (`MILESTONE_TYPSPHINX_DIFF` and `PHASE_PRODUCT_DIFF`); and
 `POST_DISPATCH_PRODUCT_FILES` is `0`.
 
+## REL-16 settlement
+
+SC3 requires the grep and the decision record to agree, and the evidence to name which branch was
+taken.
+
+```
+$ grep -c '^### Known Limitations$' CHANGELOG.md
+2
+
+$ grep -n '^### Known Limitations$' CHANGELOG.md
+91:### Known Limitations
+1256:### Known Limitations
+```
+
+```
+KNOWN_LIMITATIONS_HEADINGS = 2
+```
+
+**The anchored form is used deliberately.** The unanchored `grep -c 'Known Limitations'` also
+matches a prose mention elsewhere in the file (the `[0.9.0]` section's discussion text), which
+would give a misleading count; the anchored `^### Known Limitations$` form counts only real
+subsection headings.
+
+```
+REL16_BRANCH_RECORDED = known-limitations-section
+```
+
+Quoted from `75-CHANGELOG-EVIDENCE.md`'s `REL16_BRANCH = known-limitations-section`.
+
+```
+REL16_AGREEMENT = yes
+```
+
+The anchored grep finds a new `### Known Limitations` heading inside `## [0.9.6]` (line 91, below
+the pre-existing `[0.1.0b1]` heading at line 1256), and the decision record
+(`75-CHANGELOG-EVIDENCE.md` § "REL-16: which branch was taken") both say the section was written
+rather than declined — the two agree.
+
+**The entry's own content**, pasted verbatim so a reader can judge it without opening
+`CHANGELOG.md`:
+
+```
+- **A multi-master `typst_documents` configuration can produce a diverging or missing `:numref:`
+  reference number (NUM-01).** A single-master project is entirely unaffected. When the same
+  figure is reachable from two masters, Sphinx bakes one project-wide number into the `:numref:`
+  reference text, but each compiled Typst wrapper counts its own captions independently — so the
+  reference reads correctly in one master's PDF and points at the wrong number in the other, with
+  no diagnostic reporting the mismatch. When a figure is reachable only from a non-root master, it
+  never enters Sphinx's root-document figure-numbering scan, so its `:numref:` reference falls
+  back to the raw label text instead of a number; Sphinx does emit one warning naming the label,
+  so the build log carries a diagnostic even though the compiled PDF gives the reader none.
+  **Workaround:** use a single-master `typst_documents` configuration, or replace `:numref:` with
+  `:ref:` for the affected figures.
+```
+
+It names NUM-01, carries a `Workaround:` line, and names neither of the two defects measured
+closed in v0.8.0 (the converted-image rehome collision, the `typst_documents` duplicate-target
+cluster) nor WR-02 or WR-03.
+
+**Why the candidate set is NUM-01 alone.** This is the AMENDED correction: REL-16's literal text
+names three defects, but two of them — the converted-image rehome collision and the
+`typst_documents` duplicate-target cluster — were measured closed in v0.8.0 (their tracking todos
+are in `.planning/todos/completed/`, not `.planning/todos/pending/`), leaving NUM-01 as the only
+genuinely carried defect this entry can honestly name. `.planning/REQUIREMENTS.md` and
+`.planning/ROADMAP.md` keep their literal text, unedited by this correction — the reduction from
+three defects to one is a curatorial decision about what the CHANGELOG entry names, not a rewrite
+of the requirement itself.
+
+## Success criteria roll-up
+
+Five rows, SC1 to SC5, each with a verdict and the evidence key it reads.
+
+| SC | Verdict | Evidence key(s) |
+|----|---------|------------------|
+| SC1 | MET | `75-BUMP-EVIDENCE.md` `BUMP_COMMIT_FILES = CHANGELOG.md\|README.md\|pyproject.toml\|tests/test_changelog_page_gate.py\|uv.lock`, `75-CHANGELOG-EVIDENCE.md` `CHANGELOG_GATE_SKIPS = 0` |
+| SC2 | MET | `75-CHANGELOG-EVIDENCE.md` carried-subsection digests (`CARRIED_ADDED_SHA`, `CARRIED_CHANGED_SHA`, `CARRIED_FIXED_SHA`, all recomputed identical) and `EXTRACT_MATCHES_SECTION = yes` |
+| SC3 | MET | `REL16_AGREEMENT = yes` above |
+| SC4 | MET | `SC4_LOCAL_VERDICT = MET` (`75-GREEN-TREE-EVIDENCE.md`, amended reading), `SC4_CI_VERDICT = MET` (`75-CI-EVIDENCE.md`), `TRIAL_MERGE_VERDICT = MET` (`75-PREFLIGHT-EVIDENCE.md`) |
+| SC5 | MET | `SC5_VERDICT = MET` above, `FENCE_CLOSE_VERDICT = MATCH` (`75-CLOSEOUT-GUARD.md`) |
+
+```
+PHASE_VERDICT = MET
+```
+
+All five rows are MET.
+
 ---
 *Phase: 75-v0-9-6-release-prep-prep-only*
 *Plan: 01*

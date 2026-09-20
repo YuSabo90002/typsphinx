@@ -325,6 +325,21 @@ without opening this file separately. The orchestrator appends a
 `## Third observation (after phase.complete, orchestrator)` section here after
 `phase.complete`-family tooling actually runs.
 
+**Extended by Task 3 of `75-07-PLAN.md`.** This is the single authoritative copy of the
+third-observation protocol — the file ends with exactly this one section, not a second divergent
+copy. It records: the third observation's four commands with their expected values inlined above
+(the digest, line count, empty diff, and REL-15 grep transcript); that `/gsd-verify-work`'s inline
+transition and `/gsd-execute-phase`'s tail both count equally as the "phase-completion tooling" in
+question; the REL-16 expected-to-move callout; the reversion recipe
+(`git checkout -- .planning/REQUIREMENTS.md`); the instruction to diff `.planning/ROADMAP.md` and
+`.planning/STATE.md` against the recorded scratch backups (`BACKUP_ROADMAP =
+/tmp/tmp.Ea8hUnFA4z/p7501_ROADMAP.md`, `BACKUP_STATE = /tmp/tmp.Ea8hUnFA4z/p7501_STATE.md`) as
+well; and a pointer to `75-HANDOFF.md` as the file that carries the release procedure itself.
+
+```
+THIRD_OBSERVATION_DOCUMENTED = yes
+```
+
 ## This task's own effect on `.planning/REQUIREMENTS.md`
 
 ```
