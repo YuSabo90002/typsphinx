@@ -18,7 +18,8 @@ affects: [phase-76-if-any, complete-milestone]
 actuals:
   tokens: 8436
   tasks: 3
-  commits: 4
+  commits: 6
+plan_head_before: 526a21d352696cb65c570d07d75ef8c7e3aa96a1
 
 tech-stack:
   added: []
@@ -99,7 +100,7 @@ Each task was committed atomically:
 2. **Task 2: Curate the `## [0.9.6]` section, fresh `## [Unreleased]`, Known Limitations and tail links** — `daf69630` (docs) — evidence-only commit; `CHANGELOG.md`, `tests/test_changelog_page_gate.py` left uncommitted for Task 3.
 3. **Task 3: Land all five files in one commit, then execute the extractor** — `84edd348` (release) the five-file product commit, then `cc27a89d` (docs) the evidence commit recording the commit shape and extractor transcript.
 
-**Plan metadata:** this file's own commit (pending, after this SUMMARY).
+**Plan metadata:** `379e5d96` (docs: complete plan) and `303fadc2` (docs: append SUMMARY self-check).
 
 _Note: Task 1 is `type="tracer"`; its production-quality commit is identical in discipline to `type="auto"` (real `<verify>`, real commit). No tracer feedback-gate checkpoint fired — this plan's tasks are non-interactive automated verification only, and `AUTO_CFG`/mode is `yolo`, so any checkpoint would auto-approve; none was reached._
 
