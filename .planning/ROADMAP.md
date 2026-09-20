@@ -559,17 +559,17 @@ typsphinx.
 - **The tail link block is this phase's work, not a follow-up.** REL-15 names it explicitly; a
   version bump that leaves `[Unreleased]` comparing against `v0.9.2` is incomplete.
 
-**Plans**: 7 plans (4 waves)
+**Plans**: 3/7 plans executed (4 waves)
 
 Plans:
 
 **Wave 1**
 
-- [ ] 75-01-PLAN.md — Closeout-guard baseline on REL-15, the clean C-locale documentation ledger at
+- [x] 75-01-PLAN.md — Closeout-guard baseline on REL-15, the clean C-locale documentation ledger at
       this phase's own base, and SC5 probe observation 1 of 2 (wave 1)
-- [ ] 75-02-PLAN.md — Phase 74's leftovers: delete the five untracked `probe_*.typ` scratch files,
+- [x] 75-02-PLAN.md — Phase 74's leftovers: delete the five untracked `probe_*.typ` scratch files,
       file IN-01 as a pending todo, write `COVERAGE.md` (wave 1)
-- [ ] 75-03-PLAN.md — The one commit: version `0.9.6` across `pyproject.toml` / `uv.lock` /
+- [x] 75-03-PLAN.md — The one commit: version `0.9.6` across `pyproject.toml` / `uv.lock` /
       `README.md` / `RELEASE_VERSIONS`, the curated `## [0.9.6]` section with its
       `### Known Limitations`, the fresh `## [Unreleased]` and the moved tail links, then the
       extractor transcript (wave 1)
@@ -608,7 +608,7 @@ below tracks the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 74. The `doctest_block` Handler, Its Real-Compile Gate, and the Docstring reST Errors | v0.9.6 | 7/7 | Complete | 2026-09-20 |
-| 75. v0.9.6 Release Prep (prep-only) | v0.9.6 | 0/TBD | Not started | - |
+| 75. v0.9.6 Release Prep (prep-only) | v0.9.6 | 3/7 | In Progress | - |
 
 ## Roadmap Evolution
 
