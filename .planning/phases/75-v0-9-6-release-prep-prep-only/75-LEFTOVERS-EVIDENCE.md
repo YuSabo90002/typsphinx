@@ -162,3 +162,53 @@ still document `node: The literal block node` although both signatures were wide
 The re-measured line numbers (`translator.py:2444-2445` and `:2594-2595`) match the review's cited
 ranges within one line (the review counted from the docstring's leading blank line). No line under
 `typsphinx/` was changed or is dirty.
+
+## API coverage declaration
+
+API_COVERAGE_PASSED = true
+
+```
+$ node /home/yuta/Documents/typsphinx/.claude/gsd-core/bin/gsd-tools.cjs check api-coverage.verify-pre .planning/phases/75-v0-9-6-release-prep-prep-only
+{
+  "block": false,
+  "passed": true,
+  "coverage_present": true,
+  "matrix": "COVERAGE.md",
+  "counts": {
+    "surface": 0,
+    "integrate": 0,
+    "optout": 0
+  },
+  "none_declared": true,
+  "detected": true,
+  "signals": [
+    {
+      "verb": "integration",
+      "noun": "api"
+    },
+    {
+      "verb": "(surface)",
+      "noun": "api"
+    }
+  ],
+  "message": "api-coverage: COVERAGE.md declares no external API integration, overriding 2 detected signal(s) — confirm the declaration is accurate"
+}
+```
+
+The gate's own detector flagged 2 signals from this phase's prose (the words "integration" and
+"api"). Each surface a detector could misread as an external API integration, and why it is not
+one:
+
+- **`gh api`** — reads this repository's own branch protection settings (a read-only probe of
+  `main`'s protection rules for the merge-preflight plan), not a call to any third-party API this
+  project builds against.
+- **`gh workflow run`** — dispatches this repository's own CI workflow (`ci.yml`) on the milestone
+  branch; a single `workflow_dispatch` invocation, not an integration client.
+- **PyPI JSON endpoint** — an unauthenticated GET against `https://pypi.org/pypi/typsphinx/<version>/json`
+  used purely as a 404-or-200 probe of this project's own package page, to confirm a version is
+  or is not yet published. No credential path, no retry policy, no wrapper module.
+- **Read the Docs endpoints** — appear only as steps named inside `75-HANDOFF.md`, to be executed
+  by a later command after this milestone actually ships; nothing in this phase calls them.
+
+No client, wrapper, credential path or retry policy is built anywhere in this phase; every one of
+these is a read-only probe or a single dispatch of infrastructure this project already owns.
