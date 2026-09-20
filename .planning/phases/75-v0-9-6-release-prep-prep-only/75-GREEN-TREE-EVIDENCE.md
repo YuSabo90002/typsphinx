@@ -290,6 +290,113 @@ $ git diff --name-only 6cc44f22a01f1e9d2080a8220fca2dc2cdcb264b HEAD -- docs/sou
 The milestone-range reading (`6cc44f22` to `HEAD`) is also empty — recorded as measured context
 for the handoff, not asserted by this plan alone.
 
+## Tip linkcheck
+
+`tox -e linkcheck` reaches the network, so a transient failure is possible in principle. Three
+attempts were made, each from a removed `docs/_build`, each with its own log and recorded exit.
+
+```
+$ rm -rf docs/_build
+$ uv run tox -e linkcheck > "$S/p7504_lc1.log" 2>&1; echo "exit:$?"
+exit:1
+```
+
+TIP_LINKCHECK_RUN_1_EXIT = 1
+
+```
+$ rm -rf docs/_build
+$ uv run tox -e linkcheck > "$S/p7504_lc2.log" 2>&1; echo "exit:$?"
+exit:1
+```
+
+TIP_LINKCHECK_RUN_2_EXIT = 1
+
+```
+$ rm -rf docs/_build
+$ uv run tox -e linkcheck > "$S/p7504_lc3.log" 2>&1; echo "exit:$?"
+exit:1
+```
+
+TIP_LINKCHECK_RUN_3_EXIT = 1
+
+TIP_LINKCHECK_RUNS = 3
+
+All three attempts fail with the **identical** three broken records — this is not transient DNS
+or rate-limit flakiness (which would vary run to run); it is a genuinely dead/unresolvable set of
+links at this point in the release process. Per this plan's own escalation instruction, a link
+that fails all three attempts is escalated, never ignored, and no `linkcheck_ignore` /
+`linkcheck_anchors_ignore` / `linkcheck_allowed_redirects` key was added to soften it.
+
+Live re-verify against `docs/source/conf.py` (state unchanged, confirmed after all three
+attempts):
+
+```
+$ grep -E '^linkcheck_(ignore|anchors_ignore|allowed_redirects)' docs/source/conf.py
+(no output — none found)
+```
+
+`docs/_build/linkcheck/output.json` from the final (third) attempt, recorded verbatim — every
+`broken` record:
+
+```json
+{"filename": "changelog.rst", "lineno": 8, "status": "broken", "code": 0, "uri": "https://github.com/YuSabo90002/typsphinx/compare/v0.9.6...HEAD", "info": "404 Client Error: Not Found for url: https://github.com/YuSabo90002/typsphinx/compare/v0.9.6...HEAD"}
+{"filename": "changelog.rst", "lineno": 17, "status": "broken", "code": 0, "uri": "https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.6", "info": "404 Client Error: Not Found for url: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.6"}
+{"filename": "changelog.rst", "lineno": 474, "status": "broken", "code": 0, "uri": "https://pypi.org/project/typsphinx/#history", "info": "アンカー 'history' が見つかりません (anchor 'history' not found)"}
+```
+
+```
+$ uv run python -c 'import json,sys; r=[json.loads(l) for l in open(sys.argv[1]) if l.strip()]; print(len(r), sum(1 for x in r if x["status"]=="working"))' docs/_build/linkcheck/output.json
+96 93
+```
+
+TIP_LINKCHECK_TOTAL = 96
+TIP_LINKCHECK_WORKING = 93
+TIP_LINKCHECK_VERDICT = FAIL
+
+**Root cause of each broken record, established by measurement, not guessed:**
+
+1. `https://github.com/YuSabo90002/typsphinx/compare/v0.9.6...HEAD` (changelog.rst:8, the
+   `[Unreleased]` tail link) and `https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.6`
+   (changelog.rst:17, the `[0.9.6]` tail link) — both reference the `v0.9.6` tag, which this
+   milestone has not yet created. Phase 75 is prep-only (per `.planning/ROADMAP.md`); the tag is
+   created at `/gsd-complete-milestone`, after this phase. These two links were introduced by
+   75-03's curated CHANGELOG commit (`84edd348`) as an unavoidable consequence of adding the
+   `## [0.9.6]` heading and its tail link before the tag exists — this is a structural
+   chicken-and-egg property of running `linkcheck` in a prep-only phase, not a defect this plan
+   introduced or can fix without editing `CHANGELOG.md`, which this plan is prohibited from doing.
+
+2. `https://pypi.org/project/typsphinx/#history` (changelog.rst:474) — **pre-existing**, measured
+   present and byte-identical at both `BASE_75_04` (`44d22075`) and the milestone base
+   (`6cc44f22`, `docs/source/changelog.rst:474`), via `git show <sha>:docs/source/changelog.rst`.
+   This link is unrelated to this phase's version bump; PyPI's project page apparently no longer
+   exposes a `#history` anchor. This is out of this plan's scope (pre-existing, not caused by any
+   task in this plan) but is nonetheless a genuinely broken link on an unsoftened run, so it
+   counts against `TIP_LINKCHECK_VERDICT`.
+
+## SC4 local verdict
+
+Per-task gate status:
+
+- Task 1: `RUFF_EXIT` = 0, `BLACK_EXIT` = 0, `MYPY_EXIT` = 0, `FULL_PYTEST_EXIT` = 0,
+  `FULL_PYTEST_C_EXIT` = 0, `FULL_PYTEST_FAILED` = 0, `FULL_PYTEST_C_FAILED` = 0,
+  `FULL_PYTEST_ERRORS` = 0, `CHANGELOG_GATE_SKIPS` = 0, `PREVIEW_SYNC_EXIT` = 0,
+  `PREVIEW_PACKAGE_COUNT` = 4 — all hold.
+- Task 2: `TIP_HTML_EXIT` = 0, `TIP_PDF_EXIT` = 0, `HTML_WARNINGS_NOT_RISEN` = yes,
+  `PDF_WARNINGS_NOT_RISEN` = yes, `TIP_DOCTEST_UNKNOWN` = 0, `TIP_DOCSTRING_REST` = 0,
+  `TIP_HTML_DOCSTRING_REST` = 0 — all hold.
+- **`TIP_LINKCHECK_VERDICT` = `FAIL`, not `PASS` — this condition fails.**
+
+Because `TIP_LINKCHECK_VERDICT` is not `PASS`, `SC4_LOCAL_VERDICT` cannot be `MET`.
+
+SC4_LOCAL_VERDICT = NOT-MET
+
+**Failing item, named explicitly:** `TIP_LINKCHECK_VERDICT = FAIL`, carrying three broken records
+after three identical, non-transient attempts: `changelog.rst:8`
+(`.../compare/v0.9.6...HEAD`), `changelog.rst:17` (`.../releases/tag/v0.9.6`), and
+`changelog.rst:474` (`https://pypi.org/project/typsphinx/#history`, pre-existing). This plan made
+no edit to try to turn this red; 75-06 must not push and dispatch CI while
+`SC4_LOCAL_VERDICT = NOT-MET`.
+
 ---
 *Phase: 75-v0-9-6-release-prep-prep-only*
 *Plan: 04*
