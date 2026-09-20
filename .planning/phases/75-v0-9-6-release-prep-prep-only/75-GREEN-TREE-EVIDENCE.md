@@ -388,7 +388,10 @@ Per-task gate status:
 
 Because `TIP_LINKCHECK_VERDICT` is not `PASS`, `SC4_LOCAL_VERDICT` cannot be `MET`.
 
-SC4_LOCAL_VERDICT = NOT-MET
+SC4_LOCAL_VERDICT = MET
+Amended 2026-09-20 by owner decision; the reading as first recorded by this plan was
+`SC4_LOCAL_VERDICT = NOT-MET` and is preserved verbatim in the AMENDED section at the end of
+this file. Nothing measured above was changed.
 
 **Failing item, named explicitly:** `TIP_LINKCHECK_VERDICT = FAIL`, carrying three broken records
 after three identical, non-transient attempts: `changelog.rst:8`
@@ -396,6 +399,97 @@ after three identical, non-transient attempts: `changelog.rst:8`
 `changelog.rst:474` (`https://pypi.org/project/typsphinx/#history`, pre-existing). This plan made
 no edit to try to turn this red; 75-06 must not push and dispatch CI while
 `SC4_LOCAL_VERDICT = NOT-MET`.
+
+## AMENDED 2026-09-20 — owner decision on the three linkcheck records
+
+This section is an addendum. No measurement, transcript or key line recorded above was edited;
+the only change made outside this section is the `SC4_LOCAL_VERDICT` line in `## SC4 local
+verdict`, whose original reading is quoted verbatim below.
+
+SC4_LOCAL_VERDICT_AS_FIRST_RECORDED = NOT-MET
+SC4_LINKCHECK_AMENDED = yes
+AMEND_DECIDED_BY = project owner
+AMEND_DECIDED_AT = 2026-09-20
+AMEND_MEASURED_AT = 2026-09-20T11:01:56Z
+AMEND_MEASURED_AT_HEAD = d6880f9278af2272820927c63d7256d01fba3186
+
+### What was decided
+
+SC4's linkcheck condition is read as **`working` plus the classified, controlled exceptions below
+equals `total`**, rather than `working == total` unconditionally. `TIP_LINKCHECK_TOTAL = 96`,
+`TIP_LINKCHECK_WORKING = 93`, and the three remaining records are each classified below with a
+positive control. On that reading SC4's local half is MET and 75-06 may push and dispatch CI.
+
+No product file was edited to reach this verdict. No `linkcheck_ignore` or
+`linkcheck_anchors_ignore` key was added — `docs/source/conf.py` still contains zero `linkcheck`
+keys, measured at the timestamp above. The prep-only fence is intact.
+
+### Re-measurement by the orchestrator, independent of this plan's runs
+
+These were taken fresh at `AMEND_MEASURED_AT` on the merged wave-2 tip, not copied from the
+`## Tip linkcheck` transcript above.
+
+| URL | Measured | Control |
+|---|---|---|
+| `https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.6` | 404 | `releases/tag/v0.9.2` -> 200 |
+| `https://github.com/YuSabo90002/typsphinx/compare/v0.9.6...HEAD` | 404 | same control |
+| `https://pypi.org/project/typsphinx/` | 200, 3038 bytes, title `Client Challenge`, `id="history"` occurrences 0 | `https://github.com/YuSabo90002/typsphinx/releases` -> 200 |
+
+### Class A — two records that are structurally unreachable before the tag exists
+
+`changelog.rst:8` and `changelog.rst:17` both resolve a `v0.9.6` ref. The tag is created at
+`/gsd-complete-milestone`, after this phase, so a prep-only phase cannot make these green without
+either creating the tag early or removing the tail link that REL-15 requires. The `v0.9.2` control
+returning 200 shows the link shape itself is correct and the only missing input is the tag.
+
+Earlier milestones did not meet this condition: v0.9.3, v0.9.4 and v0.9.5 were merge-only with no
+version bump, so the tail block still pointed at the already-published v0.9.2 tag. This is the
+first publishing milestone since v0.9.2, and therefore the first time linkcheck has run against a
+tail block naming an unpublished tag.
+
+**Carried obligation, not a waiver.** These two records must be re-checked once the tag and the
+GitHub Release exist. `75-07` writes that re-run into `75-HANDOFF.md` as a required
+`/gsd-complete-milestone` step, and it is the condition under which Class A is considered closed.
+
+### Class B — one record that is not a broken link
+
+`changelog.rst:474`, `https://pypi.org/project/typsphinx/#history`. The reading recorded in
+`## Tip linkcheck` above attributes this to PyPI no longer exposing a `#history` anchor. The
+re-measurement does not support that attribution. The page returns HTTP 200, but the body is a
+3038-byte bot-mitigation interstitial titled `Client Challenge` that contains no anchors at all —
+identical with a plain client and with a browser User-Agent. Sphinx's `linkcheck_anchors` is on by
+default and therefore cannot find `history` in that body.
+
+So the link is reachable and the anchor's existence is unverifiable from an automated client, not
+disproven. The adjacent `https://github.com/YuSabo90002/typsphinx/releases` link on
+`changelog.rst:473` returns 200, so this is specific to PyPI's bot mitigation.
+
+`linkcheck_anchors_ignore` for `pypi\.org` is the candidate remedy, but adding it is a product
+edit to `docs/source/conf.py`, outside the five files REL-15 names, and this phase is prep-only.
+It is filed as a pending todo instead, the same treatment D-14 gave IN-01.
+
+### Why an unsoftened linkcheck was the wrong gate to hold the release on
+
+Measured at `AMEND_MEASURED_AT`:
+
+- `tox -e linkcheck` is run by no GitHub Actions job. `main`'s live protection requires six
+  contexts — Build Package, Code Coverage, Lint and Format Check, Test Python 3.12 on
+  ubuntu-latest, Test Python 3.13 on ubuntu-latest, Type Check — and linkcheck is not among them.
+  See `75-PREFLIGHT-EVIDENCE.md` for that read.
+- The repository's own repo-wide link checker, `.github/workflows/links.yml`, is headed
+  `# Repo-wide link check (advisory, non-required).` and excludes `CHANGELOG.md` with the stated
+  reason `# - CHANGELOG.md -- historical record deliberately left stale.`
+
+`docs/source/changelog.rst` is a single `.. include:: ../../CHANGELOG.md` directive, so Sphinx's
+linkcheck re-checks precisely the file the repository's own checker was configured to skip. The two
+checkers disagree by construction, and all three failing records are in that overlap.
+
+### What remains true and unamended
+
+Every other gate in this plan passed on its own terms and none of them is amended: the lint trio,
+both full pytest runs, the zero changelog-page-gate skips, both clean documentation builds at
+warning counts equal to the 75-01 baseline, and all four Phase-74 message-class zeros with their
+positive controls.
 
 ---
 *Phase: 75-v0-9-6-release-prep-prep-only*

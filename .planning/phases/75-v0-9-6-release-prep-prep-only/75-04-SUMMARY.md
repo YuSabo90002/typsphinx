@@ -12,8 +12,9 @@ requires:
     provides: the bump commit (pyproject.toml/uv.lock/README.md 0.9.2 -> 0.9.6) and the curated CHANGELOG.md ## [0.9.6] section
 provides:
   - measured SC4-local-half evidence on the bumped tip (lint trio, both full pytest runs, both documentation builds) — all green
-  - a discovered, unresolved linkcheck failure blocking SC4_LOCAL_VERDICT = MET
-affects: [75-06]
+  - SC4_LOCAL_VERDICT = MET, after the owner's 2026-09-20 amendment classified the three remaining linkcheck records (see 75-GREEN-TREE-EVIDENCE.md § "AMENDED 2026-09-20")
+  - a carried obligation for 75-07: 75-HANDOFF.md must require a post-tag linkcheck re-run, which is what closes the two Class A records
+affects: [75-06, 75-07]
 
 actuals:
   tokens: 15000
@@ -30,7 +31,10 @@ key-files:
     - .planning/phases/75-v0-9-6-release-prep-prep-only/75-GREEN-TREE-EVIDENCE.md
 
 key-decisions:
-  - "None taken by this plan — a NOT-MET verdict is recorded verbatim per the plan's own explicit protocol, escalated via checkpoint rather than worked around."
+  - "None taken by this plan — a NOT-MET verdict was recorded verbatim per the plan's own explicit protocol, and escalated via checkpoint rather than worked around."
+  - "Resolved by the project owner on 2026-09-20, after the plan returned: SC4's linkcheck condition reads `working` plus the classified, controlled exceptions equals `total`. Recorded as an AMENDED addendum in 75-GREEN-TREE-EVIDENCE.md; the original NOT-MET reading is preserved verbatim there. No product file was edited and no linkcheck_ignore key was added."
+  - "Class A (the two v0.9.6 tag links, 404 only because the tag is created at /gsd-complete-milestone) is a carried obligation, not a waiver: 75-07 must write the post-tag linkcheck re-run into 75-HANDOFF.md."
+  - "Class B (PyPI #history) was re-measured by the orchestrator and is NOT a broken link: the page returns 200 with a 3038-byte `Client Challenge` bot-mitigation body containing no anchors, identical under a browser User-Agent. Filed as a pending todo (linkcheck_anchors_ignore candidate) rather than fixed, per the prep-only fence."
 
 requirements-completed: []
 
@@ -56,15 +60,17 @@ coverage:
     requirement: "REL-15"
     verification:
       - kind: other
-        ref: "uv run tox -e linkcheck (3 identical attempts, all exit 1)"
-        status: fail
+        ref: "uv run tox -e linkcheck (3 identical attempts, all exit 1; 96 total, 93 working)"
+        status: pass
     human_judgment: true
-    rationale: "The three broken links are a discovered structural/external issue (two reference the not-yet-created v0.9.6 tag; the run 3rd is a pre-existing external PyPI anchor break) requiring a human decision on how 75-06 and this phase should proceed — not a defect this plan can fix without violating its own product-file-edit prohibition."
+    rationale: "Escalated by this plan as NOT-MET and resolved by the project owner on 2026-09-20 under an amended reading of SC4: `working` plus the classified, controlled exceptions equals `total`. Class A is the two v0.9.6 tag links, which a prep-only phase cannot make green because the tag is created afterwards at /gsd-complete-milestone; control `releases/tag/v0.9.2` returns 200, and a post-tag re-run is carried into 75-HANDOFF.md. Class B is the PyPI #history anchor, re-measured as a bot-mitigation interstitial rather than a broken link, and filed as a pending todo. No product file was edited; docs/source/conf.py still holds zero linkcheck keys."
 
 # Metrics
 duration: 13min
 completed: 2026-09-20
-status: halted
+status: complete
+halt_resolved: 2026-09-20
+halt_resolution: "Owner amended SC4's linkcheck condition; see 75-GREEN-TREE-EVIDENCE.md § \"AMENDED 2026-09-20\". The plan itself is unchanged and made no product edit."
 ---
 
 # Phase 75 Plan 04: Green Tree Evidence (SC4 Local Half) — HALTED on a discovered linkcheck defect
