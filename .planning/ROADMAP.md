@@ -561,6 +561,10 @@ typsphinx.
 
 **Plans**: 7 plans (4 waves)
 
+Plans:
+
+**Wave 1**
+
 - [ ] 75-01-PLAN.md — Closeout-guard baseline on REL-15, the clean C-locale documentation ledger at
       this phase's own base, and SC5 probe observation 1 of 2 (wave 1)
 - [ ] 75-02-PLAN.md — Phase 74's leftovers: delete the five untracked `probe_*.typ` scratch files,
@@ -569,12 +573,21 @@ typsphinx.
       `README.md` / `RELEASE_VERSIONS`, the curated `## [0.9.6]` section with its
       `### Known Limitations`, the fresh `## [Unreleased]` and the moved tail links, then the
       extractor transcript (wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 75-04-PLAN.md — Green-tree evidence on the bumped tip: lint trio, pytest twice, clean
       `docs-html` / `docs-pdf` re-proving Phase 74's zero counts, clean `linkcheck` (wave 2)
 - [ ] 75-05-PLAN.md — Non-committing trial merge against `origin/main`, `main`'s protection and
       merge method read live, fresh branch and pull-request census (wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 75-06-PLAN.md — Push the bumped tip and dispatch exactly one CI run, waited to completion with
       every job transcribed (wave 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 75-07-PLAN.md — Fence and probe observation 2, the scope fence with controls, `75-HANDOFF.md`,
       the REL-16 settlement record and the SC1–SC5 roll-up (wave 4)
 

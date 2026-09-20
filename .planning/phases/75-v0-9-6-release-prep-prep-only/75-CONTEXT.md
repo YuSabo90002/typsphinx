@@ -194,7 +194,7 @@ requires each plan to re-measure fresh at its own base.
 
 ### Phase 74's leftovers
 
-- **D-13: The five untracked `probe_*.typ` files at the repo root are deleted in this phase.**
+- **D-13: The five untracked probe Typst files at the repo root are deleted in this phase.**
   `probe_bogusxyz.typ`, `probe_none.typ`, `probe_pycon.typ`, `probe_python.typ`, `probe_text.typ`,
   left from Phase 74's D-01 language-tag compile probing (milestone audit tech_debt #2). They are
   untracked, so the deletion produces no commit and does not touch SC5's `git diff` reading; the
