@@ -559,7 +559,7 @@ typsphinx.
 - **The tail link block is this phase's work, not a follow-up.** REL-15 names it explicitly; a
   version bump that leaves `[Unreleased]` comparing against `v0.9.2` is incomplete.
 
-**Plans**: 6/7 plans executed (4 waves)
+**Plans**: 7/7 plans executed (4 waves)
 
 Plans:
 
@@ -588,7 +588,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 75-07-PLAN.md — Fence and probe observation 2, the scope fence with controls, `75-HANDOFF.md`,
+- [x] 75-07-PLAN.md — Fence and probe observation 2, the scope fence with controls, `75-HANDOFF.md`,
       the REL-16 settlement record and the SC1–SC5 roll-up (wave 4)
 
 **UI hint**: no
@@ -608,7 +608,7 @@ below tracks the active milestone only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 74. The `doctest_block` Handler, Its Real-Compile Gate, and the Docstring reST Errors | v0.9.6 | 7/7 | Complete | 2026-09-20 |
-| 75. v0.9.6 Release Prep (prep-only) | v0.9.6 | 6/7 | In Progress | - |
+| 75. v0.9.6 Release Prep (prep-only) | v0.9.6 | 7/7 | In Progress | - |
 
 ## Roadmap Evolution
 
