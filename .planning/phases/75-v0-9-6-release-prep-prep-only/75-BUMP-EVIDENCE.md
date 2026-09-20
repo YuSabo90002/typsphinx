@@ -189,3 +189,66 @@ PREVIEW_PACKAGE_COUNT = 4
 The three product edits (`pyproject.toml`, `uv.lock`, `README.md`) are left uncommitted per this
 plan's worktree provisioning instructions. Only this evidence file (`75-BUMP-EVIDENCE.md`) is
 staged and committed for Task 1; the product edits wait for Task 3's single five-file commit.
+
+## The one commit
+
+Before staging, the working tree's product-scope status was recorded:
+
+```
+$ git status --porcelain -- . ':(exclude).planning'
+ M CHANGELOG.md
+ M README.md
+ M pyproject.toml
+ M tests/test_changelog_page_gate.py
+ M uv.lock
+```
+
+Exactly the five expected files and nothing else — no `## HALT` was needed.
+
+Staged by explicit path (never `git add -A`, never `git add .`):
+
+```
+$ git add pyproject.toml uv.lock README.md CHANGELOG.md tests/test_changelog_page_gate.py
+```
+
+Committed with a plain `git commit` naming the release prep and the version:
+
+```
+$ git commit -m "release(75-03): bump typsphinx to 0.9.6 and curate the CHANGELOG ..."
+[worktree-agent-a64ee11a04ac3c9ef 84edd348] release(75-03): bump typsphinx to 0.9.6 and curate the CHANGELOG
+ 5 files changed, 63 insertions(+), 10 deletions(-)
+```
+
+BUMP_COMMIT_SHA = 84edd348b52f1f7e95073d2b3ebcbcd36417bc15
+
+```
+$ git show --name-only --format='%H %s' HEAD
+84edd348b52f1f7e95073d2b3ebcbcd36417bc15 release(75-03): bump typsphinx to 0.9.6 and curate the CHANGELOG
+
+CHANGELOG.md
+README.md
+pyproject.toml
+tests/test_changelog_page_gate.py
+uv.lock
+```
+
+```
+$ git show --name-only --format= HEAD | grep -v '^$' | LC_ALL=C sort | paste -sd'|'
+CHANGELOG.md|README.md|pyproject.toml|tests/test_changelog_page_gate.py|uv.lock
+```
+
+BUMP_COMMIT_FILES = CHANGELOG.md|README.md|pyproject.toml|tests/test_changelog_page_gate.py|uv.lock
+
+This matches the `LC_ALL=C`-sorted, `|`-joined five-file list exactly.
+
+**The AMENDED resolution this commit implements.** 75-CONTEXT.md's Phase Boundary bullet 1 and
+ROADMAP SC1 both name a four-item set — `pyproject.toml`, `uv.lock`, `README.md` and
+`CHANGELOG.md` — as landing together in "one commit," while the "Claude's Discretion → The bump
+mechanics" bullet separately names a different four-item set —`pyproject.toml`, `uv.lock`,
+`README.md` and `tests/test_changelog_page_gate.py` — for the same one commit. Neither text
+forbids a superset, and the union of the two four-item sets is the only five-file reading that
+satisfies both texts at once: it is a superset of SC1's explicit four-file list, and the test
+edit's presence in the same tree state is in any case needed before SC1's own "zero skipped"
+changelog-gate reading can be taken on the bumped tip. Phase 46's two-commit split (a separate
+CHANGELOG commit, then a separate bump commit) is explicitly not the precedent this phase
+follows — Phase 75's binding text requires one commit, not two.
