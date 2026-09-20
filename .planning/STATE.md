@@ -4,12 +4,12 @@ milestone: v0.9.6
 milestone_name: Doctest block rendering and release
 current_phase: 75
 current_phase_name: v0.9.6 Release Prep (prep-only)
-status: planned
+status: executing
 stopped_at: Phase 75 planned — 7 plans in 4 waves, ready to execute
-last_updated: "2026-09-20T07:56:57.529Z"
+last_updated: "2026-09-20T08:34:33.522Z"
 last_activity: 2026-09-20
-last_activity_desc: Phase 75 planned (7 PLAN.md files, 4 waves, 19 tasks)
-state_head: ff0a2f2665a805ca12c17dac14d043f4fbcf519e
+last_activity_desc: Phase 75 execution started
+state_head: 06749cf9941807fcfde071f8f8fd60a4bfae23d0
 progress:
   total_phases: 2
   completed_phases: 1
@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-16 — full evolution review at the v0.9.5 close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** **v0.9.6 Doctest block rendering and release** — roadmap created 2026-09-16. Two phases (74–75), 5/5 v1 requirements mapped, zero orphans. Phase 74 gives `doctest_block` the translator handler it has never had (TRN-01, TRN-02) and clears the docutils reST errors this project's own docstrings raise in the same build (QUA-14); Phase 75 is prep-only release work (REL-15, REL-16). **This milestone publishes**, after three merge-only milestones: `pyproject.toml` `0.9.2` → `0.9.6`, the six carried `## [Unreleased]` bullets promoted into `## [0.9.6]`, then tag → PyPI → GitHub Release at `/gsd-complete-milestone`. **Phase 74 planned and now executing** (2026-09-20: 7 plans in 5 waves; plan-checker passed; decision coverage 7/7).
+**Current focus:** **v0.9.6 Doctest block rendering and release** — roadmap created 2026-09-16. Two phases (74–75), 5/5 v1 requirements mapped, zero orphans. Phase 74 gives `doctest_block` the translator handler it has never had (TRN-01, TRN-02) and clears the docutils reST errors this project's own docstrings raise in the same build (QUA-14); Phase 75 is prep-only release work (REL-15, REL-16). **This milestone publishes**, after three merge-only milestones: `pyproject.toml` `0.9.2` → `0.9.6`, the six carried `## [Unreleased]` bullets promoted into `## [0.9.6]`, then tag → PyPI → GitHub Release at `/gsd-complete-milestone`. **Phase 74 complete; Phase 75 now executing** (2026-09-20: 7 plans in 4 waves; plan-checker passed).
 
 ## Shipped Milestone (v0.9.5 — archived, merged to `main`, NOT published)
 
@@ -277,10 +277,10 @@ land here.
 
 ## Current Position
 
-Phase: 75 (v0.9.6 Release Prep (prep-only)) — READY TO EXECUTE
-Plan: 0/7 complete
-Status: Planned — ready to execute
-Last activity: 2026-09-20 — Phase 75 planned: 7 plans, 4 waves, 19 tasks
+Phase: 75 (v0.9.6 Release Prep (prep-only)) — EXECUTING
+Plan: 1 of 7
+Status: Executing Phase 75
+Last activity: 2026-09-20 — Phase 75 execution started
 
 Progress: [█████░░░░░] 50% (1/2 phases)
 
