@@ -138,3 +138,11 @@ None - no external service configuration required.
 ---
 *Phase: 75-v0-9-6-release-prep-prep-only*
 *Completed: 2026-09-20*
+
+## Self-Check: PASSED
+
+- `.planning/phases/75-v0-9-6-release-prep-prep-only/75-BUMP-EVIDENCE.md` — FOUND
+- `.planning/phases/75-v0-9-6-release-prep-prep-only/75-CHANGELOG-EVIDENCE.md` — FOUND
+- `.planning/phases/75-v0-9-6-release-prep-prep-only/75-03-SUMMARY.md` — FOUND
+- Commit `84edd348` (the five-file bump commit) — FOUND in `git log --oneline --all`
+- Commit `379e5d96` (this SUMMARY's own commit) — FOUND in `git log --oneline --all`
