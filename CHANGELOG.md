@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned for Future Releases
+- BibTeX/bibliography support
+- Glossary generation
+- Index generation
+- Pre-commit hooks
+- Additional Typst Universe template integration
+
+## [0.9.6] - 2026-09-20
+
+This release's headline fix is doctest block rendering: a `>>>` example in your documentation now
+renders correctly, and — where it previously sat next to other content in the same container — no
+longer aborts the Typst compile with `expected semicolon or line break`. That earlier failure was
+not merely cosmetic, so 0.9.2 users with any doctest block in their sources should upgrade to this
+release. As a side note, this release also carries the contributor-tooling and dependency-workflow
+work accumulated since 0.9.2. Zero new runtime dependencies.
+
 ### Added
 
 - **A `tox -e linkcheck` environment checks the documentation's external links, including
@@ -54,17 +70,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A `>>>` doctest example now renders as a Typst code block with its line structure intact
+  (TRN-01, TRN-02).** Previously `doctest_block` nodes had no translator handler at all. Where a
+  doctest block was followed by further content inside the same container, the missing handler
+  left the emission malformed and the PDF compile itself failed. The whole block is highlighted as
+  Python, so output lines are coloured as Python source rather than as plain console output — a
+  known, accepted trade-off. typsphinx's own published API reference, whose docstrings carry
+  several `>>>` examples, is the worked example for this fix.
+
+- **typsphinx's own docstrings no longer raise docutils `Unexpected indentation` or `Block quote
+  ends without a blank line` errors when the package is autodoc'd (QUA-14).** The docstring
+  formatting defects responsible for those errors during this project's own documentation build
+  have been corrected.
+
 - **The HTML documentation's sidebar now lists each User Guide and Examples page exactly
   once, nested under its section (DOC-18).** Previously each of those pages was also listed
   a second time beside its section, so Sphinx no longer reports them as referenced in
   multiple toctrees. This has no effect on installing or using typsphinx.
 
-### Planned for Future Releases
-- BibTeX/bibliography support
-- Glossary generation
-- Index generation
-- Pre-commit hooks
-- Additional Typst Universe template integration
+### Known Limitations
+
+- **A multi-master `typst_documents` configuration can produce a diverging or missing `:numref:`
+  reference number (NUM-01).** A single-master project is entirely unaffected. When the same
+  figure is reachable from two masters, Sphinx bakes one project-wide number into the `:numref:`
+  reference text, but each compiled Typst wrapper counts its own captions independently — so the
+  reference reads correctly in one master's PDF and points at the wrong number in the other, with
+  no diagnostic reporting the mismatch. When a figure is reachable only from a non-root master, it
+  never enters Sphinx's root-document figure-numbering scan, so its `:numref:` reference falls
+  back to the raw label text instead of a number; Sphinx does emit one warning naming the label,
+  so the build log carries a diagnostic even though the compiled PDF gives the reader none.
+  **Workaround:** use a single-master `typst_documents` configuration, or replace `:numref:` with
+  `:ref:` for the affected figures.
+
+### Verified
+
+- No new runtime dependency and no new dev dependency were added across this milestone's diff
+  (`v0.9.2..HEAD`); the one change to that surface is the `dev` extra's return to `tox-uv`
+  (TOX-01, TOX-02, TOX-03, TOX-04) — a contributor-tooling change with no effect on installing or
+  using typsphinx.
+- The four bundled `@preview` package version strings are unchanged across all three declaration
+  sites (`typsphinx/writer.py`, `typsphinx/template_engine.py`, `typsphinx/templates/base.typ`).
+- The new `doctest_block` handler is bound by a real `typst.compile()` gate
+  (`tests/test_doctest_block_render_gate.py`, GATE-01) covering multiple containment shapes,
+  including a master document that failed to compile at all before the fix.
+- A clean, C-locale rebuild of `docs/source` reports zero docutils `Unexpected indentation` /
+  `Block quote ends without a blank line` diagnostics attributable to typsphinx's own docstrings
+  (QUA-14), down from a measured baseline of five such warnings before the fix.
 
 ## [0.9.2] - 2026-08-30
 
@@ -1324,6 +1375,7 @@ untouched.
 
 ---
 
+[0.9.6]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.6
 [0.9.2]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.2
 [0.9.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.0
 [0.8.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.8.0
@@ -1346,4 +1398,4 @@ untouched.
 [0.2.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.1
 [0.2.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.0
 [0.1.0b1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.1.0b1
-[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.9.2...HEAD
+[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.9.6...HEAD

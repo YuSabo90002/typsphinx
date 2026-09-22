@@ -2428,7 +2428,9 @@ class TypstTranslator(SphinxTranslator):
         else:
             self.in_list_item = False
 
-    def visit_literal_block(self, node: nodes.literal_block) -> None:
+    def visit_literal_block(
+        self, node: nodes.literal_block | nodes.doctest_block
+    ) -> None:
         """
         Visit a literal block (code block) node.
 
@@ -2440,7 +2442,7 @@ class TypstTranslator(SphinxTranslator):
         Issue #31: Support :lineno-start: and :dedent: options
 
         Args:
-            node: The literal block node
+            node: The literal block node, or a doctest block delegated here
         """
         # Anchor node["ids"] via the shared markup-block helper. Both a
         # ``:name:`` and a propagated ``.. _t:`` before the block set
@@ -2567,20 +2569,30 @@ class TypstTranslator(SphinxTranslator):
 
         # Typst code block syntax: ```language\ncode\n```
         # Extract language if specified
-        language = node.get("language", "")
+        # Sphinx's HighlightLanguageTransform only assigns `language` to
+        # `literal_block` nodes, so a doctest_block always arrives with none
+        # -- a non-empty language already on the node is honoured (D-02),
+        # `highlight_language` is deliberately not followed, and the "python"
+        # fallback is keyed on the node class, so every literal_block keeps
+        # its current output (D-03).
+        language = node.get("language", "") or (
+            "python" if isinstance(node, nodes.doctest_block) else ""
+        )
         if language:
             self.add_text(f"```{language}\n")
         else:
             self.add_text("```\n")
 
-    def depart_literal_block(self, node: nodes.literal_block) -> None:
+    def depart_literal_block(
+        self, node: nodes.literal_block | nodes.doctest_block
+    ) -> None:
         """
         Depart a literal block (code block) node.
 
         Issue #20: Handle closing figure bracket and labels.
 
         Args:
-            node: The literal block node
+            node: The literal block node, or a doctest block delegated here
         """
         # Clear literal block flag
         self.in_literal_block = False
@@ -2612,6 +2624,45 @@ class TypstTranslator(SphinxTranslator):
         # Mark that next element in list item needs separator
         if self.in_list_item:
             self.list_item_needs_separator = True
+
+    def visit_doctest_block(self, node: nodes.doctest_block) -> None:
+        """
+        Visit a doctest block (a ``>>>`` interactive example) node.
+
+        docutils' parser builds a ``doctest_block`` for any line beginning
+        with ``>>> `` (``Body.doctest`` in ``docutils/parsers/rst/states.py``),
+        so a reST author cannot opt out of this node appearing in a doctree.
+
+        ``doctest_block`` is a sibling of ``literal_block`` under
+        ``FixedTextElement``, not a subclass of it, so it needs its own
+        dispatch entry rather than being reached through ``literal_block``'s.
+
+        This method delegates wholesale to ``visit_literal_block``: the
+        fence, the codly configuration, id anchors and the list-item
+        separator discipline are all shared, with no second emission path.
+        This is the same shape Sphinx's own writers use for this node --
+        a delegating call in the HTML5 writer, a class-attribute alias in
+        the LaTeX and Texinfo writers.
+
+        The ``python`` fence language is supplied in ``visit_literal_block``
+        itself when the node carries none.
+
+        Args:
+            node: The doctest block node.
+        """
+        self.visit_literal_block(node)
+
+    def depart_doctest_block(self, node: nodes.doctest_block) -> None:
+        """
+        Depart a doctest block (a ``>>>`` interactive example) node.
+
+        Delegates wholesale to ``depart_literal_block``, matching
+        ``visit_doctest_block``.
+
+        Args:
+            node: The doctest block node.
+        """
+        self.depart_literal_block(node)
 
     def visit_definition_list(self, node: nodes.definition_list) -> None:
         """
@@ -5417,6 +5468,7 @@ class TypstTranslator(SphinxTranslator):
         Visit a toctree node (Sphinx table of contents tree).
 
         Requirement 13: Multi-document integration and toctree processing
+
         - Generate a compile-time state guard for each include-file entry
           (Phase 49, COMP-05/COMP-06 -- see below)
         - D-07: apply `set heading(offset: heading.offset + 1)` -- a
@@ -5430,8 +5482,10 @@ class TypstTranslator(SphinxTranslator):
           at every include site; a relative expression evaluated at
           layout time removes the need for one to exist.
         - Issue #5: Fix relative paths for nested toctrees
+
           - Calculate relative paths from current document
         - Issue #7: Simplify toctree output with single content block
+
           - Generate single #[...] block containing all guards
           - D-07: apply `heading.offset + 1` once per toctree, inside a
             `context { ... }` block (required because `heading.offset` is

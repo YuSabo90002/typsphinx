@@ -3920,3 +3920,75 @@ def test_image_path_adjustment_subdirectory(simple_document, mock_builder):
     # FIG-01/D-02: px converts to pt (1px = 0.75pt), never emitted raw
     assert "width: 187.5pt" in output
     assert "../" not in output  # No need to go up
+
+
+def test_doctest_block_defaults_to_python_fence(simple_document, mock_builder):
+    """D-01: a doctest_block without a language falls back to a python fence."""
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    node = nodes.doctest_block(text=">>> 1 + 1\n2")
+    translator.visit_doctest_block(node)
+    translator.visit_Text(nodes.Text(">>> 1 + 1\n2"))
+    translator.depart_Text(nodes.Text(">>> 1 + 1\n2"))
+    translator.depart_doctest_block(node)
+
+    output = translator.astext()
+    assert "```python\n>>> 1 + 1\n2\n```" in output
+    # D-03: the doctree is never mutated with the fallback language.
+    assert node.get("language") is None
+
+
+def test_doctest_block_honours_existing_language(simple_document, mock_builder):
+    """D-02: a doctest_block with a pre-set language keeps it, unoverwritten."""
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    node = nodes.doctest_block(text=">>> 1 + 1\n2")
+    node["language"] = "pycon"
+    translator.visit_doctest_block(node)
+    translator.visit_Text(nodes.Text(">>> 1 + 1\n2"))
+    translator.depart_Text(nodes.Text(">>> 1 + 1\n2"))
+    translator.depart_doctest_block(node)
+
+    output = translator.astext()
+    assert "```pycon\n" in output
+    assert "```python" not in output
+
+
+def test_literal_block_without_language_keeps_bare_fence(simple_document, mock_builder):
+    """D-03: the python fallback is keyed on the node class, not on emptiness."""
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    literal_block = nodes.literal_block(text="x = 1")
+    translator.visit_literal_block(literal_block)
+    translator.visit_Text(nodes.Text("x = 1"))
+    translator.depart_Text(nodes.Text("x = 1"))
+    translator.depart_literal_block(literal_block)
+
+    output = translator.astext()
+    assert "```\nx = 1\n```" in output
+    assert "```python" not in output
+
+
+def test_doctest_block_shares_list_item_wrapper(simple_document, mock_builder):
+    """D-03: doctest_block shares the list-item { } wrapper and separator re-arm."""
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+    translator.in_list_item = True
+    translator.list_item_needs_separator = True
+
+    node = nodes.doctest_block(text=">>> 1 + 1\n2")
+    translator.visit_doctest_block(node)
+    translator.visit_Text(nodes.Text(">>> 1 + 1\n2"))
+    translator.depart_Text(nodes.Text(">>> 1 + 1\n2"))
+    translator.depart_doctest_block(node)
+
+    output = translator.astext()
+    assert "{\ncodly(number-format: none)\n```python\n>>> 1 + 1\n2\n```\n}" in output
+    assert translator.list_item_needs_separator is True
