@@ -365,3 +365,77 @@ success; `DISPATCH_COUNT = 1`; `RELEASE_RUNS_AT_PUSHED = 0`; `REQUIRED_CHECKS_UN
 Every condition holds.
 
 SC4_CI_VERDICT = MET
+
+## AMENDED 2026-09-22 — second dispatch after the code-review fix
+
+Addendum. Nothing measured above was edited: every key in the sections above remains a true record
+of **dispatch 1**, which happened exactly as written. This section records **dispatch 2** and
+restates the one reading whose phase-level meaning the second dispatch changes.
+
+AMEND2_AT = 2026-09-22T10:15:47Z
+DISPATCH_COUNT_PHASE_TOTAL = 2
+DISPATCH_COUNT_AS_FIRST_RECORDED = 1
+
+### Why a second dispatch
+
+The `execute:post` code-review gate returned one WARNING, WR-01 in `75-REVIEW.md`: `84edd348`
+appended "0.9.6" to `RELEASE_VERSIONS` in `tests/test_changelog_page_gate.py` but left the comment
+above it reading "The 16 releases ... 0.4.4 through 0.9.2, inclusive", which the same commit made
+wrong on the count and on the upper bound. The project owner chose on 2026-09-22 to fix it **and
+re-take the CI half on the fixed tip**, rather than inherit dispatch 1's green or defer the fix.
+
+`DISPATCH_COUNT = 1` in the section above was true when written and remains a true count of
+dispatches up to that moment. At phase close the phase-level total is 2. Both dispatches were
+deliberate; neither was a retry, a duplicate, or a 5xx-induced double fire. Dispatch 2 was
+requested only after `gh run list` confirmed dispatch 1 had completed, and the run list was re-read
+immediately afterwards to confirm exactly one new run had appeared.
+
+### Dispatch 2
+
+FIX_COMMIT_SHA = 8416938871398f52a03636db2ef4c4895e39ac75
+FIX_COMMIT_SCOPE = tests/test_changelog_page_gate.py
+FIX_COMMIT_NUMSTAT = 1 file changed, 1 insertion, 1 deletion
+PUSHED_SHA_2 = 8416938871398f52a03636db2ef4c4895e39ac75
+PUSH_2_RANGE = b63e5d45..84169388
+PUSH_2_FAST_FORWARD = yes
+ORIGIN_TIP_AFTER_PUSH_2 = 8416938871398f52a03636db2ef4c4895e39ac75
+RUN_ID_2 = 35714217450
+RUN_URL_2 = https://github.com/YuSabo90002/typsphinx/actions/runs/35714217450
+RUN_2_EVENT = workflow_dispatch
+RUN_2_HEAD_SHA = 8416938871398f52a03636db2ef4c4895e39ac75
+RUN_2_STATUS = completed
+RUN_2_CONCLUSION = success
+RUN_2_CREATED_AT = 2026-09-22T10:07:11Z
+RUN_2_UPDATED_AT = 2026-09-22T10:14:43Z
+JOB_COUNT_2 = 12
+NON_SUCCESS_JOBS_2 = 0
+JOB_NAMES_MATCH_RUN_1 = yes
+CI_RUNS_ON_BRANCH_AFTER = 3
+RELEASE_RUNS_AT_PUSHED_2 = 0
+
+`RUN_2_HEAD_SHA` equals `PUSHED_SHA_2` equals the local tip, so the run tested exactly the pushed
+tree. All twelve jobs are `success`, and the sorted job-name set is byte-identical to dispatch 1's,
+so the same three-operating-system matrix ran:
+
+```
+Build Package | Code Coverage | Integration Test - advanced | Integration Test - basic |
+Lint and Format Check | Test Python 3.12 on macos-latest | Test Python 3.12 on ubuntu-latest |
+Test Python 3.12 on windows-latest | Test Python 3.13 on macos-latest |
+Test Python 3.13 on ubuntu-latest | Test Python 3.13 on windows-latest | Type Check
+```
+
+`CI_RUNS_ON_BRANCH_AFTER = 3` decomposes as `35476044079` on `e54d47d0` (Phase 74's tip, before
+this phase), `35507024851` on `b63e5d45` (dispatch 1), and `35714217450` on `84169388`
+(dispatch 2). Exactly one run per pushed tip; no tip carries two runs.
+
+### Prep-only fence, re-measured at AMEND2_AT
+
+TAG_V096_LOCAL_2 = 0
+TAG_V096_REMOTE_2 = 0
+OPEN_PRS_2 = 0
+DECOY_ON_ORIGIN_2 = 0
+
+The fence is intact: the second push and the second dispatch are still the only things this phase
+placed on the remote.
+
+SC4_CI_VERDICT_AFTER_AMEND2 = MET

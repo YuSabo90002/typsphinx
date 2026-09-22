@@ -40,7 +40,7 @@ fence this phase carries is line-scoped to REL-15 rather than whole-file.
 | SC1 | MET | `75-BUMP-EVIDENCE.md`: the one five-file commit `84edd348b52f1f7e95073d2b3ebcbcd36417bc15` (`BUMP_COMMIT_FILES = CHANGELOG.md\|README.md\|pyproject.toml\|tests/test_changelog_page_gate.py\|uv.lock`), `uv lock --check` and a locked sync both exit 0, and the changelog page gate runs zero skips (`CHANGELOG_GATE_SKIPS = 0`). |
 | SC2 | MET | `75-CHANGELOG-EVIDENCE.md`: the extractor's stdout (`scripts/extract_changelog_section.py 0.9.6`, 7104 bytes) is byte-identical to the committed `## [0.9.6]` section — both digests `f9a52e3de808bd49981658a1169e96e761fd409432c45fa2f350c5acad0f59be` (`EXTRACT_MATCHES_SECTION = yes`). |
 | SC3 | MET | `75-SC5-INVARIANTS.md` § "REL-16 settlement": the anchored `### Known Limitations` heading count is 2 (the pre-existing `[0.1.0b1]` entry plus the new `## [0.9.6]` entry), and the decision record and the CHANGELOG agree (`REL16_AGREEMENT = yes`). |
-| SC4 | MET | Local half `75-GREEN-TREE-EVIDENCE.md` (`SC4_LOCAL_VERDICT = MET`, amended 2026-09-20 by owner decision on the three linkcheck records — see below); CI half `75-CI-EVIDENCE.md` run id `35507024851` on `PUSHED_SHA = b63e5d453d604350b55c51a1a77918985d6dad7c`, `JOB_COUNT = 12`, `NON_SUCCESS_JOBS = 0` (`SC4_CI_VERDICT = MET`); trial-merge half `75-PREFLIGHT-EVIDENCE.md` (`TRIAL_MERGE_VERDICT = MET`). |
+| SC4 | MET | Local half `75-GREEN-TREE-EVIDENCE.md` (`SC4_LOCAL_VERDICT = MET`, amended 2026-09-20 by owner decision on the three linkcheck records — see below; re-taken 2026-09-22 on the fix tip, `SC4_LOCAL_VERDICT_AFTER_AMEND2 = MET`); CI half `75-CI-EVIDENCE.md` — the operative run is the **second** dispatch, `RUN_ID_2 = 35714217450` on `PUSHED_SHA_2 = 8416938871398f52a03636db2ef4c4895e39ac75`, `JOB_COUNT_2 = 12`, `NON_SUCCESS_JOBS_2 = 0` (dispatch 1, run id `35507024851` on `b63e5d45`, was superseded by the code-review WR-01 fix); trial-merge half `75-PREFLIGHT-EVIDENCE.md` (`TRIAL_MERGE_VERDICT = MET`). |
 | SC5 | MET | `75-CLOSEOUT-GUARD.md` § "Re-verification at phase close" (`FENCE_CLOSE_VERDICT = MATCH`) and `75-SC5-INVARIANTS.md` § "Scope fence" (`SC5_VERDICT = MET`). |
 
 **SC4's linkcheck amendment, stated plainly here so it is not mistaken for an unqualified clean
@@ -56,6 +56,18 @@ checklist item 2 note below, which is the step that closes Class A. The third,
 link** — PyPI's page returns 200 behind a bot-mitigation interstitial with no anchors, filed as a
 pending todo rather than a release blocker (the same treatment IN-01 got). No product file was
 edited to reach this reading, and the prep-only fence is intact.
+
+**The tip this phase hands over, stated once so no step below has to re-derive it.** The branch
+`gsd/v0.9.6-doctest-block-rendering-and-release` is at
+`8416938871398f52a03636db2ef4c4895e39ac75` on `origin` and locally **for product files**. That SHA
+is the one CI verified in dispatch 2. Two dispatches happened in this phase, both deliberate, both
+recorded: dispatch 1 on `b63e5d45`, then the `execute:post` code-review gate's WR-01 comment fix,
+then dispatch 2 on `84169388`. The phase total is `DISPATCH_COUNT_PHASE_TOTAL = 2`; do not read
+`DISPATCH_COUNT = 1` in that file's earlier section as the phase-level figure.
+
+Local `HEAD` continues past `84169388` with `.planning/`-only commits written after the push (this
+handoff among them), so **push the branch again before tagging** — the product tree is identical,
+but the tag must be created on a pushed commit.
 
 ## Checklist
 

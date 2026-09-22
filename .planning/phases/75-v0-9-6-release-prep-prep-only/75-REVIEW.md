@@ -14,7 +14,13 @@ findings:
   warning: 1
   info: 0
   total: 1
-status: issues_found
+status: resolved
+resolution:
+  resolved: 1
+  deferred: 0
+  resolved_at: 2026-09-22
+  resolved_by: orchestrator, on the project owner's 2026-09-22 decision
+  fix_commit: 8416938871398f52a03636db2ef4c4895e39ac75
 ---
 
 # Phase 75: Code Review Report
@@ -91,6 +97,30 @@ wrong.
 
 ---
 
+## Resolution — 2026-09-22
+
+**WR-01: FIXED** in `8416938871398f52a03636db2ef4c4895e39ac75`
+(`fix(75): correct the stale RELEASE_VERSIONS comment (code review WR-01)`).
+
+The finding was re-measured independently before acting on it. `RELEASE_VERSIONS` was parsed with
+`ast` rather than read by eye: it evaluates to 17 entries running `0.4.1` through `0.9.6`, against
+a comment stating 16, `0.4.4` and `0.9.2`. All three figures were corrected, which also closes the
+pre-existing lower-bound imprecision the finding noted as out of scope.
+
+The fix is comment text only — 1 file, 1 insertion, 1 deletion, no assertion, fixture or behaviour
+change. Verified on the fixed tree: `ruff check .`, `black --check .` and `mypy typsphinx/` all
+exit 0, and the full suite is `1569 passed, 1 skipped` both plainly and under `LC_ALL=C`, the skip
+being the env-gated corpus measurement, with zero changelog-page-gate skips.
+
+Because this was the first product-file change since CI verified `b63e5d45`, the project owner
+chose to re-take SC4's CI half rather than inherit it. The branch was pushed again
+(`b63e5d45..84169388`, fast-forward) and one further CI run dispatched: `35714217450`, `success`,
+12/12 jobs, job-name set byte-identical to the first run. See `75-CI-EVIDENCE.md`
+§ "AMENDED 2026-09-22" and `75-GREEN-TREE-EVIDENCE.md` § "AMENDED 2026-09-22".
+
+No finding from this review is deferred.
+
+---
 _Reviewed: 2026-09-20T00:00:00Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_

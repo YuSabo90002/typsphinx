@@ -491,6 +491,57 @@ both full pytest runs, the zero changelog-page-gate skips, both clean documentat
 warning counts equal to the 75-01 baseline, and all four Phase-74 message-class zeros with their
 positive controls.
 
+## AMENDED 2026-09-22 — SC4's local half re-taken on the code-review fix tip
+
+Second addendum, independent of the 2026-09-20 linkcheck amendment above. Nothing measured above
+was edited.
+
+The code-review gate's WR-01 fix changed one comment in `tests/test_changelog_page_gate.py`
+(`8416938871398f52a03636db2ef4c4895e39ac75`, 1 file, 1 insertion, 1 deletion, comment text only —
+no assertion, no fixture, no behaviour). It is the first product-file change since the runs
+recorded above, so the local gates are **re-measured here rather than inherited**.
+
+AMEND2_AT = 2026-09-22T10:15:47Z
+AMEND2_TIP = 8416938871398f52a03636db2ef4c4895e39ac75
+AMEND2_RUFF_EXIT = 0
+AMEND2_BLACK_EXIT = 0
+AMEND2_MYPY_EXIT = 0
+AMEND2_PYTEST_EXIT = 0
+AMEND2_PYTEST_C_EXIT = 0
+AMEND2_PYTEST_PASSED = 1569
+AMEND2_PYTEST_C_PASSED = 1569
+AMEND2_PYTEST_FAILED = 0
+AMEND2_PYTEST_C_FAILED = 0
+AMEND2_PYTEST_ERRORS = 0
+AMEND2_CHANGELOG_GATE_SKIPS = 0
+AMEND2_COMMENT_MATCHES_TUPLE = yes
+
+`black --check .` reports `358 files would be left unchanged`; `ruff check .` reports
+`All checks passed!`; `mypy typsphinx/` reports `Success: no issues found in 9 source files`.
+
+Both full runs report `1569 passed, 1 skipped`. The single skip is the same env-gated one recorded
+above, transcribed verbatim from the `-rs` summary of each run:
+
+```
+SKIPPED [1] tests/test_corpus_gate.py:530: SC#3 before/after measurement is env-gated -- set TYPSPHINX_CORPUS_REPORT=1 to run it
+```
+
+No `SKIPPED` line naming `tests/test_changelog_page_gate.py` appears in either run, so
+`AMEND2_CHANGELOG_GATE_SKIPS = 0` and SC1's zero-skip reading survives the fix.
+
+`AMEND2_COMMENT_MATCHES_TUPLE = yes` is the fix's own check, taken by parsing the module with
+`ast` rather than by reading the comment: `RELEASE_VERSIONS` evaluates to 17 entries running
+`0.4.1` through `0.9.6`, and the comment above it now states 17, `0.4.1` and `0.9.6`. The three
+figures agree. Before the fix the comment stated 16, `0.4.4` and `0.9.2`; the count and the upper
+bound were made wrong by this phase's own `84edd348`, while the lower bound had been imprecise
+since before the phase.
+
+The documentation builds and the linkcheck run are NOT re-taken here. The fix changes a Python
+comment in a test module, which no documentation build reads — `docs/source` does not include
+`tests/`, and the warning ledger above is unaffected by it.
+
+SC4_LOCAL_VERDICT_AFTER_AMEND2 = MET
+
 ---
 *Phase: 75-v0-9-6-release-prep-prep-only*
 *Plan: 04*

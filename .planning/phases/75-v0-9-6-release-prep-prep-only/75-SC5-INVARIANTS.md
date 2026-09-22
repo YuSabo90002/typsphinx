@@ -514,6 +514,51 @@ PHASE_VERDICT = MET
 
 All five rows are MET.
 
+## AMENDED 2026-09-22 — POST_DISPATCH_PRODUCT_FILES superseded by the code-review fix
+
+Addendum. Nothing measured above was edited, and `SC5_VERDICT` is unchanged at `MET`.
+
+`## Scope fence` above records `POST_DISPATCH_PRODUCT_FILES = 0` — no product change had landed
+after dispatch 1's CI run. That was true when measured. It is **no longer true at phase close**,
+and this section supersedes it rather than leaving a reader to discover the drift.
+
+AMEND2_AT = 2026-09-22T10:15:47Z
+POST_DISPATCH_PRODUCT_FILES_AS_FIRST_RECORDED = 0
+POST_DISPATCH_1_PRODUCT_FILES = 1
+POST_DISPATCH_1_PRODUCT_FILE = tests/test_changelog_page_gate.py
+POST_DISPATCH_2_PRODUCT_FILES = 0
+AMEND2_TIP = 8416938871398f52a03636db2ef4c4895e39ac75
+
+```
+$ git diff --name-only b63e5d453d604350b55c51a1a77918985d6dad7c HEAD -- . ':(exclude).planning'
+tests/test_changelog_page_gate.py
+
+$ git diff --numstat b63e5d453d604350b55c51a1a77918985d6dad7c HEAD -- . ':(exclude).planning'
+1	1	tests/test_changelog_page_gate.py
+
+$ git diff --name-only 8416938871398f52a03636db2ef4c4895e39ac75 HEAD -- . ':(exclude).planning' | wc -l
+0
+```
+
+The one file is the `execute:post` code-review gate's WR-01 fix — a stale comment above
+`RELEASE_VERSIONS`, corrected on the owner's 2026-09-22 decision. The owner chose to re-take CI on
+the fixed tip rather than let it ship unverified, so a **second** push and dispatch followed:
+`RUN_ID_2 = 35714217450` on `8416938871398f52a03636db2ef4c4895e39ac75`, `success`, 12/12 jobs
+(`75-CI-EVIDENCE.md` § "AMENDED 2026-09-22").
+
+The invariant the original reading was protecting therefore still holds, measured against the tip
+that CI actually tested: `POST_DISPATCH_2_PRODUCT_FILES = 0`. No product change has landed after
+the CI run that tested the tree.
+
+### The SC5 probes themselves are unaffected
+
+Re-measured at `AMEND2_AT`: `v0.9.6` tag absent locally and on origin (0 and 0), 0 open pull
+requests, 0 decoy branches on origin, and 0 `release.yml` runs at the new tip. The fix was a push
+of a comment change and one CI dispatch — neither is an irreversible publishing action, so
+observation 2's findings stand unchanged.
+
+SC5_VERDICT_AFTER_AMEND2 = MET
+
 ---
 *Phase: 75-v0-9-6-release-prep-prep-only*
 *Plan: 01*
