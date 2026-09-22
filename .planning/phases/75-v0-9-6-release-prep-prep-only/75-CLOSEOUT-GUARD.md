@@ -482,6 +482,87 @@ $ diff /tmp/tmp.Ea8hUnFA4z/p7501_STATE.md .planning/STATE.md
 
 `STATE.md` is byte-identical to its 75-01 scratch backup — no drift at all.
 
+## Third observation (after phase.complete, orchestrator)
+
+Appended 2026-09-22 by the orchestrator, as § "For the operator running phase.complete" instructs.
+This is the observation the whole fence exists for: the one taken **after**
+`phase.complete`-family tooling has actually run.
+
+THIRD_OBSERVATION_AT = 2026-09-22
+THIRD_OBSERVATION_TOOLING = gsd-tools query phase.complete 75, from the tail of /gsd-execute-phase
+THIRD_OBSERVATION_VERDICT = FLIP-CAUGHT-AND-REVERTED
+
+### The flip fired
+
+`phase.complete 75` returned `requirements_updated: true` and flipped **both** requirements:
+
+```
+- [ ] **REL-15** -> - [x] **REL-15**      | REL-15 | Phase 75 | Pending | -> | Complete |
+- [ ] **REL-16** -> - [x] **REL-16**      | REL-16 | Phase 75 | Pending | -> | Complete |
+```
+
+REL-15's flip is false: v0.9.6 is not published. Measured at the same moment - `git tag -l 'v0.9.6'`
+empty, `git ls-remote --tags origin 'refs/tags/v0.9.6'` empty, PyPI `/pypi/typsphinx/0.9.6/json`
+404, and `gh release view v0.9.6` reporting release not found. It was reverted before the commit.
+
+REL-16's flip is legitimate and was kept - ROADMAP SC3 states REL-16 is the one release requirement
+this phase closes, and § "Expected to move: REL-16" above predicted exactly this line pair moving.
+
+### Why the reversion was line-scoped, not a whole-file restore
+
+This is a **departure from the recipe this guard recorded**, and the reason belongs here rather than
+left for a reader to infer. The recipe prescribes `git checkout -- .planning/REQUIREMENTS.md`, which
+assumes every flip in the file is illegitimate. Here one of the two was legitimate, so a whole-file
+restore would have silently undone REL-16's correct close. Only REL-15's two lines were reverted, by
+an in-place edit.
+
+**Consequence for the digest probe:** the third-observation digest can no longer match the base
+digest, and that is correct rather than a failure.
+
+REQ_SHA256_THIRD = 79b93b81b5cf6ffdb20f9ddc0c97ff41969ada3547af1b16c4a20cc577d82d67
+REQ_SHA256_BASE_RESTATED = 481e2091ced842747944e80c6e0bdaafc7b2a2385f5e179e77e6b1e62dca603f
+REQ_SHA256_THIRD_MATCHES_BASE = no
+REQ_SHA256_MISMATCH_IS_EXPECTED = yes
+REQ_LINES_THIRD = 81
+REQ_LINES_THIRD_MATCHES_BASE = yes
+REQ_DIFF_VS_BASE_SCOPE = REL-16 checkbox line 23 and traceability row line 60, nothing else
+REL15_LINES_MATCH_BASE = yes
+
+The digest differs by exactly REL-16's two lines and nothing else. `wc -l` is unchanged at 81, which
+is precisely why the probe-selection guidance above warns that `wc -l` alone cannot detect a flip.
+
+### REL-15's four lines, verbatim at the third observation
+
+```
+22:- [ ] **REL-15**: v0.9.6 is published. ...
+59:| REL-15 | Phase 75 | Pending |
+73:**REL-15 is mapped to Phase 75 for coverage only.** Its checkbox is checked at
+76:phase artifact - which is why that phase's `REQUIREMENTS.md` fence is line-scoped to REL-15 rather
+```
+
+Diffed against the phase-head transcript in § "The lines under guard": byte-identical, same four
+line numbers. REL-15 reads `- [ ]` and `Pending`.
+
+### ROADMAP and STATE at the third observation
+
+Both were diffed against their 75-01 scratch backups, as this protocol requires. The close
+observation recorded `STATE.md` byte-identical to its backup; `phase.complete` then changed that.
+Both files were mangled by that call and both were repaired by hand before the commit:
+
+- `.planning/STATE.md` - `current_phase_name` deleted from frontmatter; `Plan: Not started` written
+  at 7/7; a 100% progress bar carrying a 1/2 phases fraction; the resume pointer left at
+  `/gsd-plan-phase 75` naming `75-CONTEXT.md`; and a stale note calling the v0.9.6 branch local only.
+- `.planning/ROADMAP.md` - Progress-table cell padding, and a blank line injected after the
+  unrelated `**Dormant seeds:**` heading. Both recurred identically on all four
+  `update-plan-progress` calls during execution, so they are deterministic, not incidental.
+
+Every repair is enumerated in the body of commit `1a777938`.
+
+### Where the record lives
+
+The observation was made at commit time and written into `1a777938`'s message body. This section is
+the durable copy; the commit body is the contemporaneous one. A reader needs only this file.
+
 ---
 *Phase: 75-v0-9-6-release-prep-prep-only*
 *Plan: 01*
