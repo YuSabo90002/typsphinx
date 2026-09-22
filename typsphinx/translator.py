@@ -2442,7 +2442,7 @@ class TypstTranslator(SphinxTranslator):
         Issue #31: Support :lineno-start: and :dedent: options
 
         Args:
-            node: The literal block node
+            node: The literal block node, or a doctest block delegated here
         """
         # Anchor node["ids"] via the shared markup-block helper. Both a
         # ``:name:`` and a propagated ``.. _t:`` before the block set
@@ -2592,7 +2592,7 @@ class TypstTranslator(SphinxTranslator):
         Issue #20: Handle closing figure bracket and labels.
 
         Args:
-            node: The literal block node
+            node: The literal block node, or a doctest block delegated here
         """
         # Clear literal block flag
         self.in_literal_block = False
