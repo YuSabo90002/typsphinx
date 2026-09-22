@@ -74,10 +74,12 @@ prior close** (see STATE.md Deferred Items) — the pre-close artifact audit fou
    `75-HANDOFF.md` predicted, so its carried Class A obligation was discharged on measurement with
    no second amendment.
 
-**New defect filed at the close: ATT-01.** `release.yml` passes `attestations: true` to
-`pypa/gh-action-pypi-publish` alongside an explicit password, which disables Trusted Publishing and
-makes the attestations input a no-op — surfaced as an annotation on the release run itself. The
-upload succeeded, so this is a supply-chain-provenance gap, not a release blocker.
+**New defect filed at the close: ATT-01.** `release.yml` publishes with
+`password: ${{ secrets.PYPI_API_TOKEN }}`, which puts `pypa/gh-action-pypi-publish` on the API-token
+path and turns Trusted Publishing off — and with it the action's own default `attestations: true`, so
+the uploaded artifacts carry no PEP 740 provenance. **The workflow file contains no `attestations`
+line**; the annotation on the release run reports the action's default, not something written here.
+The upload succeeded, so this is a supply-chain-provenance gap, not a release blocker.
 
 **Carried unfixed:** MSG-06 (deferred once more under the prep-only fence, and not picked up when
 its two siblings were), QUA-08 (whose stated obstacle has now been gone for two consecutive

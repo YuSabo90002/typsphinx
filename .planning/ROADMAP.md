@@ -211,10 +211,16 @@ retired numbers, so the next item filed here is **999.3**.
   `quote_path()`, which exists. Deferred once more under Phase 75's prep-only fence and **not**
   picked up when its two siblings were closed at the v0.9.6 close.
 
-- **ATT-01** (filed 2026-09-22, no todo file yet) — `release.yml` passes `attestations: true` to
-  `pypa/gh-action-pypi-publish` alongside an explicit password, which disables Trusted Publishing and
-  makes the attestations input a no-op. Surfaced as an annotation on release run `35730551619`; the
-  upload succeeded, so this is a supply-chain-provenance gap, not a release blocker.
+- `2026-09-22-release-yml-uses-a-pypi-api-token-so-trusted-publishing-and` (**ATT-01**,
+  `severity: minor`) — `release.yml` publishes with `password: ${{ secrets.PYPI_API_TOKEN }}`, which puts
+  `pypa/gh-action-pypi-publish` on the API-token path and turns Trusted Publishing off, and with it the
+  action's own default `attestations: true` — so the uploaded artifacts carry no PEP 740 provenance.
+  **The workflow file contains no `attestations` line at all**; run `35730551619`'s annotation reports
+  the action's effective default, so anyone searching for an `attestations:` key will find nothing. The
+  fix is removing `password:` from **both** publish steps (`publish-pypi` and `publish-testpypi`) after
+  registering a Trusted Publisher on PyPI — `id-token: write` and the `pypi` environment are already
+  declared. It can only be proven on a real tag push, so it belongs in a milestone that publishes; the
+  upload itself succeeded, so this is a supply-chain-provenance gap, not a release blocker.
 
 **Dormant seeds:**
 - **`SEED-001-readme-quickstart-typst-documents-pdf`** — substantially discharged by v0.7.1's
