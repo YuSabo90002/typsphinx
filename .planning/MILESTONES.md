@@ -1,5 +1,92 @@
 # Milestones: typsphinx
 
+## v0.9.6 Doctest block rendering and release (Shipped: 2026-09-22 — **PUBLISHED**)
+
+**Phases completed:** 2 phases (74–75), 14 plans, 36 tasks, plus 2 quick tasks run at the close
+itself. **5/5 v1 requirements complete.**
+
+**Delivered:** `doctest_block` finally has a handler. A `>>>` example is not a directive an author
+can opt out of — docutils' parser auto-detects any `>>>`-led block — so every Google/NumPy-style
+`Examples:` docstring produced a node `TypstTranslator` had none for. It fell through
+`unknown_visit()` while its `Text` children were still re-emitted as inline text, so the example
+collapsed onto one line, and where it sat beside other content in the same container the emission
+was malformed enough that Typst refused the file and `-b typstpdf` wrote no PDF for the affected
+masters. `visit_literal_block` / `depart_literal_block` now accept `nodes.doctest_block` and supply
+the language tag themselves, because `HighlightLanguageTransform` assigns `node['language']` only to
+`literal_block`. The gate drives a real `typst.compile()` over both the plain-paragraph and the
+definition-list/field-body context, each recorded observably RED against the pre-handler tree first.
+In the same clean build, the docutils `Unexpected indentation` and `Block quote ends without a blank
+line` messages this project's own docstrings raised are gone: `sphinx-build -b typst docs/source`
+goes from `build succeeded, 5 warnings.` to `build succeeded.` with zero warnings, and neither
+message class may rise while the other falls.
+
+**Published.** `typsphinx 0.9.6` is on PyPI — wheel (194,339 B) and sdist (860,244 B) — and it
+carries three completed but never-published milestones with it: v0.9.3's NixOS toolchain repair,
+v0.9.4's builtin-generics migration, and v0.9.5's documentation link check, all promoted into one
+`## [0.9.6]` CHANGELOG heading. `0.9.3`, `0.9.4` and `0.9.5` join `0.9.1` as permanently unclaimed
+on PyPI. REL-16 ends a five-milestone run of declining a `### Known Limitations` section: `[0.9.6]`
+discloses NUM-01 with its precondition, both symptoms and a workaround. The candidate set was
+narrowed from three defects to one on measurement — the other two had been fixed in v0.8.0, and
+disclosing a closed defect would have been a false statement in a release note.
+
+**Publish record.** Branch `gsd/v0.9.6-doctest-block-rendering-and-release` merged to `main` as
+`6fcc5adb` via **PR #156**, 15/15 checks green including both `windows-latest` and both
+`macos-latest` lanes. Tag `v0.9.6` annotated on that merge commit. `release.yml` run
+`35730551619`: `Validate Release`, `Build Distribution`, `Publish to PyPI` (after the `pypi`
+Environment's manual approval) and `Create GitHub Release` all `success` — **`create-release` had
+never run on a v0.9.x tag before**, which REL-15's own text called out as unproven. The Release
+body's first 100 lines are byte-identical to `scripts/extract_changelog_section.py 0.9.6` (7104
+bytes, digest `f9a52e3d…`), with zero `### Planned for Future Releases` leakage; the remaining 32
+lines are GitHub's own Installation and What's Changed sections, the same shape v0.9.2 published.
+`typsphinx-doc-translations` `update-pin.yml` run `35735922806` advanced its submodule pin to
+exactly `6fcc5adb` and resynced the ja catalogs (`158fa1c4`); that repository is tagged `v0.9.6` as
+a separate action. Read the Docs `stable` was **re-measured** on both projects rather than assumed —
+`en` at `6fcc5adb`, `ja` at `158fa1c4`, both rendering `typsphinx 0.9.6`.
+
+**Closeout:** `override_closeout`, on a real `v0.9.6-MILESTONE-AUDIT.md` (`status: tech_debt`;
+requirements 4/5 satisfied with REL-15 held by design, phases 2/2 verified, integration 6/6, flows
+3/3, zero gaps in all three buckets). The override has one cause and it is the same one as the last
+three closes: `init.manager` reported both phases `verification_status: stale` /
+`phase_complete: false` while both VERIFICATION.md files read `status: passed` (74 at 4/4, 75 at
+5/5, zero overrides applied), because `.planning/` tracking commits land after each verification and
+touch files its fingerprint covers. Neither phase's own work changed, and the same-day audit
+re-checked both. **Known verification overrides: 0 newly acknowledged, 11 carried forward from a
+prior close** (see STATE.md Deferred Items) — the pre-close artifact audit found 2 open todos and
+**both were fixed rather than acknowledged**, so the re-run reported all artifact types clear.
+
+**Three things worth carrying.**
+
+1. *A deferral's stated reason can lapse before the deferral is revisited.* Both open todos had been
+   held back by Phase 75's prep-only fence, whose cost argument was that touching `typsphinx/` or
+   `conf.py` would force SC4's entire green proof to be re-taken on a changed tip. By the time the
+   close ran, `origin/main` had moved (Dependabot #152–#155) and `main`'s protection is `strict`, so
+   that re-take was mandatory anyway. The premise was gone; the todos were closed inline as quick
+   tasks `260922-tbe` and `260922-tkt` for no additional CI cost.
+2. *A todo's own proposed fix was a silent no-op, caught by reading the dependency's source.* The
+   PyPI-anchor todo asked for a `linkcheck_anchors_ignore_for_url` entry covering
+   `https://pypi.org/project/typsphinx/#history`. Sphinx's `_check_uri` partitions the URI on `#`
+   **before** matching those patterns, so a pattern carrying the fragment can never match — and a
+   bare `pypi\.org` entry would prefix-match every PyPI project page. The landed pattern is
+   end-anchored at the bare project URL, and its suppression set was proved by probe to be exactly
+   one anchor out of 41 rather than argued from the regex.
+3. *The result is this project's first unconditionally clean `tox -e linkcheck`: 96/96 `working`,
+   exit 0.* The two `v0.9.6` tag URLs resolved the moment the tag existed, exactly as
+   `75-HANDOFF.md` predicted, so its carried Class A obligation was discharged on measurement with
+   no second amendment.
+
+**New defect filed at the close: ATT-01.** `release.yml` passes `attestations: true` to
+`pypa/gh-action-pypi-publish` alongside an explicit password, which disables Trusted Publishing and
+makes the attestations input a no-op — surfaced as an annotation on the release run itself. The
+upload succeeded, so this is a supply-chain-provenance gap, not a release blocker.
+
+**Carried unfixed:** MSG-06 (deferred once more under the prep-only fence, and not picked up when
+its two siblings were), QUA-08 (whose stated obstacle has now been gone for two consecutive
+milestones without being scoped), WR-02, WR-03, LNK-01, NUM-01 (now disclosed, still unfixed), and
+Phase 75's `VALIDATION.md` at `status: draft` — the third consecutive release-prep phase to skip
+`/gsd-validate-phase`.
+
+---
+
 ## v0.9.5 Docs Link Check and Navigation (Completed: 2026-09-16 — **NOT published**, merged to `main`)
 
 **Delivered:** the project's own documentation surface gets a one-command link check and a sidebar
