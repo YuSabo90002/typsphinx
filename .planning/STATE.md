@@ -8,7 +8,7 @@ status: completed
 stopped_at: Phase 75 complete — all phases complete
 last_updated: "2026-09-22T10:25:59.672Z"
 last_activity: 2026-09-22
-last_activity_desc: "Quick task 260922-tbe (IN-01 docstring Args) complete"
+last_activity_desc: "Quick tasks 260922-tbe and 260922-tkt complete — both pre-close audit todos closed"
 state_head: 8c67b05bd8560990e4bf79b1fdb2ea626da41d49
 progress:
   total_phases: 2
@@ -280,7 +280,7 @@ land here.
 Phase: 75 (v0.9.6 Release Prep (prep-only)) — COMPLETE
 Plan: 7 of 7 complete
 Status: All phases complete — milestone v0.9.6 ready for /gsd-complete-milestone
-Last activity: 2026-09-22 — Completed quick task 260922-tbe: widen the literal-block Args docstrings
+Last activity: 2026-09-22 — Completed quick tasks 260922-tbe and 260922-tkt (the two pre-close audit todos)
 
 Progress: [██████████] 100% (2/2 phases)
 
@@ -1010,12 +1010,21 @@ evidence.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260922-tbe | Widen visit_literal_block and depart_literal_block Args docstrings to name the doctest block | 2026-09-22 | 3fbad0f5 | [260922-tbe-widen-visit-literal-block-and-depart-lit](./quick/260922-tbe-widen-visit-literal-block-and-depart-lit/) |
+| 260922-tkt | Skip the PyPI anchor check in linkcheck via linkcheck_anchors_ignore_for_url in docs/source/conf.py | 2026-09-22 | 2c85ebca | [260922-tkt-skip-the-pypi-anchor-check-in-linkcheck-](./quick/260922-tkt-skip-the-pypi-anchor-check-in-linkcheck-/) |
 
 The one quick task of the v0.9.4 period (`260913-e7n`, Issue #91 closed as not reproducible) was
 archived to `.planning/milestones/v0.9.4-quick/` at the v0.9.4 close.
 
-`260922-tbe` was run at the v0.9.6 close, from the pre-close artifact audit's `[R] Resolve` branch:
-it closes IN-01, the one open todo of the two the audit surfaced that belongs to `typsphinx/`.
+`260922-tbe` and `260922-tkt` were both run at the v0.9.6 close, from the pre-close artifact
+audit's `[R] Resolve` branch — they close the two pending todos the audit surfaced (IN-01 and the
+PyPI `#history` anchor). D-14's prep-only reason for deferring them had already lapsed: `origin/main`
+had moved (Dependabot #152–#155, merged in at `b367f576`) and `main`'s protection is `strict`, so the
+CI re-dispatch their green proof needs was going to be paid regardless.
+
+`260922-tkt` found the todo's own proposed fix to be a silent no-op. Sphinx's
+`_check_uri` splits the URI on `#` **before** matching `linkcheck_anchors_ignore_for_url`, so a
+pattern containing `#history` can never match; and a bare `pypi\.org` entry would prefix-match every
+PyPI project page. The landed pattern is end-anchored at the bare project URL instead.
 
 ### Roadmap Evolution
 
