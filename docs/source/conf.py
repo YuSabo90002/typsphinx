@@ -115,3 +115,28 @@ autodoc_typehints = "description"
 autodoc_member_order = "bysource"
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True
+
+# -- Link checking (tox -e linkcheck) ----------------------------------------
+
+# `changelog.rst`'s PyPI Release History link
+# (https://pypi.org/project/typsphinx/#history) is reported as a broken anchor
+# by `tox -e linkcheck`, but the anchor is unverifiable from an automated
+# client, not disproven: PyPI serves a
+# bot-mitigation interstitial to non-browser clients -- HTTP 200, a 3038-byte
+# body titled "Client Challenge", zero anchors in it (measured 2026-09-20,
+# re-measured unchanged 2026-09-22, both with and without a desktop
+# User-Agent). This entry skips only the ANCHOR lookup for that one URL; the
+# page is still fetched and its HTTP status is still checked, so a real 404 or
+# server error there would still fail the build. Delete this entry once PyPI
+# stops challenging automated clients (i.e. once a plain re-run of
+# `tox -e linkcheck` reports the anchor `working` on its own).
+#
+# The pattern is end-anchored at the bare project URL and deliberately does
+# NOT contain "#history": Sphinx's `HyperlinkAvailabilityCheckWorker._check_uri`
+# (sphinx/builders/linkcheck.py) splits the URI on "#" before matching
+# `linkcheck_anchors_ignore_for_url` patterns against the fragment-stripped
+# URL, so a pattern including the fragment would never match, and an
+# unterminated pattern would prefix-match every other PyPI project page.
+linkcheck_anchors_ignore_for_url = [
+    r"https://pypi\.org/project/typsphinx/$",
+]
