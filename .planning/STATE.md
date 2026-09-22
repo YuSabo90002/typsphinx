@@ -8,7 +8,7 @@ status: completed
 stopped_at: Phase 75 complete — all phases complete
 last_updated: "2026-09-22T10:25:59.672Z"
 last_activity: 2026-09-22
-last_activity_desc: Phase 75 complete
+last_activity_desc: "Quick task 260922-tbe (IN-01 docstring Args) complete"
 state_head: 8c67b05bd8560990e4bf79b1fdb2ea626da41d49
 progress:
   total_phases: 2
@@ -280,7 +280,7 @@ land here.
 Phase: 75 (v0.9.6 Release Prep (prep-only)) — COMPLETE
 Plan: 7 of 7 complete
 Status: All phases complete — milestone v0.9.6 ready for /gsd-complete-milestone
-Last activity: 2026-09-22 — Phase 75 complete
+Last activity: 2026-09-22 — Completed quick task 260922-tbe: widen the literal-block Args docstrings
 
 Progress: [██████████] 100% (2/2 phases)
 
@@ -1009,9 +1009,13 @@ evidence.
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
+| 260922-tbe | Widen visit_literal_block and depart_literal_block Args docstrings to name the doctest block | 2026-09-22 | 3fbad0f5 | [260922-tbe-widen-visit-literal-block-and-depart-lit](./quick/260922-tbe-widen-visit-literal-block-and-depart-lit/) |
 
-The one quick task of this period (`260913-e7n`, Issue #91 closed as not reproducible) was archived
-to `.planning/milestones/v0.9.4-quick/` at the v0.9.4 close.
+The one quick task of the v0.9.4 period (`260913-e7n`, Issue #91 closed as not reproducible) was
+archived to `.planning/milestones/v0.9.4-quick/` at the v0.9.4 close.
+
+`260922-tbe` was run at the v0.9.6 close, from the pre-close artifact audit's `[R] Resolve` branch:
+it closes IN-01, the one open todo of the two the audit surfaced that belongs to `typsphinx/`.
 
 ### Roadmap Evolution
 
