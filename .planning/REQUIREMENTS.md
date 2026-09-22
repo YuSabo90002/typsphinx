@@ -20,7 +20,7 @@ Requirements for this milestone. Each maps to exactly one roadmap phase.
 ### Release
 
 - [ ] **REL-15**: v0.9.6 is published. `pyproject.toml` goes `0.9.2` → `0.9.6` as the sole version literal, with `uv.lock` regenerated in the same change and `uv sync --extra dev --locked` green. The six bullets standing under `## [Unreleased]` — carried from v0.9.3, v0.9.4 and v0.9.5 — are promoted into a new `## [0.9.6]` section together with this milestone's own bullets, and the link block at the file's end is updated in the same phase: the `[Unreleased]` compare target moves up to `v0.9.6` and a `[0.9.6]` releases/tag link is added. The milestone branch merges to `main` through a PR with CI green across the Linux, Windows and macOS lanes; tag `v0.9.6` is pushed; `release.yml` publishes the wheel and sdist to PyPI and creates the GitHub Release. **This checkbox is checked only at `/gsd-complete-milestone`, against observed evidence (merge commit on `origin/main`'s first-parent history, `git ls-remote --tags origin`, a PyPI 200 for `0.9.6`, and `gh release list`), and never by phase-completion tooling** — `phase.complete` has flipped REL rows against an explicit decision before. Note that `release.yml`'s `create-release` job has end-to-end evidence from the v0.7.1 publish (run `31462027486`) and v0.8.0 (run `31861043480`) but has never run on a v0.9.x tag.
-- [ ] **REL-16**: The `### Known Limitations` question is settled on the record for this release. Either `## [0.9.6]` carries such a section naming the carried major defects (NUM-01's per-master `numref` divergence, the converted-image rehome collision, the `typst_documents` duplicate-target cluster), or the release-prep phase's decision record states that the owner declined it and why. v0.9.0's MILESTONES.md entry has a `### Known limitations shipped` precedent, and v0.7.1's D-27 has a precedent for declining one in full; v0.9.5 could leave the question open only because it published nothing. It cannot be left implicit here.
+- [x] **REL-16**: The `### Known Limitations` question is settled on the record for this release. Either `## [0.9.6]` carries such a section naming the carried major defects (NUM-01's per-master `numref` divergence, the converted-image rehome collision, the `typst_documents` duplicate-target cluster), or the release-prep phase's decision record states that the owner declined it and why. v0.9.0's MILESTONES.md entry has a `### Known limitations shipped` precedent, and v0.7.1's D-27 has a precedent for declining one in full; v0.9.5 could leave the question open only because it published nothing. It cannot be left implicit here.
 
 ## Future Requirements
 
@@ -57,7 +57,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TRN-02 | Phase 74 | Complete |
 | QUA-14 | Phase 74 | Complete |
 | REL-15 | Phase 75 | Pending |
-| REL-16 | Phase 75 | Pending |
+| REL-16 | Phase 75 | Complete |
 
 **Coverage:**
 

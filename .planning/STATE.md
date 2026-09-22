@@ -4,18 +4,18 @@ milestone: v0.9.6
 milestone_name: Doctest block rendering and release
 current_phase: 75
 current_phase_name: v0.9.6 Release Prep (prep-only)
-status: executing
-stopped_at: Phase 75 planned — 7 plans in 4 waves, ready to execute
-last_updated: "2026-09-20T08:34:33.522Z"
-last_activity: 2026-09-20
-last_activity_desc: Phase 75 execution started
-state_head: 06749cf9941807fcfde071f8f8fd60a4bfae23d0
+status: completed
+stopped_at: Phase 75 complete — all phases complete
+last_updated: "2026-09-22T10:25:59.672Z"
+last_activity: 2026-09-22
+last_activity_desc: Phase 75 complete
+state_head: 8c67b05bd8560990e4bf79b1fdb2ea626da41d49
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 14
-  completed_plans: 7
-  percent: 50
+  completed_plans: 14
+  percent: 100
 ---
 
 # Project State
@@ -277,12 +277,12 @@ land here.
 
 ## Current Position
 
-Phase: 75 (v0.9.6 Release Prep (prep-only)) — EXECUTING
-Plan: 1 of 7
-Status: Executing Phase 75
-Last activity: 2026-09-20 — Phase 75 execution started
+Phase: 75 (v0.9.6 Release Prep (prep-only)) — COMPLETE
+Plan: 7 of 7 complete
+Status: All phases complete — milestone v0.9.6 ready for /gsd-complete-milestone
+Last activity: 2026-09-22 — Phase 75 complete
 
-Progress: [█████░░░░░] 50% (1/2 phases)
+Progress: [██████████] 100% (2/2 phases)
 
 **Phase 75's wave structure.** Wave 1 runs 75-01 (the REL-15 fence baseline, the clean C-locale
 `docs-html`/`docs-pdf` ledger at the phase base, SC5 probe observation 1), 75-02 (delete the five
@@ -1308,11 +1308,13 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** `.planning/phases/75-v0-9-6-release-prep-prep-only/75-CONTEXT.md`
+**Resume file:** `.planning/phases/75-v0-9-6-release-prep-prep-only/75-HANDOFF.md`
 
-Last session: 2026-09-20 (Phase 75 context gathered)
-Stopped at: Phase 75 context gathered
-Resume: `/gsd-plan-phase 75`. The roadmap's 13 binding constraints are in `.planning/ROADMAP.md`
+Last session: 2026-09-22 (Phase 75 executed and verified)
+Stopped at: Phase 75 complete — all phases complete; nothing published yet
+Resume: `/gsd-complete-milestone`, driven by
+`.planning/phases/75-v0-9-6-release-prep-prep-only/75-HANDOFF.md`, which is the standalone
+seven-item procedure for the merge, the tag and the publish. Read it before anything else. The roadmap's 13 binding constraints are in `.planning/ROADMAP.md`
 under the active-milestone section and should not be re-derived. v0.9.5's phase directories are
 under `.planning/milestones/v0.9.5-phases/`; `73-HANDOFF.md` there records the merge-only close
 procedure, and `.planning/milestones/v0.9.2-phases/63-HANDOFF.md` records the last **published**
@@ -1352,8 +1354,10 @@ close — the one Phase 75's handoff should be modelled on, since this milestone
 
 - **Milestone branches are not deleted on merge.** `gsd/v0.9.5-docs-link-check-and-navigation` still
   exists locally and on `origin` at `1d8c76c6`. The v0.9.6 branch
-  `gsd/v0.9.6-doctest-block-rendering-and-release` is **local only** so far (measured 2026-09-16);
-  its first push is Phase 74's work, after a fresh decoy census.
+  `gsd/v0.9.6-doctest-block-rendering-and-release` was local only until Phase 75 (that line read
+  "local only" when measured 2026-09-16). It is now on `origin` at
+  `8416938871398f52a03636db2ef4c4895e39ac75`, pushed by 75-06 and again after the code-review
+  fix, each time after a fresh decoy census that found none.
 
 - **Audit tech debt (non-blocking)** is listed in `milestones/v0.9.5-MILESTONE-AUDIT.md`
   `tech_debt:`: 6 items across the two phases. Phase 73 never ran Nyquist validation or the security
