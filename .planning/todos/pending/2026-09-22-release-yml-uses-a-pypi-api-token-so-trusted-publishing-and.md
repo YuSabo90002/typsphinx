@@ -3,6 +3,7 @@ created: 2026-09-22T14:00:45.344Z
 title: "release.yml publishes with a PyPI API token, so Trusted Publishing is off and the action's default PEP 740 attestations are silently dropped (ATT-01)"
 area: ci
 severity: minor
+resolves_phase: 76
 files:
   - .github/workflows/release.yml:141-144  # publish-pypi's "Publish to PyPI" step (measured 2026-09-22)
   - .github/workflows/release.yml:241-245  # publish-testpypi's "Publish to TestPyPI" step, same shape

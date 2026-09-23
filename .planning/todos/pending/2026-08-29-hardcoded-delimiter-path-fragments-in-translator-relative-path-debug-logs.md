@@ -2,7 +2,7 @@
 created: 2026-08-29
 title: "typsphinx/translator.py's two relative-path debug logs quote `up_path`/`down_path` with a hardcoded `'...'` delimiter, the same MSG-02-shaped defect Phase 60 fixed in builder.py/writer.py/template_registry.py -- but this is a fourth module, out of Phase 60's requirement scope"
 area: translator
-resolves_phase: null
+resolves_phase: 76
 source: Phase 60 plan 05's SC#2 repo-wide discovery grep, run REPO-WIDE per the phase's own
   execution-time-grep-is-discovery-authority rule. Found by the fourth grep pattern
   (`grep -rnoE "'\{[a-zA-Z_.]+\}'" typsphinx/`), the same pattern that originally found the
