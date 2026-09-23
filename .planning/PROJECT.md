@@ -44,8 +44,12 @@ than on the workflow file looking correct.
 
 **Target features:**
 
-- **ATT-01** — delete `password:` from `release.yml`'s `publish-pypi` step (`:141-144`). Nothing
-  replaces it: `id-token: write` (`:13-15`) and `environment: pypi` are already present, so the
+- **ATT-01** — delete `password:` from `release.yml`'s `publish-pypi` step. The deletion is the
+  **two** lines `:143-144` (`with:` and the `password:` line), **not** `:141-144`: that wider range
+  also covers `- name: Publish to PyPI` and the `uses:` line, so deleting it literally would delete
+  the publish step and upload nothing. Measured against the file 2026-09-23, after the roadmapper
+  caught the miscount; re-measure at the phase base rather than trusting these numbers. Nothing
+  replaces the deleted lines: `id-token: write` (`:13-15`) and `environment: pypi` are already present, so the
   action mints its own OIDC token. An `attestations:` line is deliberately **not** added — it is the
   action's default, and writing it would restate the exact thing ATT-01's record exists to correct.
 - **The PyPI-side prerequisite** — a Trusted Publisher registered on PyPI (repository owner +

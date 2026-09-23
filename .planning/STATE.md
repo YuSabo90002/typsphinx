@@ -3,18 +3,18 @@ gsd_state_version: "1.0"
 milestone: v0.9.7
 milestone_name: Trusted Publishing and release
 status: planning
-stopped_at: Milestone v0.9.7 started — defining requirements
-last_updated: "2026-09-23T03:45:44.938Z"
+stopped_at: Roadmap created (Phases 76–77) — Phase 76 ready to plan
+last_updated: "2026-09-23T00:00:00.000Z"
 last_activity: 2026-09-23
-last_activity_desc: Milestone v0.9.7 (Trusted Publishing and release) started via /gsd-new-milestone
+last_activity_desc: v0.9.7 roadmap created — Phases 76–77, 9/9 v1 requirements mapped, zero orphans
 progress:
-  total_phases: 0
+  total_phases: 2
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
   percent: 0
-current_phase: null
-current_phase_name: null
+current_phase: 76
+current_phase_name: "The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06"
 next_phase_number: 76
 ---
 
@@ -367,10 +367,24 @@ land here.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-09-23 — Milestone v0.9.7 started
+Phase: 76 of 77 (The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06)
+Plan: — (none yet)
+Status: Ready to plan
+Last activity: 2026-09-23 — v0.9.7 roadmap created (Phases 76–77)
+
+Progress: [░░░░░░░░░░] 0% (0/2 phases)
+
+**Before Phase 76 can be executed, one owner action must happen off-repo:** register the Trusted
+Publisher on PyPI through the **existing `typsphinx` project's** Publishing settings (not the
+account-level pending-publisher flow), with the four fields copied from the file and the repository
+URL rather than from memory — repository owner, repository name, the **bare** workflow filename
+`release.yml`, environment `pypi`. No agent can do this and no plan task may claim it. It has no
+dependency on any code change, so it can be done now.
+
+**The ordering that is easiest to get wrong:** ATT-02's rehearsal dispatch must run on a ref whose
+`pyproject.toml` still reads `0.9.6`. `release.yml`'s `validate` job compares `pyproject.toml`
+against the dispatch's `tag` input and exits 1 on mismatch, which skips `build` and `publish-pypi`
+and never reaches the OIDC exchange. Rehearse first (Phase 76), bump second (Phase 77).
 
 ## Shipped Milestone (v0.9.0 — archived)
 
@@ -907,6 +921,21 @@ PyPI project page. The landed pattern is end-anchored at the bare project URL in
 
 ### Roadmap Evolution
 
+- **2026-09-23** — v0.9.7 roadmap created: **Phases 76–77**, 9/9 v1 requirements mapped, zero
+  orphans, zero duplicates, continuing numbering from v0.9.6's Phase 75. Two phases at
+  `granularity: standard` (nominally 4–6), below the range and below the research summary's own
+  five-phase suggestion. Phase 76 = ATT-01 + ATT-02 + MSG-06 (the workflow edit, the rehearsal that
+  is its only meaningful evidence, and the last MSG-02-family module); Phase 77 = the prep-only
+  release phase carrying ATT-06 (closes there), REL-17's prep half, and ATT-03/ATT-04/ATT-05/DOC-25
+  for coverage only, observed at `/gsd-complete-milestone`. Five decisions baked in: the mechanical
+  76 → 77 ordering (a bumped tree makes the rehearsal fail before the OIDC exchange); MSG-06 in the
+  work phase because the prep-only fence forbids `typsphinx/` changes and already deferred it once
+  for that reason; the research's Phase D and Phase E recognised as the **publish half** rather than
+  as phases; DOC-25 deferred to after ATT-05 so it describes a state that is already true; and
+  ATT-01's `:141-144` citation measured and found to overstate the edit — the credential is two
+  lines, and deleting the cited span literally would delete the publish step. Full rationale in
+  `.planning/ROADMAP.md` under the active-milestone section and its 14 binding constraints.
+
 - **2026-09-16** — v0.9.6 roadmap created: **Phases 74–75**, 5/5 v1 requirements mapped, zero
   orphans, zero duplicates, continuing numbering from v0.9.5's Phase 73. No research was run (owner
   decision — the technical facts were measured at scoping and are embedded in `REQUIREMENTS.md`).
@@ -1200,18 +1229,28 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** `.planning/phases/75-v0-9-6-release-prep-prep-only/75-HANDOFF.md`
+**Resume file:** none yet — Phase 76 has not been planned.
 
-Last session: 2026-09-22 (Phase 75 executed and verified)
-Stopped at: Phase 75 complete — all phases complete; nothing published yet
-Resume: `/gsd-complete-milestone`, driven by
-`.planning/phases/75-v0-9-6-release-prep-prep-only/75-HANDOFF.md`, which is the standalone
-seven-item procedure for the merge, the tag and the publish. Read it before anything else. The roadmap's 13 binding constraints are in `.planning/ROADMAP.md`
-under the active-milestone section and should not be re-derived. v0.9.5's phase directories are
-under `.planning/milestones/v0.9.5-phases/`; `73-HANDOFF.md` there records the merge-only close
-procedure, and `.planning/milestones/v0.9.2-phases/63-HANDOFF.md` records the last **published**
-close — the one Phase 75's handoff should be modelled on, since this milestone publishes.
+Last session: 2026-09-23 (v0.9.7 roadmap created)
+Stopped at: Roadmap complete, Phases 76–77 written, 9/9 requirements mapped; no phase planned yet
+Resume: `/gsd-discuss-phase 76`, then `/gsd-plan-phase 76`. The roadmap's **14 binding constraints**
+are in `.planning/ROADMAP.md` under the active-milestone section and should not be re-derived — in
+particular constraints 1 (the owner's off-repo PyPI registration is a prerequisite, never a plan
+task), 3 (rehearse before bump, or `validate` kills the rehearsal), 8 (`:141-144` overstates the
+edit — measure the lines) and 12 (every irreversible action runs at `/gsd-complete-milestone`).
+The four-dimension research for this milestone is under `.planning/research/`; `SUMMARY.md` proposed
+five phases and the roadmap records why two is the right count here.
+
+For Phase 77's handoff, the model to follow is
+`.planning/milestones/v0.9.2-phases/63-HANDOFF.md` and
+`.planning/milestones/v0.9.6-phases/75-HANDOFF.md` — the two **published** closes. This milestone's
+handoff is heavier than either: the publish half carries five requirements rather than one.
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- **Now, off-repo:** register the Trusted Publisher on PyPI (existing project's Publishing
+  settings; owner + repo + bare `release.yml` + environment `pypi`). Nothing in Phase 76's
+  rehearsal can pass without it, and it has no dependency on any code change.
+- Then: `/gsd-discuss-phase 76` → `/gsd-plan-phase 76` → `/gsd-execute-phase 76`
+- The `pypi` environment's manual approval will be requested twice this milestone: once for the
+  rehearsal in Phase 76, once for the real publish at the close. Both are expected gates.

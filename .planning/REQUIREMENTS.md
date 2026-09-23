@@ -15,9 +15,14 @@ Requirements for milestone v0.9.7. Each maps to exactly one roadmap phase.
 ### Trusted Publishing
 
 - [ ] **ATT-01**: `release.yml`'s `publish-pypi` step publishes with no `password:` key, so
-      `pypa/gh-action-pypi-publish` takes the OIDC / Trusted Publishing path. The four-line `with:
-      password: ${{ secrets.PYPI_API_TOKEN }}` block at `:141-144` is deleted and **nothing replaces
-      it** — no `attestations:` line is added (it is the action's default, and writing it restates
+      `pypa/gh-action-pypi-publish` takes the OIDC / Trusted Publishing path. **Corrected
+      2026-09-23 against the file:** the lines to delete are `:143-144` — `with:` and
+      `password: ${{ secrets.PYPI_API_TOKEN }}` — a **two**-line deletion, not four. `:141-144` as
+      written elsewhere spans `- name: Publish to PyPI` (`:141`) and
+      `uses: pypa/gh-action-pypi-publish@release/v1` (`:142`) as well, and deleting that range
+      literally would delete the publish step itself and upload nothing. Line numbers are to be
+      re-measured at the phase base rather than trusted from here. Nothing replaces the deleted
+      lines — no `attestations:` line is added (it is the action's default, and writing it restates
       the exact misreading ATT-01's own record exists to correct), and no `skip-existing:` is added
       (an anti-pattern here: it would mask the duplicate-rejection signal ATT-02 depends on).
       `publish-testpypi` at `:241-245` is left untouched on `TEST_PYPI_API_TOKEN`.
@@ -146,23 +151,39 @@ Explicitly excluded. Documented to prevent scope creep.
 
 Which phases cover which requirements. Updated during roadmap creation.
 
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| ATT-01 | — | Pending |
-| ATT-02 | — | Pending |
-| ATT-03 | — | Pending |
-| ATT-04 | — | Pending |
-| ATT-05 | — | Pending |
-| ATT-06 | — | Pending |
-| MSG-06 | — | Pending |
-| REL-17 | — | Pending |
-| DOC-25 | — | Pending |
+| Requirement | Phase | Half | Status |
+|-------------|-------|------|--------|
+| ATT-01 | Phase 76 | pre-tag | Pending |
+| ATT-02 | Phase 76 | pre-tag | Pending |
+| MSG-06 | Phase 76 | pre-tag | Pending |
+| ATT-06 | Phase 77 | pre-tag | Pending |
+| REL-17 | Phase 77 | split — prep in phase, publish at close | Pending |
+| ATT-04 | Phase 77 | publish (coverage only) | Pending |
+| ATT-03 | Phase 77 | publish (coverage only) | Pending |
+| ATT-05 | Phase 77 | publish (coverage only) | Pending |
+| DOC-25 | Phase 77 | publish (coverage only) | Pending |
 
 **Coverage:**
 - v1 requirements: 9 total
-- Mapped to phases: 0
-- Unmapped: 9 ⚠️ (filled in by the roadmapper)
+- Mapped to phases: 9
+- Unmapped: 0 ✓ (no orphans, no duplicates)
+
+**Where "half" comes from.** Every irreversible action in this milestone executes at
+`/gsd-complete-milestone`, not inside a phase — the PR merge, the `v0.9.7` tag push, the PyPI
+upload, the GitHub Release, both `PYPI_API_TOKEN` deletions and the PyPI-side revocation. That
+prep-half / publish-half split is this project's established release shape (v0.9.2 Phase 63,
+v0.9.4 Phase 71, v0.9.5 Phase 73, v0.9.6 Phase 75), and requirements marked **coverage only** are
+mapped to Phase 77 so no requirement is orphaned, while their checkboxes are held `[ ]` by that
+phase's line-scoped `77-CLOSEOUT-GUARD.md` fence and checked at the close against observed
+evidence — **never** by phase-completion tooling, which has flipped a deferred release checkbox
+before. ATT-06 is the one requirement Phase 77 legitimately closes, which is why the fence is
+line-scoped rather than whole-file.
+
+The publish half runs in a fixed order that `77-HANDOFF.md` enforces: tag push → ATT-04 (run log)
+→ ATT-03 (PyPI Simple JSON + Integrity APIs) → ATT-05 (both secret scopes + PyPI revocation, and
+only once ATT-03 has passed) → DOC-25 (written after ATT-05, so it describes a state that is
+already true). REL-17's publish clauses are checked across the whole of it.
 
 ---
 *Requirements defined: 2026-09-23*
-*Last updated: 2026-09-23 after `/gsd-new-milestone` scoping and the four-dimension project research*
+*Last updated: 2026-09-23 — traceability filled in by `/gsd-roadmap`: Phases 76–77, 9/9 mapped*
