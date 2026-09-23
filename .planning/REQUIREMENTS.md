@@ -1,0 +1,168 @@
+# Requirements: typsphinx — Milestone v0.9.7 Trusted Publishing and release
+
+**Defined:** 2026-09-23
+**Core Value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered
+output — and the documented configuration actually takes effect. The same standard applies to the
+*publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader
+downloads must be the one typsphinx itself produced. This milestone extends that standard one step
+further along the publishing surface: an artifact the project uploads must be able to *prove* which
+workflow built it.
+
+## v1 Requirements
+
+Requirements for milestone v0.9.7. Each maps to exactly one roadmap phase.
+
+### Trusted Publishing
+
+- [ ] **ATT-01**: `release.yml`'s `publish-pypi` step publishes with no `password:` key, so
+      `pypa/gh-action-pypi-publish` takes the OIDC / Trusted Publishing path. The four-line `with:
+      password: ${{ secrets.PYPI_API_TOKEN }}` block at `:141-144` is deleted and **nothing replaces
+      it** — no `attestations:` line is added (it is the action's default, and writing it restates
+      the exact misreading ATT-01's own record exists to correct), and no `skip-existing:` is added
+      (an anti-pattern here: it would mask the duplicate-rejection signal ATT-02 depends on).
+      `publish-testpypi` at `:241-245` is left untouched on `TEST_PYPI_API_TOKEN`.
+- [ ] **ATT-02**: Before the production tag is pushed, one `workflow_dispatch` run of `release.yml`
+      against the **already-published** `v0.9.6` exercises the real OIDC exchange on the
+      `password:`-free workflow and is rejected at the upload step as a duplicate — `400 File
+      already exists` — **not** with `invalid-publisher` / `invalid-pending-publisher`. A duplicate
+      rejection proves the PyPI-side Trusted Publisher registration (owner, repository,
+      `release.yml`, environment `pypi`) matches; an `invalid-publisher` error names a registration
+      mismatch, which is indistinguishable across the wrong-filename, wrong-environment and
+      not-registered cases and must be resolved before tagging. Nothing reaches PyPI from this run.
+- [ ] **ATT-03**: The switch is proven on **PyPI's own served state** for the real 0.9.7 upload, not
+      on the run log and not on the workflow file. Both checks must hold:
+      (a) the Simple JSON API — `curl -s https://pypi.org/simple/typsphinx/ -H 'Accept:
+      application/vnd.pypi.simple.v1+json'` — returns a **non-null `provenance`** for **both** the
+      0.9.7 wheel and the 0.9.7 sdist (measured baseline: 0.9.6's files carry `"provenance": null`);
+      and (b) the Integrity API —
+      `https://pypi.org/integrity/typsphinx/0.9.7/<filename>/provenance` — returns **200** with
+      `publisher` naming `repository` `YuSabo90002/typsphinx`, `workflow` `release.yml` and
+      `environment` `pypi` (measured baseline: 404 for 0.9.6's wheel). The legacy
+      `/pypi/<project>/<version>/json` endpoint never carries this field and does not count.
+- [ ] **ATT-04**: The v0.9.7 release run carries **zero** occurrences of the action's
+      `attestations input ignored` / `disabling Trusted Publishing` annotation — the line
+      `release.yml` run `35730551619` emitted for v0.9.6. This is a necessary but **not sufficient**
+      signal: the action emits it locally from the presence of `password:` before any network call,
+      so its absence alone does not prove PyPI served provenance. ATT-03 is what proves that.
+- [ ] **ATT-05**: `PYPI_API_TOKEN` is retired from **both** GitHub scopes — the repository-scoped
+      secret and the `pypi`-environment-scoped secret, which are two distinct secrets — and the
+      token is separately revoked on PyPI's own token-management page. This happens **strictly after
+      ATT-03 passes**; until then the token is the rollback path. `TEST_PYPI_API_TOKEN` is left in
+      place, repository-scoped and environment-scoped alike.
+- [ ] **ATT-06**: A rollback procedure is recorded before the tag is pushed, and names: restoring
+      `password:`, bumping to 0.9.8 rather than retrying 0.9.7 (PyPI permanently refuses a
+      re-uploaded filename regardless of git-tag state), and **deleting the failed `v0.9.7` tag both
+      locally and on `origin`** (owner decision, 2026-09-23 — this repository has no precedent: a
+      `git tag -l` measurement shows 0.9.1 and 0.9.3–0.9.5 were never tagged at all, so a pushed tag
+      with no release would be a first).
+
+### Translator messages
+
+- [ ] **MSG-06**: `typsphinx/translator.py:5047` and `:5152` — the two cross-directory relative-path
+      DEBUG logs in `_compute_relative_include_path()` and `_compute_relative_image_path()` — quote
+      `up_path`/`down_path` through `quote_path()` instead of a hardcoded `'...'` delimiter, so a
+      path containing a literal single quote no longer closes the quote early. This is the fourth
+      module of the MSG-02 family; Phase 60 closed the same shape in `builder.py`, `writer.py` and
+      `template_registry.py`, and `typsphinx/pathfmt.py::quote_path()` already exists.
+
+### Release
+
+- [ ] **REL-17**: 0.9.7 is published — `pyproject.toml` bumped as the **sole** version literal with
+      `uv.lock` and `README.md` in lockstep, one curated `## [0.9.7]` CHANGELOG section (with its
+      tag link and the `[Unreleased]` compare advanced, per the release-prep convention), the
+      `v0.9.7` tag pushed, the PyPI upload live, and a GitHub Release whose body comes from
+      `scripts/extract_changelog_section.py`. The release notes describe attestations as **audit
+      provenance, not an install-time gate** — neither `pip` nor `uv` verifies them today.
+
+### Documentation
+
+- [ ] **DOC-25**: `.planning/codebase/INTEGRATIONS.md:116-117` no longer describes `PYPI_API_TOKEN`
+      as the trusted-publishing mechanism. It describes what the repository actually does after
+      ATT-01 and ATT-05 land.
+
+## Future Requirements
+
+Deferred. Tracked but not in this milestone's roadmap.
+
+### Carried forward unchanged
+
+- **NUM-01**: `:numref:` numbers diverge per master and vanish for figures reachable only from a
+  non-root master. Settled at v0.9.6 as a disclosure (`### Known Limitations`), not a fix.
+- **QUA-08**: a weekly advisory CI workflow calling `tox -e linkcheck`. The environment it would
+  call now exists on `main`, so the v0.9.5 obstacle is gone.
+- **WR-02**: `templates_path` collision detection resolves against `srcdir` rather than `confdir`,
+  so `-c`/confdir projects are uncovered.
+- **WR-03**: the "Custom template not found" warning fires three times instead of two for one narrow
+  shape.
+- **LNK-01**: `[testenv:linkcheck]` has no failure-tolerance override or accept-list.
+- **SEED-003**: split the `dev` extra into PEP 735 `[dependency-groups]`.
+- **SEED-004**: `typst-py` upstream maintenance slowing — the largest structural risk on the horizon.
+- **SEED-005**: adopt GSD workstreams for parallel roadmap tracks.
+
+### Closed before scoping, not deferred
+
+- **SEED-001** (Quick Start produces no PDF without `typst_documents`) — **measured closed**
+  2026-09-23. A `conf.py` setting only `project`/`author` builds `myproject.pdf` under
+  `-b typstpdf` at exit 0 with no warning; `_default_typst_documents()`
+  (`typsphinx/builder.py:660`) has derived the entry since v0.7.1 and `README.md:91-98` documents
+  it. The seed (planted 2026-08-01) predates the fix (shipped 2026-08-11). The seed file is marked
+  closed as bookkeeping in this milestone rather than carried as a candidate.
+
+## Out of Scope
+
+Explicitly excluded. Documented to prevent scope creep.
+
+| Feature | Reason |
+|---------|--------|
+| Migrating `publish-testpypi` to Trusted Publishing | Owner decision 2026-09-23. It is gated to alpha/beta/rc tags, did not run for v0.9.6, and the provenance ATT-01 is about belongs to the production upload. Registering a second publisher would also leave an unexercised path, the shape this milestone exists to avoid. |
+| Adding `attestations: true` to the workflow | It is already the action's default once Trusted Publishing is active. Writing it restates the current state and invites the exact misreading the ATT-01 record corrects. |
+| Adding `skip-existing:` to the workflow | Anti-pattern here. It would turn ATT-02's duplicate rejection — the signal that proves registration is correct — into a silent pass, and would mask a real failed upload at the production tag. |
+| Pinning the action to a commit SHA | `@release/v1` resolves to v1.14.2 (2026-07-29) and is the PyPA-recommended ref. Pinning is a separate supply-chain decision with its own maintenance cost, not part of closing ATT-01. |
+| Job-level `permissions:` hardening | Top-level `id-token: write` (`:13-15`) is functionally sufficient. Narrowing it to the publish job is a documented hardening tip, not a requirement of this switch. |
+| A release that ships product features | v0.9.7 carries one translator message fix (MSG-06) and the publishing change. Scoping product work into it would widen the blast radius of the milestone whose whole point is a release-mechanics change. |
+
+## Binding constraints
+
+- **The PyPI-side Trusted Publisher registration is a manual, off-repo action by the project owner.**
+  No agent can perform it. It has no dependency on any code change — the four fields it needs
+  (repository owner, repository name, the **bare** workflow filename `release.yml`, the environment
+  name `pypi`) all exist in the repository unedited today — so it can and should be done first. It
+  must be registered through the **existing project's** Publishing settings, not the account-level
+  "pending publisher" flow most tutorials show, because `typsphinx` is already published.
+- **The fix cannot be evidenced by reading the workflow file.** This project lost a whole milestone
+  to that exact failure shape once (REL-04, v0.7.0), and ATT-01 itself is a second instance. A green
+  CI run and a successful upload are both compatible with attestations being absent — v0.9.6 was
+  exactly that.
+- **`publish-pypi` carries no `if:` gate**, so every `v*` tag reaches production PyPI. There is no
+  dry-run path; ATT-02's dispatch-against-an-already-published-version is the only rehearsal that
+  exercises the real OIDC exchange without uploading anything.
+- **A failed publish does not create a partial release.** `create-release` has
+  `needs: [build, publish-pypi]` with no `if:` override, so it is *skipped* rather than failed, and
+  the tag is not consumed — a failed run can be re-run within the 7-day artifact retention window
+  once the registration is fixed. That is cheaper than ATT-06's re-tag path and should be tried
+  first.
+
+## Traceability
+
+Which phases cover which requirements. Updated during roadmap creation.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| ATT-01 | — | Pending |
+| ATT-02 | — | Pending |
+| ATT-03 | — | Pending |
+| ATT-04 | — | Pending |
+| ATT-05 | — | Pending |
+| ATT-06 | — | Pending |
+| MSG-06 | — | Pending |
+| REL-17 | — | Pending |
+| DOC-25 | — | Pending |
+
+**Coverage:**
+- v1 requirements: 9 total
+- Mapped to phases: 0
+- Unmapped: 9 ⚠️ (filled in by the roadmapper)
+
+---
+*Requirements defined: 2026-09-23*
+*Last updated: 2026-09-23 after `/gsd-new-milestone` scoping and the four-dimension project research*
