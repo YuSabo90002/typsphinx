@@ -1,19 +1,18 @@
 ---
 gsd_state_version: "1.0"
-milestone: v0.9.6
-milestone_name: Doctest block rendering and release
-status: Awaiting next milestone
-stopped_at: Milestone v0.9.6 complete, archived and PUBLISHED — no milestone active
-last_updated: "2026-09-22T13:54:01.972Z"
-last_activity: 2026-09-22
-last_activity_desc: Milestone v0.9.6 completed, archived and published to PyPI
-state_head: e6619ea362be3f7842b92b02ab1f53f6b3f4dae4
+milestone: v0.9.7
+milestone_name: Trusted Publishing and release
+status: planning
+stopped_at: Milestone v0.9.7 started — defining requirements
+last_updated: "2026-09-23T03:45:44.938Z"
+last_activity: 2026-09-23
+last_activity_desc: Milestone v0.9.7 (Trusted Publishing and release) started via /gsd-new-milestone
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 14
-  completed_plans: 14
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 current_phase: null
 current_phase_name: null
 next_phase_number: 76
@@ -23,12 +22,14 @@ next_phase_number: 76
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-09-22 — full evolution review at the v0.9.6 close)
+See: .planning/PROJECT.md (updated 2026-09-23 — milestone v0.9.7 started)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** **None — no milestone is active.** v0.9.6 shipped and was published to PyPI on
-2026-09-22. The next milestone is scoped by `/gsd-new-milestone`, which writes a fresh
-`REQUIREMENTS.md` and continues phase numbering at **76**.
+**Current focus:** **v0.9.7 Trusted Publishing and release** — move `release.yml`'s PyPI publish off
+the long-lived API token and onto Trusted Publishing so the artifacts carry PEP 740 attestations,
+proven at the real v0.9.7 tag push rather than on the workflow file looking correct (ATT-01); close
+MSG-06, the fourth module of the MSG-02 hardcoded-delimiter family; and publish 0.9.7. Phase
+numbering continues at **76**.
 
 ## Shipped Milestone (v0.9.6 — archived, merged to `main`, **PUBLISHED**)
 
@@ -366,12 +367,10 @@ land here.
 
 ## Current Position
 
-Phase: none — milestone v0.9.6 complete, archived and PUBLISHED
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone (`/gsd-new-milestone`; phase numbering continues at 76)
-Last activity: 2026-09-22 — v0.9.6 published to PyPI and archived
-
-Progress: [██████████] 100% (2/2 phases, 14/14 plans)
+Status: Defining requirements
+Last activity: 2026-09-23 — Milestone v0.9.7 started
 
 ## Shipped Milestone (v0.9.0 — archived)
 
