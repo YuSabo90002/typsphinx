@@ -982,3 +982,49 @@ identity is the owner's own account and `prevent_self_review` is `false` for thi
 approvals record alone cannot by itself distinguish an owner press from an agent press — the
 no-self-approval prohibition is procedural (judgment), evidenced here by this command transcript
 and the `APPROVAL_POSTS_BY_EXECUTOR = 0` statement.
+
+## Sigstore side effect
+
+The Trusted Publishing path signs both rebuilt 0.9.6 files with Sigstore before the upload is
+attempted, so this rehearsal created permanent, public Fulcio certificate and Rekor
+transparency-log entries attributable to run `36321530105`. The run's own log shows this order
+directly: `##[notice]Generating and uploading digital attestations` at `13:30:14.365Z`, `Found and
+verified trusted root` at `13:30:15.366Z`, two DSSE PAE statements naming the exact sha256 digests
+`a1f3a658…` (`typsphinx-0.9.6.tar.gz`) and `165baf31…` (`typsphinx-0.9.6-py3-none-any.whl`) — the
+same two hashes recorded as `ARTIFACT_SDIST_SHA256` and `ARTIFACT_WHEEL_SHA256` above — followed by
+two `.publish.attestation` files written to `dist/`, all completing at `13:30:16.767Z`, before the
+`twine upload` attempt at `13:30:17.19Z` that PyPI rejected. PyPI's served state is unchanged (SC
+#3 above), but these third-party Sigstore records exist and are permanent regardless of PyPI's
+rejection.
+
+## Rehearsal is not ATT-04
+
+This is the rehearsal run (tag input v0.9.6, dispatched from
+gsd/v0.9.7-trusted-publishing-and-release), and ATT-04 is a reading on the v0.9.7 release run, so
+this observation must not be transcribed forward as ATT-04's evidence.
+
+## ATT-02 verdict
+
+SC #2 (job conclusions, duplicate rejection, zero unknown-publisher): every job concluded as
+expected, `REHEARSAL_GREP_FILE_ALREADY_EXISTS = 3` (≥1), zero `invalid-publisher` /
+`invalid-pending-publisher`.
+ATT02_SC2_VERDICT = MET
+
+SC #3 (PyPI served state and GitHub Release unchanged, artifact non-identity): file count, sorted
+filelist hash, both 0.9.6 provenance values, release asset fingerprint and body hash all unchanged;
+`ARTIFACT_MATCHES_PYPI = no`; `Create GitHub Release` concluded `skipped`;
+`TESTPYPI_IF_TRUE_OPERANDS = 0` was measured at Task 1 and `Publish to TestPyPI (Optional)`
+concluded `skipped` as predicted.
+ATT02_SC3_VERDICT = MET
+
+SC #4 (annotation absence against a non-zero control): `REHEARSAL_GREP_DISABLING_TP = 0` (control
+1), `REHEARSAL_GREP_ATTESTATIONS_IS_IGNORED = 0` (control 1).
+ATT02_SC4_VERDICT = MET
+
+All three sub-verdicts MET, exactly one dispatch on the branch, no HALT reached.
+ATT02_VERDICT = MET
+
+With 76-01's edit (the two-line `password:` deletion, `ATT01_SC1_VERDICT = MET`), this run closes
+ATT-01's rehearsal half too — the dispatched ref carried that exact edit, proven by
+`REF_PYPI_SECRET_REFS = 0` at `ORIGIN_REF_SHA` in Task 1, and the OIDC/Sigstore path this run
+actually took (not the token path) is the live confirmation that the edit took effect.
