@@ -273,3 +273,29 @@ Command: `git ls-remote --tags origin 'refs/tags/v0.9.7*' | wc -l`
 ORIGIN_V097_TAGS = 0
 
 No mismatch — the pushed ref is ready; no HALT needed.
+
+## ATT-02 pre-dispatch — validate-job checks CI does not run
+
+`release.yml`'s `validate` job runs two release-only steps neither `ci.yml` job reproduces:
+"Verify version matches pyproject.toml" and "Verify CHANGELOG has a section for this version"
+(Pitfall 4 — `ci.yml` has no equivalent of either step; its `lint`/`type-check`/`test` jobs cover
+the same underlying `tox` commands as `validate`'s test/lint/type steps, but not these two).
+
+Command: `uv run python -c "import sys, importlib; tomllib = importlib.import_module('tomllib' if sys.version_info >= (3, 11) else 'tomli'); print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])"`
+```
+0.9.6
+```
+VALIDATE_PYPROJECT_VERSION = 0.9.6
+
+The tag input for the rehearsal dispatch is `v0.9.6`; stripped of its `v` that is `0.9.6`, which
+equals `VALIDATE_PYPROJECT_VERSION`.
+VALIDATE_VERSION_MATCH = yes
+
+Command: `uv run python scripts/extract_changelog_section.py 0.9.6 > $SCRATCH_76_03/p7603_notes.md`
+```
+exit=0
+```
+VALIDATE_CHANGELOG_EXTRACT_EXIT = 0
+
+Both release-only `validate` steps are reproduced here and pass, on this exact tree, ahead of the
+one dispatch.
