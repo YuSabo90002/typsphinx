@@ -5,15 +5,15 @@ milestone_name: Trusted Publishing and release
 current_phase: 76
 current_phase_name: "The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06"
 status: planning
-stopped_at: Phase 76 context gathered
-last_updated: "2026-09-27T10:21:24.940Z"
+stopped_at: Phase 76 planned (3 plans, 2 waves) — ready to execute
+last_updated: "2026-09-27T12:05:00.000Z"
 last_activity: 2026-09-27
-last_activity_desc: Phase 76 context captured — 5 decisions locked, 3 unselected gray areas decided at Claude's discretion, PyPI Trusted Publisher registration recorded as an unchecked owner prerequisite
-state_head: d6391a6d6b3097d65500003a8b339a14fa12a365
+last_activity_desc: Phase 76 planned — 3 plans in 2 waves (76-01 ATT-01 + 76-02 MSG-06 in wave 1; 76-03 ATT-02 rehearsal in wave 2 after the orchestrator pushes the milestone branch); D-08 amended after research falsified the control grep
+state_head: 9f3463d1aa586e6ce684d8310b0e0ac2123186fd
 progress:
   total_phases: 2
   completed_phases: 0
-  total_plans: 0
+  total_plans: 3
   completed_plans: 0
   percent: 0
 next_phase_number: 76
@@ -369,9 +369,9 @@ land here.
 ## Current Position
 
 Phase: 76 of 77 (The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06)
-Plan: — (none yet)
-Status: Ready to plan
-Last activity: 2026-09-23 — v0.9.7 roadmap created (Phases 76–77)
+Plan: 0 of 3 complete
+Status: Ready to execute (`/gsd-execute-phase 76`)
+Last activity: 2026-09-27 — Phase 76 planned: 3 plans in 2 waves; D-08 evidence greps amended (`disabling Trusted Publishing` / `attestations input is ignored`)
 
 Progress: [░░░░░░░░░░] 0% (0/2 phases)
 
