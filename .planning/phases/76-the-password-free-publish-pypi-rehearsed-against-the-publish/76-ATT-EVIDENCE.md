@@ -626,3 +626,29 @@ OWNER_CHECKPOINT_CHOICE = dispatch
 OWNER_CHECKPOINT_AT = 2026-09-27T13:08:39Z
 
 SCRATCH_76_03_T3 = /tmp/p7603t3.rUrDb0
+
+Resume guard (step 1): `REHEARSAL_RUN_ID` / `DISPATCH_ATTEMPTED` are not yet recorded in this
+file, and `gh run list --workflow=release.yml --branch gsd/v0.9.7-trusted-publishing-and-release
+--event workflow_dispatch --limit 20 --json databaseId,headSha,createdAt,status,conclusion` returns
+`[]` — an empty list with no marker, so this is a fresh dispatch, not a resumed one. Continuing to
+step 2.
+
+Pre-dispatch re-measure (step 2): `git ls-remote origin
+refs/heads/gsd/v0.9.7-trusted-publishing-and-release`
+```
+987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78	refs/heads/gsd/v0.9.7-trusted-publishing-and-release
+```
+ORIGIN_REF_SHA_AT_DISPATCH = 987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78
+
+Equal to `ORIGIN_REF_SHA` — no fetch/accept step needed.
+DISPATCH_REF_SHA = 987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78
+
+Command: `curl -sf https://pypi.org/simple/typsphinx/ -H 'Accept:
+application/vnd.pypi.simple.v1+json' | jq -r '.files[] | "\(.filename)\t\(."upload-time")"' |
+LC_ALL=C sort | sha256sum`
+```
+21e92e71c1b5cc7836ba56a10945e06aedd8f6b7eeafe4e3c260ce510e5a2946
+```
+PRE_DISPATCH_RECHECK_FILELIST_SHA256 = 21e92e71c1b5cc7836ba56a10945e06aedd8f6b7eeafe4e3c260ce510e5a2946
+
+Equal to `PRE_PYPI_FILELIST_SHA256` — PyPI state has not moved since Task 1's capture.
