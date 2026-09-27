@@ -839,3 +839,146 @@ REHEARSAL_GREP_ATTESTATIONS_IS_IGNORED = 0
 Per D-08 AMENDED: a zero is a reading only because its control is non-zero — both are read here.
 The three-word annotation title `attestations input ignored` is not used as an evidence grep in
 this phase; `gh run view --log` never renders a workflow-command's `title=` attribute.
+
+## ATT-02 post-dispatch capture
+
+Command: `curl -sf https://pypi.org/simple/typsphinx/ -H 'Accept:
+application/vnd.pypi.simple.v1+json'` → `jq -r '.files | length'`
+```
+38
+```
+POST_PYPI_FILE_COUNT = 38
+
+`PYPI_POST<TAB>filename<TAB>upload-time` lines, LC_ALL=C-sorted (identical set to the pre-dispatch
+list):
+```
+PYPI_POST	typsphinx-0.3.0-py3-none-any.whl	2025-10-23T14:19:40.288949Z
+PYPI_POST	typsphinx-0.3.0.tar.gz	2025-10-23T14:19:41.643637Z
+PYPI_POST	typsphinx-0.4.0-py3-none-any.whl	2025-10-26T06:21:56.637359Z
+PYPI_POST	typsphinx-0.4.0.tar.gz	2025-10-26T06:21:58.012140Z
+PYPI_POST	typsphinx-0.4.1-py3-none-any.whl	2025-10-26T07:03:54.112773Z
+PYPI_POST	typsphinx-0.4.1.tar.gz	2025-10-26T07:03:55.538046Z
+PYPI_POST	typsphinx-0.4.2-py3-none-any.whl	2025-10-29T12:56:02.146763Z
+PYPI_POST	typsphinx-0.4.2.tar.gz	2025-10-29T12:56:03.071014Z
+PYPI_POST	typsphinx-0.4.3-py3-none-any.whl	2025-11-01T03:56:12.714940Z
+PYPI_POST	typsphinx-0.4.3.tar.gz	2025-11-01T03:56:14.085299Z
+PYPI_POST	typsphinx-0.4.4-py3-none-any.whl	2026-07-05T06:28:26.332037Z
+PYPI_POST	typsphinx-0.4.4.tar.gz	2026-07-05T06:28:27.401534Z
+PYPI_POST	typsphinx-0.5.0-py3-none-any.whl	2026-07-11T13:21:32.461359Z
+PYPI_POST	typsphinx-0.5.0.tar.gz	2026-07-11T13:21:33.575063Z
+PYPI_POST	typsphinx-0.6.0-py3-none-any.whl	2026-07-12T22:21:35.277102Z
+PYPI_POST	typsphinx-0.6.0.tar.gz	2026-07-12T22:21:36.290646Z
+PYPI_POST	typsphinx-0.6.1-py3-none-any.whl	2026-07-20T03:35:38.486351Z
+PYPI_POST	typsphinx-0.6.1.tar.gz	2026-07-20T03:35:39.794148Z
+PYPI_POST	typsphinx-0.6.2-py3-none-any.whl	2026-07-23T11:33:43.131979Z
+PYPI_POST	typsphinx-0.6.2.tar.gz	2026-07-23T11:33:44.325709Z
+PYPI_POST	typsphinx-0.6.3-py3-none-any.whl	2026-07-25T10:23:44.410187Z
+PYPI_POST	typsphinx-0.6.3.tar.gz	2026-07-25T10:23:45.535209Z
+PYPI_POST	typsphinx-0.6.4-py3-none-any.whl	2026-07-27T22:20:54.325266Z
+PYPI_POST	typsphinx-0.6.4.tar.gz	2026-07-27T22:20:55.665777Z
+PYPI_POST	typsphinx-0.6.5-py3-none-any.whl	2026-07-28T21:15:39.074779Z
+PYPI_POST	typsphinx-0.6.5.tar.gz	2026-07-28T21:15:40.306581Z
+PYPI_POST	typsphinx-0.7.0-py3-none-any.whl	2026-08-03T20:26:50.991987Z
+PYPI_POST	typsphinx-0.7.0.tar.gz	2026-08-03T20:26:52.268288Z
+PYPI_POST	typsphinx-0.7.1-py3-none-any.whl	2026-08-11T05:52:38.757230Z
+PYPI_POST	typsphinx-0.7.1.tar.gz	2026-08-11T05:52:40.280172Z
+PYPI_POST	typsphinx-0.8.0-py3-none-any.whl	2026-08-15T03:27:57.000952Z
+PYPI_POST	typsphinx-0.8.0.tar.gz	2026-08-15T03:27:58.253347Z
+PYPI_POST	typsphinx-0.9.0-py3-none-any.whl	2026-08-22T09:54:54.347109Z
+PYPI_POST	typsphinx-0.9.0.tar.gz	2026-08-22T09:54:55.464914Z
+PYPI_POST	typsphinx-0.9.2-py3-none-any.whl	2026-08-30T15:30:18.769671Z
+PYPI_POST	typsphinx-0.9.2.tar.gz	2026-08-30T15:30:20.137778Z
+PYPI_POST	typsphinx-0.9.6-py3-none-any.whl	2026-09-22T13:46:52.492146Z
+PYPI_POST	typsphinx-0.9.6.tar.gz	2026-09-22T13:46:54.261506Z
+```
+
+POST_PYPI_FILELIST_SHA256 = 21e92e71c1b5cc7836ba56a10945e06aedd8f6b7eeafe4e3c260ce510e5a2946
+(equal to `PRE_PYPI_FILELIST_SHA256`)
+
+Command: rebuild the pre list from the `PYPI_PRE` lines with awk, `LC_ALL=C diff` against the post
+list into `p7603_filelist.diff`.
+```
+(no output — empty diff)
+```
+PYPI_FILELIST_DIFF_EXIT = 0
+
+Command: `jq -r '.files[] | select(.filename | startswith("typsphinx-0.9.6")) | "\(.filename)\t\(.provenance | tostring)"'`
+```
+typsphinx-0.9.6-py3-none-any.whl	null
+typsphinx-0.9.6.tar.gz	null
+```
+POST_PYPI_096_WHEEL_PROVENANCE = null
+POST_PYPI_096_SDIST_PROVENANCE = null
+
+GitHub Release v0.9.6, post-dispatch: `RELEASE_POST<TAB>…` lines, sorted:
+```
+RELEASE_POST	typsphinx-0.9.6-py3-none-any.whl	194339	sha256:0289f1adcd361dd773cc0c89d9abe874b8dd6c7ed74ce042bb6bb23e98c5b7c1	2026-09-22T13:47:15Z	2026-09-22T13:47:15Z
+RELEASE_POST	typsphinx-0.9.6.tar.gz	860244	sha256:74d588b465895f68d041d7376f39fc203f8754aa4ab893a337552f3dc5f07ce8	2026-09-22T13:47:15Z	2026-09-22T13:47:15Z
+RELEASE_POST	typsphinx.pdf	2823877	sha256:4ff29f5dc1000d15c99fa3371ab6eaec5450194c5cdf5c3d228f21212cf1b97a	2026-09-22T13:00:08Z	2026-09-22T13:00:08Z
+```
+POST_RELEASE_ASSET_COUNT = 3
+POST_RELEASE_ASSETS_SHA256 = 793dc12a533652e872d1f7207cb2ef4ce5c496aaf3cc27271d09d289a0b26025
+(equal to `PRE_RELEASE_ASSETS_SHA256`)
+POST_RELEASE_BODY_SHA256 = 66a83e4fcee3536b393b9c97121a1f810f5db0902af0c698cde7502d6a7b1d6b
+(equal to `PRE_RELEASE_BODY_SHA256`)
+
+Artifact: `gh run download 36321530105 -n dist-packages -D $SCRATCH_76_03_T3/artifact`, exit 0.
+```
+typsphinx-0.9.6-py3-none-any.whl
+typsphinx-0.9.6.tar.gz
+```
+Command: `sha256sum $SCRATCH_76_03_T3/artifact/*.whl $SCRATCH_76_03_T3/artifact/*.tar.gz`
+```
+165baf31b25d4807977410c9a47ba1f31600d0b14d9a18fb89da5ccace98ed6f  typsphinx-0.9.6-py3-none-any.whl
+a1f3a6585aab14ed0fc649e1944ac5b2e631f8777f6a0cd7c73f356f55db4970  typsphinx-0.9.6.tar.gz
+```
+ARTIFACT_WHEEL_SHA256 = 165baf31b25d4807977410c9a47ba1f31600d0b14d9a18fb89da5ccace98ed6f
+ARTIFACT_SDIST_SHA256 = a1f3a6585aab14ed0fc649e1944ac5b2e631f8777f6a0cd7c73f356f55db4970
+
+Both differ from their `PRE_PYPI_096_*_SHA256` counterparts.
+ARTIFACT_MATCHES_PYPI = no
+(These same two hashes appear verbatim in the run's own DSSE PAE attestation subjects, logged
+before the upload — confirming the artifact identity independently of PyPI's own served state.)
+
+Command: `gh run list --workflow=release.yml --branch gsd/v0.9.7-trusted-publishing-and-release
+--event workflow_dispatch --limit 50 --json databaseId --jq length`
+```
+1
+```
+REHEARSAL_DISPATCH_COUNT = 1
+
+Command: `gh secret list --json name --jq '.[].name'`
+```
+PYPI_API_TOKEN
+TEST_PYPI_API_TOKEN
+```
+POST_REPO_SECRET_PYPI_API_TOKEN = present
+
+Command: `gh secret list --env pypi --json name --jq '.[].name'`
+```
+PYPI_API_TOKEN
+```
+POST_ENV_SECRET_PYPI_API_TOKEN = present
+
+Command: `git ls-remote --tags origin 'refs/tags/v0.9.7*' | wc -l`
+```
+0
+```
+POST_ORIGIN_V097_TAGS = 0
+
+Approvals. Command: `gh api repos/YuSabo90002/typsphinx/actions/runs/36321530105/approvals --jq
+'.[] | [.state, .user.login, (.environments | map(.name) | join(","))] | @tsv'`
+```
+approved	github-actions[bot]	pypi
+approved	YuSabo90002	pypi
+```
+APPROVAL_PYPI_APPROVED = yes
+APPROVAL_POSTS_BY_EXECUTOR = 0
+
+This executor issued no approve/reject/review call against `pending_deployments` — only the single
+GET during the watch step. The `github-actions[bot]` entry above records the automatic wait_timer
+completion event, and `YuSabo90002` records the reviewer approval; because the authenticated `gh`
+identity is the owner's own account and `prevent_self_review` is `false` for this environment, the
+approvals record alone cannot by itself distinguish an owner press from an agent press — the
+no-self-approval prohibition is procedural (judgment), evidenced here by this command transcript
+and the `APPROVAL_POSTS_BY_EXECUTOR = 0` statement.
