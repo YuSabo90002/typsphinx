@@ -354,3 +354,50 @@ CI_NON_SUCCESS_JOBS = 0
 
 Conclusion `success` at the exact dispatch SHA, zero non-success jobs — CI on the dispatch SHA is
 green; no HALT.
+
+## ATT-02 pre-dispatch — control run 35730551619
+
+Command: `LC_ALL=C gh run view 35730551619 --log > $SCRATCH_76_03/p7603_control.log`; `wc -l`
+```
+3356 /tmp/p7603.oGoetI/p7603_control.log
+```
+CONTROL_LOG_LINES = 3356
+
+Command: `LC_ALL=C grep -c 'disabling Trusted Publishing' $SCRATCH_76_03/p7603_control.log || true`
+```
+1
+```
+CONTROL_GREP_DISABLING_TP = 1
+
+Command: `LC_ALL=C grep -c 'attestations input is ignored' $SCRATCH_76_03/p7603_control.log || true`
+```
+1
+```
+CONTROL_GREP_ATTESTATIONS_IS_IGNORED = 1
+
+Command: `LC_ALL=C grep -c 'Generating and uploading digital attestations' $SCRATCH_76_03/p7603_control.log || true`
+```
+0
+```
+CONTROL_GREP_GENERATING_ATTESTATIONS = 0 (the action prints this notice only on the Trusted
+Publishing path; the control ran on the token path, so it is absent here as expected)
+
+The single matching warning line, verbatim (`LC_ALL=C grep -F 'disabling Trusted Publishing'
+$SCRATCH_76_03/p7603_control.log`):
+```
+Publish to PyPI	UNKNOWN STEP	2026-09-22T13:46:50.5362201Z ##[warning]The workflow was run with the 'attestations: true' input, but an explicit password was also set, disabling Trusted Publishing. As a result, the attestations input is ignored.
+```
+
+Control run's job table (`gh run view 35730551619 --json jobs --jq '.jobs[] | "\(.name)\t\(.conclusion)"'`):
+```
+Validate Release	success
+Build Distribution	success
+Publish to PyPI	success
+Publish to TestPyPI (Optional)	skipped
+Create GitHub Release	success
+```
+
+Per D-08 AMENDED: the literal three-word annotation title `attestations input ignored` lives only
+in the GitHub Actions workflow-command's `title=` attribute, which `gh run view --log` never
+renders — so it is not used as an evidence grep in this phase. The two greps above (against the
+log body) are the discriminating pair.
