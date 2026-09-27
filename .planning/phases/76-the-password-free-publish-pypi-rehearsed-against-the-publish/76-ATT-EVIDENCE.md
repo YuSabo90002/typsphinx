@@ -309,3 +309,17 @@ Command: `gh run list --workflow=ci.yml --branch gsd/v0.9.7-trusted-publishing-a
 No existing run at `ORIGIN_REF_SHA` — this is not a resumed executor. Proceeding to dispatch.
 
 CI_DISPATCHED_AT = 2026-09-27T12:50:15Z
+
+Command: `gh workflow run ci.yml --ref gsd/v0.9.7-trusted-publishing-and-release`
+```
+https://github.com/YuSabo90002/typsphinx/actions/runs/36320335404
+exit=0
+```
+
+Command (15s later): `gh run list --workflow=ci.yml --branch gsd/v0.9.7-trusted-publishing-and-release --event workflow_dispatch --limit 20 --json databaseId,headSha,status,conclusion,createdAt`
+```
+[{"conclusion":"","createdAt":"2026-09-27T12:50:32Z","databaseId":36320335404,"headSha":"987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78","status":"in_progress"}]
+```
+Exactly one run at `ORIGIN_REF_SHA`, created after `CI_DISPATCHED_AT` — no re-dispatch needed.
+
+CI_RUN_ID = 36320335404
