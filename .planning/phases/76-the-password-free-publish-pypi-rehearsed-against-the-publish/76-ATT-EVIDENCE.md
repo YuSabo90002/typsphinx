@@ -299,3 +299,13 @@ VALIDATE_CHANGELOG_EXTRACT_EXIT = 0
 
 Both release-only `validate` steps are reproduced here and pass, on this exact tree, ahead of the
 one dispatch.
+
+## ATT-02 pre-dispatch — CI on the dispatch SHA
+
+Command: `gh run list --workflow=ci.yml --branch gsd/v0.9.7-trusted-publishing-and-release --event workflow_dispatch --limit 20 --json databaseId,headSha,status,conclusion,createdAt`
+```
+[]
+```
+No existing run at `ORIGIN_REF_SHA` — this is not a resumed executor. Proceeding to dispatch.
+
+CI_DISPATCHED_AT = 2026-09-27T12:50:15Z
