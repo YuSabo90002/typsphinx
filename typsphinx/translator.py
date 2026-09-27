@@ -5225,7 +5225,7 @@ class TypstTranslator(SphinxTranslator):
 
             logger.debug(
                 f"Cross-directory path calculation: up_count={up_count}, "
-                f"up_path='{up_path}', down_path='{down_path}', "
+                f"up_path={quote_path(up_path)}, down_path={quote_path(down_path)}, "
                 f"result: {relative_path}"
             )
 
