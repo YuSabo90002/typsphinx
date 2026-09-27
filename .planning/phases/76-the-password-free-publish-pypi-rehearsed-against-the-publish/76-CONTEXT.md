@@ -81,7 +81,7 @@ Three things, and nothing else:
 
 **Prerequisite checkbox — must be checked before the ATT-02 dispatch task runs:**
 
-- [ ] The Trusted Publisher is registered on PyPI for the **existing** `typsphinx` project, through
+- [x] The Trusted Publisher is registered on PyPI for the **existing** `typsphinx` project, through
       that project's own *Publishing* settings — **not** the account-level "pending publisher" flow
       most tutorials show, because `typsphinx` is already published. The four fields, all measured
       from the repository rather than recalled:
@@ -96,6 +96,10 @@ Three things, and nothing else:
       unedited today — so it can be done at any time before the dispatch. It cannot be verified by
       any agent: PyPI exposes no API for reading a project's configured publishers, so the rehearsal's
       **duplicate rejection is itself the verification** that all four fields match.
+
+      **Checked 2026-09-27 on the owner's report** ("登録完了した", relayed during `/gsd-execute-phase 76`
+      wave 1). Owner-reported, not agent-verified — the ATT-02 duplicate rejection remains the verification,
+      and 76-03 Task 2's checkpoint still asks for the explicit "dispatch" answer.
 
 ### Claude's Discretion
 
