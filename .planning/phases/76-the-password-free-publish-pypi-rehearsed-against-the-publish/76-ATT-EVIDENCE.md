@@ -237,7 +237,8 @@ Command: `git show 987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78:.github/workflows/re
 ```
 1
 ```
-REF_TESTPYPI_SECRET_REFS = 1 (the control that the grep reads the right file)
+REF_TESTPYPI_SECRET_REFS = 1
+The control that the grep reads the right file.
 
 Command: `git show 987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78:typsphinx/translator.py | grep -cx 'from typsphinx.pathfmt import quote_path'`
 ```
@@ -251,8 +252,10 @@ version = "0.9.6"
 ```
 REF_PYPROJECT_VERSION = 0.9.6
 
-REF_ATT01_VERDICT = MET (`ATT01_SC1_VERDICT` read from this same file at that SHA)
-REF_MSG06_VERDICT = MET (`MSG06_SC5_VERDICT` read from `76-MSG06-EVIDENCE.md` at that SHA)
+REF_ATT01_VERDICT = MET
+Read from `ATT01_SC1_VERDICT` in this same file at that SHA.
+REF_MSG06_VERDICT = MET
+Read from `MSG06_SC5_VERDICT` in `76-MSG06-EVIDENCE.md` at that SHA.
 
 Command: `git diff --name-only 987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78 HEAD -- . ':(exclude).planning'`
 ```
@@ -264,7 +267,8 @@ Command: `git ls-remote origin 'refs/heads/gsd/v0.9.7*' | wc -l`
 ```
 1
 ```
-ORIGIN_V097_BRANCHES = 1 (no `-milestone` decoy on origin)
+ORIGIN_V097_BRANCHES = 1
+No `-milestone` decoy on origin.
 
 Command: `git ls-remote --tags origin 'refs/tags/v0.9.7*' | wc -l`
 ```
@@ -379,8 +383,9 @@ Command: `LC_ALL=C grep -c 'Generating and uploading digital attestations' $SCRA
 ```
 0
 ```
-CONTROL_GREP_GENERATING_ATTESTATIONS = 0 (the action prints this notice only on the Trusted
-Publishing path; the control ran on the token path, so it is absent here as expected)
+CONTROL_GREP_GENERATING_ATTESTATIONS = 0
+The action prints this notice only on the Trusted Publishing path; the control ran on the token
+path, so it is absent here as expected.
 
 The single matching warning line, verbatim (`LC_ALL=C grep -F 'disabling Trusted Publishing'
 $SCRATCH_76_03/p7603_control.log`):
@@ -401,3 +406,98 @@ Per D-08 AMENDED: the literal three-word annotation title `attestations input ig
 in the GitHub Actions workflow-command's `title=` attribute, which `gh run view --log` never
 renders — so it is not used as an evidence grep in this phase. The two greps above (against the
 log body) are the discriminating pair.
+
+## ATT-02 pre-dispatch — PyPI served state
+
+PRE_PYPI_CAPTURED_AT = 2026-09-27T12:58:33Z
+
+Command: `curl -sf https://pypi.org/simple/typsphinx/ -H 'Accept: application/vnd.pypi.simple.v1+json'`
+into `$SCRATCH_76_03/p7603_simple_pre.json`.
+
+Command: `jq -r '.files | length' $SCRATCH_76_03/p7603_simple_pre.json`
+```
+38
+```
+PRE_PYPI_FILE_COUNT = 38
+
+Full list, every file with its `upload-time`, LC_ALL=C-sorted, tabs literal
+(`jq -r '.files[] | "PYPI_PRE\t\(.filename)\t\(."upload-time")"' | LC_ALL=C sort`):
+```
+PYPI_PRE	typsphinx-0.3.0-py3-none-any.whl	2025-10-23T14:19:40.288949Z
+PYPI_PRE	typsphinx-0.3.0.tar.gz	2025-10-23T14:19:41.643637Z
+PYPI_PRE	typsphinx-0.4.0-py3-none-any.whl	2025-10-26T06:21:56.637359Z
+PYPI_PRE	typsphinx-0.4.0.tar.gz	2025-10-26T06:21:58.012140Z
+PYPI_PRE	typsphinx-0.4.1-py3-none-any.whl	2025-10-26T07:03:54.112773Z
+PYPI_PRE	typsphinx-0.4.1.tar.gz	2025-10-26T07:03:55.538046Z
+PYPI_PRE	typsphinx-0.4.2-py3-none-any.whl	2025-10-29T12:56:02.146763Z
+PYPI_PRE	typsphinx-0.4.2.tar.gz	2025-10-29T12:56:03.071014Z
+PYPI_PRE	typsphinx-0.4.3-py3-none-any.whl	2025-11-01T03:56:12.714940Z
+PYPI_PRE	typsphinx-0.4.3.tar.gz	2025-11-01T03:56:14.085299Z
+PYPI_PRE	typsphinx-0.4.4-py3-none-any.whl	2026-07-05T06:28:26.332037Z
+PYPI_PRE	typsphinx-0.4.4.tar.gz	2026-07-05T06:28:27.401534Z
+PYPI_PRE	typsphinx-0.5.0-py3-none-any.whl	2026-07-11T13:21:32.461359Z
+PYPI_PRE	typsphinx-0.5.0.tar.gz	2026-07-11T13:21:33.575063Z
+PYPI_PRE	typsphinx-0.6.0-py3-none-any.whl	2026-07-12T22:21:35.277102Z
+PYPI_PRE	typsphinx-0.6.0.tar.gz	2026-07-12T22:21:36.290646Z
+PYPI_PRE	typsphinx-0.6.1-py3-none-any.whl	2026-07-20T03:35:38.486351Z
+PYPI_PRE	typsphinx-0.6.1.tar.gz	2026-07-20T03:35:39.794148Z
+PYPI_PRE	typsphinx-0.6.2-py3-none-any.whl	2026-07-23T11:33:43.131979Z
+PYPI_PRE	typsphinx-0.6.2.tar.gz	2026-07-23T11:33:44.325709Z
+PYPI_PRE	typsphinx-0.6.3-py3-none-any.whl	2026-07-25T10:23:44.410187Z
+PYPI_PRE	typsphinx-0.6.3.tar.gz	2026-07-25T10:23:45.535209Z
+PYPI_PRE	typsphinx-0.6.4-py3-none-any.whl	2026-07-27T22:20:54.325266Z
+PYPI_PRE	typsphinx-0.6.4.tar.gz	2026-07-27T22:20:55.665777Z
+PYPI_PRE	typsphinx-0.6.5-py3-none-any.whl	2026-07-28T21:15:39.074779Z
+PYPI_PRE	typsphinx-0.6.5.tar.gz	2026-07-28T21:15:40.306581Z
+PYPI_PRE	typsphinx-0.7.0-py3-none-any.whl	2026-08-03T20:26:50.991987Z
+PYPI_PRE	typsphinx-0.7.0.tar.gz	2026-08-03T20:26:52.268288Z
+PYPI_PRE	typsphinx-0.7.1-py3-none-any.whl	2026-08-11T05:52:38.757230Z
+PYPI_PRE	typsphinx-0.7.1.tar.gz	2026-08-11T05:52:40.280172Z
+PYPI_PRE	typsphinx-0.8.0-py3-none-any.whl	2026-08-15T03:27:57.000952Z
+PYPI_PRE	typsphinx-0.8.0.tar.gz	2026-08-15T03:27:58.253347Z
+PYPI_PRE	typsphinx-0.9.0-py3-none-any.whl	2026-08-22T09:54:54.347109Z
+PYPI_PRE	typsphinx-0.9.0.tar.gz	2026-08-22T09:54:55.464914Z
+PYPI_PRE	typsphinx-0.9.2-py3-none-any.whl	2026-08-30T15:30:18.769671Z
+PYPI_PRE	typsphinx-0.9.2.tar.gz	2026-08-30T15:30:20.137778Z
+PYPI_PRE	typsphinx-0.9.6-py3-none-any.whl	2026-09-22T13:46:52.492146Z
+PYPI_PRE	typsphinx-0.9.6.tar.gz	2026-09-22T13:46:54.261506Z
+```
+
+PRE_PYPI_FILELIST_SHA256 = 21e92e71c1b5cc7836ba56a10945e06aedd8f6b7eeafe4e3c260ce510e5a2946
+(sha256 of the jq-produced `filename<TAB>upload-time` lines after `LC_ALL=C sort` — the same bytes
+the `awk -F'\t' '$1=="PYPI_PRE"{print $2"\t"$3}'` extraction of the lines above reproduces)
+
+Command: `jq -r '.files[] | select(.filename | startswith("typsphinx-0.9.6")) | "\(.filename)\t\(.hashes.sha256)\t\(.provenance | tostring)"' $SCRATCH_76_03/p7603_simple_pre.json`
+```
+typsphinx-0.9.6-py3-none-any.whl	0289f1adcd361dd773cc0c89d9abe874b8dd6c7ed74ce042bb6bb23e98c5b7c1	null
+typsphinx-0.9.6.tar.gz	74d588b465895f68d041d7376f39fc203f8754aa4ab893a337552f3dc5f07ce8	null
+```
+PRE_PYPI_096_WHEEL_SHA256 = 0289f1adcd361dd773cc0c89d9abe874b8dd6c7ed74ce042bb6bb23e98c5b7c1
+PRE_PYPI_096_SDIST_SHA256 = 74d588b465895f68d041d7376f39fc203f8754aa4ab893a337552f3dc5f07ce8
+PRE_PYPI_096_WHEEL_PROVENANCE = null
+PRE_PYPI_096_SDIST_PROVENANCE = null
+
+## ATT-02 pre-dispatch — GitHub Release v0.9.6
+
+Command: `gh release view v0.9.6 --json assets --jq '.assets[] | ["RELEASE_PRE", .name, (.size|tostring), (.digest // "none"), .createdAt, .updatedAt] | @tsv'`, `LC_ALL=C sort`:
+```
+RELEASE_PRE	typsphinx-0.9.6-py3-none-any.whl	194339	sha256:0289f1adcd361dd773cc0c89d9abe874b8dd6c7ed74ce042bb6bb23e98c5b7c1	2026-09-22T13:47:15Z	2026-09-22T13:47:15Z
+RELEASE_PRE	typsphinx-0.9.6.tar.gz	860244	sha256:74d588b465895f68d041d7376f39fc203f8754aa4ab893a337552f3dc5f07ce8	2026-09-22T13:47:15Z	2026-09-22T13:47:15Z
+RELEASE_PRE	typsphinx.pdf	2823877	sha256:4ff29f5dc1000d15c99fa3371ab6eaec5450194c5cdf5c3d228f21212cf1b97a	2026-09-22T13:00:08Z	2026-09-22T13:00:08Z
+```
+
+PRE_RELEASE_ASSET_COUNT = 3
+
+Command: `gh release view v0.9.6 --json assets --jq '.assets[] | [.name, (.size|tostring), (.digest // "none"), .createdAt, .updatedAt] | @tsv' | LC_ALL=C sort | sha256sum | cut -d' ' -f1`
+```
+793dc12a533652e872d1f7207cb2ef4ce5c496aaf3cc27271d09d289a0b26025
+```
+PRE_RELEASE_ASSETS_SHA256 = 793dc12a533652e872d1f7207cb2ef4ce5c496aaf3cc27271d09d289a0b26025
+
+Command: `gh release view v0.9.6 --json body --jq .body | sha256sum | cut -d' ' -f1`
+```
+66a83e4fcee3536b393b9c97121a1f810f5db0902af0c698cde7502d6a7b1d6b
+```
+PRE_RELEASE_BODY_SHA256 = 66a83e4fcee3536b393b9c97121a1f810f5db0902af0c698cde7502d6a7b1d6b
+
+Download counts are deliberately excluded from this fingerprint (they change on any fetch).
