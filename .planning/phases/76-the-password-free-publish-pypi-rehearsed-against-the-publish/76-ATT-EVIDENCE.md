@@ -728,3 +728,97 @@ RUN_COMPLETED_AT = 2026-09-27T13:30:38Z
 RUN_ELAPSED_MINUTES = 20
 
 Well inside the 90-minute D-04 bound — no HALT.
+
+Read the concluded attempt before writing any key. Command: `gh run view 36321530105 --json
+status,conclusion,attempt,jobs` and `LC_ALL=C gh run view 36321530105 --attempt 1 --log` (3004
+lines). Zero `invalid-publisher` and zero `invalid-pending-publisher` in the log — not the D-07
+branch. Proceeding to the normal conclusion branch.
+
+## ATT-02 run conclusion
+
+Job table, exact names, from `gh run view 36321530105 --json jobs`:
+```
+Validate Release	success
+Build Distribution	success
+Publish to PyPI	failure
+Publish to TestPyPI (Optional)	skipped
+Create GitHub Release	skipped
+```
+
+RUN_CONCLUSION = failure
+RUN_ATTEMPT = 1
+JOB_VALIDATE = success
+JOB_BUILD = success
+JOB_PUBLISH_PYPI = failure
+JOB_PUBLISH_TESTPYPI = skipped
+JOB_CREATE_RELEASE = skipped
+
+Command: `LC_ALL=C grep -c 'File already exists' $SCRATCH_76_03_T3/p7603_rehearsal.log`
+```
+3
+```
+REHEARSAL_GREP_FILE_ALREADY_EXISTS = 3
+
+Command: `LC_ALL=C grep -c '400 Bad Request' $SCRATCH_76_03_T3/p7603_rehearsal.log`
+```
+2
+```
+REHEARSAL_GREP_400_BAD_REQUEST = 2
+
+REHEARSAL_GREP_INVALID_PUBLISHER = 0
+REHEARSAL_GREP_INVALID_PENDING_PUBLISHER = 0
+
+Command: `LC_ALL=C grep -c 'Generating and uploading digital attestations'
+$SCRATCH_76_03_T3/p7603_rehearsal.log`
+```
+1
+```
+REHEARSAL_GREP_GENERATING_ATTESTATIONS = 1
+
+Positive evidence the Trusted Publishing path ran (the control read 0 for this same grep).
+
+The `Publish to PyPI` job's error lines, verbatim (`awk -F'\t' '$1=="Publish to PyPI" &&
+$2=="Publish to PyPI"'` on the log, the upload-through-error excerpt, 37 lines):
+```
+Uploading distributions to https://upload.pypi.org/legacy/
+INFO     dist/typsphinx-0.9.6-py3-none-any.whl (189.8 KB)
+INFO     dist/typsphinx-0.9.6.tar.gz (841.4 KB)
+INFO     username set by command options
+INFO     password set by command options
+INFO     username: __token__
+INFO     password: <hidden>
+Uploading typsphinx-0.9.6-py3-none-any.whl
+INFO     Response from https://upload.pypi.org/legacy/:
+         400 Bad Request
+INFO     <html>
+          <head>
+           <title>400 File already exists ('typsphinx-0.9.6-py3-none-any.whl',
+         with blake2_256 hash
+         'e25738a4957332a699b9ef1ac371f5942dc13b059e137148176113a1b2a892df').
+         See https://pypi.org/help/#file-name-reuse for more
+         information.</title>
+          </head>
+          <body>
+           <h1>400 File already exists ('typsphinx-0.9.6-py3-none-any.whl', with
+         blake2_256 hash
+         'e25738a4957332a699b9ef1ac371f5942dc13b059e137148176113a1b2a892df').
+         See https://pypi.org/help/#file-name-reuse for more information.</h1>
+           The server could not comply with the request since it is either
+         malformed or otherwise incorrect.<br/><br/>
+         File already exists ('typsphinx-0.9.6-py3-none-any.whl', with
+         blake2_256 hash
+         'e25738a4957332a699b9ef1ac371f5942dc13b059e137148176113a1b2a892df'
+         '). See https://pypi.org/help/#file-name-reuse for more
+         information.
+
+
+          </body>
+         </html>
+ERROR    HTTPError: 400 Bad Request from https://upload.pypi.org/legacy/
+         Bad Request
+##[end-action id=__pypa_gh-action-pypi-publish.__self;outcome=failure;conclusion=failure;duration_ms=16475]
+```
+
+Per Flagged assumption A1: the actual status line reads `400 Bad Request` (not, e.g., `400 Client
+Error`), and `File already exists` is present verbatim at least once — the primary discriminator
+holds.
