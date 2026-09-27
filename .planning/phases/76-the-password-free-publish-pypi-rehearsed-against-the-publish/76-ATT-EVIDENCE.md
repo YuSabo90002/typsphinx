@@ -212,3 +212,64 @@ Command: `date -u +%FT%TZ`
 SCRATCH_76_03 = /tmp/p7603.oGoetI
 BASE_76_03 = 987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78
 GH_ACTOR = YuSabo90002
+
+## ATT-02 pre-dispatch — the pushed ref (D-06)
+
+DISPATCH_REF = gsd/v0.9.7-trusted-publishing-and-release
+
+Command: `git ls-remote origin refs/heads/gsd/v0.9.7-trusted-publishing-and-release`
+```
+987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78	refs/heads/gsd/v0.9.7-trusted-publishing-and-release
+```
+ORIGIN_REF_SHA = 987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78
+
+Command: `git fetch -q origin gsd/v0.9.7-trusted-publishing-and-release` — exit 0.
+
+Measured at that SHA with `git show <SHA>:<path>`:
+
+Command: `git show 987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78:.github/workflows/release.yml | grep -c 'secrets.PYPI_API_TOKEN'` (`|| true` — zero is expected)
+```
+0
+```
+REF_PYPI_SECRET_REFS = 0
+
+Command: `git show 987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78:.github/workflows/release.yml | grep -c 'secrets.TEST_PYPI_API_TOKEN'`
+```
+1
+```
+REF_TESTPYPI_SECRET_REFS = 1 (the control that the grep reads the right file)
+
+Command: `git show 987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78:typsphinx/translator.py | grep -cx 'from typsphinx.pathfmt import quote_path'`
+```
+1
+```
+REF_TRANSLATOR_QUOTE_PATH_IMPORT = 1
+
+Command: `git show 987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78:pyproject.toml | grep -m1 '^version = '`
+```
+version = "0.9.6"
+```
+REF_PYPROJECT_VERSION = 0.9.6
+
+REF_ATT01_VERDICT = MET (`ATT01_SC1_VERDICT` read from this same file at that SHA)
+REF_MSG06_VERDICT = MET (`MSG06_SC5_VERDICT` read from `76-MSG06-EVIDENCE.md` at that SHA)
+
+Command: `git diff --name-only 987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78 HEAD -- . ':(exclude).planning'`
+```
+(no output — empty)
+```
+WORKTREE_MATCHES_REF_OUTSIDE_PLANNING = yes
+
+Command: `git ls-remote origin 'refs/heads/gsd/v0.9.7*' | wc -l`
+```
+1
+```
+ORIGIN_V097_BRANCHES = 1 (no `-milestone` decoy on origin)
+
+Command: `git ls-remote --tags origin 'refs/tags/v0.9.7*' | wc -l`
+```
+0
+```
+ORIGIN_V097_TAGS = 0
+
+No mismatch — the pushed ref is ready; no HALT needed.
