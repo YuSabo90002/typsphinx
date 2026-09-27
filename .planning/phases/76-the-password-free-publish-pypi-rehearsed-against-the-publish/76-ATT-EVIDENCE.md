@@ -323,3 +323,34 @@ Command (15s later): `gh run list --workflow=ci.yml --branch gsd/v0.9.7-trusted-
 Exactly one run at `ORIGIN_REF_SHA`, created after `CI_DISPATCHED_AT` — no re-dispatch needed.
 
 CI_RUN_ID = 36320335404
+
+Bounded polling: `gh run view 36320335404 --json status --jq .status` on a 30 s sleep loop; status
+read `completed` on iteration 13 (2026-09-27T12:57:27Z), well inside the 45-minute bound.
+
+Command: `gh run view 36320335404 --json headSha,conclusion,jobs --jq '{headSha,conclusion,jobcount:(.jobs|length)}'`
+```
+{"conclusion":"success","headSha":"987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78","jobcount":12}
+```
+CI_RUN_HEAD_SHA = 987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78
+CI_RUN_CONCLUSION = success
+CI_JOB_COUNT = 12
+
+Command: `gh run view 36320335404 --json jobs --jq '.jobs[] | "\(.name)\t\(.conclusion)"'`
+```
+Code Coverage	success
+Test Python 3.13 on macos-latest	success
+Integration Test - advanced	success
+Integration Test - basic	success
+Build Package	success
+Lint and Format Check	success
+Test Python 3.12 on windows-latest	success
+Type Check	success
+Test Python 3.12 on macos-latest	success
+Test Python 3.13 on ubuntu-latest	success
+Test Python 3.12 on ubuntu-latest	success
+Test Python 3.13 on windows-latest	success
+```
+CI_NON_SUCCESS_JOBS = 0
+
+Conclusion `success` at the exact dispatch SHA, zero non-success jobs — CI on the dispatch SHA is
+green; no HALT.
