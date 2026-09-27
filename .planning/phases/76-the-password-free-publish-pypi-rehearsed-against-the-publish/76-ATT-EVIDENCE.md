@@ -822,3 +822,20 @@ ERROR    HTTPError: 400 Bad Request from https://upload.pypi.org/legacy/
 Per Flagged assumption A1: the actual status line reads `400 Bad Request` (not, e.g., `400 Client
 Error`), and `File already exists` is present verbatim at least once — the primary discriminator
 holds.
+
+## SC #4 — annotation greps against the control
+
+Re-downloaded the control log (`LC_ALL=C gh run view 35730551619 --log`) and re-ran both greps on
+each run:
+
+| grep target | rehearsal (36321530105) | control (35730551619) |
+|---|---|---|
+| `disabling Trusted Publishing` | 0 | 1 |
+| `attestations input is ignored` | 0 | 1 |
+
+REHEARSAL_GREP_DISABLING_TP = 0
+REHEARSAL_GREP_ATTESTATIONS_IS_IGNORED = 0
+
+Per D-08 AMENDED: a zero is a reading only because its control is non-zero — both are read here.
+The three-word annotation title `attestations input ignored` is not used as an evidence grep in
+this phase; `gh run view --log` never renders a workflow-command's `title=` attribute.
