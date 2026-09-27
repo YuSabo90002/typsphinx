@@ -15,6 +15,8 @@ from sphinx.locale import admonitionlabels
 from sphinx.util import logging
 from sphinx.util.docutils import SphinxTranslator
 
+from typsphinx.pathfmt import quote_path
+
 logger = logging.getLogger(__name__)
 
 # Units docutils may normalize into `:width:`/`:height:` (via
@@ -5118,7 +5120,7 @@ class TypstTranslator(SphinxTranslator):
 
             logger.debug(
                 f"Cross-directory path calculation: up_count={up_count}, "
-                f"up_path='{up_path}', down_path='{down_path}', "
+                f"up_path={quote_path(up_path)}, down_path={quote_path(down_path)}, "
                 f"result: {relative_path}"
             )
 
