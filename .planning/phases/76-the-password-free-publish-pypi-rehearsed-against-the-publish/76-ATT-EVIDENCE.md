@@ -652,3 +652,19 @@ LC_ALL=C sort | sha256sum`
 PRE_DISPATCH_RECHECK_FILELIST_SHA256 = 21e92e71c1b5cc7836ba56a10945e06aedd8f6b7eeafe4e3c260ce510e5a2946
 
 Equal to `PRE_PYPI_FILELIST_SHA256` — PyPI state has not moved since Task 1's capture.
+
+## ATT-02 dispatch — baseline and the one dispatch (D-01)
+
+Baseline. Command: `gh run list --workflow=release.yml --limit 20 --json
+databaseId,createdAt,event`
+```
+[{"createdAt":"2026-09-22T12:59:20Z","databaseId":35730551619,"event":"push"},{"createdAt":"2026-08-30T15:10:43Z","databaseId":33318905691,"event":"push"},{"createdAt":"2026-08-22T07:45:31Z","databaseId":32560457509,"event":"push"},{"createdAt":"2026-08-15T03:08:42Z","databaseId":31861043480,"event":"push"},{"createdAt":"2026-08-11T05:33:22Z","databaseId":31462027486,"event":"push"},{"createdAt":"2026-08-03T20:08:22Z","databaseId":30848860064,"event":"push"},{"createdAt":"2026-07-28T20:57:57Z","databaseId":30398631991,"event":"push"},{"createdAt":"2026-07-27T22:03:03Z","databaseId":30309278708,"event":"push"},{"createdAt":"2026-07-25T10:06:08Z","databaseId":30153888475,"event":"push"},{"createdAt":"2026-07-23T11:16:03Z","databaseId":30002480654,"event":"push"},{"createdAt":"2026-07-20T03:18:33Z","databaseId":29714380810,"event":"push"},{"createdAt":"2026-07-12T22:04:43Z","databaseId":29210840198,"event":"push"},{"createdAt":"2026-07-11T13:05:05Z","databaseId":29153718002,"event":"push"},{"createdAt":"2026-07-05T06:12:16Z","databaseId":28731646924,"event":"push"},{"createdAt":"2026-07-05T06:06:40Z","databaseId":28731518799,"event":"push"},{"createdAt":"2025-11-01T03:39:55Z","databaseId":18990823422,"event":"push"},{"createdAt":"2025-10-29T12:39:41Z","databaseId":18908167233,"event":"push"},{"createdAt":"2025-10-26T06:47:27Z","databaseId":18814341329,"event":"push"},{"createdAt":"2025-10-26T06:05:23Z","databaseId":18813905654,"event":"push"},{"createdAt":"2025-10-23T14:03:10Z","databaseId":18751004128,"event":"push"}]
+```
+BASELINE_NEWEST_RUN_ID = 35730551619
+
+Write-ahead (recorded and committed BEFORE the dispatch command runs):
+
+DISPATCH_ATTEMPTED = yes
+DISPATCH_COMMAND = gh workflow run release.yml --ref gsd/v0.9.7-trusted-publishing-and-release -f tag=v0.9.6
+DISPATCHED_AT = 2026-09-27T13:10:35Z
+DISPATCHED_EPOCH = 1790514635
