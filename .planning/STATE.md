@@ -4,12 +4,12 @@ milestone: v0.9.7
 milestone_name: Trusted Publishing and release
 current_phase: 76
 current_phase_name: "The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06"
-status: planning
+status: executing
 stopped_at: Phase 76 planned (3 plans, 2 waves) — ready to execute
-last_updated: "2026-09-27T12:05:00.000Z"
+last_updated: "2026-09-27T12:03:38.000Z"
 last_activity: 2026-09-27
-last_activity_desc: Phase 76 planned — 3 plans in 2 waves (76-01 ATT-01 + 76-02 MSG-06 in wave 1; 76-03 ATT-02 rehearsal in wave 2 after the orchestrator pushes the milestone branch); D-08 amended after research falsified the control grep
-state_head: 9f3463d1aa586e6ce684d8310b0e0ac2123186fd
+last_activity_desc: Phase 76 execution started — wave 1 (76-01 ATT-01 + 76-02 MSG-06) dispatched to isolated worktrees; 76-03 (ATT-02 rehearsal) waits for the wave-1 merge and the milestone-branch push
+state_head: 90905c075b7832e01a9b78a4434c151ff443d792
 progress:
   total_phases: 2
   completed_phases: 0
@@ -370,8 +370,8 @@ land here.
 
 Phase: 76 of 77 (The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06)
 Plan: 0 of 3 complete
-Status: Ready to execute (`/gsd-execute-phase 76`)
-Last activity: 2026-09-27 — Phase 76 planned: 3 plans in 2 waves; D-08 evidence greps amended (`disabling Trusted Publishing` / `attestations input is ignored`)
+Status: Executing Phase 76 — wave 1 of 2 (76-01, 76-02)
+Last activity: 2026-09-27 — Phase 76 execution started: wave 1 (76-01 ATT-01, 76-02 MSG-06) dispatched to isolated worktrees
 
 Progress: [░░░░░░░░░░] 0% (0/2 phases)
 
