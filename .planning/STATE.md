@@ -6,15 +6,15 @@ current_phase: 76
 current_phase_name: "The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06"
 status: executing
 stopped_at: Phase 76 planned (3 plans, 2 waves) — ready to execute
-last_updated: "2026-09-27T12:45:33.000Z"
+last_updated: "2026-09-27T13:44:47.000Z"
 last_activity: 2026-09-27
-last_activity_desc: Phase 76 wave 1 merged — 76-01 (ATT-01 two-line deletion) and 76-02 (MSG-06 quote_path routing) complete; post-merge suite 1573 passed / 1 skipped, lint trio clean; owner reported the D-05 PyPI Trusted Publisher registration done
+last_activity_desc: Phase 76 wave 2 merged — 76-03 ATT-02 rehearsal run 36321530105 rejected as a duplicate (File already exists), zero invalid-publisher, PyPI and the v0.9.6 Release unchanged; ATT02_VERDICT = MET
 state_head: 90905c075b7832e01a9b78a4434c151ff443d792
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 3
-  completed_plans: 2
+  completed_plans: 3
   percent: 0
 next_phase_number: 76
 ---
@@ -369,9 +369,9 @@ land here.
 ## Current Position
 
 Phase: 76 of 77 (The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06)
-Plan: 2 of 3 complete
-Status: Executing Phase 76 — wave 2 of 2 (76-03, ATT-02 rehearsal) next
-Last activity: 2026-09-27 — Phase 76 wave 1 merged (76-01 ATT-01, 76-02 MSG-06); post-merge 1573 passed / 1 skipped
+Plan: 3 of 3 complete
+Status: Phase 76 plans complete — code review and verification next
+Last activity: 2026-09-27 — Phase 76 wave 2 merged: ATT-02 rehearsal run 36321530105 turned away as a duplicate (ATT02_VERDICT = MET)
 
 Progress: [░░░░░░░░░░] 0% (0/2 phases)
 

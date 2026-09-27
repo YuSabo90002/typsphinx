@@ -380,7 +380,7 @@ before the rehearsal is dispatched (constraint 1). No plan task may claim that s
      `template_registry.py` — the family's other three modules, closed in Phase 60 — are unchanged.
      (MSG-06)
 
-**Plans**: 2/3 plans executed (2 waves)
+**Plans**: 3/3 plans executed (2 waves)
 
 Plans:
 
@@ -391,7 +391,7 @@ Plans:
 
 **Wave 2** *(after the orchestrator merges wave 1 and pushes the milestone branch, D-06)*
 
-- [ ] 76-03-PLAN.md — ATT-02: pre-dispatch gate on the pushed SHA (CI green, validate-only checks, PyPI/Release baselines, control greps), blocking-human owner checkpoint for the one-way dispatch (D-05), exactly one `workflow_dispatch` rehearsal watched to conclusion, SC #2–#4 evidence into `76-ATT-EVIDENCE.md`
+- [x] 76-03-PLAN.md — ATT-02: pre-dispatch gate on the pushed SHA (CI green, validate-only checks, PyPI/Release baselines, control greps), blocking-human owner checkpoint for the one-way dispatch (D-05), exactly one `workflow_dispatch` rehearsal watched to conclusion, SC #2–#4 evidence into `76-ATT-EVIDENCE.md`
 
 ### Phase 77: v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff
 
@@ -527,7 +527,7 @@ DOC-25.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 76. The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06 | v0.9.7 | 2/3 | In Progress | - |
+| 76. The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06 | v0.9.7 | 3/3 | In Progress | - |
 | 77. v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff | v0.9.7 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
