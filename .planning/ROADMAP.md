@@ -380,14 +380,14 @@ before the rehearsal is dispatched (constraint 1). No plan task may claim that s
      `template_registry.py` — the family's other three modules, closed in Phase 60 — are unchanged.
      (MSG-06)
 
-**Plans**: 3 plans (2 waves)
+**Plans**: 2/3 plans executed (2 waves)
 
 Plans:
 
 **Wave 1**
 
-- [ ] 76-01-PLAN.md — ATT-01: the measured two-line deletion of `publish-pypi`'s credential, SC #1 readout and byte-identity invariants, opening `76-ATT-EVIDENCE.md` (D-08)
-- [ ] 76-02-PLAN.md — MSG-06: new `tests/test_translator_path_quoting_gate.py` recorded RED on the unedited tree, both cross-directory debug logs routed through `quote_path()`, fence and full-suite green (`76-MSG06-EVIDENCE.md`)
+- [x] 76-01-PLAN.md — ATT-01: the measured two-line deletion of `publish-pypi`'s credential, SC #1 readout and byte-identity invariants, opening `76-ATT-EVIDENCE.md` (D-08)
+- [x] 76-02-PLAN.md — MSG-06: new `tests/test_translator_path_quoting_gate.py` recorded RED on the unedited tree, both cross-directory debug logs routed through `quote_path()`, fence and full-suite green (`76-MSG06-EVIDENCE.md`)
 
 **Wave 2** *(after the orchestrator merges wave 1 and pushes the milestone branch, D-06)*
 
@@ -527,7 +527,7 @@ DOC-25.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 76. The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06 | v0.9.7 | 0/3 | Planned | - |
+| 76. The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06 | v0.9.7 | 2/3 | In Progress | - |
 | 77. v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff | v0.9.7 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution
