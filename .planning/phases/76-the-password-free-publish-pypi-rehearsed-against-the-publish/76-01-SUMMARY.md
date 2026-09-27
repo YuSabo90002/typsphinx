@@ -155,3 +155,12 @@ None - no external service configuration required.
 ---
 *Phase: 76-the-password-free-publish-pypi-rehearsed-against-the-publish*
 *Completed: 2026-09-27*
+
+## Self-Check: PASSED
+
+- `.github/workflows/release.yml` exists — FOUND
+- `.planning/phases/76-the-password-free-publish-pypi-rehearsed-against-the-publish/76-ATT-EVIDENCE.md` exists — FOUND
+- `.planning/phases/76-the-password-free-publish-pypi-rehearsed-against-the-publish/76-01-SUMMARY.md` exists — FOUND
+- Commit `efde71a9` (workflow edit) — FOUND in `git log --oneline --all`
+- Commit `e7e240ba` (SC #1 readout + verdict) — FOUND in `git log --oneline --all`
+- Commit `49d50c14` (SUMMARY) — FOUND in `git log --oneline --all`
