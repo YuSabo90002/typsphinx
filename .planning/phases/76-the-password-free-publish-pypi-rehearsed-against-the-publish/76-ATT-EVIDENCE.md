@@ -103,3 +103,93 @@ Output:
 YAML_STRUCT_OK
 ```
 ATT01_YAML_STRUCT = ok
+
+## ATT-01 — SC #1 readout
+
+Command: `grep -c 'PYPI_API_TOKEN' .github/workflows/release.yml`
+```
+1
+```
+ATT01_PYPI_API_TOKEN_COUNT_AFTER = 1
+
+The one remaining hit is the `TEST_PYPI_API_TOKEN` line in `publish-testpypi`. Command:
+`grep -n 'TEST_PYPI_API_TOKEN' .github/workflows/release.yml`
+```
+242:          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+```
+
+Command: `grep -c 'attestations' .github/workflows/release.yml || true`
+```
+0
+```
+ATT01_FORBIDDEN_KEY_A_COUNT_AFTER = 0
+(Key A: "Adding `attestations: true` to the workflow" — REQUIREMENTS.md § Out of Scope.)
+
+Command: `grep -c 'skip-existing' .github/workflows/release.yml || true`
+```
+0
+```
+ATT01_FORBIDDEN_KEY_B_COUNT_AFTER = 0
+(Key B: "Adding `skip-existing:` to the workflow" — REQUIREMENTS.md § Out of Scope.)
+
+Command: `grep -c 'pypa/gh-action-pypi-publish@release/v1' .github/workflows/release.yml`
+```
+2
+```
+ATT01_RELEASE_V1_COUNT_AFTER = 2
+
+Command: `diff <(git show e3c169d4e7b52d828f6ebe2b04e55513df49ddfc:.github/workflows/release.yml | sed -n '/^  publish-testpypi:/,$p') <(sed -n '/^  publish-testpypi:/,$p' .github/workflows/release.yml)`
+```
+(no output — identical)
+```
+ATT01_TESTPYPI_REGION_IDENTICAL = yes
+
+Command: `diff <(git show e3c169d4e7b52d828f6ebe2b04e55513df49ddfc:.github/workflows/release.yml | sed -n '/^permissions:/,/^$/p') <(sed -n '/^permissions:/,/^$/p' .github/workflows/release.yml)`
+```
+(no output — identical)
+```
+ATT01_PERMISSIONS_BLOCK_IDENTICAL = yes
+
+Command: `grep -nF '  password: ${{ secrets.PYPI_API_TOKEN }}' .github/workflows/release.yml || true`
+```
+(no output — zero matches)
+```
+ATT01_REAPPLY_TARGETS = 0
+
+The adjacency readout — command: `sed -n '141,145p' .github/workflows/release.yml` (five lines
+starting at `ATT01_DELETED_WITH_LINE - 2` = 141):
+```
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  # Create GitHub Release
+  create-release:
+```
+Matches the expected shape: `- name: Publish to PyPI`, the `uses:` line, a blank line,
+`  # Create GitHub Release`, and `  create-release:`.
+
+## ATT-01 — env-not-interpolation invariant
+
+Command (PyYAML walk over every `run:` step of every job, asserting none contains `${{`):
+```
+uv run python -c 'import yaml; d=yaml.safe_load(open(".github/workflows/release.yml")); r=[st["run"] for jb in d["jobs"].values() for st in jb["steps"] if "run" in st]; assert r, "no run steps"; bad=[x for x in r if "${{" in x]; assert not bad, bad; print(len(r))'
+```
+Output:
+```
+15
+```
+ATT01_RUN_STEPS_CHECKED = 15
+ATT01_RUN_BLOCK_INTERPOLATIONS = 0
+
+The deletion touched no `run:` block, so the invariant the file's own comment records (`:38-44`,
+the `env:`-not-interpolation contract) is preserved by construction and is now also confirmed by
+measurement across all 15 `run:` steps.
+
+## ATT-01 verdict
+
+Every key above holds:
+
+ATT01_SC1_VERDICT = MET
+
+The workflow file is not evidence on its own (ROADMAP constraint 10) — ATT-01 is closed together
+with the wave-2 rehearsal in plan 76-03, which dispatches this exact copy of the file.
