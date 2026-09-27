@@ -312,7 +312,7 @@ DOC-25 is deliberately **not** written during release prep. Its own text require
 publish; writing it earlier would put a forward-looking claim into a codebase map, which is the same
 class of error the line already contains.
 
-- [ ] **Phase 76: The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06** - `release.yml`'s production publish step carries no credential and mints its own OIDC token, proven by one `workflow_dispatch` against the already-published `v0.9.6` that reaches PyPI's upload endpoint and is turned away as a duplicate rather than as an unknown publisher — with nothing reaching PyPI. In the same phase, `translator.py`'s last two hardcoded-delimiter DEBUG logs route through `quote_path()`.
+- [x] **Phase 76: The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06** - `release.yml`'s production publish step carries no credential and mints its own OIDC token, proven by one `workflow_dispatch` against the already-published `v0.9.6` that reaches PyPI's upload endpoint and is turned away as a duplicate rather than as an unknown publisher — with nothing reaching PyPI. In the same phase, `translator.py`'s last two hardcoded-delimiter DEBUG logs route through `quote_path()`. (completed 2026-09-27)
 - [ ] **Phase 77: v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff** - `pyproject.toml` reads `0.9.7` with `uv.lock` and `README.md` regenerated in the same commit, one curated `## [0.9.7]` CHANGELOG section with its tail link block moved and attestations described as audit provenance rather than an install-time gate, a rollback procedure recorded before any tag exists, and a standalone handoff that turns each of the five post-tag requirements into a pre-written command with its expected output and its control — with zero irreversible action taken and those five checkboxes held by a line-scoped fence.
 
 ## Phase Details
@@ -380,7 +380,7 @@ before the rehearsal is dispatched (constraint 1). No plan task may claim that s
      `template_registry.py` — the family's other three modules, closed in Phase 60 — are unchanged.
      (MSG-06)
 
-**Plans**: 3/3 plans executed (2 waves)
+**Plans**: 3/3 plans complete (2 waves)
 
 Plans:
 
@@ -527,7 +527,7 @@ DOC-25.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 76. The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06 | v0.9.7 | 3/3 | In Progress | - |
+| 76. The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06 | v0.9.7 | 3/3 | Complete | 2026-09-27 |
 | 77. v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff | v0.9.7 | 0/TBD | Not started | - |
 
 ## Roadmap Evolution

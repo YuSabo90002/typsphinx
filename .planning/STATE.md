@@ -2,21 +2,21 @@
 gsd_state_version: "1.0"
 milestone: v0.9.7
 milestone_name: Trusted Publishing and release
-current_phase: 76
-current_phase_name: "The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06"
-status: executing
-stopped_at: Phase 76 planned (3 plans, 2 waves) — ready to execute
-last_updated: "2026-09-27T13:44:47.000Z"
+current_phase: 77
+current_phase_name: v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff
+status: planning
+stopped_at: Phase 76 complete, ready to plan Phase 77
+last_updated: "2026-09-27T13:53:59.012Z"
 last_activity: 2026-09-27
-last_activity_desc: Phase 76 wave 2 merged — 76-03 ATT-02 rehearsal run 36321530105 rejected as a duplicate (File already exists), zero invalid-publisher, PyPI and the v0.9.6 Release unchanged; ATT02_VERDICT = MET
-state_head: 90905c075b7832e01a9b78a4434c151ff443d792
+last_activity_desc: Phase 76 complete and verified (12/12) — ATT-01, ATT-02 (rehearsal run 36321530105 rejected as a duplicate) and MSG-06 closed; transitioned to Phase 77
+state_head: 56ff7e57861a110253fcecb865bdd80f0a05b86d
 progress:
   total_phases: 2
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
   completed_plans: 3
-  percent: 0
-next_phase_number: 76
+  percent: 50
+next_phase_number: 77
 ---
 
 # Project State
@@ -368,24 +368,25 @@ land here.
 
 ## Current Position
 
-Phase: 76 of 77 (The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06)
-Plan: 3 of 3 complete
-Status: Phase 76 plans complete — code review and verification next
-Last activity: 2026-09-27 — Phase 76 wave 2 merged: ATT-02 rehearsal run 36321530105 turned away as a duplicate (ATT02_VERDICT = MET)
+Phase: 77 of 77 (v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-09-27 — Phase 76 complete, transitioned to Phase 77
 
-Progress: [░░░░░░░░░░] 0% (0/2 phases)
+Progress: [█████░░░░░] 50% (1/2 phases)
 
-**Before Phase 76 can be executed, one owner action must happen off-repo:** register the Trusted
-Publisher on PyPI through the **existing `typsphinx` project's** Publishing settings (not the
-account-level pending-publisher flow), with the four fields copied from the file and the repository
-URL rather than from memory — repository owner, repository name, the **bare** workflow filename
-`release.yml`, environment `pypi`. No agent can do this and no plan task may claim it. It has no
-dependency on any code change, so it can be done now.
+**Phase 76 outcome (2026-09-27, verified 12/12).** ATT-01, ATT-02 and MSG-06 are closed. The
+ATT-02 rehearsal — exactly one `workflow_dispatch` of `release.yml` (run `36321530105`, tag input
+`v0.9.6`, ref `gsd/v0.9.7-trusted-publishing-and-release` at `987ec3fe`) — was turned away at
+`Publish to PyPI` as a duplicate (`File already exists`, zero `invalid-publisher`), with PyPI and
+the v0.9.6 GitHub Release unchanged. The owner registered the Trusted Publisher before the dispatch.
+Evidence: `76-ATT-EVIDENCE.md` (Phase 77's handoff reads it by that name). That rehearsal is **not**
+ATT-04 evidence. The milestone branch is now on `origin`.
 
-**The ordering that is easiest to get wrong:** ATT-02's rehearsal dispatch must run on a ref whose
-`pyproject.toml` still reads `0.9.6`. `release.yml`'s `validate` job compares `pyproject.toml`
-against the dispatch's `tag` input and exits 1 on mismatch, which skips `build` and `publish-pypi`
-and never reaches the OIDC exchange. Rehearse first (Phase 76), bump second (Phase 77).
+**Still easy to get wrong in Phase 77:** the version bump must not be tagged or pushed as a tag in
+the phase — every irreversible action (tag, publish, secret deletion, PyPI token revocation) runs at
+`/gsd-complete-milestone`. The stale `attestations input ignored` grep wording in ROADMAP SC #4,
+REQUIREMENTS.md ATT-04 and the handoff spec is aligned in Phase 77 (76-CONTEXT D-08 AMENDED).
 
 ## Shipped Milestone (v0.9.0 — archived)
 
@@ -1230,22 +1231,15 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/76-the-password-free-publish-pypi-rehearsed-against-the-publish/76-CONTEXT.md
+**Resume file:** .planning/phases/76-the-password-free-publish-pypi-rehearsed-against-the-publish/76-VERIFICATION.md
 
-Last session: 2026-09-27 (Phase 76 context gathered)
-Stopped at: Phase 76 context gathered
-Resume: `/gsd-plan-phase 76` — Phase 76's CONTEXT.md is written and committed (`d6391a6d`).
-Its five locked decisions (D-01–D-05) settle who fires the ATT-02 rehearsal dispatch and how the
-two-stage wait is bounded; D-06–D-08 settle the dispatch ref, the `invalid-publisher` recovery and
-the evidence file, at Claude's discretion. The **unchecked owner prerequisite** — registering the
-Trusted Publisher on PyPI through the existing project's Publishing settings — is a CONTEXT
-checkbox and must be filled before the dispatch task runs. The roadmap's **14 binding constraints**
-are in `.planning/ROADMAP.md` under the active-milestone section and should not be re-derived — in
-particular constraints 1 (the owner's off-repo PyPI registration is a prerequisite, never a plan
-task), 3 (rehearse before bump, or `validate` kills the rehearsal), 8 (`:141-144` overstates the
-edit — measure the lines) and 12 (every irreversible action runs at `/gsd-complete-milestone`).
-The four-dimension research for this milestone is under `.planning/research/`; `SUMMARY.md` proposed
-five phases and the roadmap records why two is the right count here.
+Last session: 2026-09-27 (Phase 76 executed and verified)
+Stopped at: Phase 76 complete, ready to plan Phase 77
+Resume: `/gsd-discuss-phase 77` (or `/gsd-plan-phase 77`). Phase 76 closed ATT-01, ATT-02 and MSG-06;
+its evidence is `76-ATT-EVIDENCE.md` / `76-MSG06-EVIDENCE.md`, verification passed 12/12, code review
+clean. The roadmap's **14 binding constraints** are in `.planning/ROADMAP.md` under the
+active-milestone section — constraint 12 (every irreversible action runs at
+`/gsd-complete-milestone`) is the one Phase 77 must hold.
 
 For Phase 77's handoff, the model to follow is
 `.planning/milestones/v0.9.2-phases/63-HANDOFF.md` and
@@ -1254,9 +1248,6 @@ handoff is heavier than either: the publish half carries five requirements rathe
 
 ## Operator Next Steps
 
-- **Now, off-repo:** register the Trusted Publisher on PyPI (existing project's Publishing
-  settings; owner + repo + bare `release.yml` + environment `pypi`). Nothing in Phase 76's
-  rehearsal can pass without it, and it has no dependency on any code change.
-- Then: `/gsd-discuss-phase 76` → `/gsd-plan-phase 76` → `/gsd-execute-phase 76`
-- The `pypi` environment's manual approval will be requested twice this milestone: once for the
-  rehearsal in Phase 76, once for the real publish at the close. Both are expected gates.
+- Next: `/gsd-discuss-phase 77` → `/gsd-plan-phase 77` → `/gsd-execute-phase 77`
+- The `pypi` environment's manual approval was used once for the Phase 76 rehearsal; it will be
+  requested once more for the real publish at `/gsd-complete-milestone`.

@@ -14,7 +14,7 @@ Requirements for milestone v0.9.7. Each maps to exactly one roadmap phase.
 
 ### Trusted Publishing
 
-- [ ] **ATT-01**: `release.yml`'s `publish-pypi` step publishes with no `password:` key, so
+- [x] **ATT-01**: `release.yml`'s `publish-pypi` step publishes with no `password:` key, so
       `pypa/gh-action-pypi-publish` takes the OIDC / Trusted Publishing path. **Corrected
       2026-09-23 against the file:** the lines to delete are `:143-144` — `with:` and
       `password: ${{ secrets.PYPI_API_TOKEN }}` — a **two**-line deletion, not four. `:141-144` as
@@ -26,7 +26,7 @@ Requirements for milestone v0.9.7. Each maps to exactly one roadmap phase.
       the exact misreading ATT-01's own record exists to correct), and no `skip-existing:` is added
       (an anti-pattern here: it would mask the duplicate-rejection signal ATT-02 depends on).
       `publish-testpypi` at `:241-245` is left untouched on `TEST_PYPI_API_TOKEN`.
-- [ ] **ATT-02**: Before the production tag is pushed, one `workflow_dispatch` run of `release.yml`
+- [x] **ATT-02**: Before the production tag is pushed, one `workflow_dispatch` run of `release.yml`
       against the **already-published** `v0.9.6` exercises the real OIDC exchange on the
       `password:`-free workflow and is rejected at the upload step as a duplicate — `400 File
       already exists` — **not** with `invalid-publisher` / `invalid-pending-publisher`. A duplicate
@@ -63,7 +63,7 @@ Requirements for milestone v0.9.7. Each maps to exactly one roadmap phase.
 
 ### Translator messages
 
-- [ ] **MSG-06**: `typsphinx/translator.py:5047` and `:5152` — the two cross-directory relative-path
+- [x] **MSG-06**: `typsphinx/translator.py:5047` and `:5152` — the two cross-directory relative-path
       DEBUG logs in `_compute_relative_include_path()` and `_compute_relative_image_path()` — quote
       `up_path`/`down_path` through `quote_path()` instead of a hardcoded `'...'` delimiter, so a
       path containing a literal single quote no longer closes the quote early. This is the fourth
@@ -153,9 +153,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Half | Status |
 |-------------|-------|------|--------|
-| ATT-01 | Phase 76 | pre-tag | Pending |
-| ATT-02 | Phase 76 | pre-tag | Pending |
-| MSG-06 | Phase 76 | pre-tag | Pending |
+| ATT-01 | Phase 76 | pre-tag | Complete |
+| ATT-02 | Phase 76 | pre-tag | Complete |
+| MSG-06 | Phase 76 | pre-tag | Complete |
 | ATT-06 | Phase 77 | pre-tag | Pending |
 | REL-17 | Phase 77 | split — prep in phase, publish at close | Pending |
 | ATT-04 | Phase 77 | publish (coverage only) | Pending |
