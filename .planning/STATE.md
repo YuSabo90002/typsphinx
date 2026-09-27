@@ -2,19 +2,20 @@
 gsd_state_version: "1.0"
 milestone: v0.9.7
 milestone_name: Trusted Publishing and release
+current_phase: 76
+current_phase_name: "The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06"
 status: planning
-stopped_at: Roadmap created (Phases 76–77) — Phase 76 ready to plan
-last_updated: "2026-09-23T00:00:00.000Z"
-last_activity: 2026-09-23
-last_activity_desc: v0.9.7 roadmap created — Phases 76–77, 9/9 v1 requirements mapped, zero orphans
+stopped_at: Phase 76 context gathered
+last_updated: "2026-09-27T10:21:24.940Z"
+last_activity: 2026-09-27
+last_activity_desc: Phase 76 context captured — 5 decisions locked, 3 unselected gray areas decided at Claude's discretion, PyPI Trusted Publisher registration recorded as an unchecked owner prerequisite
+state_head: d6391a6d6b3097d65500003a8b339a14fa12a365
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
   percent: 0
-current_phase: 76
-current_phase_name: "The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06"
 next_phase_number: 76
 ---
 
@@ -1229,11 +1230,16 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** none yet — Phase 76 has not been planned.
+**Resume file:** .planning/phases/76-the-password-free-publish-pypi-rehearsed-against-the-publish/76-CONTEXT.md
 
-Last session: 2026-09-23 (v0.9.7 roadmap created)
-Stopped at: Roadmap complete, Phases 76–77 written, 9/9 requirements mapped; no phase planned yet
-Resume: `/gsd-discuss-phase 76`, then `/gsd-plan-phase 76`. The roadmap's **14 binding constraints**
+Last session: 2026-09-27 (Phase 76 context gathered)
+Stopped at: Phase 76 context gathered
+Resume: `/gsd-plan-phase 76` — Phase 76's CONTEXT.md is written and committed (`d6391a6d`).
+Its five locked decisions (D-01–D-05) settle who fires the ATT-02 rehearsal dispatch and how the
+two-stage wait is bounded; D-06–D-08 settle the dispatch ref, the `invalid-publisher` recovery and
+the evidence file, at Claude's discretion. The **unchecked owner prerequisite** — registering the
+Trusted Publisher on PyPI through the existing project's Publishing settings — is a CONTEXT
+checkbox and must be filled before the dispatch task runs. The roadmap's **14 binding constraints**
 are in `.planning/ROADMAP.md` under the active-milestone section and should not be re-derived — in
 particular constraints 1 (the owner's off-repo PyPI registration is a prerequisite, never a plan
 task), 3 (rehearse before bump, or `validate` kills the rehearsal), 8 (`:141-144` overstates the
