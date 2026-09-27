@@ -136,3 +136,13 @@ None - no external service configuration required.
 ---
 *Phase: 76-the-password-free-publish-pypi-rehearsed-against-the-publish*
 *Completed: 2026-09-27*
+
+## Self-Check: PASSED
+
+- `tests/test_translator_path_quoting_gate.py` — FOUND
+- `.planning/phases/76-the-password-free-publish-pypi-rehearsed-against-the-publish/76-MSG06-EVIDENCE.md` — FOUND
+- `.planning/phases/76-the-password-free-publish-pypi-rehearsed-against-the-publish/76-02-SUMMARY.md` — FOUND
+- Commits `6806594`, `58bfe0b`, `102c20e`, `fc21b96`, `563a83d`, `8b4674a` — all present in `git log --oneline -10`
+- Task 1 `<verify>` re-run: PASS (`TASK1_VERIFY_PASS`)
+- Task 2 `<verify>` re-run: PASS (`TASK2_VERIFY_PASS`)
+- Plan-level `<verification>`: both task verify commands exit 0; `76-MSG06-EVIDENCE.md` holds RED (2 failed/2 passed) before GREEN (4 passed); full suite (1569 passed, 5 skipped), black, ruff, mypy all exit 0 — all confirmed above.
