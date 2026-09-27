@@ -700,3 +700,31 @@ REHEARSAL_HEAD_SHA = 987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78
 REHEARSAL_URL = https://github.com/YuSabo90002/typsphinx/actions/runs/36321530105
 
 `REHEARSAL_HEAD_SHA` equals `DISPATCH_REF_SHA` — no HALT.
+
+## ATT-02 watch (D-02, D-04)
+
+Bounded polling: `gh run view 36321530105 --json status --jq .status` on a 30 s sleep loop
+(tool timeout 600000 ms per call, at most 17 iterations per call, elapsed compared against the
+90-minute D-04 bound between calls). Two polling calls were needed.
+
+Call 1 (iterations 1–17, `13:12:56Z`→`13:21:39Z`): status went `in_progress` → `waiting` at
+iteration 4 (`13:14:58Z`, elapsed 4 min). The first time status read `waiting`, read once, GET
+only:
+
+Command: `gh api repos/YuSabo90002/typsphinx/actions/runs/36321530105/pending_deployments`
+```
+[{"environment":{"id":9261275737,"name":"pypi","url":"https://api.github.com/repos/YuSabo90002/typsphinx/environments/pypi"},"wait_timer":15,"wait_timer_started_at":"2026-09-27T13:14:55.000Z","current_user_can_approve":true,"reviewers":[{"type":"User","reviewer":{"login":"YuSabo90002"}}]}]
+```
+`wait_timer_started_at` already carries a value at first observation, so the required-reviewer
+approval (D-03, via GitHub's own notification) had already landed and the 15-minute `wait_timer`
+was already counting; this executor issued no approve/reject/review call — GET only. Status
+remained `waiting` through the rest of call 1 (iterations 5–17, up to elapsed 11 min).
+
+Call 2 (iterations 1–17, `13:22:22Z`→`13:30:35Z`): status remained `waiting` through iteration 15
+(elapsed 18 min), moved to `in_progress` at iteration 16 (elapsed 19 min), then `completed` at
+iteration 17 (elapsed 20 min).
+
+RUN_COMPLETED_AT = 2026-09-27T13:30:38Z
+RUN_ELAPSED_MINUTES = 20
+
+Well inside the 90-minute D-04 bound — no HALT.
