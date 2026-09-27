@@ -501,3 +501,33 @@ Command: `gh release view v0.9.6 --json body --jq .body | sha256sum | cut -d' ' 
 PRE_RELEASE_BODY_SHA256 = 66a83e4fcee3536b393b9c97121a1f810f5db0902af0c698cde7502d6a7b1d6b
 
 Download counts are deliberately excluded from this fingerprint (they change on any fetch).
+
+## ATT-02 pre-dispatch — publish-testpypi if: evaluation
+
+The `if:` block from the dispatch SHA's `release.yml`, verbatim (`git show
+987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78:.github/workflows/release.yml`, `publish-testpypi` job):
+```
+    if: |
+      contains(github.ref, 'beta') ||
+      contains(github.ref, 'alpha') ||
+      contains(github.ref, 'rc') ||
+      contains(inputs.tag, 'beta') ||
+      contains(inputs.tag, 'alpha') ||
+      contains(inputs.tag, 'rc')
+```
+
+Evaluated against `github.ref = refs/heads/gsd/v0.9.7-trusted-publishing-and-release` and
+`inputs.tag = v0.9.6`, via a shell substring test on each operand:
+
+| operand | value | contains |
+|---|---|---|
+| `github.ref` contains `beta` | `refs/heads/gsd/v0.9.7-trusted-publishing-and-release` | false |
+| `github.ref` contains `alpha` | `refs/heads/gsd/v0.9.7-trusted-publishing-and-release` | false |
+| `github.ref` contains `rc` | `refs/heads/gsd/v0.9.7-trusted-publishing-and-release` | false |
+| `inputs.tag` contains `beta` | `v0.9.6` | false |
+| `inputs.tag` contains `alpha` | `v0.9.6` | false |
+| `inputs.tag` contains `rc` | `v0.9.6` | false |
+
+TESTPYPI_IF_TRUE_OPERANDS = 0
+
+`Publish to TestPyPI (Optional)` is therefore expected to conclude `skipped` (constraint 7).
