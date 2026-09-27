@@ -607,3 +607,22 @@ Every key recorded above holds its expected value:
 - Both rollback secrets present; zero prior rehearsal runs on this branch.
 
 PRE_DISPATCH_VERDICT = READY
+
+## ATT-02 dispatch — owner checkpoint
+
+The Task 2 checkpoint was relayed by the orchestrator with the owner's explicit answer, given
+after being shown `ORIGIN_REF_SHA` (`987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78`), `CI_RUN_ID`
+(`36320335404`, `success`), `PRE_DISPATCH_VERDICT` (`READY`), the one-way nature of the dispatch,
+the Sigstore/Rekor side effect, and the approval + 15-minute `wait_timer` + 90-minute bound:
+
+```
+"dispatch" (given verbatim by the owner at 2026-09-27, after being shown ORIGIN_REF_SHA
+987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78, CI run 36320335404 success, PRE_DISPATCH_VERDICT READY,
+the one-way nature, the Sigstore/Rekor side effect, and the approval + 15-min wait_timer + 90-min
+bound.)
+```
+
+OWNER_CHECKPOINT_CHOICE = dispatch
+OWNER_CHECKPOINT_AT = 2026-09-27T13:08:39Z
+
+SCRATCH_76_03_T3 = /tmp/p7603t3.rUrDb0
