@@ -567,3 +567,43 @@ PyPI answers 200 and writes nothing only for byte-identical files; the sdist emb
 gzip mtime and the ref's `typsphinx/translator.py` differs from the tag, so the identical-hash
 branch is unreachable. Task 3's artifact comparison against the run's own `dist-packages` artifact
 is the binding reading.
+
+## ATT-02 pre-dispatch — rollback-path secrets
+
+Names only, never values.
+
+Command: `gh secret list --json name --jq '.[].name'`
+```
+PYPI_API_TOKEN
+TEST_PYPI_API_TOKEN
+```
+PRE_REPO_SECRET_PYPI_API_TOKEN = present
+
+Command: `gh secret list --env pypi --json name --jq '.[].name'`
+```
+PYPI_API_TOKEN
+```
+PRE_ENV_SECRET_PYPI_API_TOKEN = present
+
+Both stay (constraint 11) — ATT-05 retires them later, at `/gsd-complete-milestone`.
+
+## ATT-02 pre-dispatch verdict
+
+Command: `gh run list --workflow=release.yml --branch gsd/v0.9.7-trusted-publishing-and-release --event workflow_dispatch --limit 50 --json databaseId`
+```
+[]
+```
+PRIOR_REHEARSAL_RUNS = 0
+
+Every key recorded above holds its expected value:
+- `ORIGIN_REF_SHA` measured, ref content matches expectations, worktree matches it outside
+  `.planning/`, no decoy branch, no `v0.9.7` tag.
+- `VALIDATE_VERSION_MATCH = yes`, `VALIDATE_CHANGELOG_EXTRACT_EXIT = 0`.
+- CI run `36320335404` completed `success` on `ORIGIN_REF_SHA`, zero non-success jobs.
+- Control run annotation greps read 1/1/0 as expected.
+- PyPI and GitHub Release baselines captured; both 0.9.6 provenance values `null`.
+- `publish-testpypi`'s `if:` evaluates false on all six operands.
+- Content non-identity confirmed on both the tag-diff and the local-build-hash legs.
+- Both rollback secrets present; zero prior rehearsal runs on this branch.
+
+PRE_DISPATCH_VERDICT = READY
