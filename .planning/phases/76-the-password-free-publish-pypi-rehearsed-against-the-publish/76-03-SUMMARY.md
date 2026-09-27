@@ -171,3 +171,17 @@ None — no external service configuration required. (D-05's PyPI Trusted Publis
 ---
 *Phase: 76-the-password-free-publish-pypi-rehearsed-against-the-published-v0-9-6-and-msg-06*
 *Completed: 2026-09-27*
+
+## Self-Check: PASSED
+
+- `76-ATT-EVIDENCE.md` exists on disk: FOUND
+- `76-03-SUMMARY.md` exists on disk: FOUND
+- Commit `90ea5695` (SUMMARY.md) present in `git log --oneline --all`: FOUND
+- Commit `8cdc7957` (final ATT-02 evidence section) present in `git log --oneline --all`: FOUND
+- Task 1 `<verify>` automated command: re-ran, exit 0, `TASK1_VERIFY_PASSED`
+- Task 3 `<verify>` automated command: re-ran, exit 0, `TASK3_VERIFY_PASSED`
+- All `<acceptance_criteria>` for Tasks 1–3: re-checked against the evidence file, all hold
+- Plan-level `<verification>`: both task verify commands exit 0; Task 2 returned the owner's
+  explicit answer ("dispatch"), recorded as `OWNER_CHECKPOINT_CHOICE` before any Task 3 action
+- Plan-level `<success_criteria>`: ROADMAP Phase 76 SC #2/#3/#4 all `MET` from live readings;
+  exactly one `workflow_dispatch` of `release.yml` exists on the milestone branch (count = 1)
