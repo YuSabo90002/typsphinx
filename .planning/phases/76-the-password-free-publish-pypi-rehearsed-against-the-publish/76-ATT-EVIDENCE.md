@@ -193,3 +193,22 @@ ATT01_SC1_VERDICT = MET
 
 The workflow file is not evidence on its own (ROADMAP constraint 10) — ATT-01 is closed together
 with the wave-2 rehearsal in plan 76-03, which dispatches this exact copy of the file.
+
+## ATT-02 pre-dispatch — provisioning
+
+Command: `test -f .git`
+```
+(exit 0 — this is a worktree checkout)
+```
+
+Command: `env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev`
+Exit code: 0 (dev dependencies provisioned into this worktree's own `.venv`)
+
+Command: `date -u +%FT%TZ`
+```
+2026-09-27T12:48:07Z
+```
+
+SCRATCH_76_03 = /tmp/p7603.oGoetI
+BASE_76_03 = 987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78
+GH_ACTOR = YuSabo90002
