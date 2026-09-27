@@ -157,6 +157,19 @@ downstream agent re-asks, each grounded on a measurement taken during this discu
     forward as ATT-04's evidence
   - the measured line numbers of the deleted lines, rather than a repetition of `:141-144`
 
+  **D-08 AMENDED 2026-09-27 (owner decision, option 1 of 3, after research falsified the grep target).**
+  `grep -c 'attestations input ignored'` reads **0** on control run `35730551619` as well (measured
+  twice: research, then orchestrator — `gh run view 35730551619 --log`, 3356 lines, `LC_ALL=C`). The
+  phrase exists only as the annotation's `title=`, which `--log` never prints; the log body at
+  `Publish to PyPI` reads "…explicit password was also set, disabling Trusted Publishing. As a result,
+  the attestations input is ignored." So the zero/non-zero pair is now read on the log body with
+  **two** greps, each paired with the identical grep on the control:
+  `grep -c 'disabling Trusted Publishing'` → rehearsal **0** / control **1**, and
+  `grep -c 'attestations input is ignored'` → rehearsal **0** / control **1**.
+  `'attestations input ignored'` is no longer an evidence grep in this phase. The same stale
+  wording in ROADMAP SC #4, REQUIREMENTS.md ATT-04 and Phase 77's handoff spec is aligned in
+  **Phase 77** (the phase that writes the handoff), not edited here. All other D-08 items stand.
+
 ### Folded Todos
 
 Both were already tagged `resolves_phase: 76` when the roadmap was created (commit `964840ab`), so
