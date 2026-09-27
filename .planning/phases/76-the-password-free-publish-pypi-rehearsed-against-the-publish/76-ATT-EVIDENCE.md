@@ -531,3 +531,39 @@ Evaluated against `github.ref = refs/heads/gsd/v0.9.7-trusted-publishing-and-rel
 TESTPYPI_IF_TRUE_OPERANDS = 0
 
 `Publish to TestPyPI (Optional)` is therefore expected to conclude `skipped` (constraint 7).
+
+## ATT-02 pre-dispatch — content non-identity
+
+Command: `git diff --quiet v0.9.6 987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78 -- typsphinx/` — exit 1
+(differs).
+Command: `git diff --name-only v0.9.6 987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78 -- typsphinx/`
+```
+typsphinx/translator.py
+```
+REF_DIFFERS_FROM_V096_UNDER_TYPSPHINX = yes
+
+Command: `uv build --out-dir $SCRATCH_76_03/build` (from this worktree, equal to the ref outside
+`.planning/`) — full build log fenced separately; final lines:
+```
+Successfully built /tmp/p7603.oGoetI/build/typsphinx-0.9.6.tar.gz
+Successfully built /tmp/p7603.oGoetI/build/typsphinx-0.9.6-py3-none-any.whl
+exit=0
+```
+LOCAL_BUILD_EXIT = 0
+
+Command: `sha256sum $SCRATCH_76_03/build/*.whl $SCRATCH_76_03/build/*.tar.gz`
+```
+3f45e0746134c0fa5731fd84a6d679f1b19cf5d5e01c11fd700420393fcd0534  typsphinx-0.9.6-py3-none-any.whl
+764471803679a6d7f608665628a6fdfe1b5c28bb0a05da7381069346edf6fab3  typsphinx-0.9.6.tar.gz
+```
+LOCAL_WHEEL_SHA256 = 3f45e0746134c0fa5731fd84a6d679f1b19cf5d5e01c11fd700420393fcd0534
+LOCAL_SDIST_SHA256 = 764471803679a6d7f608665628a6fdfe1b5c28bb0a05da7381069346edf6fab3
+
+Both differ from `PRE_PYPI_096_WHEEL_SHA256` (`0289f1ad…`) and `PRE_PYPI_096_SDIST_SHA256`
+(`74d588b4…`).
+LOCAL_BUILD_MATCHES_PYPI = no
+
+PyPI answers 200 and writes nothing only for byte-identical files; the sdist embeds a build-time
+gzip mtime and the ref's `typsphinx/translator.py` differs from the tag, so the identical-hash
+branch is unreachable. Task 3's artifact comparison against the run's own `dist-packages` artifact
+is the binding reading.
