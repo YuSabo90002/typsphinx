@@ -781,8 +781,6 @@ archived `milestones/v0.6.4-ROADMAP.md`. Standing process decisions that carry f
 
 - [2026-07-22] [ci, docs] "`sphinx-build -b linkcheck` の CI ジョブを追加する" — [todo file](.planning/todos/pending/2026-07-22-add-sphinx-linkcheck-ci-job.md)
 - [2026-08-14] [translator, docs] "numref numbers diverge per master and vanish entirely for figures reachable on… — [todo file](.planning/todos/pending/2026-08-14-numref-number-diverges-per-master-and-vanishes-for-non-root-only-figures.md)
-- [2026-08-29] [translator] "typsphinx/translator.py's two relative-path debug logs quote `up_path`/`down_path` … — [todo file](.planning/todos/pending/2026-08-29-hardcoded-delimiter-path-fragments-in-translator-relative-path-debug-logs.md)
-- [2026-09-22] [ci] "release.yml publishes with a PyPI API token, so Trusted Publishing is off and the action's default PEP 74… — [todo file](.planning/todos/pending/2026-09-22-release-yml-uses-a-pypi-api-token-so-trusted-publishing-and.md)
 
 ### Blockers/Concerns
 
