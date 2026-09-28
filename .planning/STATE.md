@@ -2,35 +2,58 @@
 gsd_state_version: "1.0"
 milestone: v0.9.7
 milestone_name: Trusted Publishing and release
-current_phase: 77
-current_phase_name: v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff
-status: completed
-stopped_at: Phase 77 complete and verified (8/8 plans, 8/8 must-haves) — milestone v0.9.7 ready for /gsd-complete-milestone
-last_updated: "2026-09-28T14:30:57.627Z"
+status: Awaiting next milestone
+stopped_at: Milestone v0.9.7 complete, archived and PUBLISHED — no milestone active
+last_updated: "2026-09-28T15:27:59.415Z"
 last_activity: 2026-09-28
-last_activity_desc: Phase 77 complete — verified 8/8, code review clean; ATT-06 closed; REQUIREMENTS guarded region re-proven after phase.complete (third observation); publish half handed off in 77-HANDOFF.md
-state_head: 803359f10d2e4ffb5cad791c81845de911c83862
+last_activity_desc: Milestone v0.9.7 completed, archived and published to PyPI with Trusted Publishing attestations
+state_head: 3187aac0d73eacb4bf5bba82376b7273e96bf8b8
 progress:
   total_phases: 2
   completed_phases: 2
   total_plans: 11
   completed_plans: 11
   percent: 100
-next_phase_number: 77
+current_phase: null
+current_phase_name: null
+next_phase_number: 78
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-09-23 — milestone v0.9.7 started)
+See: .planning/PROJECT.md (updated 2026-09-28 — full evolution review at the v0.9.7 close)
 
 **Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
-**Current focus:** **v0.9.7 Trusted Publishing and release** — move `release.yml`'s PyPI publish off
-the long-lived API token and onto Trusted Publishing so the artifacts carry PEP 740 attestations,
-proven at the real v0.9.7 tag push rather than on the workflow file looking correct (ATT-01); close
-MSG-06, the fourth module of the MSG-02 hardcoded-delimiter family; and publish 0.9.7. Phase
-numbering continues at **76**.
+**Current focus:** **None — no milestone is active.** v0.9.7 shipped and was published to PyPI on
+2026-09-28 — the first typsphinx release uploaded through Trusted Publishing, with PEP 740
+provenance served by PyPI for both files. The next milestone is scoped by `/gsd-new-milestone`,
+which writes a fresh `REQUIREMENTS.md` and continues phase numbering at **78**.
+
+## Shipped Milestone (v0.9.7 — archived, merged to `main`, **PUBLISHED**)
+
+Full phase detail, binding constraints and success criteria:
+[milestones/v0.9.7-ROADMAP.md](milestones/v0.9.7-ROADMAP.md). Requirements as they stood at close:
+[milestones/v0.9.7-REQUIREMENTS.md](milestones/v0.9.7-REQUIREMENTS.md). Audit:
+[milestones/v0.9.7-MILESTONE-AUDIT.md](milestones/v0.9.7-MILESTONE-AUDIT.md). Phase directories:
+`.planning/milestones/v0.9.7-phases/`. Research: `.planning/milestones/v0.9.7-research/`. Close
+evidence: `v0.9.7-phases/77-*/77-CLOSE-EVIDENCE.md`.
+
+**Shipped 2026-09-28. `typsphinx 0.9.7` is on PyPI.** 2 phases (76–77), 11 plans, 28 tasks,
+**9/9 v1 requirements complete**. `release.yml`'s `publish-pypi` step no longer passes `password:`,
+so the upload went through GitHub OIDC (environment `pypi`) and PyPI serves provenance for both the
+wheel and the sdist (Simple JSON `provenance` non-null; Integrity API 200, one bundle, publisher
+`GitHub|YuSabo90002/typsphinx|release.yml|pypi`). `PYPI_API_TOKEN` is deleted at repository and
+`pypi`-environment scope and revoked on PyPI. MSG-06 closed the fourth MSG-02-family module.
+
+**Publish record.** `origin/main` had moved (Dependabot #157–#160, `uv.lock` only) and was merged
+into the branch (`3187aac0`; CI `36438826267` 12/12). **PR #161** merged as `d1df28ae` (15/15
+checks). Tag `v0.9.7` on that merge commit; release run `36439849556` attempt 1 all success after
+the owner's `pypi` approval. Translations pin → `d1df28ae` (run `36443440802`, commit `3c0f43db`,
+tagged `v0.9.7`); RTD `stable` en/ja both render `typsphinx 0.9.7`. `tox -e linkcheck` 97/97
+`working`. The five fenced checkboxes were flipped by hand against their own readings; the
+guarded-region digest held (`fce6cc7d…`) up to that point.
 
 ## Shipped Milestone (v0.9.6 — archived, merged to `main`, **PUBLISHED**)
 
@@ -368,31 +391,12 @@ land here.
 
 ## Current Position
 
-Phase: 77 (v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff) — COMPLETE
-Plan: 8 of 8 complete
-Status: All phases complete — milestone v0.9.7 ready for `/gsd-complete-milestone` (the publish half)
-Last activity: 2026-09-28 — Phase 77 complete and verified (8/8), code review clean
+Phase: none — milestone v0.9.7 complete, archived and PUBLISHED
+Plan: —
+Status: Awaiting next milestone (`/gsd-new-milestone`; phase numbering continues at 78)
+Last activity: 2026-09-28 — v0.9.7 published to PyPI (Trusted Publishing) and archived
 
-Progress: [██████████] 100% (2/2 phases)
-
-**Phase 76 outcome (2026-09-27, verified 12/12).** ATT-01, ATT-02 and MSG-06 are closed. The
-ATT-02 rehearsal — exactly one `workflow_dispatch` of `release.yml` (run `36321530105`, tag input
-`v0.9.6`, ref `gsd/v0.9.7-trusted-publishing-and-release` at `987ec3fe`) — was turned away at
-`Publish to PyPI` as a duplicate (`File already exists`, zero `invalid-publisher`), with PyPI and
-the v0.9.6 GitHub Release unchanged. The owner registered the Trusted Publisher before the dispatch.
-Evidence: `76-ATT-EVIDENCE.md` (Phase 77's handoff reads it by that name). That rehearsal is **not**
-ATT-04 evidence. The milestone branch is now on `origin`.
-
-**Phase 77 outcome (2026-09-28, verified 8/8).** ATT-06 is closed and REL-17's prep half is done:
-bump commit `39cb79f9` (0.9.7 across `pyproject.toml`/`uv.lock`/`README.md`, one curated
-`## [0.9.7]` CHANGELOG section, `RELEASE_VERSIONS` 18), the ATT-06 rollback section inside
-`77-HANDOFF.md` committed while no `v0.9.7` tag existed, the milestone branch pushed to `origin` at
-`df6357fa` with exactly one CI run (`36430787178`, 12/12 green), and the twelve-step publish half
-written into `77-HANDOFF.md`. Zero irreversible action: no tag, no upload, no Release, no secret
-touched. `phase.complete` flipped all six Phase 77 requirement rows again; five were reverted and
-only ATT-06's two lines kept — the guarded-region digest re-reads `fce6cc7d…` (third observation,
-recorded in `77-CLOSEOUT-GUARD.md`). ATT-03, ATT-04, ATT-05, DOC-25 and REL-17's publish clauses
-stay open until `/gsd-complete-milestone` runs `77-HANDOFF.md`.
+Progress: [██████████] 100% (2/2 phases, 11/11 plans)
 
 ## Shipped Milestone (v0.9.0 — archived)
 
@@ -1235,17 +1239,12 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/77-v0-9-7-release-prep-prep-only-and-the-trusted-publishing-proof-handoff/77-HANDOFF.md
-
-Last session: 2026-09-28 (Phase 77 executed and verified)
-Stopped at: Phase 77 complete — milestone v0.9.7 ready for `/gsd-complete-milestone`
-Resume: `/gsd-complete-milestone` runs `77-HANDOFF.md` in its fixed order (merge → tag push → `pypi`
-approval → ATT-04 → ATT-03 → ATT-05 → DOC-25 → translations pin → RTD), with the rollback section
-(ATT-06) on every failure branch. Before any step, re-read `77-CLOSEOUT-GUARD.md` — the five guarded
-checkboxes flip only on their own observed readings, never by tooling.
+Last session: 2026-09-28 (`/gsd-complete-milestone` v0.9.7 — publish half executed per `77-HANDOFF.md`)
+Stopped at: Milestone v0.9.7 complete, archived and published — no milestone active
+Resume: `/gsd-new-milestone`. The last **published** close's procedure and evidence are
+`.planning/milestones/v0.9.7-phases/77-*/77-HANDOFF.md` and `77-CLOSE-EVIDENCE.md`; publishing no
+longer involves any PyPI credential.
 
 ## Operator Next Steps
 
-- Next: `/gsd-complete-milestone` (the owner runs it after reading `77-HANDOFF.md`)
-- The `pypi` environment's manual approval was used once for the Phase 76 rehearsal; it will be
-  requested once more for the real publish at `/gsd-complete-milestone`.
+- Start the next milestone with /gsd-new-milestone

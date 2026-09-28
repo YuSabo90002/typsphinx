@@ -113,7 +113,10 @@ documented false-positive class that fires on phrasing Read the Docs as an API i
 
 **Secrets/Credentials:**
 - `CODECOV_TOKEN` - Codecov API token (used in ci.yml)
-- `PYPI_API_TOKEN` - PyPI trusted publishing (used in release.yml, alternative to deprecated password)
+- `PYPI_API_TOKEN` - retired: `release.yml`'s `publish-pypi` job now publishes through PyPI Trusted
+  Publishing (GitHub OIDC, environment `pypi`, PEP 740 attestations); no PyPI API token is stored.
+  The former `PYPI_API_TOKEN` was deleted at repository and `pypi`-environment scope and revoked on
+  PyPI at the v0.9.7 close (Step 7).
 - `TEST_PYPI_API_TOKEN` - TestPyPI API token (optional, for pre-release testing)
 - All stored in GitHub Actions secrets; never committed
 

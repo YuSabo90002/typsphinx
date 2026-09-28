@@ -1,5 +1,69 @@
 # Milestones: typsphinx
 
+## v0.9.7 Trusted Publishing and release (Shipped: 2026-09-28 — **PUBLISHED**)
+
+**Phases completed:** 2 phases (76–77), 11 plans, 28 tasks. **9/9 v1 requirements complete.**
+
+**Delivered:** typsphinx now publishes to PyPI without any stored credential. `release.yml`'s
+`publish-pypi` step no longer passes `password: ${{ secrets.PYPI_API_TOKEN }}` — the two lines that
+had put `pypa/gh-action-pypi-publish` on the API-token path and, with it, turned off the action's
+default PEP 740 attestations. With them gone the action mints its own OIDC token under the `pypi`
+environment against a Trusted Publisher the owner registered on PyPI. Before anything irreversible,
+the exchange was rehearsed once by `workflow_dispatch` against the already-published `v0.9.6` (run
+`36321530105`): PyPI refused it as a duplicate file, never as an unknown publisher, and neither PyPI
+nor the v0.9.6 Release changed. MSG-06 closed the fourth and last module of the MSG-02 family:
+`translator.py`'s two cross-directory DEBUG logs quote paths through `quote_path()`, bound by
+`tests/test_translator_path_quoting_gate.py` recorded RED first.
+
+**Published, and proven on PyPI's own served state.** `typsphinx 0.9.7` — wheel (194,358 B) and
+sdist (861,641 B). The Simple JSON API returns a non-null `provenance` URL for both files (0.9.6's
+read `null`), and the Integrity API returns 200 for each with one attestation bundle and publisher
+`GitHub|YuSabo90002/typsphinx|release.yml|pypi` (0.9.6's read 404). The release log carries zero
+`disabling Trusted Publishing` / `attestations input is ignored` lines against 1/1 on v0.9.6's run
+— recorded as necessary but not sufficient, since the action decides that line locally.
+`PYPI_API_TOKEN` was deleted at repository and `pypi`-environment scope only after that reading
+passed, and revoked on PyPI by the owner; `TEST_PYPI_API_TOKEN` stays for the rc-gated TestPyPI job.
+The release notes call attestations audit provenance, not an install-time gate.
+
+**Publish record.** `origin/main` had moved again (Dependabot #157–#160, `uv.lock` only), so it was
+merged into the branch (`3187aac0`; `uv lock --check`, ruff 0.16.9, black clean; package-name set
+still equal to `v0.9.6`'s; CI `36438826267` 12/12). **PR #161** merged as `d1df28ae`, 15/15 checks.
+Tag `v0.9.7` on that merge commit; release run `36439849556` attempt 1 — `Validate Release`, `Build
+Distribution`, `Publish to PyPI` (after the owner's `pypi` approval and 15-minute timer) and `Create
+GitHub Release` all success. The Release body's first 50 lines are byte-identical to
+`scripts/extract_changelog_section.py 0.9.7` (3132 bytes, `82f27b34…`). `typsphinx-doc-translations`
+`update-pin.yml` run `36443440802` pinned `d1df28ae` (`3c0f43db`), tagged `v0.9.7`. Read the Docs
+`stable` re-measured: `en` at `d1df28ae`, `ja` at `3c0f43db`, both rendering `typsphinx 0.9.7`.
+`tox -e linkcheck` 97/97 `working`. Evidence: `milestones/v0.9.7-phases/77-*/77-CLOSE-EVIDENCE.md`.
+
+**Closeout:** **`verified_closeout`**, after four consecutive `override_closeout` closes (v0.9.3–v0.9.6). `init.manager` read both phases
+`passed` / complete, and the pre-close artifact audit was clear. **Known verification overrides: 0
+newly acknowledged, 9 carried forward from prior closes.** The milestone audit (`tech_debt`, zero
+gaps; integration 8/8, flows 4/4) held REL-17's publish half, ATT-03, ATT-04, ATT-05 and DOC-25 open
+by design; each was flipped by hand at the close against its own reading, and the line-scoped
+REQUIREMENTS fence (`fce6cc7d…`) held until then — `phase.complete` flipped no guarded box.
+
+**Timeline / delta:** 2026-09-23 → 2026-09-28. Outside `.planning/`: 8 files, +248 / −39
+(`typsphinx/` +4 / −2, `release.yml` −2, the rest tests, CHANGELOG, version files and `uv.lock`).
+
+**Two things worth carrying.**
+
+1. *Pre-measured controls made a five-requirement publish half close on the first attempt.* Every
+   post-tag reading arrived at the close as a written command with its expected output and a
+   control taken beforehand (0.9.6's `null` provenance and 404, `pip`'s attested 200, the v0.9.6
+   run's 1/1 annotation count), so no PASS could be read off an empty, cached or wrongly-scoped
+   response, and the fixed order (tag → log → served state → secrets → docs) kept the token a live
+   rollback path until the one reading that proves provenance had passed.
+2. *Rehearse an irreversible path where it cannot land.* A `workflow_dispatch` against an
+   already-published version exercised the real OIDC exchange and signing, and PyPI's duplicate
+   refusal is what made it safe; the mechanical consequence — the rehearsal needs the unbumped tree —
+   fixed the 76 → 77 order.
+
+**Carried unfixed:** NUM-01 (disclosed again in `## [0.9.7]`), QUA-08, WR-02, WR-03, LNK-01, and
+Phase 76's `VALIDATION.md` at `status: draft`.
+
+---
+
 ## v0.9.6 Doctest block rendering and release (Shipped: 2026-09-22 — **PUBLISHED**)
 
 **Phases completed:** 2 phases (74–75), 14 plans, 36 tasks, plus 2 quick tasks run at the close
