@@ -641,3 +641,36 @@ plan has finished.
 ---
 *Phase: 77-v0-9-7-release-prep-prep-only-and-the-trusted-publishing-proof-handoff*
 *Plan: 01*
+
+## Third observation (after phase.complete) — run by the orchestrator
+
+Taken 2026-09-28 by the `/gsd-execute-phase 77` orchestrator, immediately after
+`gsd_run query phase.complete 77` (which returned `requirements_updated: true`). Fresh pre-tooling
+backups of REQUIREMENTS/ROADMAP/STATE were taken outside the repository first; the pre-tooling
+REQUIREMENTS digest was `35eb6122efd878cad4083a18b84c006f315c3cfe5229f3d443e6c712e6954351`.
+
+**What moved.** `phase.complete` flipped all six Phase 77 requirements — the checkbox and the
+traceability row of ATT-03, ATT-04, ATT-05, ATT-06, REL-17 and DOC-25 (`- [ ]` → `- [x]`,
+`Pending` → `Complete`, 12 lines). Full digest after the tooling:
+`4e6389b80833bb3e1cef045b15595ebe40376e42864f4477801021079e5deb71`; guarded-region digest
+`1fdb2609162643b4c2c780bfb6e79d4f4b98f7ed879397f75a9ea39c5deedc57` (MISMATCH against
+`REQ_SHA256_GUARDED_BASE`).
+
+**Reversion.** `git checkout -- .planning/REQUIREMENTS.md`, then ATT-06's two lines (its
+checkbox and its traceability row) were re-applied by an in-place edit, since ATT-06 is the one
+requirement this phase closes (D-04).
+
+**Re-proven.**
+
+```
+THIRD_OBS_REQ_SHA256 = 89f6eaffc1234377fc299019300ac8f8538cb2ca4013e4d0cc17cf1e00efcd77
+THIRD_OBS_REQ_LINES = 189
+THIRD_OBS_GUARDED_SHA256 = fce6cc7d403e4c68b4cf12a6e58bf990f94f9a5f7db2943ce9da2469953d4af5
+THIRD_OBS_VERDICT = MATCH
+```
+
+The guarded-region digest equals `REQ_SHA256_GUARDED_BASE`; `grep -n` of ATT-03, ATT-04, ATT-05,
+REL-17 and DOC-25 shows every checkbox `- [ ]` and every row `Pending`. The only committed
+REQUIREMENTS change is ATT-06's two lines. ROADMAP/STATE tooling damage (Progress-table padding,
+`current_phase_name` deleted, `Plan: Not started`, `100% (1/2 phases)`, stale resume pointer) was
+hand-corrected against the pre-tooling backup, separately from this reversion.

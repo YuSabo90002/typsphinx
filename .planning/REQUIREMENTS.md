@@ -54,7 +54,7 @@ Requirements for milestone v0.9.7. Each maps to exactly one roadmap phase.
       token is separately revoked on PyPI's own token-management page. This happens **strictly after
       ATT-03 passes**; until then the token is the rollback path. `TEST_PYPI_API_TOKEN` is left in
       place, repository-scoped and environment-scoped alike.
-- [ ] **ATT-06**: A rollback procedure is recorded before the tag is pushed, and names: restoring
+- [x] **ATT-06**: A rollback procedure is recorded before the tag is pushed, and names: restoring
       `password:`, bumping to 0.9.8 rather than retrying 0.9.7 (PyPI permanently refuses a
       re-uploaded filename regardless of git-tag state), and **deleting the failed `v0.9.7` tag both
       locally and on `origin`** (owner decision, 2026-09-23 — this repository has no precedent: a
@@ -156,7 +156,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ATT-01 | Phase 76 | pre-tag | Complete |
 | ATT-02 | Phase 76 | pre-tag | Complete |
 | MSG-06 | Phase 76 | pre-tag | Complete |
-| ATT-06 | Phase 77 | pre-tag | Pending |
+| ATT-06 | Phase 77 | pre-tag | Complete |
 | REL-17 | Phase 77 | split — prep in phase, publish at close | Pending |
 | ATT-04 | Phase 77 | publish (coverage only) | Pending |
 | ATT-03 | Phase 77 | publish (coverage only) | Pending |

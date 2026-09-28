@@ -4,18 +4,18 @@ milestone: v0.9.7
 milestone_name: Trusted Publishing and release
 current_phase: 77
 current_phase_name: v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff
-status: executing
-stopped_at: Phase 77 planned (8 plans, 5 waves)
-last_updated: "2026-09-28T14:40:00.000Z"
+status: completed
+stopped_at: Phase 77 complete and verified (8/8 plans, 8/8 must-haves) — milestone v0.9.7 ready for /gsd-complete-milestone
+last_updated: "2026-09-28T14:30:57.627Z"
 last_activity: 2026-09-28
-last_activity_desc: Phase 77 wave 5 merged — 77-08 closed the phase on the record (FENCE_CLOSE_VERDICT MATCH, SC#5 observation 2 of 2, PHASE_VERDICT MET); all 8 plans executed, code review and verification next
-state_head: dfc794fc03cf14564470a7b1acf63a94f6090f3c
+last_activity_desc: Phase 77 complete — verified 8/8, code review clean; ATT-06 closed; REQUIREMENTS guarded region re-proven after phase.complete (third observation); publish half handed off in 77-HANDOFF.md
+state_head: 803359f10d2e4ffb5cad791c81845de911c83862
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 11
   completed_plans: 11
-  percent: 50
+  percent: 100
 next_phase_number: 77
 ---
 
@@ -368,12 +368,12 @@ land here.
 
 ## Current Position
 
-Phase: 77 (v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff) — EXECUTING
+Phase: 77 (v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff) — COMPLETE
 Plan: 8 of 8 complete
-Status: Executing Phase 77 — all waves merged; code review and verification next
-Last activity: 2026-09-28 — Phase 77 wave 5 merged (77-08: FENCE_CLOSE_VERDICT MATCH, PHASE_VERDICT MET)
+Status: All phases complete — milestone v0.9.7 ready for `/gsd-complete-milestone` (the publish half)
+Last activity: 2026-09-28 — Phase 77 complete and verified (8/8), code review clean
 
-Progress: [█████░░░░░] 50% (1/2 phases)
+Progress: [██████████] 100% (2/2 phases)
 
 **Phase 76 outcome (2026-09-27, verified 12/12).** ATT-01, ATT-02 and MSG-06 are closed. The
 ATT-02 rehearsal — exactly one `workflow_dispatch` of `release.yml` (run `36321530105`, tag input
@@ -383,10 +383,16 @@ the v0.9.6 GitHub Release unchanged. The owner registered the Trusted Publisher 
 Evidence: `76-ATT-EVIDENCE.md` (Phase 77's handoff reads it by that name). That rehearsal is **not**
 ATT-04 evidence. The milestone branch is now on `origin`.
 
-**Still easy to get wrong in Phase 77:** the version bump must not be tagged or pushed as a tag in
-the phase — every irreversible action (tag, publish, secret deletion, PyPI token revocation) runs at
-`/gsd-complete-milestone`. The stale `attestations input ignored` grep wording in ROADMAP SC #4,
-REQUIREMENTS.md ATT-04 and the handoff spec is aligned in Phase 77 (76-CONTEXT D-08 AMENDED).
+**Phase 77 outcome (2026-09-28, verified 8/8).** ATT-06 is closed and REL-17's prep half is done:
+bump commit `39cb79f9` (0.9.7 across `pyproject.toml`/`uv.lock`/`README.md`, one curated
+`## [0.9.7]` CHANGELOG section, `RELEASE_VERSIONS` 18), the ATT-06 rollback section inside
+`77-HANDOFF.md` committed while no `v0.9.7` tag existed, the milestone branch pushed to `origin` at
+`df6357fa` with exactly one CI run (`36430787178`, 12/12 green), and the twelve-step publish half
+written into `77-HANDOFF.md`. Zero irreversible action: no tag, no upload, no Release, no secret
+touched. `phase.complete` flipped all six Phase 77 requirement rows again; five were reverted and
+only ATT-06's two lines kept — the guarded-region digest re-reads `fce6cc7d…` (third observation,
+recorded in `77-CLOSEOUT-GUARD.md`). ATT-03, ATT-04, ATT-05, DOC-25 and REL-17's publish clauses
+stay open until `/gsd-complete-milestone` runs `77-HANDOFF.md`.
 
 ## Shipped Milestone (v0.9.0 — archived)
 
@@ -1229,23 +1235,17 @@ Items acknowledged and carried forward from milestone closes:
 
 ## Session Continuity
 
-**Resume file:** .planning/phases/76-the-password-free-publish-pypi-rehearsed-against-the-publish/76-VERIFICATION.md
+**Resume file:** .planning/phases/77-v0-9-7-release-prep-prep-only-and-the-trusted-publishing-proof-handoff/77-HANDOFF.md
 
-Last session: 2026-09-27 (Phase 76 executed and verified)
-Stopped at: Phase 76 complete, ready to plan Phase 77
-Resume: `/gsd-discuss-phase 77` (or `/gsd-plan-phase 77`). Phase 76 closed ATT-01, ATT-02 and MSG-06;
-its evidence is `76-ATT-EVIDENCE.md` / `76-MSG06-EVIDENCE.md`, verification passed 12/12, code review
-clean. The roadmap's **14 binding constraints** are in `.planning/ROADMAP.md` under the
-active-milestone section — constraint 12 (every irreversible action runs at
-`/gsd-complete-milestone`) is the one Phase 77 must hold.
-
-For Phase 77's handoff, the model to follow is
-`.planning/milestones/v0.9.2-phases/63-HANDOFF.md` and
-`.planning/milestones/v0.9.6-phases/75-HANDOFF.md` — the two **published** closes. This milestone's
-handoff is heavier than either: the publish half carries five requirements rather than one.
+Last session: 2026-09-28 (Phase 77 executed and verified)
+Stopped at: Phase 77 complete — milestone v0.9.7 ready for `/gsd-complete-milestone`
+Resume: `/gsd-complete-milestone` runs `77-HANDOFF.md` in its fixed order (merge → tag push → `pypi`
+approval → ATT-04 → ATT-03 → ATT-05 → DOC-25 → translations pin → RTD), with the rollback section
+(ATT-06) on every failure branch. Before any step, re-read `77-CLOSEOUT-GUARD.md` — the five guarded
+checkboxes flip only on their own observed readings, never by tooling.
 
 ## Operator Next Steps
 
-- Next: `/gsd-discuss-phase 77` → `/gsd-plan-phase 77` → `/gsd-execute-phase 77`
+- Next: `/gsd-complete-milestone` (the owner runs it after reading `77-HANDOFF.md`)
 - The `pypi` environment's manual approval was used once for the Phase 76 rehearsal; it will be
   requested once more for the real publish at `/gsd-complete-milestone`.
