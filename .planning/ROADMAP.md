@@ -505,15 +505,15 @@ ATT-03, ATT-04, ATT-05 and DOC-25 are mapped here for **coverage only** and are 
      frontmatter. ATT-06 is the one requirement this phase **does** close, which is why the fence is
      line-scoped rather than whole-file (v0.9.6 Phase 75 precedent).
 
-**Plans**: 8 plans (5 waves)
+**Plans**: 3/8 plans executed (5 waves)
 
 Plans:
 
 **Wave 1**
 
-- [ ] 77-01-PLAN.md — phase-head baselines: the line-scoped REQUIREMENTS fence on ATT-03/04/05, REL-17 and DOC-25 with ATT-06 expected-to-move, the clean docs ledger and base linkcheck URI set, SC#5 observation 1
-- [ ] 77-02-PLAN.md — REL-17 prep: the 0.9.7 bump across `pyproject.toml`, a regenerated `uv.lock` and `README.md`, the curated `## [0.9.7]` section (audit-provenance wording, NUM-01 re-stated), `RELEASE_VERSIONS`, one five-file commit and the extractor transcript
-- [ ] 77-03-PLAN.md — ATT-06: the rollback section inside `77-HANDOFF.md` (D-01 to D-04) committed while no `v0.9.7` tag exists, with its evidence, plus measured controls for every publish-half read command
+- [x] 77-01-PLAN.md — phase-head baselines: the line-scoped REQUIREMENTS fence on ATT-03/04/05, REL-17 and DOC-25 with ATT-06 expected-to-move, the clean docs ledger and base linkcheck URI set, SC#5 observation 1
+- [x] 77-02-PLAN.md — REL-17 prep: the 0.9.7 bump across `pyproject.toml`, a regenerated `uv.lock` and `README.md`, the curated `## [0.9.7]` section (audit-provenance wording, NUM-01 re-stated), `RELEASE_VERSIONS`, one five-file commit and the extractor transcript
+- [x] 77-03-PLAN.md — ATT-06: the rollback section inside `77-HANDOFF.md` (D-01 to D-04) committed while no `v0.9.7` tag exists, with its evidence, plus measured controls for every publish-half read command
 
 **Wave 2**
 
@@ -553,7 +553,7 @@ DOC-25.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 76. The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06 | v0.9.7 | 3/3 | Complete | 2026-09-27 |
-| 77. v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff | v0.9.7 | 0/8 | Not started | - |
+| 77. v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff | v0.9.7 | 3/8 | In Progress | - |
 
 ## Roadmap Evolution
 
