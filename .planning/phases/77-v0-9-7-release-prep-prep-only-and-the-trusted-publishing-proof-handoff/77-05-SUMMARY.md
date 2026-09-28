@@ -141,3 +141,11 @@ None - no external service configuration required.
 ---
 *Phase: 77-v0-9-7-release-prep-prep-only-and-the-trusted-publishing-proof-handoff*
 *Completed: 2026-09-28*
+
+## Self-Check: PASSED
+
+- `77-PREFLIGHT-EVIDENCE.md` exists on disk: FOUND
+- `a2d3d4d2` (Task 1 commit) present in `git log --oneline --all`: FOUND
+- `534d6322` (Task 2 commit) present in `git log --oneline --all`: FOUND
+- Both tasks' `<automated>` verify blocks re-run at plan close (`TASK1_VERIFY_PASS`, `TASK2_VERIFY_PASS`)
+- No merge/trial-named branch, no new tag, `git tag -l` unchanged, `git diff --name-only` outside `.planning/` empty across the plan
