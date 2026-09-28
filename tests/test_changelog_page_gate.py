@@ -44,7 +44,7 @@ CHANGELOG_RST_PATH = REPO_ROOT / "docs" / "source" / "changelog.rst"
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 CHANGELOG_INCLUDE_GATE_FIXTURE_DIR = FIXTURES_DIR / "changelog_include_gate"
 
-# The 17 releases the published page was frozen without (0.4.1 through 0.9.6,
+# The 18 releases the published page was frozen without (0.4.1 through 0.9.7,
 # inclusive) -- shared by both the HTML and PDF content-coverage assertions
 # below so the two builders are held to the identical bar.
 RELEASE_VERSIONS = (
@@ -65,6 +65,7 @@ RELEASE_VERSIONS = (
     "0.9.0",
     "0.9.2",
     "0.9.6",
+    "0.9.7",
 )
 
 # A per-release heading pattern and a "current release" marker, built from
