@@ -6,15 +6,15 @@ current_phase: 77
 current_phase_name: v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff
 status: executing
 stopped_at: Phase 77 planned (8 plans, 5 waves)
-last_updated: "2026-09-28T14:05:00.000Z"
+last_updated: "2026-09-28T14:25:00.000Z"
 last_activity: 2026-09-28
-last_activity_desc: Phase 77 wave 3 merged — 77-06 pushed the bumped tip df6357fa to origin (fast-forward from 987ec3fe, no tag) and ran exactly one CI dispatch, run 36430787178, 12/12 jobs success incl. both windows and macos lanes; SC3_CI_VERDICT MET; wave 4 (77-07 handoff) next
+last_activity_desc: Phase 77 wave 4 merged — 77-07 wrote the twelve-step publish half into 77-HANDOFF.md above the byte-unchanged ATT-06 rollback section; wave 5 (77-08 phase close) next
 state_head: dfc794fc03cf14564470a7b1acf63a94f6090f3c
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 11
-  completed_plans: 9
+  completed_plans: 10
   percent: 50
 next_phase_number: 77
 ---
@@ -369,9 +369,9 @@ land here.
 ## Current Position
 
 Phase: 77 (v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff) — EXECUTING
-Plan: 6 of 8 complete
-Status: Executing Phase 77 — wave 4 of 5 (77-07, publish-half handoff) next
-Last activity: 2026-09-28 — Phase 77 wave 3 merged (77-06: push df6357fa + CI run 36430787178 12/12 green, SC3_CI_VERDICT MET)
+Plan: 7 of 8 complete
+Status: Executing Phase 77 — wave 5 of 5 (77-08, phase close) next
+Last activity: 2026-09-28 — Phase 77 wave 4 merged (77-07: twelve-step publish-half handoff)
 
 Progress: [█████░░░░░] 50% (1/2 phases)
 

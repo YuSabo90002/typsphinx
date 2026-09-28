@@ -505,7 +505,7 @@ ATT-03, ATT-04, ATT-05 and DOC-25 are mapped here for **coverage only** and are 
      frontmatter. ATT-06 is the one requirement this phase **does** close, which is why the fence is
      line-scoped rather than whole-file (v0.9.6 Phase 75 precedent).
 
-**Plans**: 6/8 plans executed (5 waves)
+**Plans**: 7/8 plans executed (5 waves)
 
 Plans:
 
@@ -526,7 +526,7 @@ Plans:
 
 **Wave 4**
 
-- [ ] 77-07-PLAN.md — SC#4 handoff: twelve ordered publish-half steps, each a pre-written command with its expected output, its control and a rollback pointer (D-04)
+- [x] 77-07-PLAN.md — SC#4 handoff: twelve ordered publish-half steps, each a pre-written command with its expected output, its control and a rollback pointer (D-04)
 
 **Wave 5**
 
@@ -553,7 +553,7 @@ DOC-25.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 76. The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06 | v0.9.7 | 3/3 | Complete | 2026-09-27 |
-| 77. v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff | v0.9.7 | 6/8 | In Progress | - |
+| 77. v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff | v0.9.7 | 7/8 | In Progress | - |
 
 ## Roadmap Evolution
 
