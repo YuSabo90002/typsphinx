@@ -220,3 +220,176 @@ RUN_ID = 36430787178
 RUN_URL = https://github.com/YuSabo90002/typsphinx/actions/runs/36430787178
 
 Committing this evidence file now, before the first foreground wait (Task 2).
+
+## Run
+
+Waited in the foreground: `timeout 590 gh run watch 36430787178 --interval 30` (Bash tool
+`timeout` 600000, no `run_in_background`). The run reached `completed`/`success` during that
+single watch call — no repeated status polling was needed beyond it.
+
+```
+gh run view 36430787178 --json status,conclusion,workflowName,headSha,url,createdAt,updatedAt
+{"conclusion":"success","createdAt":"2026-09-28T13:44:40Z","headSha":"df6357faf3d6ce93ac99bbfc3bdad58168a95a14","status":"completed","updatedAt":"2026-09-28T13:51:32Z","url":"https://github.com/YuSabo90002/typsphinx/actions/runs/36430787178","workflowName":"CI"}
+```
+
+RUN_HEAD_SHA = df6357faf3d6ce93ac99bbfc3bdad58168a95a14
+
+RUN_CONCLUSION = success
+
+Run duration: `createdAt` 2026-09-28T13:44:40Z to `updatedAt` 2026-09-28T13:51:32Z (~6m52s).
+
+## Job census
+
+```
+gh run view 36430787178 --json jobs --jq '.jobs[] | [.name, .conclusion] | @tsv'
+```
+
+| # | Job | Conclusion |
+|---|-----|------------|
+| 1 | Code Coverage | success |
+| 2 | Lint and Format Check | success |
+| 3 | Test Python 3.12 on macos-latest | success |
+| 4 | Integration Test - advanced | success |
+| 5 | Test Python 3.12 on ubuntu-latest | success |
+| 6 | Test Python 3.13 on ubuntu-latest | success |
+| 7 | Test Python 3.13 on windows-latest | success |
+| 8 | Integration Test - basic | success |
+| 9 | Build Package | success |
+| 10 | Type Check | success |
+| 11 | Test Python 3.12 on windows-latest | success |
+| 12 | Test Python 3.13 on macos-latest | success |
+
+JOB_COUNT = 12
+
+NON_SUCCESS_JOBS = 0
+
+REFERENCE_RUN_ID = 36320335404
+
+```
+LC_ALL=C gh run view 36320335404 --json jobs --jq '[.jobs[].name] | sort | join("|")'
+Build Package|Code Coverage|Integration Test - advanced|Integration Test - basic|Lint and Format Check|Test Python 3.12 on macos-latest|Test Python 3.12 on ubuntu-latest|Test Python 3.12 on windows-latest|Test Python 3.13 on macos-latest|Test Python 3.13 on ubuntu-latest|Test Python 3.13 on windows-latest|Type Check
+```
+
+REFERENCE_JOB_NAMES = Build Package|Code Coverage|Integration Test - advanced|Integration Test - basic|Lint and Format Check|Test Python 3.12 on macos-latest|Test Python 3.12 on ubuntu-latest|Test Python 3.12 on windows-latest|Test Python 3.13 on macos-latest|Test Python 3.13 on ubuntu-latest|Test Python 3.13 on windows-latest|Type Check
+
+```
+LC_ALL=C gh run view 36430787178 --json jobs --jq '[.jobs[].name] | sort | join("|")'
+Build Package|Code Coverage|Integration Test - advanced|Integration Test - basic|Lint and Format Check|Test Python 3.12 on macos-latest|Test Python 3.12 on ubuntu-latest|Test Python 3.12 on windows-latest|Test Python 3.13 on macos-latest|Test Python 3.13 on ubuntu-latest|Test Python 3.13 on windows-latest|Type Check
+```
+
+This run's sorted job-name set is identical to `REFERENCE_JOB_NAMES` — the same 12-name set,
+including both `windows-latest` and both `macos-latest` lanes. `ci.yml` is unchanged since Phase 76.
+
+JOB_NAMES_MATCH_REFERENCE = yes
+
+## windows-latest lanes
+
+| Job | Conclusion |
+|-----|------------|
+| Test Python 3.12 on windows-latest | success |
+| Test Python 3.13 on windows-latest | success |
+
+## macos-latest lanes
+
+| Job | Conclusion |
+|-----|------------|
+| Test Python 3.12 on macos-latest | success |
+| Test Python 3.13 on macos-latest | success |
+
+All four cross-platform lanes are individually success.
+
+## Lint through tox
+
+`Lint and Format Check` job id: `108956132082`.
+
+```
+gh run view --job 108956132082 --log
+```
+(351 lines, saved to `$SCRATCH_77_06/p7706_lint.log`). Quoted command and result lines:
+
+```
+lint: commands[0]> black --check .
+lint: commands[1]> ruff check .
+  lint: OK (4.46=setup[0.15]+cmd[4.25,0.06] seconds)
+```
+
+```
+git show df6357faf3d6ce93ac99bbfc3bdad58168a95a14:uv.lock | grep -A1 -xF 'name = "ruff"'
+name = "ruff"
+version = "0.16.8"
+```
+
+LOCK_RUFF_VERSION = 0.16.8
+
+The release pull request will instead run the ruff that 77-05's merged tree resolves
+(`MERGED_RUFF_VERSION = 0.16.9`, from `77-PREFLIGHT-EVIDENCE.md` — one Dependabot bump ahead of
+this branch's own 0.16.8), which the handoff's merge step re-proves.
+
+## Dispatch count and no release run
+
+```
+LC_ALL=C gh run list --workflow=ci.yml --branch gsd/v0.9.7-trusted-publishing-and-release --event workflow_dispatch --limit 50 --json headSha --jq '[.[] | select(.headSha == "df6357faf3d6ce93ac99bbfc3bdad58168a95a14")] | length'
+1
+```
+
+DISPATCH_COUNT = 1
+
+```
+LC_ALL=C gh run list --workflow=ci.yml --branch gsd/v0.9.7-trusted-publishing-and-release --event workflow_dispatch --limit 50 --json databaseId --jq length
+2
+```
+
+CI_RUNS_AFTER = 2
+
+This equals `CI_RUNS_BEFORE` (1) plus 1.
+
+```
+LC_ALL=C gh run list --workflow=release.yml --limit 50 --json databaseId,headSha --jq '[.[] | select(.headSha == "df6357faf3d6ce93ac99bbfc3bdad58168a95a14" or .databaseId > 36321530105)] | length'
+0
+```
+
+RELEASE_RUNS_AT_PUSHED = 0
+
+No `release.yml` run exists at the pushed SHA, and none newer than the Phase 76 rehearsal
+(`36321530105`).
+
+## Required checks at phase close
+
+```
+LC_ALL=C gh api repos/YuSabo90002/typsphinx/branches/main/protection/required_status_checks --jq '[.contexts[]] | sort | join("|")'
+Build Package|Code Coverage|Lint and Format Check|Test Python 3.12 on ubuntu-latest|Test Python 3.13 on ubuntu-latest|Type Check
+```
+
+REQUIRED_CONTEXTS_CLOSE_77 = Build Package|Code Coverage|Lint and Format Check|Test Python 3.12 on ubuntu-latest|Test Python 3.13 on ubuntu-latest|Type Check
+
+```
+LC_ALL=C gh api repos/YuSabo90002/typsphinx/branches/main/protection/required_status_checks --jq .strict
+true
+```
+
+REQUIRED_STRICT_CLOSE_77 = true
+
+Both readings are character-for-character identical to `77-PREFLIGHT-EVIDENCE.md`'s
+`PROTECTION_CONTEXTS` and `PROTECTION_STRICT` (the 77-05 reading, taken minutes earlier in wave 2).
+
+REQUIRED_CHECKS_UNCHANGED = yes
+
+All six required contexts — `Build Package`, `Code Coverage`, `Lint and Format Check`,
+`Test Python 3.12 on ubuntu-latest`, `Test Python 3.13 on ubuntu-latest`, `Type Check` — appear in
+this run's job list above, each `success`. The required set has already passed on this exact tree.
+
+## SC#3 CI verdict
+
+Every contributing key:
+
+- `RUN_HEAD_SHA = df6357faf3d6ce93ac99bbfc3bdad58168a95a14` (= `PUSHED_SHA`), `RUN_CONCLUSION = success`.
+- `NON_SUCCESS_JOBS = 0`.
+- `JOB_NAMES_MATCH_REFERENCE = yes`.
+- All four `windows-latest` / `macos-latest` lanes: success.
+- `DISPATCH_COUNT = 1`.
+- `RELEASE_RUNS_AT_PUSHED = 0`.
+- `REQUIRED_CHECKS_UNCHANGED = yes`.
+
+Every one of these holds, so:
+
+SC3_CI_VERDICT = MET
