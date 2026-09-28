@@ -4,16 +4,16 @@ milestone: v0.9.7
 milestone_name: Trusted Publishing and release
 current_phase: 77
 current_phase_name: v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff
-status: planning
-stopped_at: Phase 77 context gathered
-last_updated: "2026-09-27T13:53:59.012Z"
+status: executing
+stopped_at: Phase 77 planned (8 plans, 5 waves)
+last_updated: "2026-09-28T12:59:23.394Z"
 last_activity: 2026-09-28
-last_activity_desc: Phase 77 context gathered (77-CONTEXT.md) — failure branches and rollback placement decided (D-01..D-04)
-state_head: 56ff7e57861a110253fcecb865bdd80f0a05b86d
+last_activity_desc: Phase 77 planned — 8 plans in 5 waves (77-01..77-08), plan-checker passed; research, validation and pattern map committed
+state_head: c876f642afce8c760324be44d958ed33ae4bd83f
 progress:
   total_phases: 2
   completed_phases: 1
-  total_plans: 3
+  total_plans: 11
   completed_plans: 3
   percent: 50
 next_phase_number: 77
@@ -368,10 +368,10 @@ land here.
 
 ## Current Position
 
-Phase: 77 of 77 (v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff)
+Phase: 77 (v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff) — READY TO EXECUTE
 Plan: Not started
-Status: Ready to plan
-Last activity: 2026-09-27 — Phase 76 complete, transitioned to Phase 77
+Status: Ready to execute
+Last activity: 2026-09-28 — Phase 77 planned (8 plans, 5 waves)
 
 Progress: [█████░░░░░] 50% (1/2 phases)
 
