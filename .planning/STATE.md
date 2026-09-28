@@ -5,10 +5,10 @@ milestone_name: Trusted Publishing and release
 current_phase: 77
 current_phase_name: v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff
 status: planning
-stopped_at: Phase 76 complete, ready to plan Phase 77
+stopped_at: Phase 77 context gathered
 last_updated: "2026-09-27T13:53:59.012Z"
-last_activity: 2026-09-27
-last_activity_desc: Phase 76 complete and verified (12/12) — ATT-01, ATT-02 (rehearsal run 36321530105 rejected as a duplicate) and MSG-06 closed; transitioned to Phase 77
+last_activity: 2026-09-28
+last_activity_desc: Phase 77 context gathered (77-CONTEXT.md) — failure branches and rollback placement decided (D-01..D-04)
 state_head: 56ff7e57861a110253fcecb865bdd80f0a05b86d
 progress:
   total_phases: 2
