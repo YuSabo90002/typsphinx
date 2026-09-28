@@ -505,7 +505,7 @@ ATT-03, ATT-04, ATT-05 and DOC-25 are mapped here for **coverage only** and are 
      frontmatter. ATT-06 is the one requirement this phase **does** close, which is why the fence is
      line-scoped rather than whole-file (v0.9.6 Phase 75 precedent).
 
-**Plans**: 3/8 plans executed (5 waves)
+**Plans**: 5/8 plans executed (5 waves)
 
 Plans:
 
@@ -517,8 +517,8 @@ Plans:
 
 **Wave 2**
 
-- [ ] 77-04-PLAN.md — SC#3 local: lint trio, the full suite twice (once under `LC_ALL=C`), clean docs builds against the base ledger, and linkcheck with the two pre-tag records classified against controls
-- [ ] 77-05-PLAN.md — SC#3 preflight: non-committing trial merge against the moved `origin/main`, `main`'s protection and merge method, the open-PR census
+- [x] 77-04-PLAN.md — SC#3 local: lint trio, the full suite twice (once under `LC_ALL=C`), clean docs builds against the base ledger, and linkcheck with the two pre-tag records classified against controls
+- [x] 77-05-PLAN.md — SC#3 preflight: non-committing trial merge against the moved `origin/main`, `main`'s protection and merge method, the open-PR census
 
 **Wave 3**
 
@@ -553,7 +553,7 @@ DOC-25.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 76. The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06 | v0.9.7 | 3/3 | Complete | 2026-09-27 |
-| 77. v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff | v0.9.7 | 3/8 | In Progress | - |
+| 77. v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff | v0.9.7 | 5/8 | In Progress | - |
 
 ## Roadmap Evolution
 

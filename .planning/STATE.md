@@ -6,15 +6,15 @@ current_phase: 77
 current_phase_name: v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff
 status: executing
 stopped_at: Phase 77 planned (8 plans, 5 waves)
-last_updated: "2026-09-28T13:35:00.000Z"
+last_updated: "2026-09-28T13:45:00.000Z"
 last_activity: 2026-09-28
-last_activity_desc: Phase 77 wave 1 merged — 77-01 (phase-head fence + base docs ledger + SC#5 observation 1), 77-02 (0.9.7 bump commit 39cb79f9 + CHANGELOG), 77-03 (ATT-06 rollback section, ATT06_VERDICT MET, CONTROLS_VERDICT READY); post-merge suite 1573 passed / 1 skipped, lint trio clean
+last_activity_desc: Phase 77 wave 2 merged — 77-04 SC3_LOCAL_VERDICT MET (lint trio, full suite twice incl. LC_ALL=C, clean docs 0 warnings, linkcheck only the two v0.9.7 tag links 404), 77-05 TRIAL_MERGE_VERDICT MET (clean merge-tree vs origin/main); wave 3 (77-06 push + one CI dispatch) next
 state_head: dfc794fc03cf14564470a7b1acf63a94f6090f3c
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 11
-  completed_plans: 6
+  completed_plans: 8
   percent: 50
 next_phase_number: 77
 ---
@@ -369,9 +369,9 @@ land here.
 ## Current Position
 
 Phase: 77 (v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff) — EXECUTING
-Plan: 3 of 8 complete
-Status: Executing Phase 77 — wave 2 of 5 (77-04, 77-05) next
-Last activity: 2026-09-28 — Phase 77 wave 1 merged (77-01, 77-02, 77-03); post-merge 1573 passed / 1 skipped, lint trio clean
+Plan: 5 of 8 complete
+Status: Executing Phase 77 — wave 3 of 5 (77-06, milestone-branch push + one CI dispatch) next
+Last activity: 2026-09-28 — Phase 77 wave 2 merged (77-04 SC3_LOCAL_VERDICT MET, 77-05 TRIAL_MERGE_VERDICT MET)
 
 Progress: [█████░░░░░] 50% (1/2 phases)
 
