@@ -298,6 +298,199 @@ State that the draft is rewritten to what Step 7 actually observed if that diffe
 Step 7 is incomplete this step is not run — § Rollback procedure (ATT-06) › R3 — Shape 3: HALT the
 close and fix inside v0.9.7 (D-01).
 
+### Step 9 — Advance the translations pin and tag the translations repository
+
+**Owner:** human plus `/gsd-complete-milestone`.
+**Ordering:** after Step 8.
+
+The dispatch is **manual** and does not happen as a side effect of this repository's tag push (a
+daily schedule also exists, but the close does not wait for it):
+`gh workflow run update-pin.yml -R YuSabo90002/typsphinx-doc-translations`, then
+`gh run list -R YuSabo90002/typsphinx-doc-translations --workflow update-pin.yml --limit 3 --json databaseId,status,conclusion > /tmp/p77close/pin-runs.json`,
+then confirm the submodule pin with
+`gh api repos/YuSabo90002/typsphinx-doc-translations/contents/typsphinx --jq .sha` equals
+`<MERGE_SHA>` (this phase: `CTRL_TRANSLATIONS_PIN = 9fa1cb894137933f4dbb49d1668fc193e2ef1bc8`).
+Then tag that repository `v0.9.7` as an annotated tag on its resulting commit, as `v0.9.6` was
+(`CTRL_TRANSLATIONS_V096_TAG_TYPE = tag`) — a separate action.
+
+**On failure here:** § Rollback procedure (ATT-06) › Failures that are not rollback shapes.
+
+### Step 10 — Read the Docs stable on en and ja, cache-busted
+
+**Owner:** human, via the unauthenticated public API and real fetches.
+**Ordering:** after Step 9.
+
+Commands: `curl -s https://readthedocs.org/api/v3/projects/typsphinx/versions/stable/ -o /tmp/p77close/rtd-en.json`
+and the `typsphinx-ja` equivalent, read with `jq -r .identifier`; expected the `en` identifier to
+be `<MERGE_SHA>` and the `ja` identifier the translations repository's `v0.9.7` commit (this
+phase: `CTRL_RTD_EN_IDENTIFIER = 6fcc5adb02f5eefffd88ecda5258dca842d1acaa`,
+`CTRL_RTD_JA_IDENTIFIER = 158fa1c4a29376478e62c02bce72abf06750455a`). Then fetch
+`https://typsphinx.readthedocs.io/en/stable/?cb=<any fresh number>` and the `ja` page the same
+way, expecting `typsphinx 0.9.7` (this phase's pre-close control read
+`CTRL_RTD_EN_VERSION = 0.9.6` / `CTRL_RTD_JA_VERSION = 0.9.6`, since 0.9.7 was not yet released).
+A stale page is a cached response until a cache-busted fetch says otherwise — the `ja` page served
+a stale version from cache at the v0.9.6 close. No Default Version setting change is expected.
+
+**On failure here:** § Rollback procedure (ATT-06) › Failures that are not rollback shapes.
+
+### Step 11 — REL-17: the tag, the upload, the GitHub Release and the linkcheck obligation
+
+**Owner:** `/gsd-complete-milestone`.
+**Ordering:** after Step 10, reading evidence the earlier steps produced.
+
+Checks: `git ls-remote --tags origin` lists `refs/tags/v0.9.7`; Step 5's two files are live;
+`gh release view v0.9.7 --json body --jq .body > /tmp/p77close/body.md` and
+`uv run python scripts/extract_changelog_section.py 0.9.7 > /tmp/p77close/notes.md`, then
+`head -n <EXTRACT_LINES> /tmp/p77close/body.md | diff - /tmp/p77close/notes.md` prints nothing
+(inline `EXTRACT_LINES = 50`, `EXTRACT_BYTES = 3132` and
+`EXTRACT_SHA256 = 82f27b346b89163e08e6f64ba7b119c3fcc4ab20d300d06f6cf94d86a96983f6`; the same
+comparison matched on v0.9.6: `CTRL_RELEASE_BODY_PREFIX_MATCH = yes`, 100 lines); the body carries
+no scratch-block heading; the Release carries the wheel and the sdist. The `## [0.9.7]` heading
+date (`RELEASE_HEADING_DATE = 2026-09-28`) is the prep date and is **not rewritten** if the tag
+lands later.
+
+Then the linkcheck obligation: with the tag and the Release existing, `rm -rf docs/_build` and
+`tox -e linkcheck` must now report the two records classified in this phase as `working` —
+`https://github.com/YuSabo90002/typsphinx/compare/v0.9.7...HEAD` and
+`https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.7` (`TIP_LINKCHECK_NONWORKING_URIS`);
+if either is still broken, investigate it as a regression and do not re-amend the reading.
+
+**On failure here:** a failed `Create GitHub Release` job or a body mismatch is § Rollback
+procedure (ATT-06) › Failures that are not rollback shapes — re-run that job, never re-tag.
+
+### Step 12 — The operator checks the five fenced checkboxes
+
+**Owner:** `/gsd-complete-milestone`, by hand.
+**Ordering:** last.
+
+Each checkbox and its traceability row flip only against its own observations: ATT-04 against
+Step 4; ATT-03 against Steps 5 and 6 and the recorded `ATT03_VERDICT = PASS`; ATT-05 against
+Step 7's before-and-after listings and the owner's revocation statement; DOC-25 against Step 8's
+edited line; REL-17 against Steps 2, 5 and 11. Phase-completion tooling has flipped a deferred
+release checkbox at 9 of the 10 prior release-prep closes; these flips are the operator's own.
+
+**On failure here:** leave the box unchecked and HALT — § Rollback procedure (ATT-06) › What never
+happens on any branch.
+
+## Recorded without acting
+
+Quoted from `77-PREFLIGHT-EVIDENCE.md`: `OPEN_PRS = 1`, `DEPENDABOT_OPEN_PRS = 1`,
+`OPEN_PR_NUMBERS = 157`, `PR_CENSUS_AT = 2026-09-28T13:28:46Z`.
+
+Live re-read, taken during this task's own execution:
+
+```
+$ gh pr list --state open --json number --jq 'length'
+1
+```
+
+HANDOFF_OPEN_PRS_LIVE = 1
+HANDOFF_OPEN_PRS_AT = 2026-09-28T14:05:19Z
+
+The live count agrees with the earlier census — no drift between that census and this task's own
+moment.
+
+The ordering rule, stated conditionally: any Dependabot pull request open at release time is
+ordered after the milestone pull request (the v0.9.3 precedent), and one merging into `origin/main`
+first is exactly why Step 1 re-reads `origin/main` live.
+
+Also quoted: `MAIN_MOVED = yes`, `MAIN_MOVED_FILES = uv.lock` — `origin/main` had already moved
+past the milestone base by three Dependabot merges before this phase's own preflight reading,
+which is why Step 1 re-reads it live rather than trusting this recorded value.
+`MERGED_PACKAGE_SET_MATCHES_V096 = yes` — the merged tree's `uv.lock` package-name set is
+identical to the `v0.9.6` tag's, so the `### Verified` "no new dependency" CHANGELOG sentence
+survives the Step 1 merge unchanged.
+
+## Deferred with this phase
+
+- **NUM-01** — disclosed again in `## [0.9.7]`'s `### Known Limitations`, not fixed; its todo
+  (`2026-08-14-numref-number-diverges-per-master-and-vanishes-for-non-root-only-figures.md`) stays
+  pending.
+- **QUA-08** — the weekly advisory linkcheck workflow, still Future; its todo
+  (`2026-07-22-add-sphinx-linkcheck-ci-job.md`) stays pending.
+- **WR-02**, **WR-03** and **LNK-01** — still Future.
+- The two todos above were reviewed at discussion time and not folded into this phase.
+
+## Before and after phase.complete-family tooling
+
+Reproduced inline from `77-CLOSEOUT-GUARD.md` so no second file need be open.
+
+```bash
+sha256sum .planning/REQUIREMENTS.md
+# compare against REQ_SHA256_BASE: 35eb6122efd878cad4083a18b84c006f315c3cfe5229f3d443e6c712e6954351
+
+wc -l .planning/REQUIREMENTS.md
+# compare against REQ_LINES_BASE: 189
+
+git diff --name-only -- .planning/REQUIREMENTS.md
+# expected: no output
+
+grep -vE '^- \[.\] \*\*ATT-06\*\*|^\| ATT-06 \|' .planning/REQUIREMENTS.md | sha256sum
+# compare against REQ_SHA256_GUARDED_BASE: fce6cc7d403e4c68b4cf12a6e58bf990f94f9a5f7db2943ce9da2469953d4af5
+```
+
+The five `grep -n` transcripts, pasted verbatim, expected unchanged:
+
+```
+$ grep -n 'ATT-03' .planning/REQUIREMENTS.md
+37:- [ ] **ATT-03**: The switch is proven on **PyPI's own served state** for the real 0.9.7 upload, not
+51:      so its absence alone does not prove PyPI served provenance. ATT-03 is what proves that.
+55:      ATT-03 passes**; until then the token is the rollback path. `TEST_PYPI_API_TOKEN` is left in
+162:| ATT-03 | Phase 77 | publish (coverage only) | Pending |
+183:→ ATT-03 (PyPI Simple JSON + Integrity APIs) → ATT-05 (both secret scopes + PyPI revocation, and
+184:only once ATT-03 has passed) → DOC-25 (written after ATT-05, so it describes a state that is
+```
+
+```
+$ grep -n 'ATT-04' .planning/REQUIREMENTS.md
+47:- [ ] **ATT-04**: The v0.9.7 release run carries **zero** occurrences of the action's
+161:| ATT-04 | Phase 77 | publish (coverage only) | Pending |
+182:The publish half runs in a fixed order that `77-HANDOFF.md` enforces: tag push → ATT-04 (run log)
+```
+
+```
+$ grep -n 'ATT-05' .planning/REQUIREMENTS.md
+52:- [ ] **ATT-05**: `PYPI_API_TOKEN` is retired from **both** GitHub scopes — the repository-scoped
+86:      ATT-01 and ATT-05 land.
+163:| ATT-05 | Phase 77 | publish (coverage only) | Pending |
+183:→ ATT-03 (PyPI Simple JSON + Integrity APIs) → ATT-05 (both secret scopes + PyPI revocation, and
+184:only once ATT-03 has passed) → DOC-25 (written after ATT-05, so it describes a state that is
+```
+
+```
+$ grep -n 'REL-17' .planning/REQUIREMENTS.md
+75:- [ ] **REL-17**: 0.9.7 is published — `pyproject.toml` bumped as the **sole** version literal with
+160:| REL-17 | Phase 77 | split — prep in phase, publish at close | Pending |
+185:already true). REL-17's publish clauses are checked across the whole of it.
+```
+
+```
+$ grep -n 'DOC-25' .planning/REQUIREMENTS.md
+84:- [ ] **DOC-25**: `.planning/codebase/INTEGRATIONS.md:116-117` no longer describes `PYPI_API_TOKEN`
+164:| DOC-25 | Phase 77 | publish (coverage only) | Pending |
+184:only once ATT-03 has passed) → DOC-25 (written after ATT-05, so it describes a state that is
+```
+
+**ATT-06's lines — expected to move.** `- [ ] **ATT-06**` (line 57) and
+`| ATT-06 | Phase 77 | pre-tag | Pending |` (line 159) are **not** part of this guard — ATT-06
+closes inside this phase, so both may legitimately read `[x]` / `Complete` once phase-completion
+tooling runs.
+
+**The third observation.** `phase.complete`-family tooling, including `/gsd-verify-work`'s inline
+transition and `/gsd-execute-phase`'s own `phase.complete` step, is what actually catches the
+flip — take this observation only after one of those has run. Copy `.planning/REQUIREMENTS.md`,
+`.planning/ROADMAP.md` and `.planning/STATE.md` to a fresh `mktemp -d` immediately before that
+tooling runs, since `ROADMAP.md` and `STATE.md` change legitimately throughout execution.
+
+**Line-scoped reversion recipe.** If the guarded-region digest differs from
+`REQ_SHA256_GUARDED_BASE`: `git checkout -- .planning/REQUIREMENTS.md`; if ATT-06's checkbox and
+row had also flipped to `[x]` / `Complete`, re-apply only those two lines by an in-place edit;
+re-run the probes until the guarded-region digest MATCHes; report; never commit a flipped guarded
+line (one of ATT-03, ATT-04, ATT-05, REL-17 or DOC-25).
+
+**Phase-head backup paths:** `BACKUP_ROADMAP = /tmp/p7701.p8Y5y6/p7701_ROADMAP.md`,
+`BACKUP_STATE = /tmp/p7701.p8Y5y6/p7701_STATE.md`.
+
 ## Rollback procedure (ATT-06)
 
 ### Measured basis
