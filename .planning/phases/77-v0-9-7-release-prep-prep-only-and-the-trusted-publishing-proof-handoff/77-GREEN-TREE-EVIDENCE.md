@@ -182,3 +182,75 @@ prints nothing — the three `@preview` sync sites are untouched across the mile
 ## Commit
 
 This file alone, staged and committed by explicit path, `.planning/` only.
+
+## Tip docs-html
+
+```
+rm -rf docs/_build
+LANG=C LANGUAGE=C LC_ALL=C uv run tox -e docs-html > "$S/p7704_html.log" 2>&1; echo "exit:$?"
+exit:0
+```
+
+TIP_HTML_EXIT = 0
+
+Verbatim `build succeeded` line from `$S/p7704_html.log`:
+
+```
+LC_ALL=C grep -E '^build succeeded' "$S/p7704_html.log"
+build succeeded.
+```
+
+The exact-zero form `build succeeded.` does not match the
+`build succeeded, N warnings.` pattern, so the warning count is taken as `0` per the plan's own
+rule — the same idiom `77-BASE-EVIDENCE.md` used.
+
+TIP_HTML_WARNINGS = 0
+
+## Tip docs-pdf
+
+```
+rm -rf docs/_build
+LANG=C LANGUAGE=C LC_ALL=C uv run tox -e docs-pdf > "$S/p7704_pdf.log" 2>&1; echo "exit:$?"
+exit:0
+```
+
+TIP_PDF_EXIT = 0
+
+Verbatim `build succeeded` line from `$S/p7704_pdf.log`:
+
+```
+LC_ALL=C grep -E '^build succeeded' "$S/p7704_pdf.log"
+build succeeded.
+```
+
+TIP_PDF_WARNINGS = 0
+
+Both builds removed the whole `docs/_build` output tree before running — not an incremental
+rebuild, which would under-report warnings.
+
+## Warning ledger
+
+| Build | Base (77-01, `77-BASE-EVIDENCE.md`) | Tip (this plan) |
+|---|---|---|
+| docs-html warnings | `BASE_HTML_WARNINGS = 0` | `TIP_HTML_WARNINGS = 0` |
+| docs-pdf warnings | `BASE_PDF_WARNINGS = 0` | `TIP_PDF_WARNINGS = 0` |
+
+Interpreters: the base ledger's `PYVENV_VERSION_INFO` (from `77-CLOSEOUT-GUARD.md`) is `3.14`;
+this plan's own `PYVENV_VERSION_INFO` above is also `3.14` — both readings were taken on the same
+named interpreter version, so the comparison is not crossing interpreters.
+
+HTML_WARNINGS_NOT_RISEN = yes
+PDF_WARNINGS_NOT_RISEN = yes
+
+## Docs invariants
+
+```
+git diff --name-only 44f9c6a2045b4943664b1a3473dc3b4422ac3ad3 HEAD -- docs
+```
+prints nothing — nothing under `docs/` changed by this plan.
+
+```
+git diff --name-only 3984b231e30fbb76ba156d2f9b2abe475231bccf HEAD -- docs/source
+```
+prints nothing — no documentation source changed anywhere in this phase, and no `linkcheck_*` key
+was added.
