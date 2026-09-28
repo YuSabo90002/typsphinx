@@ -27,6 +27,8 @@ actuals:
   tokens: 7742
   tasks: 3
   commits: 4
+  plan_head_before: 3984b231e30fbb76ba156d2f9b2abe475231bccf
+  plan_head_after: 1ee438c2ebd2460cc00e3ab61d31087c00c1917a
 
 # Tech tracking
 tech-stack:
@@ -220,7 +222,8 @@ None — no external service configuration required.
   SHA in both evidence files and verified an ancestor of `HEAD`.
 - All three tasks' own `<verify>` automated blocks re-ran and passed (`TASK1_VERIFY_PASS`,
   `TASK2_VERIFY_PASS`, `TASK3_VERIFY_PASS`).
-- `commits: 4` measured via `git rev-list --count 3984b231e30fbb76ba156d2f9b2abe475231bccf..HEAD`.
+- `commits: 4` measured via `git rev-list --count 3984b231e30fbb76ba156d2f9b2abe475231bccf..1ee438c2`
+  (the tip immediately before this SUMMARY's own metadata commit, per `plan_head_after`).
 
 ---
 *Phase: 77-v0-9-7-release-prep-prep-only-and-the-trusted-publishing-proof-handoff*
