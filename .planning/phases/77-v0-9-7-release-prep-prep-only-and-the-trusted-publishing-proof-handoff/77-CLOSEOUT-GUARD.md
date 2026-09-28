@@ -580,6 +580,64 @@ and both direct reads hold.
 FENCE_CLOSE_VERDICT = MATCH
 ```
 
+## Handoff to the third observation
+
+Written for the orchestrator who runs `phase.complete`-family tooling after this plan — a new
+section, not a second copy of § "For the operator running phase.complete" above.
+
+**Immediately before that tooling runs:** copy `.planning/REQUIREMENTS.md`, `.planning/ROADMAP.md`
+and `.planning/STATE.md` to a fresh `mktemp -d`, outside the repository, exactly as § "For the
+operator running phase.complete" and every earlier backup in this file already do.
+
+**Immediately after it runs**, re-run the full probe set from § "Re-verification protocol (phase
+close)" above:
+
+```bash
+sha256sum .planning/REQUIREMENTS.md
+wc -l .planning/REQUIREMENTS.md
+git diff --name-only -- .planning/REQUIREMENTS.md
+grep -vE '^- \[.\] \*\*ATT-06\*\*|^\| ATT-06 \|' .planning/REQUIREMENTS.md | sha256sum
+grep -n 'ATT-03' .planning/REQUIREMENTS.md
+grep -n 'ATT-04' .planning/REQUIREMENTS.md
+grep -n 'ATT-05' .planning/REQUIREMENTS.md
+grep -n 'REL-17' .planning/REQUIREMENTS.md
+grep -n 'DOC-25' .planning/REQUIREMENTS.md
+```
+
+**Expected:** the guarded-region digest (the same command quoted above, re-run verbatim) still
+equals `REQ_SHA256_GUARDED_BASE = fce6cc7d403e4c68b4cf12a6e58bf990f94f9a5f7db2943ce9da2469953d4af5`.
+The full digest MAY differ from `REQ_SHA256_BASE`/`REQ_SHA256_CLOSE` only because ATT-06's own
+checkbox (line 57) and traceability row (line 159) flipped to `[x]` / `Complete` — that one flip is
+legitimate, since ATT-06 is the requirement this phase actually closes.
+
+**Any other difference is a defect, not a legitimate flip.** Revert it:
+
+```bash
+git checkout -- .planning/REQUIREMENTS.md
+```
+
+then, if ATT-06's checkbox and row had also legitimately flipped before the revert, re-apply only
+those two lines by an in-place edit; re-run every probe above until the guarded-region digest
+MATCHes `REQ_SHA256_GUARDED_BASE` again; report the event; never commit a flipped guarded line (one
+of ATT-03, ATT-04, ATT-05, REL-17 or DOC-25). Record the whole sequence — what moved, the revert,
+the re-applied ATT-06 lines if any, and the re-proven MATCH — in a section appended to this file for
+that purpose, headed to name the third observation explicitly and naming the orchestrator as the one
+who ran it. That write happens outside every plan, at the moment the tooling actually runs; this
+plan only documents the protocol.
+
+`.planning/ROADMAP.md` and `.planning/STATE.md` are diffed against the fresh pre-tooling backup
+taken above (not against the 77-01 phase-head backup, which predates legitimate per-plan tracking
+changes) and any tooling damage — field mangling, wrapped-line corruption — is hand-corrected
+separately from the guarded-line reversion.
+
+```
+THIRD_OBSERVATION_DOCUMENTED = yes
+```
+
+This records that the instructions above exist and are complete, not that the observation has been
+taken — the observation itself belongs to whoever runs `phase.complete`-family tooling, after this
+plan has finished.
+
 ---
 *Phase: 77-v0-9-7-release-prep-prep-only-and-the-trusted-publishing-proof-handoff*
 *Plan: 01*

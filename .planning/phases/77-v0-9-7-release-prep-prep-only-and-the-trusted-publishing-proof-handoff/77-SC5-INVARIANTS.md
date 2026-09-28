@@ -633,6 +633,57 @@ holds.
 SC5_VERDICT = MET
 ```
 
+## SUMMARY requirements census
+
+Each `77-0N-SUMMARY.md`'s `requirements-completed:` line, transcribed verbatim:
+
+```
+$ grep -n 'requirements-completed:' 77-01-SUMMARY.md
+requirements-completed: []
+
+$ grep -n 'requirements-completed:' 77-02-SUMMARY.md
+requirements-completed: []
+
+$ grep -n 'requirements-completed:' 77-03-SUMMARY.md
+requirements-completed: [ATT-06]
+
+$ grep -n 'requirements-completed:' 77-04-SUMMARY.md
+requirements-completed: []
+
+$ grep -n 'requirements-completed:' 77-05-SUMMARY.md
+requirements-completed: []
+
+$ grep -n 'requirements-completed:' 77-06-SUMMARY.md
+requirements-completed: []
+
+$ grep -n 'requirements-completed:' 77-07-SUMMARY.md
+requirements-completed: []
+```
+
+77-03's bracketed list is exactly `ATT-06`; every other list is empty — no SUMMARY of this phase
+declares ATT-03, ATT-04, ATT-05, REL-17 or DOC-25. This plan's own SUMMARY (`77-08-SUMMARY.md`)
+will declare `requirements-completed: []`.
+
+```
+SUMMARY_REQS_OK = yes
+```
+
+## Success criteria roll-up
+
+| SC | Verdict | Keys read |
+|----|---------|-----------|
+| SC1 | MET | `BUMP_COMMIT_FILES = CHANGELOG.md\|README.md\|pyproject.toml\|tests/test_changelog_page_gate.py\|uv.lock` (77-BUMP-EVIDENCE.md), `UV_SYNC_DEV_LOCKED_EXIT = 0` (77-BUMP-EVIDENCE.md), `CHANGELOG_GATE_SKIPS = 0` (77-CHANGELOG-EVIDENCE.md) |
+| SC2 | MET | `EXTRACT_MATCHES_SECTION = yes` (77-CHANGELOG-EVIDENCE.md), `KNOWN_LIMITATIONS_AFTER = 3` (77-CHANGELOG-EVIDENCE.md), `NEW_SECTION_URL_COUNT = 0` (77-CHANGELOG-EVIDENCE.md) |
+| SC3 | MET | `SC3_LOCAL_VERDICT = MET` (77-GREEN-TREE-EVIDENCE.md), `SC3_CI_VERDICT = MET` (77-CI-EVIDENCE.md), `TRIAL_MERGE_VERDICT = MET` (77-PREFLIGHT-EVIDENCE.md) |
+| SC4 | MET | `ATT06_VERDICT = MET` (77-ATT06-EVIDENCE.md), `CONTROLS_VERDICT = READY` (77-CONTROLS-EVIDENCE.md), `HANDOFF_STANDALONE = yes` (this file, § "Handoff audit") |
+| SC5 | MET | `SC5_VERDICT = MET` (this file, § "SC5_VERDICT"), `FENCE_CLOSE_VERDICT = MATCH` (77-CLOSEOUT-GUARD.md), `SUMMARY_REQS_OK = yes` (this file, above) |
+
+Every row's contributing keys hold at their required values.
+
+```
+PHASE_VERDICT = MET
+```
+
 ---
 *Phase: 77-v0-9-7-release-prep-prep-only-and-the-trusted-publishing-proof-handoff*
 *Plan: 01*
