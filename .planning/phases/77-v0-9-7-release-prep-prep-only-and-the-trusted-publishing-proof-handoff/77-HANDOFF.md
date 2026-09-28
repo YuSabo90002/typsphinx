@@ -160,6 +160,144 @@ conclusions: `Validate Release`, `Build Distribution`, `Publish to PyPI` and
 **On failure here:** § Rollback procedure (ATT-06) › Failure shapes — classify with its
 exact-filename count, then R1, R2 or R3.
 
+### Step 4 — ATT-04: the release run log
+
+**Owner:** `/gsd-complete-milestone`.
+**Ordering:** after Step 3 completes.
+
+Commands: `gh run view <RELEASE_RUN_ID> --json attempt` to read the attempt that published, then
+`LC_ALL=C gh run view <RELEASE_RUN_ID> --attempt <N> --log > /tmp/p77close/release.log`, then
+`LC_ALL=C grep -c 'disabling Trusted Publishing' /tmp/p77close/release.log` and
+`LC_ALL=C grep -c 'attestations input is ignored' /tmp/p77close/release.log`, each expected `0`.
+
+Control, re-run live at the close: the same two greps over
+`LC_ALL=C gh run view 35730551619 --log > /tmp/p77close/control.log` read
+`CTRL_C_DISABLING_TP = 1` and `CTRL_C_ATTESTATIONS_IS_IGNORED = 1`. Corroboration:
+`grep -c 'Generating and uploading digital attestations'` is expected at least 1 (the rehearsal
+run `36321530105` read `CTRL_R_GENERATING = 1`; the control read 0).
+
+State that this signal is necessary but not sufficient — the action decides it locally from the
+presence of a credential before any network call — and that ATT-03 is what proves PyPI served
+provenance.
+
+Add the one Discretion A sentence: the requirement's literal phrase, `attestations input ignored`
+— which lives only in the annotation's `title` attribute, a title attribute that
+`gh run view --log` never prints (measured `CTRL_C_TITLE_PHRASE = 0` even on the control) — is
+superseded by the two-grep pair above. `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.md` keep
+their literal wording. Never write a grep command whose pattern is that title phrase.
+
+Record the attempt number with both counts.
+
+**On failure here:** a non-zero count means the release ran on the credential path and the upload
+carries no attestations — § Rollback procedure (ATT-06) › R3 — Shape 3: HALT the close and fix
+inside v0.9.7 (D-01).
+
+### Step 5 — ATT-03(a): the PyPI Simple JSON API
+
+**Owner:** `/gsd-complete-milestone`.
+**Ordering:** after Step 4.
+
+Commands:
+`curl -sf https://pypi.org/simple/typsphinx/ -H 'Accept: application/vnd.pypi.simple.v1+json' -o /tmp/p77close/simple.json`;
+a `jq` listing of `filename` and `provenance | tostring` for files whose `filename` equals
+`typsphinx-0.9.7-py3-none-any.whl` or `typsphinx-0.9.7.tar.gz`; and a second `jq` count of every
+filename beginning `typsphinx-0.9.7`.
+
+Expected: exactly two exact-name files, each `provenance` a non-null string equal to
+`https://pypi.org/integrity/typsphinx/0.9.7/<filename>/provenance`, and a prefix count of 2.
+
+Controls: 0.9.6's two files read `CTRL_V096_PROVENANCE = null,null`; an attested `pip` wheel reads
+the URL string
+`CTRL_PIP_WHEEL_PROVENANCE = https://pypi.org/integrity/pip/26.2.1/pip-26.2.1-py3-none-any.whl/provenance`
+(type `CTRL_PIP_PROVENANCE_TYPE = string`) — so the check is non-null plus URL shape, never a
+comparison with a boolean. The legacy `/pypi/typsphinx/0.9.7/json` endpoint never carries this
+field and does not count.
+
+If zero 0.9.7 files are listed while Step 3 recorded `Publish to PyPI` success, re-read every
+60 seconds for up to 10 minutes before classifying (the Simple API can serve a cached listing).
+
+**On failure here:** one exact-name file is shape 2 → § Rollback procedure (ATT-06) › R2 — Leave
+0.9.7: delete the tag and re-prep as 0.9.8 (D-02); two files with a null `provenance` is shape 3 →
+§ Rollback procedure (ATT-06) › R3 — Shape 3: HALT the close and fix inside v0.9.7 (D-01); zero
+files after the re-read window → § Rollback procedure (ATT-06) › Failure shapes; a prefix count
+above 2 → HALT.
+
+### Step 6 — ATT-03(b): the PyPI Integrity API
+
+**Owner:** `/gsd-complete-milestone`.
+**Ordering:** after Step 5 passes.
+
+For each of the two filenames:
+`curl -s -o /tmp/p77close/int-<FILENAME>.json -w '%{http_code}\n' https://pypi.org/integrity/typsphinx/0.9.7/<FILENAME>/provenance`,
+expected `200`; then `jq '.attestation_bundles | length'` read before indexing, expected `1` (the
+`pip` control read `CTRL_INTEGRITY_PIP_BUNDLES = 1`; any other count HALTs for investigation);
+then
+`jq -r '.attestation_bundles[0].publisher | [.kind, .repository, .workflow, .environment] | join("|")'`,
+expected exactly `GitHub|YuSabo90002/typsphinx|release.yml|pypi`.
+
+Controls: the 0.9.6 wheel's Integrity URL read `CTRL_INTEGRITY_V096_WHEEL_HTTP = 404` and its
+sdist `CTRL_INTEGRITY_V096_SDIST_HTTP = 404`; `pip` read `CTRL_INTEGRITY_PIP_HTTP = 200` with
+publisher `CTRL_INTEGRITY_PIP_PUBLISHER = GitHub|pypa/pip|release.yml|pypi`.
+
+ATT-03 passes only when Steps 5 and 6 both pass for both files; record `ATT03_VERDICT = PASS` in
+the close's evidence only then. Any non-200 status, a wrong bundle count or a publisher mismatch
+fails it.
+
+**On failure here:** § Rollback procedure (ATT-06) › R3 — Shape 3: HALT the close and fix inside
+v0.9.7 (D-01).
+
+### Step 7 — ATT-05: retire PYPI_API_TOKEN, only after ATT-03 passes
+
+**Owner:** `/gsd-complete-milestone` for the two GitHub deletions; the project owner for the PyPI
+revocation.
+**Ordering:** strictly after Steps 5 and 6 have both recorded PASS; never on shape 3 (D-01) —
+until ATT-03 passes the token is the rollback path.
+
+Commands: list every scope by name before —
+`gh secret list --json name --jq '.[].name' > /tmp/p77close/secrets-repo-before.txt`, the same
+with `--env pypi` and `--env testpypi` (expected this phase:
+`CTRL_REPO_SECRETS = PYPI_API_TOKEN|TEST_PYPI_API_TOKEN`, `CTRL_ENV_PYPI_SECRETS = PYPI_API_TOKEN`,
+`CTRL_ENV_TESTPYPI_SECRETS = none`); then `gh secret delete PYPI_API_TOKEN` and
+`gh secret delete PYPI_API_TOKEN --env pypi` — two distinct secrets; then the same three listings
+after, expecting `PYPI_API_TOKEN` gone from the repository and `pypi` scopes and
+`TEST_PYPI_API_TOKEN` still present at every scope that listed it before (measured this phase:
+`TEST_PYPI_API_TOKEN_SCOPES = repository`).
+
+The third leg is the owner revoking the token on PyPI's own token-management page (account
+settings, API tokens); no API can observe it, so the owner states it was done and the close
+records that statement. Never print a secret value.
+
+This step runs only after Step 5 and Step 6 have both recorded PASS.
+
+**On failure here:** a failed deletion is repeated and every scope re-listed — § Rollback
+procedure (ATT-06) › Failures that are not rollback shapes; if ATT-03 has not passed, this step is
+not run — § Rollback procedure (ATT-06) › R3 — Shape 3: HALT the close and fix inside v0.9.7
+(D-01).
+
+### Step 8 — DOC-25: correct INTEGRATIONS.md, only after ATT-05
+
+**Owner:** `/gsd-complete-milestone`.
+**Ordering:** after all three legs of Step 7 are complete, so the line describes a state that is
+already true.
+
+Commands: re-measure with `grep -n 'PYPI_API_TOKEN' .planning/codebase/INTEGRATIONS.md` (this
+phase: the target at line `DOC25_TARGET_LINE = 116`, the `TEST_PYPI_API_TOKEN` line at
+`DOC25_KEEP_LINE = 117`, which stays), then replace only the target line with the pre-drafted text
+written here in a fenced block:
+
+```
+- `PYPI_API_TOKEN` - retired: `release.yml`'s `publish-pypi` job now publishes through PyPI Trusted
+  Publishing (GitHub OIDC, environment `pypi`, PEP 740 attestations); no PyPI API token is stored.
+  The former `PYPI_API_TOKEN` was deleted at repository and `pypi`-environment scope and revoked on
+  PyPI at the v0.9.7 close (Step 7).
+```
+
+State that the draft is rewritten to what Step 7 actually observed if that differs.
+
+**On failure here:** § Rollback procedure (ATT-06) › Failures that are not rollback shapes; if
+Step 7 is incomplete this step is not run — § Rollback procedure (ATT-06) › R3 — Shape 3: HALT the
+close and fix inside v0.9.7 (D-01).
+
 ## Rollback procedure (ATT-06)
 
 ### Measured basis
