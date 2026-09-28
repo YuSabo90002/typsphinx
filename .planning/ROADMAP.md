@@ -20,14 +20,18 @@
 - ✅ **v0.9.4 — Typing Modernization** — Phases 70–71 (completed 2026-09-13, merged to `main`, **not published**) → [archive](milestones/v0.9.4-ROADMAP.md)
 - ✅ **v0.9.5 — Docs Link Check and Navigation** — Phases 72–73 (completed 2026-09-16, merged to `main`, **not published**) → [archive](milestones/v0.9.5-ROADMAP.md)
 - ✅ **v0.9.6 — Doctest block rendering and release** — Phases 74–75 (**shipped 2026-09-22, PUBLISHED**) → [archive](milestones/v0.9.6-ROADMAP.md)
+- 🚧 **v0.9.7 Trusted Publishing and release** — Phases 76–77 (active, started 2026-09-23)
 
-**No milestone is active.** v0.9.6 shipped and was published to PyPI on 2026-09-22, ending a
-three-milestone run in which v0.9.3, v0.9.4 and v0.9.5 were completed and merged but never
-released — all three went out under `## [0.9.6]`. The next milestone is scoped by
-`/gsd-new-milestone`, which writes a fresh `REQUIREMENTS.md`.
+**Active milestone: v0.9.7 — Trusted Publishing and release.** Two phases (76–77). It moves
+`release.yml`'s production publish off a long-lived PyPI API token and onto Trusted Publishing, so
+the uploaded wheel and sdist carry PEP 740 provenance attestations — and it proves that on **PyPI's
+own served state** at the real `v0.9.7` tag, not on the workflow file looking correct. Before
+anything irreversible happens the OIDC exchange is rehearsed against the already-published `v0.9.6`,
+where PyPI turns the upload away as a duplicate. The milestone also closes MSG-06, the fourth and
+last module of the MSG-02 hardcoded-delimiter family, and publishes 0.9.7.
 
-Phase numbering is **continuous across milestones**: v0.9.6 ran Phases 74–75, so the next milestone
-starts at **Phase 76**.
+Phase numbering is **continuous across milestones**: v0.9.6 ran Phases 74–75, so v0.9.7 starts at
+**Phase 76**.
 
 ## Phases
 
@@ -144,14 +148,412 @@ Each milestone's phase detail lives in its own archive, linked from the **Milest
 
 </details>
 
+## 🚧 v0.9.7 — Trusted Publishing and release (ACTIVE)
+
+**Milestone Goal:** the wheel and sdist a user downloads from PyPI can *prove* which workflow built
+them. `release.yml`'s `publish-pypi` step stops reading a long-lived API token and mints its own
+OIDC token instead, which turns `pypa/gh-action-pypi-publish`'s default PEP 740 attestations back
+on — and the switch is proven on PyPI's own served state for the real 0.9.7 upload, never on the
+workflow file and never on a green run.
+
+- **ATT-01 / ATT-02:** `publish-pypi` currently passes `password: ${{ secrets.PYPI_API_TOKEN }}`,
+  which puts the action on the API-token path and disables Trusted Publishing, and with it the
+  action's own `attestations: true` default. `id-token: write` (`:13-15`) and `environment: pypi`
+  are already declared, so removing the credential is the whole code change. The rehearsal — one
+  `workflow_dispatch` against the already-published `v0.9.6` — is what converts "the file looks
+  right" into "the OIDC exchange actually works", because PyPI rejects a duplicate filename
+  *after* the token exchange and rejects a bad registration *before* it, and the two failures read
+  differently in the log.
+- **ATT-03 / ATT-04:** the acceptance oracle. ATT-03 is PyPI's Simple JSON API carrying a non-null
+  `provenance` for both 0.9.7 files and the Integrity API returning 200 with a `publisher` naming
+  this repository, `release.yml` and `pypi`. ATT-04 is the absence of the action's
+  `attestations input ignored` / `disabling Trusted Publishing` annotation — a necessary but **not
+  sufficient** signal, since the action emits it locally from the presence of `password:` before any
+  network call.
+- **ATT-05 / ATT-06:** the token is the rollback path until ATT-03 passes, so it is retired strictly
+  afterwards — from **two** distinct GitHub secrets plus a separate revocation on PyPI. And because
+  a failed publish here cannot be retried under the same version, the rollback procedure is written
+  down *before* the tag exists rather than improvised after it.
+- **MSG-06:** `translator.py`'s two cross-directory relative-path DEBUG logs still delimit
+  `up_path`/`down_path` with a hardcoded `'...'`, so a path containing a literal single quote closes
+  the quote early. `quote_path()` has existed since Phase 60, which closed the same shape in
+  `builder.py`, `writer.py` and `template_registry.py`. This is the family's fourth and last module.
+- **REL-17 / DOC-25:** publish 0.9.7, describing attestations honestly as audit provenance rather
+  than an install-time gate; and correct the one line of `.planning/codebase/INTEGRATIONS.md` that
+  currently describes `PYPI_API_TOKEN` as the trusted-publishing mechanism — exactly backwards.
+
+This serves the core value's publishing clause, the one v0.6.4 and v0.9.2 extended it with: an
+artifact the project uploads must be what it claims to be. v0.9.6's upload *succeeded* and carried
+`"provenance": null`, which is precisely the gap.
+
+**Binding constraints this roadmap is built on** (settled decisions and measured facts):
+
+1. **The PyPI-side Trusted Publisher registration is a manual, off-repo action by the project
+   owner.** No agent can perform it. It is a **Phase 76 prerequisite and a CONTEXT checkbox, never a
+   plan task.** The four fields it needs are copied from the file and the repository URL rather than
+   from memory: repository owner, repository name, the **bare** workflow filename `release.yml`, and
+   the environment name `pypi`. All four exist in the repository unedited today, so it has no
+   dependency on any code change and should be done first. It must be registered through the
+   **existing project's** Publishing settings, not the account-level "pending publisher" flow most
+   tutorials show, because `typsphinx` is already published.
+
+2. **Proof is taken on the production `v0.9.7` tag** (owner decision 2026-09-23). `publish-pypi`
+   carries no `if:` gate, so **every** `v*` tag reaches production PyPI — an rc tag included, which
+   would leave a prerelease on PyPI permanently. There is no dry-run path.
+
+3. **ATT-02's rehearsal must run on a ref whose `pyproject.toml` still reads `0.9.6`.** The
+   `validate` job compares `pyproject.toml`'s version against the dispatch's `tag` input and exits 1
+   on mismatch; `build` and `publish-pypi` then never run, and the OIDC exchange is never reached.
+   This is the dependency that orders Phase 76 before Phase 77 and forbids the version bump from
+   landing early. **Measure it on the actual ref rather than trusting this sentence.**
+
+4. **`workflow_dispatch` runs the *dispatched ref's* copy of `release.yml`.** The file already lives
+   on `main` carrying a `workflow_dispatch` trigger, so `gh workflow run release.yml --ref
+   <milestone-branch> -f tag=v0.9.6` executes the branch's edited copy. The "a new workflow cannot
+   be scheduled or dispatched from an unmerged milestone branch" rule that still blocks QUA-08 does
+   **not** apply here — `release.yml` is not new. `git diff origin/main -- .github/workflows/release.yml`
+   was empty at roadmap creation, so the branch and `main` start identical.
+
+5. **The rehearsal needs the `pypi` environment's manual approval to reach the upload step.** That
+   is an expected gate, not a failure — v0.9.6's run `35730551619` waited on it too. An executor
+   that returns at "waiting for approval" has not finished; the same run is resumed once the owner
+   approves, not re-dispatched.
+
+6. **Exactly one dispatch.** If `gh workflow run` returns an HTTP 5xx, `gh run list` is read before
+   any retry — a 5xx here has been observed to create the run anyway, and a silent second run breaks
+   ATT-02's exactly-one reading.
+
+7. **`publish-testpypi` is out of scope and stays on `TEST_PYPI_API_TOKEN`**, repository-scoped and
+   environment-scoped alike. Its `if:` matches `contains(github.ref, 'alpha'|'beta'|'rc')` as well
+   as the tag input, so whether it fires on the rehearsal is a **measurement on the actual dispatch
+   ref**, not an assumption — a branch name containing any of those three substrings would drag it in.
+
+8. **ATT-01's `:141-144` citation spans four lines but the credential is two.** Measured 2026-09-23
+   on `origin/main` (byte-identical to the branch): `:141` is `- name: Publish to PyPI`, `:142` is
+   `uses: pypa/gh-action-pypi-publish@release/v1`, `:143` is `with:`, `:144` is
+   `password: ${{ secrets.PYPI_API_TOKEN }}`. Deleting `:141-144` literally would delete the publish
+   step itself and publish nothing. The controlling clause is ATT-01's first sentence — the step
+   **publishes** with no `password:` key — so `:143-144` come out and `:141-142` stay. Re-measure the
+   line numbers at the phase base before editing; do not trust the citation, in this roadmap or in
+   REQUIREMENTS.md.
+
+9. **Nothing is added to replace the deleted key.** No `attestations:` — it is already the action's
+   default once Trusted Publishing is active, and writing it restates the exact misreading ATT-01's
+   record exists to correct. No `skip-existing:` — it would turn ATT-02's duplicate rejection, the
+   signal that proves the registration is correct, into a silent pass, and would mask a real failed
+   upload at the production tag. No commit-SHA pin (`@release/v1` is the PyPA-recommended ref and a
+   separate supply-chain decision) and no job-level `permissions:` narrowing.
+
+10. **Neither the workflow file nor a green run is evidence.** This project lost a whole milestone
+    to that exact shape once (REL-04, v0.7.0) and ATT-01 is the second instance: v0.9.6's upload
+    succeeded *and* served `"provenance": null`. Every acceptance reading in this milestone comes
+    from PyPI's own served state or from a run log. The legacy `/pypi/<project>/<version>/json`
+    endpoint never carries the provenance field and does not count.
+
+11. **ATT-05 is strictly gated behind ATT-03 passing, and there are two `PYPI_API_TOKEN` secrets** —
+    one repository-scoped and one scoped to the `pypi` environment, which are distinct secrets. Both
+    are deleted, and the token is separately revoked on PyPI's own token-management page. Until
+    ATT-03 passes, that token is the rollback path.
+
+12. **Every irreversible action executes at `/gsd-complete-milestone`, not inside a phase:** the PR
+    merge to `main`, the `v0.9.7` tag push, the PyPI upload, the GitHub Release, both secret
+    deletions and the PyPI-side revocation. ATT-03, ATT-04, ATT-05, DOC-25 and REL-17's publish
+    clauses are checked **there**, against observed evidence, and **never by phase-completion
+    tooling** — which has flipped a deferred release checkbox before (v0.9.2 precedent).
+
+13. **MSG-06 must not land in the release-prep phase.** Phase 77 is prep-only: no change under
+    `typsphinx/`. MSG-06 was deferred under exactly that fence at v0.9.6's Phase 75, and was still
+    not picked up when its two siblings closed at the v0.9.6 close. It closes in Phase 76 instead,
+    with its own recorded-RED evidence — a test observed failing on the pre-fix tree — per this
+    repository's standing bar.
+
+14. **Cheapest recovery first.** A failed publish does not create a partial release: `create-release`
+    has `needs: [build, publish-pypi]` with no `if:` override, so it is *skipped* rather than failed
+    and the tag is not consumed. Re-running the same failed run within the 7-day artifact retention
+    window, once the registration is fixed, is cheaper than ATT-06's re-tag path and is tried first.
+
+**Two phases: one work phase, then release prep — and where the post-tag requirements land.**
+
+The research summary proposed five phases (MSG-06 / workflow edit / release-prep / tag + proof /
+secret retirement). Four of those five are not phase-shaped here. The total build work in this
+milestone is a **two-line deletion** in `release.yml` (constraint 8), a **two-call-site** change in
+`translator.py`, one `workflow_dispatch`, one standard release-prep, and one `.planning/` line
+correction. Splitting the workflow edit from its rehearsal would produce two phases of one
+requirement each that cannot be verified apart — the edit's only meaningful evidence *is* the
+rehearsal — which is the over-fragmentation shape this project has twice recorded. MSG-06 is folded
+into Phase 76 rather than given its own phase for the same reason, and because the release-prep
+phase's prep-only fence forbids it there (constraint 13). And the research's Phase D and Phase E are
+not phases at all under this project's process: they are the **publish half**.
+
+That split is the established shape here — v0.9.2's Phase 63, v0.9.4's Phase 71, v0.9.5's Phase 73
+and v0.9.6's Phase 75 each ran a *prep half* as a phase and handed the *publish half* to
+`/gsd-complete-milestone` through a standalone `NN-HANDOFF.md`. This milestone has an unusually
+heavy publish half — five requirements rather than one — so Phase 77's own criteria carry the weight
+that a phase normally would: each post-tag requirement must arrive at the close as a **pre-written
+command with its expected output and its control already recorded**, in an order the handoff
+enforces, not as an instruction to go and check something.
+
+Where each requirement lands:
+
+| Requirement | Phase | Half | Closed by |
+|-------------|-------|------|-----------|
+| ATT-01 | 76 | pre-tag | Phase 76 — the edited file plus the rehearsal that exercises it |
+| ATT-02 | 76 | pre-tag | Phase 76 — the rehearsal run's own log and PyPI's unchanged state |
+| MSG-06 | 76 | pre-tag | Phase 76 — recorded-RED test on the pre-fix tree, then green |
+| ATT-06 | 77 | pre-tag | Phase 77 — the rollback procedure, written before any tag exists |
+| REL-17 | 77 | **split** | Prep (bump, CHANGELOG, green tree) closes in Phase 77; the tag, the upload and the GitHub Release are checked at `/gsd-complete-milestone` |
+| ATT-04 | 77 | publish | `/gsd-complete-milestone`, on the v0.9.7 release run's log |
+| ATT-03 | 77 | publish | `/gsd-complete-milestone`, on PyPI's Simple JSON and Integrity APIs |
+| ATT-05 | 77 | publish | `/gsd-complete-milestone`, strictly after ATT-03 passes |
+| DOC-25 | 77 | publish | `/gsd-complete-milestone`, written **after** ATT-05 so it describes a state that is already true rather than one that is intended |
+
+DOC-25 is deliberately **not** written during release prep. Its own text requires it to describe
+"what the repository actually does after ATT-01 and ATT-05 land", and ATT-05 lands after the
+publish; writing it earlier would put a forward-looking claim into a codebase map, which is the same
+class of error the line already contains.
+
+- [x] **Phase 76: The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06** - `release.yml`'s production publish step carries no credential and mints its own OIDC token, proven by one `workflow_dispatch` against the already-published `v0.9.6` that reaches PyPI's upload endpoint and is turned away as a duplicate rather than as an unknown publisher — with nothing reaching PyPI. In the same phase, `translator.py`'s last two hardcoded-delimiter DEBUG logs route through `quote_path()`. (completed 2026-09-27)
+- [x] **Phase 77: v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff** - `pyproject.toml` reads `0.9.7` with `uv.lock` and `README.md` regenerated in the same commit, one curated `## [0.9.7]` CHANGELOG section with its tail link block moved and attestations described as audit provenance rather than an install-time gate, a rollback procedure recorded before any tag exists, and a standalone handoff that turns each of the five post-tag requirements into a pre-written command with its expected output and its control — with zero irreversible action taken and those five checkboxes held by a line-scoped fence. (completed 2026-09-28)
+
+## Phase Details
+
+### Phase 76: The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06
+
+**Goal**: `release.yml`'s production publish step stops reading a long-lived secret and mints its
+own OIDC token — and that path is **proven to work against real PyPI before anything irreversible
+happens**, by a dispatch that reaches the upload endpoint and is turned away as a duplicate rather
+than as an unknown publisher. A duplicate rejection proves the PyPI-side registration matches on all
+four fields; an `invalid-publisher` error names a mismatch that is indistinguishable across the
+wrong-filename, wrong-environment and not-registered cases, and must be resolved before tagging. In
+the same phase, `translator.py`'s two cross-directory relative-path DEBUG logs move to
+`quote_path()`, closing the fourth and last module of the MSG-02 family.
+
+**Depends on**: Nothing (first phase of the milestone) — but **gated on an owner prerequisite**: the
+Trusted Publisher must be registered on PyPI, through the existing project's Publishing settings,
+before the rehearsal is dispatched (constraint 1). No plan task may claim that step.
+
+**Requirements**: ATT-01, ATT-02, MSG-06
+**Success Criteria** (what must be TRUE):
+
+  1. **`publish-pypi` still publishes and carries no credential, and nothing was added in its
+     place.** The `Publish to PyPI` step remains, still on `pypa/gh-action-pypi-publish@release/v1`,
+     with its `with:` block and `password:` line removed and **no** replacement key:
+     `grep -c 'PYPI_API_TOKEN' .github/workflows/release.yml` counts only the `TEST_PYPI_API_TOKEN`
+     occurrences it counted at the phase base, `grep -c 'attestations'` → 0, `grep -c 'skip-existing'`
+     → 0. `publish-testpypi`'s `password:` and `repository-url:` lines are byte-identical to their
+     phase-base state, `@release/v1` is unchanged, the top-level `permissions:` block is unchanged,
+     and the file still parses as YAML. The phase evidence records the **measured** line numbers of
+     the deleted lines rather than repeating `:141-144` (constraint 8). (ATT-01)
+
+  2. **The OIDC exchange is exercised against production PyPI and turned away as a duplicate, not as
+     an unknown publisher.** Exactly one `workflow_dispatch` run of `release.yml` is dispatched with
+     input tag `v0.9.6`, on a ref whose `release.yml` carries no `password:` and whose
+     `pyproject.toml` still reads `0.9.6` (constraint 3, measured on the ref). The run reaches the
+     `Publish to PyPI` step — so `validate` and `build` both concluded `success` and the `pypi`
+     environment was approved — and that step fails with a `400`/`File already exists` rejection.
+     The log carries **zero** occurrences of `invalid-publisher` and zero of
+     `invalid-pending-publisher`. The run id, every job's conclusion, and the verbatim failing lines
+     are transcribed into the phase evidence. (ATT-02)
+
+  3. **Nothing reached PyPI, and no release artifact was created, from the rehearsal.** Against a
+     capture taken **before** the dispatch: the Simple JSON API's file list for `typsphinx` is
+     unchanged in count and in every `upload-time`, and 0.9.6's two files still read
+     `"provenance": null`; `gh release view v0.9.6` still shows its original assets; the run's
+     `create-release` job concluded `skipped` (its `needs: publish-pypi` was not satisfied) and
+     `publish-testpypi` concluded `skipped`, with the `if:` evaluation checked against the actual
+     dispatch ref and tag input rather than assumed (constraint 7). (ATT-02)
+
+  4. **The disabling annotation is already absent at the rehearsal, read against a non-zero
+     control.** `gh run view <rehearsal-run-id> --log | grep -c 'attestations input ignored'` → 0,
+     and the same for `disabling Trusted Publishing`, with the identical greps run against v0.9.6's
+     release run `35730551619` returning non-zero. The evidence states in its own words that this is
+     the **rehearsal** run and that ATT-04 is a reading on the v0.9.7 release run, so this
+     observation must not be transcribed forward as ATT-04's evidence.
+
+  5. **A path containing a literal single quote no longer closes the quote early in either
+     relative-path DEBUG log.** `_compute_relative_include_path()` and
+     `_compute_relative_image_path()` both emit `up_path`/`down_path` through
+     `typsphinx/pathfmt.py::quote_path()`; a `grep` over `typsphinx/translator.py` finds zero
+     remaining hardcoded `'`-delimited path fragments in either function; and a test drives each of
+     the two call sites with a path carrying a literal `'` and asserts the emitted DEBUG record,
+     **recorded RED against the pre-fix tree first**. `builder.py`, `writer.py` and
+     `template_registry.py` — the family's other three modules, closed in Phase 60 — are unchanged.
+     (MSG-06)
+
+**Plans**: 3/3 plans complete (2 waves)
+
+Plans:
+
+**Wave 1**
+
+- [x] 76-01-PLAN.md — ATT-01: the measured two-line deletion of `publish-pypi`'s credential, SC #1 readout and byte-identity invariants, opening `76-ATT-EVIDENCE.md` (D-08)
+- [x] 76-02-PLAN.md — MSG-06: new `tests/test_translator_path_quoting_gate.py` recorded RED on the unedited tree, both cross-directory debug logs routed through `quote_path()`, fence and full-suite green (`76-MSG06-EVIDENCE.md`)
+
+**Wave 2** *(after the orchestrator merges wave 1 and pushes the milestone branch, D-06)*
+
+- [x] 76-03-PLAN.md — ATT-02: pre-dispatch gate on the pushed SHA (CI green, validate-only checks, PyPI/Release baselines, control greps), blocking-human owner checkpoint for the one-way dispatch (D-05), exactly one `workflow_dispatch` rehearsal watched to conclusion, SC #2–#4 evidence into `76-ATT-EVIDENCE.md`
+
+### Phase 77: v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff
+
+**Goal**: the 0.9.7 tree is bumped, its CHANGELOG curated into a single `## [0.9.7]` section with
+the tail link block moved to match, the release note stating attestations as audit provenance rather
+than an install-time gate, a rollback procedure recorded **before any `v0.9.7` tag exists anywhere**,
+and a standalone handoff that turns each of the five post-tag requirements into a pre-written
+command with its expected output and its control — with **zero irreversible action inside the
+phase**. No tag, local or remote; no PyPI upload; no GitHub Release; no secret deleted; no PR merged.
+
+v0.9.7 is a **patch-level release with no breaking change**: no new configuration surface, no new
+runtime or dev dependency, no `@preview` change. Its user-visible content is one DEBUG-message
+correctness fix and a publishing-mechanics change that adds provenance to the artifacts — which the
+release note must describe as *audit* provenance, because neither `pip` nor `uv` verifies
+attestations at install time today and a reader must not conclude otherwise.
+
+**Depends on**: Phase 76 — and the dependency is mechanical, not conventional: the version bump
+cannot land before ATT-02's rehearsal, because `validate` compares `pyproject.toml` against the
+dispatch's tag input and a bumped tree makes the rehearsal fail before the OIDC exchange
+(constraint 3).
+
+**Requirements**: ATT-03, ATT-04, ATT-05, ATT-06, REL-17, DOC-25
+*(ATT-06 closes in this phase. REL-17's prep half closes here and its publish half at the close.
+ATT-03, ATT-04, ATT-05 and DOC-25 are mapped here for **coverage only** and are observed at
+`/gsd-complete-milestone` — see the half table above and constraint 12.)*
+
+**Success Criteria** (what must be TRUE):
+
+  1. **The version moves to 0.9.7 in one commit touching every file that carries it.**
+     `git show --name-only` on the bump commit lists `pyproject.toml`, `uv.lock`, `README.md` and
+     `CHANGELOG.md` together — a commit touching only `pyproject.toml` is the exact shape that once
+     killed every dependabot PR. `pyproject.toml:7` is the **sole hand-edited version literal**
+     (`0.9.6` → `0.9.7`); `uv.lock`'s `typsphinx` stanza reads `0.9.7` because `uv lock` regenerated
+     it, not because it was edited; `README.md`'s Status line reads `v0.9.7`;
+     `uv sync --extra dev --locked` exits 0 against the bumped tree;
+     `tests/test_readme_version_sync.py` is green; and `RELEASE_VERSIONS` in
+     `tests/test_changelog_page_gate.py` gains `"0.9.7"`, with the changelog page gate running at
+     **zero skipped** in an environment carrying the `docs` extra. (REL-17, prep half)
+
+  2. **The CHANGELOG carries one curated `## [0.9.7]` section, the tail link block moves with it,
+     and the attestation wording cannot be misread as an install-time guarantee.**
+     - The bullets standing under `## [Unreleased]` are counted at the phase base, not assumed, and
+       promoted into a new `## [0.9.7]` section together with this milestone's own, under a fresh,
+       empty `## [Unreleased]` heading placed **above** it.
+     - `[Unreleased]`'s compare base moves from `v0.9.6` to `v0.9.7` and a
+       `[0.9.7]: …/releases/tag/v0.9.7` link is added, in this same phase.
+     - The section says in words that attestations are **audit provenance, not an install-time
+       gate** — neither `pip` nor `uv` verifies them today.
+     - `scripts/extract_changelog_section.py 0.9.7` is **executed** and its stdout transcribed into
+       the phase evidence: non-empty, reproducing the `## [0.9.7]` section byte-for-byte, with no
+       `Planned for Future Releases` leakage. (REL-17, prep half)
+
+  3. **The bumped tree is proven green by runs executed in this phase, not on Phase 76's word.**
+     The full pytest suite passes twice, once under `LC_ALL=C` since CI runs in English;
+     `black --check .`, `ruff check .`, `mypy typsphinx/` and the `@preview` version-sync family
+     pass. `tox -e docs-html` and `tox -e docs-pdf` each pass on a **clean** build
+     (`rm -rf docs/_build` first — an incremental rebuild under-reports warnings and manufactures a
+     false baseline match) against a warning baseline taken at this phase's own base, and
+     `tox -e linkcheck` passes with its `working` count recorded fresh. **One** fresh CI run is
+     dispatched on the **bumped** tip and has completed, with every job's conclusion transcribed,
+     both `windows-latest` and both `macos-latest` lanes named, and `ruff`'s verdict read from the
+     `Lint and Format Check` job. A **non-committing** trial merge of `origin/main` into the branch
+     passes `uv lock --check` and `ruff check .` on the merged tree, and `main`'s protection, merge
+     method and required contexts are read rather than assumed.
+
+  4. **The publish half exists on paper before it exists in fact: a rollback procedure and a
+     standalone handoff, both written while no `v0.9.7` tag exists anywhere.**
+     - **Rollback (ATT-06, closes here).** A phase artifact names all three parts: restoring
+       `password:` to `publish-pypi`; bumping to **0.9.8** rather than retrying 0.9.7, because PyPI
+       permanently refuses a re-uploaded filename regardless of git-tag state; and **deleting the
+       failed `v0.9.7` tag both locally and on `origin`** (owner decision 2026-09-23 — `git tag -l`
+       shows 0.9.1 and 0.9.3–0.9.5 were never tagged at all, so a pushed tag with no release would
+       be a first here). It also records the **cheaper path to try first**: a failed publish leaves
+       `create-release` *skipped* and the tag unconsumed, so the same run can be re-run within the
+       7-day artifact retention window once the registration is fixed (constraint 14).
+     - **Handoff.** A standalone `77-HANDOFF.md` enumerates, in an order it states as load-bearing:
+       the merge to `main`; the `v0.9.7` tag push; the `pypi` environment's manual approval (an
+       expected gate, not a failure); then **ATT-04** as
+       `gh run view <id> --log | grep -c 'attestations input ignored'` → `0` with run `35730551619`
+       named as the non-zero control and the signal labelled necessary-but-not-sufficient;
+       **ATT-03(a)** as the Simple **JSON** API
+       (`curl -s https://pypi.org/simple/typsphinx/ -H 'Accept: application/vnd.pypi.simple.v1+json'`)
+       returning non-null `provenance` for **both** the 0.9.7 wheel and the 0.9.7 sdist, against
+       0.9.6's measured `"provenance": null` control, with the legacy
+       `/pypi/<project>/<version>/json` endpoint named as **not** counting; **ATT-03(b)** as
+       `https://pypi.org/integrity/typsphinx/0.9.7/<filename>/provenance` returning **200** with
+       `publisher` naming `repository` `YuSabo90002/typsphinx`, `workflow` `release.yml` and
+       `environment` `pypi`, against a 404 control for 0.9.6's wheel; **ATT-05** — only after ATT-03
+       passes — as `gh secret delete PYPI_API_TOKEN` at repository scope **and**
+       `gh secret delete PYPI_API_TOKEN --env pypi`, both scopes listed before and after, plus the
+       separate revocation on PyPI's token-management page, with `TEST_PYPI_API_TOKEN` re-listed at
+       both scopes to prove it survived; **DOC-25** as the
+       `.planning/codebase/INTEGRATIONS.md:116-117` rewrite, performed **after** ATT-05 so it
+       describes a state that is already true; then the `typsphinx-doc-translations`
+       `update-pin.yml` dispatch (a **manual** dispatch — it does not happen as a side effect of the
+       parent repo's tag push) and the Read the Docs `en` and `ja` `stable` re-measurement, fetched
+       cache-busted. The document is readable without this roadmap or any phase file.
+
+  5. **Zero irreversible action, probed twice, and the five post-tag checkboxes held by a recorded
+     line-scoped fence.** `git tag -l 'v0.9.7'` and a remote tag probe both come back empty, each
+     with a positive control, at two observations separated by intervening waves rather than by
+     wall-clock luck; no 0.9.7 file exists on PyPI; no GitHub Release for `v0.9.7` exists;
+     `gh secret list` still shows `PYPI_API_TOKEN` at **both** scopes; and `git diff` over the phase
+     shows no change under `typsphinx/` (constraint 13). A `77-CLOSEOUT-GUARD.md` records
+     `sha256sum .planning/REQUIREMENTS.md`, `wc -l`, the `PHASE_BASE_SHA` and the verbatim guarded
+     lines for **ATT-03, ATT-04, ATT-05, REL-17 and DOC-25**; the same commands re-run MATCH at
+     phase close **and once more after `phase.complete`-family tooling has run** — the observation
+     that actually catches the automatic flip, because it runs outside any plan's reach. Every
+     plan's `SUMMARY.md` frontmatter declares those five in `requirements-completed: []`, and each
+     checkbox is read directly out of `.planning/REQUIREMENTS.md` at close, never inferred from
+     frontmatter. ATT-06 is the one requirement this phase **does** close, which is why the fence is
+     line-scoped rather than whole-file (v0.9.6 Phase 75 precedent).
+
+**Plans**: 8/8 plans complete (5 waves)
+
+Plans:
+
+**Wave 1**
+
+- [x] 77-01-PLAN.md — phase-head baselines: the line-scoped REQUIREMENTS fence on ATT-03/04/05, REL-17 and DOC-25 with ATT-06 expected-to-move, the clean docs ledger and base linkcheck URI set, SC#5 observation 1
+- [x] 77-02-PLAN.md — REL-17 prep: the 0.9.7 bump across `pyproject.toml`, a regenerated `uv.lock` and `README.md`, the curated `## [0.9.7]` section (audit-provenance wording, NUM-01 re-stated), `RELEASE_VERSIONS`, one five-file commit and the extractor transcript
+- [x] 77-03-PLAN.md — ATT-06: the rollback section inside `77-HANDOFF.md` (D-01 to D-04) committed while no `v0.9.7` tag exists, with its evidence, plus measured controls for every publish-half read command
+
+**Wave 2**
+
+- [x] 77-04-PLAN.md — SC#3 local: lint trio, the full suite twice (once under `LC_ALL=C`), clean docs builds against the base ledger, and linkcheck with the two pre-tag records classified against controls
+- [x] 77-05-PLAN.md — SC#3 preflight: non-committing trial merge against the moved `origin/main`, `main`'s protection and merge method, the open-PR census
+
+**Wave 3**
+
+- [x] 77-06-PLAN.md — SC#3 CI: fast-forward push of the milestone branch and exactly one CI dispatch on the bumped tip, every job transcribed
+
+**Wave 4**
+
+- [x] 77-07-PLAN.md — SC#4 handoff: twelve ordered publish-half steps, each a pre-written command with its expected output, its control and a rollback pointer (D-04)
+
+**Wave 5**
+
+- [x] 77-08-PLAN.md — SC#5 close: fence observation 2, probe observation 2, scope fence, handoff audit, SUMMARY census and the third-observation hand-off
+
+**Cross-cutting constraints** *(truths any plan in this phase must carry)*: the prep-only fence
+(nothing under `typsphinx/`, `docs/source/` content aside from version strings, or
+`.github/workflows/`); no irreversible action of any kind; and the five coverage-only requirements
+are never checked here, by hand or by tooling.
+
 ## Progress
 
 Phases 1–75 shipped or completed across v0.4.4 → v0.9.6; their per-phase plan counts, statuses and
 completion dates are preserved in each milestone's archived roadmap under `milestones/`. The table
-below tracks the active milestone only, and is empty until `/gsd-new-milestone` writes the next one.
+below tracks the active milestone only.
+
+**Execution Order:** 76 → 77. The arrow is a mechanical dependency, not a convention: ATT-02's
+rehearsal needs `pyproject.toml` to still read `0.9.6`, so the bump cannot land first (constraint 3).
+Inside Phase 76 two further orderings are real — the pre-dispatch capture of PyPI's served state
+before the dispatch, and MSG-06's RED before its GREEN. The publish half runs after Phase 77, at
+`/gsd-complete-milestone`, in the order `77-HANDOFF.md` fixes: tag → ATT-04 → ATT-03 → ATT-05 →
+DOC-25.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
+| 76. The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06 | v0.9.7 | 3/3 | Complete | 2026-09-27 |
+| 77. v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff | v0.9.7 | 8/8 | Complete | 2026-09-28 |
 
 ## Roadmap Evolution
 
@@ -160,6 +562,31 @@ Per-milestone evolution notes are archived with their milestone. v0.9.6's live i
 shape, the acceptance gate being this project's own documentation build rather than a scratch
 fixture, and REL-15 mapped to Phase 75 for coverage only while REL-16 closed inside it — which is
 why that phase's `REQUIREMENTS.md` fence was line-scoped for the first time.
+
+- **2026-09-23** — v0.9.7 roadmap created: **Phases 76–77**, 9/9 v1 requirements mapped, zero
+  orphans, zero duplicates, continuing numbering from v0.9.6's Phase 75. Two phases at
+  `granularity: standard` (nominally 4–6), below the range and **below the research summary's own
+  five-phase suggestion**, for reasons recorded in the active-milestone section. Baked in:
+  **(a)** ATT-01 and ATT-02 share Phase 76 because the edit's only meaningful evidence *is* the
+  rehearsal — splitting them manufactures two single-requirement phases neither of which can be
+  verified alone, the over-fragmentation shape this project has twice recorded. **(b)** MSG-06 joins
+  Phase 76 rather than taking its own phase or riding along in release prep, because the prep-only
+  fence forbids `typsphinx/` changes there and has already deferred MSG-06 once for exactly that
+  reason (v0.9.6 Phase 75). **(c)** The **mechanical** 76 → 77 ordering: `validate` compares
+  `pyproject.toml` against the dispatch tag input, so a bumped tree makes ATT-02's rehearsal fail
+  before the OIDC exchange is ever reached. This is the constraint most likely to be discovered the
+  expensive way, and it is why "rehearse, then bump" is not a stylistic preference. **(d)** The
+  research's Phase D and Phase E are not phases: they are the **publish half**, and this project
+  hands that half to `/gsd-complete-milestone` through a standalone handoff (v0.9.2 Phase 63,
+  v0.9.4 Phase 71, v0.9.5 Phase 73, v0.9.6 Phase 75). With five requirements in that half rather
+  than one, Phase 77's SC#4 carries the weight a phase normally would — every post-tag reading must
+  arrive at the close as a pre-written command with its expected output *and its control*.
+  **(e)** DOC-25 is deliberately deferred to after ATT-05 rather than written during prep, because
+  its own text requires it to describe a state that has already landed; writing it earlier would put
+  a forward-looking claim into a codebase map, the same class of error the line already contains.
+  **(f)** ATT-01's `:141-144` citation was **measured and found to overstate the edit** — the
+  credential is two lines (`:143-144`), and deleting the cited span literally would delete the
+  publish step. Recorded as constraint 8 rather than silently corrected.
 
 ## Backlog
 
@@ -206,15 +633,26 @@ retired numbers, so the next item filed here is **999.3**.
   exclusion from every published surface is therefore over; the underlying divergence is unchanged.
 
 - `2026-08-29-hardcoded-delimiter-path-fragments-in-translator-relative-path-debug-logs` (MSG-06,
-  `severity: minor`) — `translator.py`'s two relative-path DEBUG logs carry the same
-  hardcoded-`'...'` delimiter shape Phase 60 closed in three other modules; the one-line fix is
-  `quote_path()`, which exists. Deferred once more under Phase 75's prep-only fence and **not**
-  picked up when its two siblings were closed at the v0.9.6 close.
+  `severity: minor`) — **now scoped into v0.9.7 as Phase 76.** `translator.py`'s two relative-path
+  DEBUG logs carry the same hardcoded-`'...'` delimiter shape Phase 60 closed in three other
+  modules; the fix is `quote_path()`, which exists. It was deferred once more under Phase 75's
+  prep-only fence and **not** picked up when its two siblings were closed at the v0.9.6 close —
+  which is why the v0.9.7 roadmap places it in the work phase, not the release-prep phase.
 
-- **ATT-01** (filed 2026-09-22, no todo file yet) — `release.yml` passes `attestations: true` to
-  `pypa/gh-action-pypi-publish` alongside an explicit password, which disables Trusted Publishing and
-  makes the attestations input a no-op. Surfaced as an annotation on release run `35730551619`; the
-  upload succeeded, so this is a supply-chain-provenance gap, not a release blocker.
+- `2026-09-22-release-yml-uses-a-pypi-api-token-so-trusted-publishing-and` (**ATT-01**,
+  `severity: minor`) — **now scoped into v0.9.7 as Phase 76**, with one correction to the todo's own
+  text: the fix removes `password:` from `publish-pypi` **only**. `publish-testpypi` keeps
+  `TEST_PYPI_API_TOKEN` (owner decision 2026-09-23 — registering a second publisher would leave an
+  unexercised path, the shape this milestone exists to avoid).
+  `release.yml` publishes with `password: ${{ secrets.PYPI_API_TOKEN }}`, which puts
+  `pypa/gh-action-pypi-publish` on the API-token path and turns Trusted Publishing off, and with it the
+  action's own default `attestations: true` — so the uploaded artifacts carry no PEP 740 provenance.
+  **The workflow file contains no `attestations` line at all**; run `35730551619`'s annotation reports
+  the action's effective default, so anyone searching for an `attestations:` key will find nothing. The
+  fix is removing `password:` from **both** publish steps (`publish-pypi` and `publish-testpypi`) after
+  registering a Trusted Publisher on PyPI — `id-token: write` and the `pypi` environment are already
+  declared. It can only be proven on a real tag push, so it belongs in a milestone that publishes; the
+  upload itself succeeded, so this is a supply-chain-provenance gap, not a release blocker.
 
 **Dormant seeds:**
 - **`SEED-001-readme-quickstart-typst-documents-pdf`** — substantially discharged by v0.7.1's
@@ -245,4 +683,4 @@ surface itself by v0.9.3's DOC-21.
 tag, ran on `v0.9.6` and succeeded (run `35730551619`).
 
 ---
-*Roadmap created: 2026-07-04 · Reorganized at each milestone close: v0.4.4 (2026-07-05), v0.5.0 (2026-07-11), v0.6.0 (2026-07-13), v0.6.1 (2026-07-19), v0.6.2 (2026-07-23), v0.6.3 (2026-07-25), v0.6.4 (2026-07-28), v0.6.5 (2026-07-29), v0.7.0 (2026-08-04), v0.7.1 (2026-08-11), v0.8.0 (2026-08-15), v0.9.0 (2026-08-22), v0.9.1 (2026-08-30 — completed, not published), v0.9.2 (2026-08-31), v0.9.3 (2026-09-13 — merged, not published), v0.9.4 (2026-09-13 — merged, not published), v0.9.5 (2026-09-16 — merged, not published), v0.9.6 (2026-09-22 — **shipped and published**). Per-milestone phase detail, success criteria, and decisions for completed milestones live in `milestones/vX.Y-ROADMAP.md`. No milestone is active; the next is scoped by `/gsd-new-milestone`, continuing at **Phase 76**.*
+*Roadmap created: 2026-07-04 · Reorganized at each milestone close: v0.4.4 (2026-07-05), v0.5.0 (2026-07-11), v0.6.0 (2026-07-13), v0.6.1 (2026-07-19), v0.6.2 (2026-07-23), v0.6.3 (2026-07-25), v0.6.4 (2026-07-28), v0.6.5 (2026-07-29), v0.7.0 (2026-08-04), v0.7.1 (2026-08-11), v0.8.0 (2026-08-15), v0.9.0 (2026-08-22), v0.9.1 (2026-08-30 — completed, not published), v0.9.2 (2026-08-31), v0.9.3 (2026-09-13 — merged, not published), v0.9.4 (2026-09-13 — merged, not published), v0.9.5 (2026-09-16 — merged, not published), v0.9.6 (2026-09-22 — **shipped and published**). Per-milestone phase detail, success criteria, and decisions for completed milestones live in `milestones/vX.Y-ROADMAP.md`. Active milestone: **v0.9.7 Trusted Publishing and release** (Phases 76–77), roadmapped 2026-09-23.*

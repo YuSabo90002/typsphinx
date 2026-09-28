@@ -1,6 +1,6 @@
 ---
 id: SEED-001
-status: dormant
+status: closed
 planted: 2026-08-01
 planted_during: v0.7.0 (API rendering design overhaul) — Phase 36 planning
 trigger_when: when relevant
@@ -10,6 +10,15 @@ audit_acknowledged:
   at: 2026-08-29
   status: dormant
 ---
+
+> **Closed 2026-09-23 — this seed no longer surfaces.** The defect it describes was fixed by
+> **v0.7.1** (shipped 2026-08-11), ten days after this seed was planted (2026-08-01), and the seed
+> was never re-checked against the shipped tree. Measured at the v0.9.7 scoping: a `conf.py` setting
+> only `project` and `author` builds `myproject.pdf` under `sphinx-build -b typstpdf` at **exit 0
+> with no warning**. `_default_typst_documents()` (`typsphinx/builder.py:660`) derives a single
+> entry from `root_doc`/`project`/`author`, and `README.md:91-98` documents that a single-master
+> project never needs to set `typst_documents`. Marked `status: closed` so `/gsd-new-milestone`'s
+> seed scan stops offering it. Kept for provenance only.
 
 # SEED-001: README の Quick Start に何も書いていないのに、`typst_documents` を設定していないと `.typ` ファイルが PDF にコンバートされない
 

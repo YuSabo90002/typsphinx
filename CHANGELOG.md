@@ -14,6 +14,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pre-commit hooks
 - Additional Typst Universe template integration
 
+## [0.9.7] - 2026-09-28
+
+0.9.7 corrects a DEBUG-log quoting defect and changes how this release is published: the
+release workflow now uses PyPI Trusted Publishing, which records provenance attestations
+for the uploaded files. Neither change alters typsphinx's installed behaviour.
+
+### Changed
+
+- **The release workflow now publishes to PyPI through Trusted Publishing, and the
+  publish action attaches PEP 740 attestations to the uploaded wheel and sdist
+  (ATT-01, ATT-02).** The publish step now authenticates with a short-lived OIDC token
+  instead of a long-lived API token, and each attestation records the GitHub Actions
+  workflow that built and published the file. These attestations are audit provenance,
+  not an install-time gate: neither `pip` nor `uv` verifies them when installing today,
+  so installing typsphinx behaves exactly as before. A reader can inspect a file's
+  attestation through PyPI's Integrity API, at the path shape
+  `pypi.org/integrity/<project>/<version>/<filename>/provenance`.
+
+### Fixed
+
+- **A path containing a literal single quote no longer closes the quote early in two
+  DEBUG-only diagnostic messages (MSG-06).** When typsphinx computes a cross-directory
+  relative path for an included document or an image, the two DEBUG log messages that
+  record the computed `up_path`/`down_path` values now quote each path with the same
+  delimiter-aware quoting used by its other path diagnostics. Only DEBUG-level log text
+  is affected; no compiled output changes.
+
+### Known Limitations
+
+- **A multi-master `typst_documents` configuration can produce a diverging or missing `:numref:`
+  reference number (NUM-01).** A single-master project is entirely unaffected. When the same
+  figure is reachable from two masters, Sphinx bakes one project-wide number into the `:numref:`
+  reference text, but each compiled Typst wrapper counts its own captions independently — so the
+  reference reads correctly in one master's PDF and points at the wrong number in the other, with
+  no diagnostic reporting the mismatch. When a figure is reachable only from a non-root master, it
+  never enters Sphinx's root-document figure-numbering scan, so its `:numref:` reference falls
+  back to the raw label text instead of a number; Sphinx does emit one warning naming the label,
+  so the build log carries a diagnostic even though the compiled PDF gives the reader none.
+  **Workaround:** use a single-master `typst_documents` configuration, or replace `:numref:` with
+  `:ref:` for the affected figures.
+
+### Verified
+
+- No new runtime dependency and no new dev dependency were added across this milestone's
+  diff (`v0.9.6..HEAD`); `pyproject.toml` differs from the `v0.9.6` tag by exactly its
+  version line, and `uv.lock`'s package-name set is identical to the tag's.
+- The four bundled `@preview` package version strings are unchanged across all three
+  declaration sites (`typsphinx/writer.py`, `typsphinx/template_engine.py`,
+  `typsphinx/templates/base.typ`).
+- MSG-06's fix is bound by a real regression gate
+  (`tests/test_translator_path_quoting_gate.py`), recorded failing against the unfixed
+  tree before the fix landed.
+
 ## [0.9.6] - 2026-09-20
 
 This release's headline fix is doctest block rendering: a `>>>` example in your documentation now
@@ -1375,6 +1428,7 @@ untouched.
 
 ---
 
+[0.9.7]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.7
 [0.9.6]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.6
 [0.9.2]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.2
 [0.9.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.0
@@ -1398,4 +1452,4 @@ untouched.
 [0.2.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.1
 [0.2.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.0
 [0.1.0b1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.1.0b1
-[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.9.6...HEAD
+[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.9.7...HEAD
