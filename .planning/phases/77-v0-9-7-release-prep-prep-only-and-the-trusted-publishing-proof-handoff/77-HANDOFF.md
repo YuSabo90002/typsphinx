@@ -735,3 +735,40 @@ fails (D-04).
 ---
 *Phase: 77-v0-9-7-release-prep-prep-only-and-the-trusted-publishing-proof-handoff*
 *Plan: 03*
+
+## Phase-close observations
+
+Recorded by `77-08`, after every other plan of this phase had run — the second of the three
+observations named in `77-CLOSEOUT-GUARD.md` § "Re-verification protocol (phase close)".
+
+The fence held: `FENCE_CLOSE_VERDICT = MATCH`. Re-run at phase close, the full digest of
+`.planning/REQUIREMENTS.md` read `REQ_SHA256_CLOSE = 35eb6122efd878cad4083a18b84c006f315c3cfe5229f3d443e6c712e6954351`
+and the guarded-region digest (ATT-06's two lines excluded) read
+`REQ_SHA256_GUARDED_CLOSE = fce6cc7d403e4c68b4cf12a6e58bf990f94f9a5f7db2943ce9da2469953d4af5` —
+both byte-identical to the phase-head baseline recorded in `77-CLOSEOUT-GUARD.md`. Each of the five
+fenced checkboxes (ATT-03, ATT-04, ATT-05, REL-17, DOC-25) still reads `- [ ]` and each traceability
+row still ends `Pending |`, read directly out of the file.
+
+Probe observation 2 of 2 ran at `OBS2_AT = 2026-09-28T14:12:55Z`, repeating every observation-1
+probe: no `v0.9.7` tag exists locally or on `origin` (the `v0.9.6` control still present), zero
+`typsphinx-0.9.7*` files are listed on PyPI's Simple JSON API (both `typsphinx-0.9.6` files still
+present as the control), no `v0.9.7` GitHub Release exists (`v0.9.6` is still the latest), no
+`release.yml` run has happened since the Phase 76 rehearsal, `PYPI_API_TOKEN` is present at both the
+repository and the `pypi`-environment scope with `TEST_PYPI_API_TOKEN` still present at repository
+scope, and no pull request of any state exists against the milestone branch. The two observations
+are separated by the bump commit, the rollback-section commit, the local green-tree runs, the trial
+merge, the push and dispatched CI run, and the handoff commits themselves — recorded work, not
+wall-clock luck.
+
+The scope fence held with controls: `PHASE_PRODUCT_DIFF = CHANGELOG.md|README.md|pyproject.toml|tests/test_changelog_page_gate.py|uv.lock`
+and nothing else changed outside `.planning/` over the phase — zero changes under `typsphinx/`,
+`.github/`, `docs/source/` and `.planning/codebase/`, each pathspec proven to resolve by a
+milestone-range or tracked-file control. `POST_DISPATCH_PRODUCT_FILES = 0` — no product file changed
+after the tip CI actually tested (`PUSHED_SHA = df6357faf3d6ce93ac99bbfc3bdad58168a95a14`,
+`RUN_ID = 36430787178`).
+
+SC5 reads MET on both digests, both probe observations and the scope fence with its controls. The
+third observation — after `phase.complete`-family tooling has actually run, the observation that
+has historically caught the flip — belongs to the operator running that tooling, per
+`77-CLOSEOUT-GUARD.md` § "Handoff to the third observation"; it is documented there, not taken by
+any plan.

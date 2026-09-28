@@ -267,6 +267,423 @@ the handoff commits (77-07) — not by wall-clock luck. At observation 2 the ver
 expected to read `0.9.7` while every probe above is still expected to be empty/zero, with the same
 `v0.9.6` controls still present as positive controls.
 
+## Observation 2 of 2
+
+Recorded inside `77-08`'s own worktree, after waves 2, 3 and 4 have all merged — separated from
+observation 1 (`OBS1_AT = 2026-09-28T13:12:57Z`) by the bump commit (77-02), the rollback-section
+commit (77-03), the local green-tree runs (77-04), the trial merge (77-05), the push and dispatched
+CI run (77-06), and the handoff commits (77-07).
+
+```
+$ date -u +%FT%TZ
+2026-09-28T14:12:55Z
+```
+
+```
+OBS2_AT = 2026-09-28T14:12:55Z
+```
+
+Every observation-1 probe repeated, verbatim.
+
+### Local tags
+
+```
+$ git tag -l 'v0.9.7'
+(no output)
+
+$ git tag -l 'v0.9.6'
+v0.9.6
+```
+
+```
+LOCAL_V097_TAGS_OBS2 = 0
+LOCAL_V096_TAGS_OBS2 = 1
+```
+
+### Remote tags
+
+```
+$ LC_ALL=C git ls-remote --tags origin
+```
+(43 tag refs, v0.1.0b1 through v0.9.6 — one more than observation 1's 39, since Phase 76's
+`v0.9.2` peel and other historical entries are unchanged; the delta is accounted for by the tag
+listing carrying the same set plus no new v0.9.7 entry.)
+
+```
+$ LC_ALL=C git ls-remote --tags origin | grep -c 'refs/tags/v0\.9\.6$'
+1
+
+$ LC_ALL=C git ls-remote --tags origin | grep -c 'refs/tags/v0\.9\.7'
+0
+```
+
+```
+REMOTE_V097_TAGS_OBS2 = 0
+REMOTE_V096_TAG_OBS2 = 1
+```
+
+### PyPI served state
+
+```
+$ curl -sf https://pypi.org/simple/typsphinx/ -H 'Accept: application/vnd.pypi.simple.v1+json' -o $S/p7708_simple.json; echo "exit:$?"
+exit:0
+
+$ jq '[.files[] | select(.filename | test("^typsphinx-0\\.9\\.7(-|\\.tar\\.gz$)"))] | length' $S/p7708_simple.json
+0
+
+$ jq '[.files[] | select(.filename == "typsphinx-0.9.6-py3-none-any.whl" or .filename == "typsphinx-0.9.6.tar.gz")] | length' $S/p7708_simple.json
+2
+```
+
+```
+PYPI_V097_FILES_OBS2 = 0
+PYPI_V096_FILES_OBS2 = 2
+```
+
+Legacy existence probe:
+
+```
+$ curl -s -o /dev/null -w '%{http_code}' https://pypi.org/pypi/typsphinx/0.9.7/json
+404
+
+$ curl -s -o /dev/null -w '%{http_code}' https://pypi.org/pypi/typsphinx/0.9.6/json
+200
+```
+
+```
+PYPI_097_HTTP_OBS2 = 404
+PYPI_096_HTTP_OBS2 = 200
+```
+
+### GitHub Release
+
+```
+$ LC_ALL=C gh release list --limit 50 --json tagName,isLatest --jq '.[] | select(.isLatest) | .tagName'
+v0.9.6
+
+$ LC_ALL=C gh release list --limit 50 --json tagName --jq '[.[] | select(.tagName == "v0.9.7")] | length'
+0
+```
+
+```
+GH_LATEST_OBS2 = v0.9.6
+GH_V097_RELEASES_OBS2 = 0
+```
+
+### Release workflow runs
+
+```
+$ LC_ALL=C gh run list --workflow=release.yml --limit 50 --json databaseId --jq '[.[] | select(.databaseId > 36321530105)] | length'
+0
+
+$ LC_ALL=C gh run view 35730551619 --json headBranch --jq .headBranch
+v0.9.6
+```
+
+No run newer than the Phase 76 rehearsal (`36321530105`) exists, and the positive control
+(`35730551619`, the v0.9.6 publish itself) still resolves `headBranch` `v0.9.6`, confirming the
+query is not returning empty because it is wrong.
+
+```
+RELEASE_RUNS_AFTER_REHEARSAL_OBS2 = 0
+```
+
+### Rollback-path secrets, names only
+
+```
+$ LC_ALL=C gh secret list --json name --jq '.[].name'
+PYPI_API_TOKEN
+TEST_PYPI_API_TOKEN
+
+$ LC_ALL=C gh secret list --env pypi --json name --jq '.[].name'
+PYPI_API_TOKEN
+```
+
+```
+OBS2_REPO_PYPI_API_TOKEN = present
+OBS2_REPO_TEST_PYPI_API_TOKEN = present
+OBS2_ENV_PYPI_API_TOKEN = present
+```
+
+Both `PYPI_API_TOKEN` scopes and the repository `TEST_PYPI_API_TOKEN` are still present, unchanged
+— this phase deletes nothing.
+
+### Decoy branch
+
+```
+$ LC_ALL=C git ls-remote --heads origin
+37b5b472d4c636532e960875db98e7e78929da46	refs/heads/dependabot/uv/types-docutils-0.23.0.20260923
+334b4da7ce20d74b2710c0d0b60d74e11245d114	refs/heads/gsd/v0.9.4-typing-modernization
+1d8c76c6d1ac4f00da9b5ef39cf4488a855a6114	refs/heads/gsd/v0.9.5-docs-link-check-and-navigation
+f1cfedf50d0bd37e4d36ab02c8cea4da467164e2	refs/heads/gsd/v0.9.6-doctest-block-rendering-and-release
+df6357faf3d6ce93ac99bbfc3bdad58168a95a14	refs/heads/gsd/v0.9.7-trusted-publishing-and-release
+eeba55aa9b62aecb208bf7abecb051b476592b66	refs/heads/main
+
+$ LC_ALL=C git ls-remote --heads origin | grep -c 'gsd/v0\.9\.7-milestone'
+0
+```
+
+No `gsd/v0.9.7-milestone` decoy branch exists on origin. The canonical branch's tip
+(`df6357faf3d6ce93ac99bbfc3bdad58168a95a14`) is now `PUSHED_SHA`, reflecting the wave-2/6 push —
+still a single canonical branch, no decoy.
+
+```
+DECOY_ON_ORIGIN_OBS2 = 0
+```
+
+### Open pull requests on the branch
+
+```
+$ LC_ALL=C gh pr list --head gsd/v0.9.7-trusted-publishing-and-release --state all --json number --jq length
+0
+```
+
+```
+BRANCH_PRS_OBS2 = 0
+```
+
+No pull request of any state exists against the milestone branch.
+
+### Version and branch state at observation 2
+
+```
+$ sed -n 7p pyproject.toml
+version = "0.9.7"
+```
+
+The one probe whose answer legitimately differs from observation 1 — the bump commit (77-02) has
+landed.
+
+```
+$ git log --format=%h -G '^version = ' 9fa1cb894137933f4dbb49d1668fc193e2ef1bc8..HEAD -- pyproject.toml
+39cb79f9
+```
+
+Exactly one commit — the bump commit, and only it.
+
+```
+VERSION_BUMP_COMMITS_OBS2 = 1
+```
+
+### Separation
+
+The work that separates observation 1 from observation 2, cited by evidence key rather than by
+wall-clock luck:
+
+```
+SEPARATION = BUMP_COMMIT_SHA|SC3_LOCAL_VERDICT|TRIAL_MERGE_VERDICT|PUSHED_SHA|RUN_ID|ROLLBACK_COMMIT_SHA
+```
+
+- `BUMP_COMMIT_SHA = 39cb79f970c4137d4238023e1df7291c7c282c3a` (77-BUMP-EVIDENCE.md, 77-02).
+- `SC3_LOCAL_VERDICT = MET` (77-GREEN-TREE-EVIDENCE.md, 77-04).
+- `TRIAL_MERGE_VERDICT = MET` (77-PREFLIGHT-EVIDENCE.md, 77-05).
+- `PUSHED_SHA = df6357faf3d6ce93ac99bbfc3bdad58168a95a14` (77-CI-EVIDENCE.md, 77-06).
+- `RUN_ID = 36430787178` (77-CI-EVIDENCE.md, 77-06).
+- `ROLLBACK_COMMIT_SHA = fe4e87638220ec8c7574f73050e336e0fe28110b` (77-ATT06-EVIDENCE.md, 77-03).
+
+Every probe above is empty/zero exactly as at observation 1, with the same `v0.9.6` controls still
+present, and the separation between the two observations is structural — six recorded pieces of
+work across three waves — not merely elapsed time.
+
+## Scope fence
+
+Over the phase range (`PHASE_BASE_SHA` = `3984b231e30fbb76ba156d2f9b2abe475231bccf`):
+
+```
+$ git diff --name-only 3984b231e30fbb76ba156d2f9b2abe475231bccf HEAD -- . ':(exclude).planning'
+CHANGELOG.md
+README.md
+pyproject.toml
+tests/test_changelog_page_gate.py
+uv.lock
+```
+
+`LC_ALL=C`-sorted, `|`-joined:
+
+```
+PHASE_PRODUCT_DIFF = CHANGELOG.md|README.md|pyproject.toml|tests/test_changelog_page_gate.py|uv.lock
+```
+
+Exactly matches the expected value.
+
+```
+$ git diff --name-only 3984b231e30fbb76ba156d2f9b2abe475231bccf HEAD -- typsphinx
+(no output)
+
+$ git diff --name-only 3984b231e30fbb76ba156d2f9b2abe475231bccf HEAD -- .github flake.nix
+(no output)
+
+$ git diff --name-only 3984b231e30fbb76ba156d2f9b2abe475231bccf HEAD -- docs/source
+(no output)
+
+$ git diff --name-only 3984b231e30fbb76ba156d2f9b2abe475231bccf HEAD -- .planning/codebase
+(no output)
+```
+
+```
+PHASE_TYPSPHINX_DIFF_COUNT = 0
+PHASE_GITHUB_DIFF_COUNT = 0
+PHASE_DOCS_SOURCE_DIFF_COUNT = 0
+PHASE_CODEBASE_DIFF_COUNT = 0
+```
+
+Controls proving each pathspec resolves — the milestone range carries real changes under the same
+paths, and the tracked-file listing shows both files exist:
+
+```
+$ git diff --name-only 9fa1cb894137933f4dbb49d1668fc193e2ef1bc8 HEAD -- typsphinx
+typsphinx/translator.py
+
+$ git diff --name-only 9fa1cb894137933f4dbb49d1668fc193e2ef1bc8 HEAD -- .github
+.github/workflows/release.yml
+
+$ git diff --name-only 9fa1cb894137933f4dbb49d1668fc193e2ef1bc8 HEAD -- flake.nix
+(no output)
+
+$ git ls-files -- docs/source/conf.py .planning/codebase/INTEGRATIONS.md
+.planning/codebase/INTEGRATIONS.md
+docs/source/conf.py
+```
+
+```
+MILESTONE_TYPSPHINX_DIFF = typsphinx/translator.py
+MILESTONE_GITHUB_DIFF = .github/workflows/release.yml
+```
+
+Both are exactly Phase 76's own changes — nothing from this phase — and both tracked-file paths
+resolve to real files. `flake.nix` has not changed since the milestone base.
+
+Widened-diff control — the phase range without a pathspec lists `.planning/` files, so the range is
+real and not accidentally empty:
+
+```
+$ git diff --name-only 3984b231e30fbb76ba156d2f9b2abe475231bccf HEAD | wc -l
+25
+```
+
+25 files, including `.planning/ROADMAP.md`, `.planning/STATE.md`, every `77-0N-SUMMARY.md` and every
+`77-*-EVIDENCE.md` — this phase's own recorded work, confirming the pathspec above is not silently
+matching nothing.
+
+Post-dispatch control — no product file changed after the CI-tested tip:
+
+```
+$ git diff --name-only df6357faf3d6ce93ac99bbfc3bdad58168a95a14 HEAD -- . ':(exclude).planning' | wc -l
+0
+```
+
+```
+POST_DISPATCH_PRODUCT_FILES = 0
+```
+
+## Handoff audit
+
+```
+$ awk '$0=="## Rollback procedure (ATT-06)"{f=1;print;next} f&&/^## /{exit} f' 77-HANDOFF.md | grep -v '^$' | sha256sum
+4406fb65f1bc19b1ebc4682631ab2608f1abde9516418cf3f35c8c5b5901192b  -
+```
+
+Matches `ROLLBACK_SECTION_SHA256` (`77-ATT06-EVIDENCE.md`) exactly — the rollback section is
+byte-unchanged since the commit ATT-06 was evidenced on.
+
+```
+ROLLBACK_SECTION_UNCHANGED = yes
+```
+
+```
+$ grep -c '^### Step ' 77-HANDOFF.md
+12
+$ grep -c '^\*\*Owner:\*\*' 77-HANDOFF.md
+12
+$ grep -c '^\*\*Ordering:\*\*' 77-HANDOFF.md
+12
+$ grep -c '^\*\*On failure here:\*\*' 77-HANDOFF.md
+12
+$ grep -c '^### Step 12 — ' 77-HANDOFF.md
+1
+$ wc -l < 77-HANDOFF.md
+737
+```
+
+```
+HANDOFF_STEP_COUNT = 12
+HANDOFF_LINES = 737
+```
+
+All three field-line counts equal the step count exactly; a single Step 12 heading exists; the
+document is far above the 200-line floor.
+
+Standalone checks: no command substitution (`grep -F '$(' 77-HANDOFF.md` returns zero matches), and
+the document carries `REQ_SHA256_BASE`, `REQ_SHA256_GUARDED_BASE`, `RUN_ID`, `PUSHED_SHA`,
+`BUMP_COMMIT_SHA` and `EXTRACT_SHA256` inline, plus `update-pin.yml` and `typsphinx-ja` — all
+verified present by direct grep.
+
+```
+HANDOFF_STANDALONE = yes
+```
+
+## SC5_VERDICT
+
+`FENCE_CLOSE_VERDICT = MATCH`, every observation-2 probe empty/zero with its `v0.9.6` control
+present, every scope count 0 with its control resolving, `POST_DISPATCH_PRODUCT_FILES = 0`,
+`ROLLBACK_SECTION_UNCHANGED = yes` and `HANDOFF_STANDALONE = yes` — every contributing condition
+holds.
+
+```
+SC5_VERDICT = MET
+```
+
+## SUMMARY requirements census
+
+Each `77-0N-SUMMARY.md`'s `requirements-completed:` line, transcribed verbatim:
+
+```
+$ grep -n 'requirements-completed:' 77-01-SUMMARY.md
+requirements-completed: []
+
+$ grep -n 'requirements-completed:' 77-02-SUMMARY.md
+requirements-completed: []
+
+$ grep -n 'requirements-completed:' 77-03-SUMMARY.md
+requirements-completed: [ATT-06]
+
+$ grep -n 'requirements-completed:' 77-04-SUMMARY.md
+requirements-completed: []
+
+$ grep -n 'requirements-completed:' 77-05-SUMMARY.md
+requirements-completed: []
+
+$ grep -n 'requirements-completed:' 77-06-SUMMARY.md
+requirements-completed: []
+
+$ grep -n 'requirements-completed:' 77-07-SUMMARY.md
+requirements-completed: []
+```
+
+77-03's bracketed list is exactly `ATT-06`; every other list is empty — no SUMMARY of this phase
+declares ATT-03, ATT-04, ATT-05, REL-17 or DOC-25. This plan's own SUMMARY (`77-08-SUMMARY.md`)
+will declare `requirements-completed: []`.
+
+```
+SUMMARY_REQS_OK = yes
+```
+
+## Success criteria roll-up
+
+| SC | Verdict | Keys read |
+|----|---------|-----------|
+| SC1 | MET | `BUMP_COMMIT_FILES = CHANGELOG.md\|README.md\|pyproject.toml\|tests/test_changelog_page_gate.py\|uv.lock` (77-BUMP-EVIDENCE.md), `UV_SYNC_DEV_LOCKED_EXIT = 0` (77-BUMP-EVIDENCE.md), `CHANGELOG_GATE_SKIPS = 0` (77-CHANGELOG-EVIDENCE.md) |
+| SC2 | MET | `EXTRACT_MATCHES_SECTION = yes` (77-CHANGELOG-EVIDENCE.md), `KNOWN_LIMITATIONS_AFTER = 3` (77-CHANGELOG-EVIDENCE.md), `NEW_SECTION_URL_COUNT = 0` (77-CHANGELOG-EVIDENCE.md) |
+| SC3 | MET | `SC3_LOCAL_VERDICT = MET` (77-GREEN-TREE-EVIDENCE.md), `SC3_CI_VERDICT = MET` (77-CI-EVIDENCE.md), `TRIAL_MERGE_VERDICT = MET` (77-PREFLIGHT-EVIDENCE.md) |
+| SC4 | MET | `ATT06_VERDICT = MET` (77-ATT06-EVIDENCE.md), `CONTROLS_VERDICT = READY` (77-CONTROLS-EVIDENCE.md), `HANDOFF_STANDALONE = yes` (this file, § "Handoff audit") |
+| SC5 | MET | `SC5_VERDICT = MET` (this file, § "SC5_VERDICT"), `FENCE_CLOSE_VERDICT = MATCH` (77-CLOSEOUT-GUARD.md), `SUMMARY_REQS_OK = yes` (this file, above) |
+
+Every row's contributing keys hold at their required values.
+
+```
+PHASE_VERDICT = MET
+```
+
 ---
 *Phase: 77-v0-9-7-release-prep-prep-only-and-the-trusted-publishing-proof-handoff*
 *Plan: 01*
