@@ -485,6 +485,154 @@ Every probe above is empty/zero exactly as at observation 1, with the same `v0.9
 present, and the separation between the two observations is structural — six recorded pieces of
 work across three waves — not merely elapsed time.
 
+## Scope fence
+
+Over the phase range (`PHASE_BASE_SHA` = `3984b231e30fbb76ba156d2f9b2abe475231bccf`):
+
+```
+$ git diff --name-only 3984b231e30fbb76ba156d2f9b2abe475231bccf HEAD -- . ':(exclude).planning'
+CHANGELOG.md
+README.md
+pyproject.toml
+tests/test_changelog_page_gate.py
+uv.lock
+```
+
+`LC_ALL=C`-sorted, `|`-joined:
+
+```
+PHASE_PRODUCT_DIFF = CHANGELOG.md|README.md|pyproject.toml|tests/test_changelog_page_gate.py|uv.lock
+```
+
+Exactly matches the expected value.
+
+```
+$ git diff --name-only 3984b231e30fbb76ba156d2f9b2abe475231bccf HEAD -- typsphinx
+(no output)
+
+$ git diff --name-only 3984b231e30fbb76ba156d2f9b2abe475231bccf HEAD -- .github flake.nix
+(no output)
+
+$ git diff --name-only 3984b231e30fbb76ba156d2f9b2abe475231bccf HEAD -- docs/source
+(no output)
+
+$ git diff --name-only 3984b231e30fbb76ba156d2f9b2abe475231bccf HEAD -- .planning/codebase
+(no output)
+```
+
+```
+PHASE_TYPSPHINX_DIFF_COUNT = 0
+PHASE_GITHUB_DIFF_COUNT = 0
+PHASE_DOCS_SOURCE_DIFF_COUNT = 0
+PHASE_CODEBASE_DIFF_COUNT = 0
+```
+
+Controls proving each pathspec resolves — the milestone range carries real changes under the same
+paths, and the tracked-file listing shows both files exist:
+
+```
+$ git diff --name-only 9fa1cb894137933f4dbb49d1668fc193e2ef1bc8 HEAD -- typsphinx
+typsphinx/translator.py
+
+$ git diff --name-only 9fa1cb894137933f4dbb49d1668fc193e2ef1bc8 HEAD -- .github
+.github/workflows/release.yml
+
+$ git diff --name-only 9fa1cb894137933f4dbb49d1668fc193e2ef1bc8 HEAD -- flake.nix
+(no output)
+
+$ git ls-files -- docs/source/conf.py .planning/codebase/INTEGRATIONS.md
+.planning/codebase/INTEGRATIONS.md
+docs/source/conf.py
+```
+
+```
+MILESTONE_TYPSPHINX_DIFF = typsphinx/translator.py
+MILESTONE_GITHUB_DIFF = .github/workflows/release.yml
+```
+
+Both are exactly Phase 76's own changes — nothing from this phase — and both tracked-file paths
+resolve to real files. `flake.nix` has not changed since the milestone base.
+
+Widened-diff control — the phase range without a pathspec lists `.planning/` files, so the range is
+real and not accidentally empty:
+
+```
+$ git diff --name-only 3984b231e30fbb76ba156d2f9b2abe475231bccf HEAD | wc -l
+25
+```
+
+25 files, including `.planning/ROADMAP.md`, `.planning/STATE.md`, every `77-0N-SUMMARY.md` and every
+`77-*-EVIDENCE.md` — this phase's own recorded work, confirming the pathspec above is not silently
+matching nothing.
+
+Post-dispatch control — no product file changed after the CI-tested tip:
+
+```
+$ git diff --name-only df6357faf3d6ce93ac99bbfc3bdad58168a95a14 HEAD -- . ':(exclude).planning' | wc -l
+0
+```
+
+```
+POST_DISPATCH_PRODUCT_FILES = 0
+```
+
+## Handoff audit
+
+```
+$ awk '$0=="## Rollback procedure (ATT-06)"{f=1;print;next} f&&/^## /{exit} f' 77-HANDOFF.md | grep -v '^$' | sha256sum
+4406fb65f1bc19b1ebc4682631ab2608f1abde9516418cf3f35c8c5b5901192b  -
+```
+
+Matches `ROLLBACK_SECTION_SHA256` (`77-ATT06-EVIDENCE.md`) exactly — the rollback section is
+byte-unchanged since the commit ATT-06 was evidenced on.
+
+```
+ROLLBACK_SECTION_UNCHANGED = yes
+```
+
+```
+$ grep -c '^### Step ' 77-HANDOFF.md
+12
+$ grep -c '^\*\*Owner:\*\*' 77-HANDOFF.md
+12
+$ grep -c '^\*\*Ordering:\*\*' 77-HANDOFF.md
+12
+$ grep -c '^\*\*On failure here:\*\*' 77-HANDOFF.md
+12
+$ grep -c '^### Step 12 — ' 77-HANDOFF.md
+1
+$ wc -l < 77-HANDOFF.md
+737
+```
+
+```
+HANDOFF_STEP_COUNT = 12
+HANDOFF_LINES = 737
+```
+
+All three field-line counts equal the step count exactly; a single Step 12 heading exists; the
+document is far above the 200-line floor.
+
+Standalone checks: no command substitution (`grep -F '$(' 77-HANDOFF.md` returns zero matches), and
+the document carries `REQ_SHA256_BASE`, `REQ_SHA256_GUARDED_BASE`, `RUN_ID`, `PUSHED_SHA`,
+`BUMP_COMMIT_SHA` and `EXTRACT_SHA256` inline, plus `update-pin.yml` and `typsphinx-ja` — all
+verified present by direct grep.
+
+```
+HANDOFF_STANDALONE = yes
+```
+
+## SC5_VERDICT
+
+`FENCE_CLOSE_VERDICT = MATCH`, every observation-2 probe empty/zero with its `v0.9.6` control
+present, every scope count 0 with its control resolving, `POST_DISPATCH_PRODUCT_FILES = 0`,
+`ROLLBACK_SECTION_UNCHANGED = yes` and `HANDOFF_STANDALONE = yes` — every contributing condition
+holds.
+
+```
+SC5_VERDICT = MET
+```
+
 ---
 *Phase: 77-v0-9-7-release-prep-prep-only-and-the-trusted-publishing-proof-handoff*
 *Plan: 01*
