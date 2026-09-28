@@ -258,6 +258,58 @@ PREVIEW_PACKAGE_COUNT = 4
 
 ## Commit
 
-Only this file, `77-BUMP-EVIDENCE.md`, is staged and committed here, by explicit path. The three
-product edits (`pyproject.toml`, `uv.lock`, `README.md`) stay uncommitted for Task 3's single
+Only this file, `77-BUMP-EVIDENCE.md`, was staged and committed here, by explicit path. The three
+product edits (`pyproject.toml`, `uv.lock`, `README.md`) stayed uncommitted for Task 3's single
 five-file commit.
+
+## The one commit
+
+Before staging, the working tree carried exactly the five product files and nothing else:
+
+```
+git status --porcelain -- . ':(exclude).planning'
+ M CHANGELOG.md
+ M README.md
+ M pyproject.toml
+ M tests/test_changelog_page_gate.py
+ M uv.lock
+```
+
+No unexpected product change — no `## HALT` needed.
+
+Staged by explicit path:
+
+```
+git add pyproject.toml uv.lock README.md CHANGELOG.md tests/test_changelog_page_gate.py
+```
+
+Committed with a plain `git commit`, subject `chore(release): prepare 0.9.7` (names the 0.9.7
+release prep, not a GSD plan number).
+
+```
+git show --name-only --format='%H %s' HEAD
+39cb79f970c4137d4238023e1df7291c7c282c3a chore(release): prepare 0.9.7
+
+CHANGELOG.md
+README.md
+pyproject.toml
+tests/test_changelog_page_gate.py
+uv.lock
+```
+
+BUMP_COMMIT_SHA = 39cb79f970c4137d4238023e1df7291c7c282c3a
+
+BUMP_COMMIT_FILES = CHANGELOG.md|README.md|pyproject.toml|tests/test_changelog_page_gate.py|uv.lock
+(the `LC_ALL=C`-sorted, `|`-joined file list from `git show --name-only`.)
+
+SC#1 names four files (`pyproject.toml`, `uv.lock`, `README.md`, `CHANGELOG.md`); the Phase
+75-carried union adds `tests/test_changelog_page_gate.py`. The bump and the curation share one
+commit so a commit touching only `pyproject.toml` — the shape that once stalled every dependency
+pull request — cannot exist.
+
+After the commit, the working tree has no remaining product change:
+
+```
+git status --porcelain -- . ':(exclude).planning'
+```
+prints nothing.

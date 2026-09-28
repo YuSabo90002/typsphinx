@@ -287,6 +287,115 @@ CHANGELOG_GATE_SKIPS = 0
 
 ## Commit
 
-Only this file, `77-CHANGELOG-EVIDENCE.md`, is staged and committed here, by explicit path.
-`CHANGELOG.md` and `tests/test_changelog_page_gate.py` stay uncommitted for Task 3's single
-five-file commit.
+Only this file, `77-CHANGELOG-EVIDENCE.md`, was staged and committed here, by explicit path.
+`CHANGELOG.md` and `tests/test_changelog_page_gate.py` stayed uncommitted for Task 3's single
+five-file commit (landed as `BUMP_COMMIT_SHA` in `77-BUMP-EVIDENCE.md`).
+
+## Extractor transcript
+
+```
+uv run python scripts/extract_changelog_section.py 0.9.7 > "$S/p7702_release_notes.md" 2>"$S/p7702_extract.err"; echo "exit:$?"
+exit:0
+```
+
+EXTRACT_EXIT = 0
+
+```
+wc -c < "$S/p7702_release_notes.md"   -> 3132
+wc -l < "$S/p7702_release_notes.md"   -> 50
+sha256sum < "$S/p7702_release_notes.md"
+82f27b346b89163e08e6f64ba7b119c3fcc4ab20d300d06f6cf94d86a96983f6  -
+```
+
+EXTRACT_BYTES = 3132
+EXTRACT_LINES = 50
+EXTRACT_SHA256 = 82f27b346b89163e08e6f64ba7b119c3fcc4ab20d300d06f6cf94d86a96983f6
+
+The stdout, verbatim — this is the text that becomes the start of the GitHub Release body:
+
+```
+0.9.7 corrects a DEBUG-log quoting defect and changes how this release is published: the
+release workflow now uses PyPI Trusted Publishing, which records provenance attestations
+for the uploaded files. Neither change alters typsphinx's installed behaviour.
+
+### Changed
+
+- **The release workflow now publishes to PyPI through Trusted Publishing, and the
+  publish action attaches PEP 740 attestations to the uploaded wheel and sdist
+  (ATT-01, ATT-02).** The publish step now authenticates with a short-lived OIDC token
+  instead of a long-lived API token, and each attestation records the GitHub Actions
+  workflow that built and published the file. These attestations are audit provenance,
+  not an install-time gate: neither `pip` nor `uv` verifies them when installing today,
+  so installing typsphinx behaves exactly as before. A reader can inspect a file's
+  attestation through PyPI's Integrity API, at the path shape
+  `pypi.org/integrity/<project>/<version>/<filename>/provenance`.
+
+### Fixed
+
+- **A path containing a literal single quote no longer closes the quote early in two
+  DEBUG-only diagnostic messages (MSG-06).** When typsphinx computes a cross-directory
+  relative path for an included document or an image, the two DEBUG log messages that
+  record the computed `up_path`/`down_path` values now quote each path with the same
+  delimiter-aware quoting used by its other path diagnostics. Only DEBUG-level log text
+  is affected; no compiled output changes.
+
+### Known Limitations
+
+- **A multi-master `typst_documents` configuration can produce a diverging or missing `:numref:`
+  reference number (NUM-01).** A single-master project is entirely unaffected. When the same
+  figure is reachable from two masters, Sphinx bakes one project-wide number into the `:numref:`
+  reference text, but each compiled Typst wrapper counts its own captions independently — so the
+  reference reads correctly in one master's PDF and points at the wrong number in the other, with
+  no diagnostic reporting the mismatch. When a figure is reachable only from a non-root master, it
+  never enters Sphinx's root-document figure-numbering scan, so its `:numref:` reference falls
+  back to the raw label text instead of a number; Sphinx does emit one warning naming the label,
+  so the build log carries a diagnostic even though the compiled PDF gives the reader none.
+  **Workaround:** use a single-master `typst_documents` configuration, or replace `:numref:` with
+  `:ref:` for the affected figures.
+
+### Verified
+
+- No new runtime dependency and no new dev dependency were added across this milestone's
+  diff (`v0.9.6..HEAD`); `pyproject.toml` differs from the `v0.9.6` tag by exactly its
+  version line, and `uv.lock`'s package-name set is identical to the tag's.
+- The four bundled `@preview` package version strings are unchanged across all three
+  declaration sites (`typsphinx/writer.py`, `typsphinx/template_engine.py`,
+  `typsphinx/templates/base.typ`).
+- MSG-06's fix is bound by a real regression gate
+  (`tests/test_translator_path_quoting_gate.py`), recorded failing against the unfixed
+  tree before the fix landed.
+```
+
+```
+grep -c '^### Planned for Future Releases' "$S/p7702_release_notes.md"   -> 0
+grep -cE '^## \[' "$S/p7702_release_notes.md"                           -> 0
+```
+
+EXTRACT_PLANNED_BLOCK = 0
+EXTRACT_VERSION_HEADINGS = 0
+
+The saved stdout, normalised with one trailing newline, hashes identically to the `## [0.9.7]`
+section body read straight out of `CHANGELOG.md` with leading and trailing blank lines stripped:
+
+```
+SEC digest: 82f27b346b89163e08e6f64ba7b119c3fcc4ab20d300d06f6cf94d86a96983f6
+X   digest: 82f27b346b89163e08e6f64ba7b119c3fcc4ab20d300d06f6cf94d86a96983f6
+```
+
+EXTRACT_MATCHES_SECTION = yes
+
+```
+LC_ALL=C uv run pytest tests/test_changelog_extraction.py -q -p no:cacheprovider
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/yuta/Documents/typsphinx/.claude/worktrees/agent-ac30e4db427ca86b6
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collected 6 items
+
+tests/test_changelog_extraction.py ......                                [100%]
+
+============================== 6 passed in 0.27s ===============================
+```
+
+EXTRACTION_TESTS_EXIT = 0
