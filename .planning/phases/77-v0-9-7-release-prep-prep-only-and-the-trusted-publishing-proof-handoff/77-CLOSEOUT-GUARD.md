@@ -361,6 +361,225 @@ and guarded-region digest are inlined there so the reader needs no other file op
 **The rule: reverted and reported, never committed.** No `/gsd-complete-milestone` step starts
 until the five guarded-ID probes above show MATCH.
 
+## Re-verification at phase close
+
+Recorded inside `77-08`'s own worktree (`worktree-agent-a2b6ebe2228d04eb7`), after waves 2, 3 and 4
+have all merged — this is observation 2 of the three named in § "Re-verification protocol (phase
+close)" above.
+
+```
+$ date -u +%FT%TZ
+2026-09-28T14:11:10Z
+
+$ pwd -P
+/home/yuta/Documents/typsphinx/.claude/worktrees/agent-a2b6ebe2228d04eb7
+
+$ test -f .git; echo "exit:$?"
+exit:0
+
+$ grep -q typsphinx-fhs-run "$(command -v uv)" && echo shim-ok
+shim-ok
+```
+
+Provisioning: `env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev --extra docs` exited
+0 (`typsphinx==0.9.7` installed editable from this worktree's own checkout, plus every `dev`/`docs`
+extra dependency).
+
+```
+PYVENV_HOME = /home/yuta/.local/share/uv/python/cpython-3.14-linux-x86_64-gnu/bin
+PYVENV_VERSION_INFO = 3.14
+```
+
+`mktemp -d /tmp/p7708.XXXXXX` -> `/tmp/p7708.Av4OnH`.
+
+```
+SCRATCH_77_08 = /tmp/p7708.Av4OnH
+```
+
+```
+$ git rev-parse HEAD
+29323655fcf9a2b447a1a0848921b97e2c4de193
+
+$ git merge-base --is-ancestor 3984b231e30fbb76ba156d2f9b2abe475231bccf HEAD; echo "exit:$?"
+exit:0
+```
+
+`PHASE_BASE_SHA` is confirmed an ancestor of this worktree's HEAD.
+
+```
+$ sha256sum .planning/REQUIREMENTS.md
+35eb6122efd878cad4083a18b84c006f315c3cfe5229f3d443e6c712e6954351  .planning/REQUIREMENTS.md
+
+$ wc -l .planning/REQUIREMENTS.md
+189 .planning/REQUIREMENTS.md
+
+$ grep -vE '^- \[.\] \*\*ATT-06\*\*|^\| ATT-06 \|' .planning/REQUIREMENTS.md | sha256sum
+fce6cc7d403e4c68b4cf12a6e58bf990f94f9a5f7db2943ce9da2469953d4af5  -
+
+$ git diff --name-only -- .planning/REQUIREMENTS.md
+(no output)
+
+$ git diff --name-only 3984b231e30fbb76ba156d2f9b2abe475231bccf HEAD -- .planning/REQUIREMENTS.md
+(no output)
+```
+
+Both digests and the line count are byte-identical to the phase-head baseline; both diffs are
+empty — no plan wrote `.planning/REQUIREMENTS.md`.
+
+```
+REQ_SHA256_CLOSE = 35eb6122efd878cad4083a18b84c006f315c3cfe5229f3d443e6c712e6954351
+REQ_LINES_CLOSE = 189
+REQ_SHA256_GUARDED_CLOSE = fce6cc7d403e4c68b4cf12a6e58bf990f94f9a5f7db2943ce9da2469953d4af5
+```
+
+The five `grep -n` transcripts, re-run at close:
+
+```
+$ grep -n 'ATT-03' .planning/REQUIREMENTS.md
+37:- [ ] **ATT-03**: The switch is proven on **PyPI's own served state** for the real 0.9.7 upload, not
+51:      so its absence alone does not prove PyPI served provenance. ATT-03 is what proves that.
+55:      ATT-03 passes**; until then the token is the rollback path. `TEST_PYPI_API_TOKEN` is left in
+162:| ATT-03 | Phase 77 | publish (coverage only) | Pending |
+183:→ ATT-03 (PyPI Simple JSON + Integrity APIs) → ATT-05 (both secret scopes + PyPI revocation, and
+184:only once ATT-03 has passed) → DOC-25 (written after ATT-05, so it describes a state that is
+```
+
+```
+$ grep -n 'ATT-04' .planning/REQUIREMENTS.md
+47:- [ ] **ATT-04**: The v0.9.7 release run carries **zero** occurrences of the action's
+161:| ATT-04 | Phase 77 | publish (coverage only) | Pending |
+182:The publish half runs in a fixed order that `77-HANDOFF.md` enforces: tag push → ATT-04 (run log)
+```
+
+```
+$ grep -n 'ATT-05' .planning/REQUIREMENTS.md
+52:- [ ] **ATT-05**: `PYPI_API_TOKEN` is retired from **both** GitHub scopes — the repository-scoped
+86:      ATT-01 and ATT-05 land.
+163:| ATT-05 | Phase 77 | publish (coverage only) | Pending |
+183:→ ATT-03 (PyPI Simple JSON + Integrity APIs) → ATT-05 (both secret scopes + PyPI revocation, and
+184:only once ATT-03 has passed) → DOC-25 (written after ATT-05, so it describes a state that is
+```
+
+```
+$ grep -n 'REL-17' .planning/REQUIREMENTS.md
+75:- [ ] **REL-17**: 0.9.7 is published — `pyproject.toml` bumped as the **sole** version literal with
+160:| REL-17 | Phase 77 | split — prep in phase, publish at close | Pending |
+185:already true). REL-17's publish clauses are checked across the whole of it.
+```
+
+```
+$ grep -n 'DOC-25' .planning/REQUIREMENTS.md
+84:- [ ] **DOC-25**: `.planning/codebase/INTEGRATIONS.md:116-117` no longer describes `PYPI_API_TOKEN`
+164:| DOC-25 | Phase 77 | publish (coverage only) | Pending |
+184:only once ATT-03 has passed) → DOC-25 (written after ATT-05, so it describes a state that is
+```
+
+All five transcripts are byte-identical to § "The lines under guard" above.
+
+```
+GUARDED_LINES_MATCH = yes
+```
+
+The direct reads SC#5 requires — each of the five checkbox lines and each traceability row, read
+directly out of the file at close:
+
+```
+$ for id in ATT-03 ATT-04 ATT-05 REL-17 DOC-25; do grep -E "^- \[ \] \*\*$id\*\*" .planning/REQUIREMENTS.md | head -1; done
+- [ ] **ATT-03**: The switch is proven on **PyPI's own served state** for the real 0.9.7 upload, not
+- [ ] **ATT-04**: The v0.9.7 release run carries **zero** occurrences of the action's
+- [ ] **ATT-05**: `PYPI_API_TOKEN` is retired from **both** GitHub scopes — the repository-scoped
+- [ ] **REL-17**: 0.9.7 is published — `pyproject.toml` bumped as the **sole** version literal with
+- [ ] **DOC-25**: `.planning/codebase/INTEGRATIONS.md:116-117` no longer describes `PYPI_API_TOKEN`
+
+$ for id in ATT-03 ATT-04 ATT-05 REL-17 DOC-25; do grep -E "^\| $id \| Phase 77 \| .* \| Pending \|$" .planning/REQUIREMENTS.md; done
+| ATT-03 | Phase 77 | publish (coverage only) | Pending |
+| ATT-04 | Phase 77 | publish (coverage only) | Pending |
+| ATT-05 | Phase 77 | publish (coverage only) | Pending |
+| REL-17 | Phase 77 | split — prep in phase, publish at close | Pending |
+| DOC-25 | Phase 77 | publish (coverage only) | Pending |
+```
+
+Every checkbox still reads `- [ ]` and every row still ends `Pending |`, read directly out of the
+file, never inferred from SUMMARY frontmatter.
+
+```
+GUARDED_CHECKBOXES_UNCHECKED = yes
+GUARDED_ROWS_PENDING = yes
+```
+
+ATT-06's transcript, beside its expected-to-move callout — it has not moved yet, because no plan in
+this phase edits `.planning/REQUIREMENTS.md` and phase-completion tooling has not run:
+
+```
+$ grep -n 'ATT-06' .planning/REQUIREMENTS.md
+57:- [ ] **ATT-06**: A rollback procedure is recorded before the tag is pushed, and names: restoring
+147:  once the registration is fixed. That is cheaper than ATT-06's re-tag path and should be tried
+159:| ATT-06 | Phase 77 | pre-tag | Pending |
+179:before. ATT-06 is the one requirement Phase 77 legitimately closes, which is why the fence is
+```
+
+Still `- [ ]` / `Pending` — unchanged from phase head, exactly as expected before phase-completion
+tooling runs.
+
+Discretion A's literal counts, re-measured:
+
+```
+$ grep -c 'attestations input ignored' .planning/REQUIREMENTS.md
+1
+$ grep -c 'attestations input ignored' .planning/ROADMAP.md
+3
+```
+
+Both equal `ATT04_LITERAL_REQ_HITS_BASE` (1) and `ATT04_LITERAL_ROADMAP_HITS_BASE` (3) respectively.
+
+```
+ATT04_LITERAL_REQ_HITS_CLOSE = 1
+ATT04_LITERAL_ROADMAP_HITS_CLOSE = 3
+ATT04_LITERALS_UNCHANGED = yes
+```
+
+Fresh close-time backups, copied to `$SCRATCH_77_08` outside the repository:
+
+```
+$ S=/tmp/p7708.Av4OnH
+$ cp .planning/REQUIREMENTS.md "$S/p7708_REQUIREMENTS.md"
+$ cp .planning/ROADMAP.md "$S/p7708_ROADMAP.md"
+$ cp .planning/STATE.md "$S/p7708_STATE.md"
+$ sha256sum "$S/p7708_REQUIREMENTS.md" "$S/p7708_ROADMAP.md" "$S/p7708_STATE.md"
+35eb6122efd878cad4083a18b84c006f315c3cfe5229f3d443e6c712e6954351  /tmp/p7708.Av4OnH/p7708_REQUIREMENTS.md
+cc121aad70cba0dcd5b81f7091eeb40c684e0fe067d56c110c127eaf04b703f2  /tmp/p7708.Av4OnH/p7708_ROADMAP.md
+ce7dfb5f78197c82aa37572828cac98c3675094b6fca8481ef1410a326115fde  /tmp/p7708.Av4OnH/p7708_STATE.md
+```
+
+The REQUIREMENTS.md close-time backup's digest matches the live file exactly (`REQ_SHA256_CLOSE`).
+
+```
+CLOSE_BACKUP_REQUIREMENTS = /tmp/p7708.Av4OnH/p7708_REQUIREMENTS.md
+CLOSE_BACKUP_ROADMAP = /tmp/p7708.Av4OnH/p7708_ROADMAP.md
+CLOSE_BACKUP_STATE = /tmp/p7708.Av4OnH/p7708_STATE.md
+```
+
+Diffed against 77-01's phase-head backups (`BACKUP_ROADMAP = /tmp/p7701.p8Y5y6/p7701_ROADMAP.md`,
+`BACKUP_STATE = /tmp/p7701.p8Y5y6/p7701_STATE.md`) — both measured, both legitimate orchestrator
+tracking changes, not tooling damage:
+
+`ROADMAP.md` diff: the per-plan progress lines for 77-01 through 77-07 flipped `- [ ]` to `- [x]`,
+the phase summary row moved from `0/8 | Not started` to `7/8 | In Progress`, and the top-line
+`**Plans**:` counter moved from `8 plans (5 waves)` to `7/8 plans executed (5 waves)` — exactly the
+per-plan progress tracking the orchestrator updates after every merged wave.
+
+`STATE.md` diff: `last_updated`, `last_activity_desc`, `progress.completed_plans` (3 → 10, cumulative
+project count, not phase-scoped), and the `## Current Position` block's `Plan:`/`Status:`/`Last
+activity:` lines — all ordinary session-tracking fields the orchestrator updates after each wave,
+none of it a checkbox or traceability-row flip inside `.planning/REQUIREMENTS.md`.
+
+`FENCE_CLOSE_VERDICT = MATCH` — every digest, the line count, both empty diffs, the five transcripts
+and both direct reads hold.
+
+```
+FENCE_CLOSE_VERDICT = MATCH
+```
+
 ---
 *Phase: 77-v0-9-7-release-prep-prep-only-and-the-trusted-publishing-proof-handoff*
 *Plan: 01*

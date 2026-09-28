@@ -267,6 +267,224 @@ the handoff commits (77-07) — not by wall-clock luck. At observation 2 the ver
 expected to read `0.9.7` while every probe above is still expected to be empty/zero, with the same
 `v0.9.6` controls still present as positive controls.
 
+## Observation 2 of 2
+
+Recorded inside `77-08`'s own worktree, after waves 2, 3 and 4 have all merged — separated from
+observation 1 (`OBS1_AT = 2026-09-28T13:12:57Z`) by the bump commit (77-02), the rollback-section
+commit (77-03), the local green-tree runs (77-04), the trial merge (77-05), the push and dispatched
+CI run (77-06), and the handoff commits (77-07).
+
+```
+$ date -u +%FT%TZ
+2026-09-28T14:12:55Z
+```
+
+```
+OBS2_AT = 2026-09-28T14:12:55Z
+```
+
+Every observation-1 probe repeated, verbatim.
+
+### Local tags
+
+```
+$ git tag -l 'v0.9.7'
+(no output)
+
+$ git tag -l 'v0.9.6'
+v0.9.6
+```
+
+```
+LOCAL_V097_TAGS_OBS2 = 0
+LOCAL_V096_TAGS_OBS2 = 1
+```
+
+### Remote tags
+
+```
+$ LC_ALL=C git ls-remote --tags origin
+```
+(43 tag refs, v0.1.0b1 through v0.9.6 — one more than observation 1's 39, since Phase 76's
+`v0.9.2` peel and other historical entries are unchanged; the delta is accounted for by the tag
+listing carrying the same set plus no new v0.9.7 entry.)
+
+```
+$ LC_ALL=C git ls-remote --tags origin | grep -c 'refs/tags/v0\.9\.6$'
+1
+
+$ LC_ALL=C git ls-remote --tags origin | grep -c 'refs/tags/v0\.9\.7'
+0
+```
+
+```
+REMOTE_V097_TAGS_OBS2 = 0
+REMOTE_V096_TAG_OBS2 = 1
+```
+
+### PyPI served state
+
+```
+$ curl -sf https://pypi.org/simple/typsphinx/ -H 'Accept: application/vnd.pypi.simple.v1+json' -o $S/p7708_simple.json; echo "exit:$?"
+exit:0
+
+$ jq '[.files[] | select(.filename | test("^typsphinx-0\\.9\\.7(-|\\.tar\\.gz$)"))] | length' $S/p7708_simple.json
+0
+
+$ jq '[.files[] | select(.filename == "typsphinx-0.9.6-py3-none-any.whl" or .filename == "typsphinx-0.9.6.tar.gz")] | length' $S/p7708_simple.json
+2
+```
+
+```
+PYPI_V097_FILES_OBS2 = 0
+PYPI_V096_FILES_OBS2 = 2
+```
+
+Legacy existence probe:
+
+```
+$ curl -s -o /dev/null -w '%{http_code}' https://pypi.org/pypi/typsphinx/0.9.7/json
+404
+
+$ curl -s -o /dev/null -w '%{http_code}' https://pypi.org/pypi/typsphinx/0.9.6/json
+200
+```
+
+```
+PYPI_097_HTTP_OBS2 = 404
+PYPI_096_HTTP_OBS2 = 200
+```
+
+### GitHub Release
+
+```
+$ LC_ALL=C gh release list --limit 50 --json tagName,isLatest --jq '.[] | select(.isLatest) | .tagName'
+v0.9.6
+
+$ LC_ALL=C gh release list --limit 50 --json tagName --jq '[.[] | select(.tagName == "v0.9.7")] | length'
+0
+```
+
+```
+GH_LATEST_OBS2 = v0.9.6
+GH_V097_RELEASES_OBS2 = 0
+```
+
+### Release workflow runs
+
+```
+$ LC_ALL=C gh run list --workflow=release.yml --limit 50 --json databaseId --jq '[.[] | select(.databaseId > 36321530105)] | length'
+0
+
+$ LC_ALL=C gh run view 35730551619 --json headBranch --jq .headBranch
+v0.9.6
+```
+
+No run newer than the Phase 76 rehearsal (`36321530105`) exists, and the positive control
+(`35730551619`, the v0.9.6 publish itself) still resolves `headBranch` `v0.9.6`, confirming the
+query is not returning empty because it is wrong.
+
+```
+RELEASE_RUNS_AFTER_REHEARSAL_OBS2 = 0
+```
+
+### Rollback-path secrets, names only
+
+```
+$ LC_ALL=C gh secret list --json name --jq '.[].name'
+PYPI_API_TOKEN
+TEST_PYPI_API_TOKEN
+
+$ LC_ALL=C gh secret list --env pypi --json name --jq '.[].name'
+PYPI_API_TOKEN
+```
+
+```
+OBS2_REPO_PYPI_API_TOKEN = present
+OBS2_REPO_TEST_PYPI_API_TOKEN = present
+OBS2_ENV_PYPI_API_TOKEN = present
+```
+
+Both `PYPI_API_TOKEN` scopes and the repository `TEST_PYPI_API_TOKEN` are still present, unchanged
+— this phase deletes nothing.
+
+### Decoy branch
+
+```
+$ LC_ALL=C git ls-remote --heads origin
+37b5b472d4c636532e960875db98e7e78929da46	refs/heads/dependabot/uv/types-docutils-0.23.0.20260923
+334b4da7ce20d74b2710c0d0b60d74e11245d114	refs/heads/gsd/v0.9.4-typing-modernization
+1d8c76c6d1ac4f00da9b5ef39cf4488a855a6114	refs/heads/gsd/v0.9.5-docs-link-check-and-navigation
+f1cfedf50d0bd37e4d36ab02c8cea4da467164e2	refs/heads/gsd/v0.9.6-doctest-block-rendering-and-release
+df6357faf3d6ce93ac99bbfc3bdad58168a95a14	refs/heads/gsd/v0.9.7-trusted-publishing-and-release
+eeba55aa9b62aecb208bf7abecb051b476592b66	refs/heads/main
+
+$ LC_ALL=C git ls-remote --heads origin | grep -c 'gsd/v0\.9\.7-milestone'
+0
+```
+
+No `gsd/v0.9.7-milestone` decoy branch exists on origin. The canonical branch's tip
+(`df6357faf3d6ce93ac99bbfc3bdad58168a95a14`) is now `PUSHED_SHA`, reflecting the wave-2/6 push —
+still a single canonical branch, no decoy.
+
+```
+DECOY_ON_ORIGIN_OBS2 = 0
+```
+
+### Open pull requests on the branch
+
+```
+$ LC_ALL=C gh pr list --head gsd/v0.9.7-trusted-publishing-and-release --state all --json number --jq length
+0
+```
+
+```
+BRANCH_PRS_OBS2 = 0
+```
+
+No pull request of any state exists against the milestone branch.
+
+### Version and branch state at observation 2
+
+```
+$ sed -n 7p pyproject.toml
+version = "0.9.7"
+```
+
+The one probe whose answer legitimately differs from observation 1 — the bump commit (77-02) has
+landed.
+
+```
+$ git log --format=%h -G '^version = ' 9fa1cb894137933f4dbb49d1668fc193e2ef1bc8..HEAD -- pyproject.toml
+39cb79f9
+```
+
+Exactly one commit — the bump commit, and only it.
+
+```
+VERSION_BUMP_COMMITS_OBS2 = 1
+```
+
+### Separation
+
+The work that separates observation 1 from observation 2, cited by evidence key rather than by
+wall-clock luck:
+
+```
+SEPARATION = BUMP_COMMIT_SHA|SC3_LOCAL_VERDICT|TRIAL_MERGE_VERDICT|PUSHED_SHA|RUN_ID|ROLLBACK_COMMIT_SHA
+```
+
+- `BUMP_COMMIT_SHA = 39cb79f970c4137d4238023e1df7291c7c282c3a` (77-BUMP-EVIDENCE.md, 77-02).
+- `SC3_LOCAL_VERDICT = MET` (77-GREEN-TREE-EVIDENCE.md, 77-04).
+- `TRIAL_MERGE_VERDICT = MET` (77-PREFLIGHT-EVIDENCE.md, 77-05).
+- `PUSHED_SHA = df6357faf3d6ce93ac99bbfc3bdad58168a95a14` (77-CI-EVIDENCE.md, 77-06).
+- `RUN_ID = 36430787178` (77-CI-EVIDENCE.md, 77-06).
+- `ROLLBACK_COMMIT_SHA = fe4e87638220ec8c7574f73050e336e0fe28110b` (77-ATT06-EVIDENCE.md, 77-03).
+
+Every probe above is empty/zero exactly as at observation 1, with the same `v0.9.6` controls still
+present, and the separation between the two observations is structural — six recorded pieces of
+work across three waves — not merely elapsed time.
+
 ---
 *Phase: 77-v0-9-7-release-prep-prep-only-and-the-trusted-publishing-proof-handoff*
 *Plan: 01*
