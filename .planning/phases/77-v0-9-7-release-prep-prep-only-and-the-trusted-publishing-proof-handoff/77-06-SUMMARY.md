@@ -130,3 +130,12 @@ None - no external service configuration required.
 ---
 *Phase: 77-v0-9-7-release-prep-prep-only-and-the-trusted-publishing-proof-handoff*
 *Completed: 2026-09-28*
+
+## Self-Check: PASSED
+
+- `.planning/phases/77-v0-9-7-release-prep-prep-only-and-the-trusted-publishing-proof-handoff/77-CI-EVIDENCE.md` — FOUND on disk
+- `.planning/phases/77-v0-9-7-release-prep-prep-only-and-the-trusted-publishing-proof-handoff/77-06-SUMMARY.md` — FOUND on disk
+- Commits `f1054723`, `5e41c8c7`, `9ab71eea` — FOUND in `git log --oneline`
+- Task 1's `<automated>` verify — re-ran, `TASK1_VERIFY_PASS`
+- Task 2's `<automated>` verify — re-ran, `TASK2_VERIFY_PASS`
+- Plan-level `<verification>` — origin's milestone branch head equals `PUSHED_SHA` (`df6357fa`) via fast-forward, no tag at that tip; exactly one `workflow_dispatch` CI run (`36430787178`) completed/success with every job transcribed and all four cross-platform lanes named; no `release.yml` run at that SHA or newer than the rehearsal, and no pull request was opened; `SC3_CI_VERDICT = MET` and `main`'s required checks equal 77-05's reading
