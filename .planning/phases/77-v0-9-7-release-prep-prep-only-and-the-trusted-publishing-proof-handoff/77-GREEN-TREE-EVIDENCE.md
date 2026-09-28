@@ -254,3 +254,160 @@ git diff --name-only 3984b231e30fbb76ba156d2f9b2abe475231bccf HEAD -- docs/sourc
 ```
 prints nothing — no documentation source changed anywhere in this phase, and no `linkcheck_*` key
 was added.
+
+## Tip linkcheck
+
+```
+rm -rf docs/_build
+LANG=C LANGUAGE=C LC_ALL=C uv run tox -e linkcheck > "$S/p7704_lc1.log" 2>&1; echo "exit:$?"
+exit:1
+```
+
+A non-zero exit is expected while the `v0.9.7` tag does not exist yet, and is not by itself a
+failure of this task.
+
+TIP_LINKCHECK_RAW_EXIT = 1
+
+`docs/_build/linkcheck/output.json` copied to `$S/p7704_linkcheck_tip.json`.
+
+```
+jq -s length "$S/p7704_linkcheck_tip.json"
+97
+
+jq -s '[.[] | select(.status == "working")] | length' "$S/p7704_linkcheck_tip.json"
+95
+
+jq -rs '[.[] | select(.status != "working") | .uri] | unique | join("|")' "$S/p7704_linkcheck_tip.json"
+https://github.com/YuSabo90002/typsphinx/compare/v0.9.7...HEAD|https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.7
+```
+
+TIP_LINKCHECK_TOTAL = 97
+TIP_LINKCHECK_WORKING = 95
+TIP_LINKCHECK_NONWORKING_URIS = https://github.com/YuSabo90002/typsphinx/compare/v0.9.7...HEAD|https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.7
+
+Both non-working records, transcribed verbatim:
+
+```json
+{
+  "filename": "changelog.rst",
+  "lineno": 8,
+  "status": "broken",
+  "code": 0,
+  "uri": "https://github.com/YuSabo90002/typsphinx/compare/v0.9.7...HEAD",
+  "info": "404 Client Error: Not Found for url: https://github.com/YuSabo90002/typsphinx/compare/v0.9.7...HEAD"
+}
+{
+  "filename": "changelog.rst",
+  "lineno": 17,
+  "status": "broken",
+  "code": 0,
+  "uri": "https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.7",
+  "info": "404 Client Error: Not Found for url: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.7"
+}
+```
+
+Both non-working URIs fall inside the two expected `v0.9.7` tag-referencing changelog links, so
+no retry was needed — the first attempt already satisfies the classification below.
+
+TIP_LINKCHECK_RUNS = 1
+TIP_LINKCHECK_RUN_1_EXIT = 1
+
+## Pre-tag records, classified
+
+The two expected records are `https://github.com/YuSabo90002/typsphinx/compare/v0.9.7...HEAD`
+(the moved `[Unreleased]` compare link) and
+`https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.7` (the new `[0.9.7]` tail link), both
+naming a tag a prep-only phase cannot create.
+
+```
+curl -s -o /dev/null -w '%{http_code}' https://github.com/YuSabo90002/typsphinx/compare/v0.9.7...HEAD
+404
+
+curl -s -o /dev/null -w '%{http_code}' https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.7
+404
+```
+
+CLASS_A_COMPARE_HTTP = 404
+CLASS_A_RELEASE_HTTP = 404
+
+Their controls:
+
+```
+curl -s -o /dev/null -w '%{http_code}' https://github.com/YuSabo90002/typsphinx/compare/v0.9.6...HEAD
+200
+
+curl -s -o /dev/null -w '%{http_code}' https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.6
+200
+```
+
+CLASS_A_CONTROL_COMPARE_HTTP = 200
+CLASS_A_CONTROL_RELEASE_HTTP = 200
+
+The linkcheck-side control, quoted from `77-BASE-EVIDENCE.md` (not restated as a key line of this
+file — read directly from that file by the verify): both `v0.9.6` records already resolved
+`working` at the phase base (`BASE_V096_COMPARE_STATUS` and `BASE_V096_RELEASE_STATUS`, each
+`working`).
+
+### URI-set delta against the base
+
+From the `LCBASE` lines of `77-BASE-EVIDENCE.md` (96 unique URIs) and this plan's tip JSON's
+unique `uri` list (97 unique URIs), both `LC_ALL=C sort -u`, compared with `comm`:
+
+```
+LC_ALL=C awk -F'\t' '$1=="LCBASE"{print $3}' 77-BASE-EVIDENCE.md | LC_ALL=C sort -u > bu   (96 lines)
+jq -rs '[.[].uri] | unique | .[]' "$S/p7704_linkcheck_tip.json" | LC_ALL=C sort -u > tu   (97 lines)
+
+LC_ALL=C comm -13 bu tu | paste -sd'|'
+https://github.com/YuSabo90002/typsphinx/compare/v0.9.7...HEAD|https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.7
+
+LC_ALL=C comm -23 bu tu | paste -sd'|'
+https://github.com/YuSabo90002/typsphinx/compare/v0.9.6...HEAD
+```
+
+TIP_ONLY_URIS = https://github.com/YuSabo90002/typsphinx/compare/v0.9.7...HEAD|https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.7
+BASE_ONLY_URIS = https://github.com/YuSabo90002/typsphinx/compare/v0.9.6...HEAD
+
+Both match exactly what curation is expected to change — the two new `v0.9.7` links added, the
+`v0.9.6` compare link removed (re-pointed to `v0.9.7...HEAD`), and nothing else in the URI set
+moved.
+
+LINKCHECK_URISET_DELTA_OK = yes
+
+### Verdict
+
+Every non-`working` record is one of the two `v0.9.7` tag-referencing URIs, each measured 404,
+both `v0.9.6` controls measured 200, and the URI-set delta proves nothing else changed.
+
+TIP_LINKCHECK_VERDICT = PASS-CLASS-A-ONLY
+
+This is the reading the owner approved on 2026-09-20 for the identical `v0.9.6` shape at Phase 75's
+close (`75-GREEN-TREE-EVIDENCE.md` § "AMENDED 2026-09-20"): `working` plus these classified,
+controlled records equals `total`. It is carried here, not re-decided, and it is a **carried obligation, not a waiver**:
+both records must be re-checked once the tag and the GitHub Release exist, which `77-07` writes
+into the handoff (`77-HANDOFF.md`) as a required step.
+
+LINKCHECK_READING = working-plus-class-a
+
+```
+git diff --name-only 3984b231e30fbb76ba156d2f9b2abe475231bccf HEAD -- docs/source
+```
+prints nothing (already recorded under § "Docs invariants" above) — no `linkcheck_*` key was
+added to `docs/source/conf.py` to reach this verdict.
+
+## SC#3 local verdict
+
+Every contributing key, quoted from the sections above:
+
+- Task 1 — `RUFF_EXIT = 0`, `BLACK_EXIT = 0`, `MYPY_EXIT = 0`, `FULL_PYTEST_EXIT = 0`,
+  `FULL_PYTEST_C_EXIT = 0`, `FULL_PYTEST_FAILED = 0`, `FULL_PYTEST_C_FAILED = 0`,
+  `FULL_PYTEST_ERRORS = 0`, `CHANGELOG_GATE_SKIPS = 0`, `PREVIEW_SYNC_EXIT = 0`,
+  `PREVIEW_PACKAGE_COUNT = 4`.
+- Task 2 — `TIP_HTML_EXIT = 0`, `TIP_PDF_EXIT = 0`, `HTML_WARNINGS_NOT_RISEN = yes`,
+  `PDF_WARNINGS_NOT_RISEN = yes`.
+- Task 3 — `TIP_LINKCHECK_VERDICT = PASS-CLASS-A-ONLY` (one of `PASS` or `PASS-CLASS-A-ONLY`).
+
+Every one of these holds, so:
+
+SC3_LOCAL_VERDICT = MET
+
+`77-06` reads this key before it pushes anything.
