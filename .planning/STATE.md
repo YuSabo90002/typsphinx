@@ -6,15 +6,15 @@ current_phase: 77
 current_phase_name: v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff
 status: executing
 stopped_at: Phase 77 planned (8 plans, 5 waves)
-last_updated: "2026-09-28T14:25:00.000Z"
+last_updated: "2026-09-28T14:40:00.000Z"
 last_activity: 2026-09-28
-last_activity_desc: Phase 77 wave 4 merged — 77-07 wrote the twelve-step publish half into 77-HANDOFF.md above the byte-unchanged ATT-06 rollback section; wave 5 (77-08 phase close) next
+last_activity_desc: Phase 77 wave 5 merged — 77-08 closed the phase on the record (FENCE_CLOSE_VERDICT MATCH, SC#5 observation 2 of 2, PHASE_VERDICT MET); all 8 plans executed, code review and verification next
 state_head: dfc794fc03cf14564470a7b1acf63a94f6090f3c
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 11
-  completed_plans: 10
+  completed_plans: 11
   percent: 50
 next_phase_number: 77
 ---
@@ -369,9 +369,9 @@ land here.
 ## Current Position
 
 Phase: 77 (v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff) — EXECUTING
-Plan: 7 of 8 complete
-Status: Executing Phase 77 — wave 5 of 5 (77-08, phase close) next
-Last activity: 2026-09-28 — Phase 77 wave 4 merged (77-07: twelve-step publish-half handoff)
+Plan: 8 of 8 complete
+Status: Executing Phase 77 — all waves merged; code review and verification next
+Last activity: 2026-09-28 — Phase 77 wave 5 merged (77-08: FENCE_CLOSE_VERDICT MATCH, PHASE_VERDICT MET)
 
 Progress: [█████░░░░░] 50% (1/2 phases)
 
