@@ -196,3 +196,27 @@ This file carries no prior `DISPATCH_ATTEMPTED = yes` marker — this is the fir
 dispatch proceeds.
 
 DISPATCH_ATTEMPTED = yes
+
+```
+gh workflow run ci.yml --ref gsd/v0.9.7-trusted-publishing-and-release
+https://github.com/YuSabo90002/typsphinx/actions/runs/36430787178
+```
+
+DISPATCH_EXIT = 0
+
+Run exactly once.
+
+```
+gh run list --workflow=ci.yml --branch gsd/v0.9.7-trusted-publishing-and-release --event workflow_dispatch --limit 5 --json databaseId,headSha,status,createdAt,url
+[{"createdAt":"2026-09-28T13:44:40Z","databaseId":36430787178,"headSha":"df6357faf3d6ce93ac99bbfc3bdad58168a95a14","status":"queued","url":"https://github.com/YuSabo90002/typsphinx/actions/runs/36430787178"},{"createdAt":"2026-09-27T12:50:32Z","databaseId":36320335404,"headSha":"987ec3fe80ae6f6379e6c4e60dc6ce8c1ab6df78","status":"completed","url":"https://github.com/YuSabo90002/typsphinx/actions/runs/36320335404"}]
+```
+
+The first row's `headSha` is `PUSHED_SHA` and its `createdAt` (`2026-09-28T13:44:40Z`) is after
+`PUSH_AT` (`2026-09-28T13:43:40Z`). No registration lag — the run appeared on the first list call.
+The dispatch did not return an HTTP 5xx, so no repeat-then-conditionally-redispatch branch applies.
+
+RUN_ID = 36430787178
+
+RUN_URL = https://github.com/YuSabo90002/typsphinx/actions/runs/36430787178
+
+Committing this evidence file now, before the first foreground wait (Task 2).
