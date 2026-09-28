@@ -505,7 +505,32 @@ ATT-03, ATT-04, ATT-05 and DOC-25 are mapped here for **coverage only** and are 
      frontmatter. ATT-06 is the one requirement this phase **does** close, which is why the fence is
      line-scoped rather than whole-file (v0.9.6 Phase 75 precedent).
 
-**Plans**: TBD
+**Plans**: 8 plans (5 waves)
+
+Plans:
+
+**Wave 1**
+
+- [ ] 77-01-PLAN.md — phase-head baselines: the line-scoped REQUIREMENTS fence on ATT-03/04/05, REL-17 and DOC-25 with ATT-06 expected-to-move, the clean docs ledger and base linkcheck URI set, SC#5 observation 1
+- [ ] 77-02-PLAN.md — REL-17 prep: the 0.9.7 bump across `pyproject.toml`, a regenerated `uv.lock` and `README.md`, the curated `## [0.9.7]` section (audit-provenance wording, NUM-01 re-stated), `RELEASE_VERSIONS`, one five-file commit and the extractor transcript
+- [ ] 77-03-PLAN.md — ATT-06: the rollback section inside `77-HANDOFF.md` (D-01 to D-04) committed while no `v0.9.7` tag exists, with its evidence, plus measured controls for every publish-half read command
+
+**Wave 2**
+
+- [ ] 77-04-PLAN.md — SC#3 local: lint trio, the full suite twice (once under `LC_ALL=C`), clean docs builds against the base ledger, and linkcheck with the two pre-tag records classified against controls
+- [ ] 77-05-PLAN.md — SC#3 preflight: non-committing trial merge against the moved `origin/main`, `main`'s protection and merge method, the open-PR census
+
+**Wave 3**
+
+- [ ] 77-06-PLAN.md — SC#3 CI: fast-forward push of the milestone branch and exactly one CI dispatch on the bumped tip, every job transcribed
+
+**Wave 4**
+
+- [ ] 77-07-PLAN.md — SC#4 handoff: twelve ordered publish-half steps, each a pre-written command with its expected output, its control and a rollback pointer (D-04)
+
+**Wave 5**
+
+- [ ] 77-08-PLAN.md — SC#5 close: fence observation 2, probe observation 2, scope fence, handoff audit, SUMMARY census and the third-observation hand-off
 
 **Cross-cutting constraints** *(truths any plan in this phase must carry)*: the prep-only fence
 (nothing under `typsphinx/`, `docs/source/` content aside from version strings, or
@@ -528,7 +553,7 @@ DOC-25.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 76. The `password:`-Free `publish-pypi`, Rehearsed Against the Published v0.9.6 — and MSG-06 | v0.9.7 | 3/3 | Complete | 2026-09-27 |
-| 77. v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff | v0.9.7 | 0/TBD | Not started | - |
+| 77. v0.9.7 Release Prep (prep-only) and the Trusted-Publishing Proof Handoff | v0.9.7 | 0/8 | Not started | - |
 
 ## Roadmap Evolution
 
