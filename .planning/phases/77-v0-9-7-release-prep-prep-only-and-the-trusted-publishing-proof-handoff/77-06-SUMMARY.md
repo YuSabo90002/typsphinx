@@ -18,7 +18,9 @@ affects: [77-07-handoff, 77-08-closeout]
 actuals:
   tokens: 3723
   tasks: 2
-  commits: 3
+  commits: 5
+  plan_head_before: df6357faf3d6ce93ac99bbfc3bdad58168a95a14
+  plan_head_after: ba0d678a3c6a938326d13f209fe56689aca443aa
 
 # Tech tracking
 tech-stack:
@@ -105,6 +107,8 @@ Each task was committed atomically:
 3. **Task 2: Foreground wait, job census, lint-through-tox, dispatch count, required-checks re-read, `SC3_CI_VERDICT = MET`** - `9ab71eea` (docs)
 
 _Note: Task 1's `<action>` steps span two commits because step 6 requires `DISPATCH_ATTEMPTED = yes` committed before the dispatch command runs, and `RUN_ID` committed before the first wait — both write-ahead points the plan mandates as separate commits for resume-safety._
+
+**Plan metadata:** `7fd7041d` (docs: complete plan summary), `ba0d678a` (docs: append self-check PASSED)
 
 ## Files Created/Modified
 - `.planning/phases/77-v0-9-7-release-prep-prep-only-and-the-trusted-publishing-proof-handoff/77-CI-EVIDENCE.md` - Full evidence trail: wave gate, tip identity/fence, decoy census, push, dispatch, run/job census, lint quotes, dispatch/release-run counts, required-checks re-read, SC#3 CI verdict
