@@ -623,6 +623,50 @@ class TestInheritanceDiagramDegradeRenderGate:
         )
 
 
+class TestGraphicalPlaceholderCallerCountGuard:
+    """
+    Static structural guard for the D006/MEM006 invariant: the shared
+    ``_visit_graphical_placeholder`` helper must retain exactly two
+    callers -- the graphviz ``filename`` branch (R007's external-.dot
+    refusal) and ``visit_inheritance_diagram`` (R008's degrade path).
+
+    This is deliberately a source-text check rather than an AST walk or a
+    runtime introspection: what it guards against is an edit that deletes
+    a call site, and the source itself is the cheapest honest signal.
+    """
+
+    def test_visit_graphical_placeholder_has_exactly_two_callers(self):
+        """
+        ``_visit_graphical_placeholder(`` must occur exactly 3 times in
+        translator.py. Losing either caller silently widens the supported
+        surface (R007) or detaches the degrade path (R008).
+        """
+        translator_src = (
+            Path(__file__).parent.parent / "typsphinx" / "translator.py"
+        ).read_text()
+
+        # 3, not 2: the ``def _visit_graphical_placeholder(`` definition
+        # line matches the same substring as the two call sites. Do not
+        # "fix" this to 2 -- that would silently allow one caller to be
+        # deleted.
+        occurrences = translator_src.count("_visit_graphical_placeholder(")
+
+        assert occurrences == 3, (
+            f"Expected exactly 3 occurrences of "
+            f"'_visit_graphical_placeholder(' in typsphinx/translator.py "
+            f"(1 def site + 2 call sites), found {occurrences}. The two "
+            f"required callers are: (1) the graphviz 'filename' branch in "
+            f"visit_graphviz, which keeps external .dot files refused with "
+            f"a placeholder per R007 -- dropping it would let the "
+            f"scoped-out external-file form start rendering by accident; "
+            f"and (2) visit_inheritance_diagram, which keeps the "
+            f"inheritance-diagram degrade placeholder per R008 -- "
+            f"detaching it would break the DEG-02 guard. A count of 2 "
+            f"means one caller went missing; a count above 3 means a new "
+            f"caller was added and this invariant needs re-deciding."
+        )
+
+
 # ---------------------------------------------------------------------------
 # Phase 12 (VER-01): extend the GATE-01 render-gate pattern to prove the
 # versionmodified pass-through + visit_inline classed-dispatch fix -- all
