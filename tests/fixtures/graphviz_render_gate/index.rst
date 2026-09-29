@@ -85,3 +85,32 @@ Alt option
        b [label="Glaskivoretwelfth"];
        a -> b;
    }
+
+.. The section below carries S03's R003 REGRESSION LOCK: `:caption:` and
+   `:name:` were measured already working at plan time with no translator
+   change, so this section exists to keep them working, not to drive new
+   code. It is ADDITIVE -- every diagram above belongs to an earlier
+   proof and must stay untouched. This note lives in an rST comment
+   rather than visible prose so no assertion in the module can be
+   satisfied by the fixture's own explanatory text.
+
+Caption and name option
+-------------------------
+
+.. graphviz::
+   :caption: Wrenthalorvex caption sentinel
+   :name: grimsdale-figure
+
+   digraph caption_form {
+       a [label="Mordevainethirteenth"];
+       b [label="Plexiturnofourteenth"];
+       a -> b;
+   }
+
+.. The paragraph below is the R003 anchor-resolvability proof: a
+   `:name:` that merely emitted a label would satisfy a presence-only
+   assertion, so the label is actually referenced with `:numref:`, which
+   Sphinx resolves to a figure number only when the anchor is real. That
+   resolution depends on `numfig = True` in this fixture's conf.py.
+
+See :numref:`grimsdale-figure` for the captioned diagram.

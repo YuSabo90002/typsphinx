@@ -76,6 +76,26 @@ JAPANESE_SENTINELS = ("Ondricseventh",)
 LAYOUT_SENTINELS = ("Brindlewockeighth", "Cavorteenninth", "Drimplenoxtenth")
 ALT_SENTINELS = ("Ferrymantleeleventh", "Glaskivoretwelfth")
 
+# S03 R003 regression-lock sentinels: the `:caption:`/`:name:` figure
+# path was MEASURED ALREADY WORKING at plan time with no translator
+# change, so these lock it rather than drive it. Disjoint from every
+# group above so a caption/anchor regression localises here.
+CAPTION_SENTINELS = ("Mordevainethirteenth", "Plexiturnofourteenth")
+CAPTION_TEXT = "Wrenthalorvex caption sentinel"
+
+# The `:name:` label as written in the fixture, and the anchor Sphinx
+# derives from it. `figure_wrapper()` puts `:name:` on the FIGURE, never
+# on the graphviz node (D-003/MEM003), and the writer namespaces it with
+# the docname -- so the emitted anchor is `<index:grimsdale-figure>`.
+FIGURE_NAME = "grimsdale-figure"
+FIGURE_ANCHOR = "index:grimsdale-figure"
+
+# The numref-generated caption prefix. With `numfig = True` the body
+# reference renders as `Fig. 1`; asserting the prefix alone keeps the
+# test from breaking if an earlier fixture diagram ever becomes a figure
+# and shifts the number.
+NUMREF_PREFIX = "Fig."
+
 # The `:alt:` text itself. Asserted on the emitted .typ only -- see
 # test_alt_option_reaches_diagraph_alt for why a PDF assertion on it is
 # unsatisfiable.
@@ -387,6 +407,78 @@ class TestGraphvizRenderGate:
             f"source carries an `engine:` parameter; visit_graphviz is "
             "emitting a redundant default for option-less diagrams. Emitted "
             f"source:\n{content_source}"
+        )
+
+    def test_caption_renders_as_figure_caption(self, graphviz_render_gate_build):
+        """
+        ``:caption:`` makes the diagram a real Typst figure (R003).
+
+        A REGRESSION LOCK, not a driver: this path was measured working at
+        plan time with no translator change. If it goes red, something
+        else broke -- `visit_graphviz`, `visit_figure` or `depart_caption`
+        -- and the fix belongs there, not in a re-implementation of a path
+        that already worked.
+
+        Both halves matter. The PDF half proves the caption and the
+        diagram actually rendered; the emitted-source half proves the
+        diagram became a ``#figure(...)`` carrying a ``caption:`` rather
+        than a bare ``render()`` with the caption text merely printed
+        somewhere nearby.
+        """
+        pdf_text = graphviz_render_gate_build["pdf_text"]
+        assert CAPTION_TEXT in pdf_text, (
+            f"caption text {CAPTION_TEXT!r} missing from the extracted PDF "
+            f"text -- `:caption:` no longer renders. Extracted:\n{pdf_text}"
+        )
+        for sentinel in CAPTION_SENTINELS:
+            assert sentinel in pdf_text, (
+                f"captioned diagram label {sentinel!r} missing from the "
+                f"extracted PDF text -- the diagram itself did not render, "
+                f"so the caption assertion above proves nothing about the "
+                f"figure path. Extracted:\n{pdf_text}"
+            )
+
+        # Emitted on the CONTENT file, not master.typ: this fixture's
+        # master doc is a wrapper that only `#include`s index.typ (MEM026).
+        content_source = graphviz_render_gate_build["content_source"]
+        assert "#figure(" in content_source, (
+            "the captioned diagram did not become a Typst `#figure(` at "
+            f"all. Emitted source:\n{content_source}"
+        )
+        assert f'caption: {{text("{CAPTION_TEXT}")}}' in content_source, (
+            f"no `caption:` carrying {CAPTION_TEXT!r} in the emitted "
+            f"figure. Emitted source:\n{content_source}"
+        )
+
+    def test_name_yields_resolvable_numref_anchor(self, graphviz_render_gate_build):
+        """
+        ``:name:`` yields an anchor a ``numref`` actually resolves (R003).
+
+        Presence of a ``<label>`` proves nothing on its own -- a dangling
+        anchor nobody reaches looks identical. So this asserts three
+        things that only hold together: the anchor exists, a ``link(<``
+        targets the SAME label, and the rendered PDF carries the
+        numref-generated figure number, which Sphinx emits only when it
+        resolved the reference (an unresolved one warns and degrades).
+        """
+        content_source = graphviz_render_gate_build["content_source"]
+        assert f"<{FIGURE_ANCHOR}>" in content_source, (
+            f"`:name: {FIGURE_NAME}` produced no `<{FIGURE_ANCHOR}>` "
+            f"anchor in the emitted source:\n{content_source}"
+        )
+        # Same label on both sides, so a link pointing at some OTHER
+        # anchor cannot satisfy this pair.
+        assert f"link(<{FIGURE_ANCHOR}>" in content_source, (
+            f"no `link(<{FIGURE_ANCHOR}>` in the emitted source -- the "
+            "`:numref:` reference did not target the figure's own anchor, "
+            f"so the anchor is dangling. Emitted source:\n{content_source}"
+        )
+
+        pdf_text = graphviz_render_gate_build["pdf_text"]
+        assert NUMREF_PREFIX in pdf_text, (
+            f"the numref-generated figure number ({NUMREF_PREFIX!r}) is "
+            "missing from the extracted PDF text -- Sphinx did not resolve "
+            f"`:numref:` to a figure number. Extracted:\n{pdf_text}"
         )
 
 

@@ -36,3 +36,9 @@ typst_documents = [
 # No font configuration anywhere, deliberately: the measured prototype
 # rendered the Japanese label with none, and templates/base.typ sets only
 # `size` and `lang`. Adding one here would hide a real regression.
+
+# numfig must stay True: tests/test_graphviz_render_gate.py
+# test_name_yields_resolvable_numref_anchor proves a `:name:` anchor is
+# RESOLVABLE by referencing it with `:numref:`, and Sphinx only resolves
+# numref to a figure number when figure numbering is enabled.
+numfig = True
