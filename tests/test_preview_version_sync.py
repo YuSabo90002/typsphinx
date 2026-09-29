@@ -15,7 +15,7 @@ The bundled `examples/` templates are a further surface. They are not part
 of the extension's own import generation, so they carry no lockstep *identity*
 requirement across all five packages -- an example may legitimately use only
 some of them, or a different package entirely (charged-ieee). But when an
-example does pin one of the four, a stale pin is not cosmetic: it makes the
+example does pin one of the five, a stale pin is not cosmetic: it makes the
 shipped sample fail to compile outright (`codly-languages` older than 0.1.10
 aborts with `unknown variable: kai`). That is exactly what happened to
 `examples/advanced/_typst/custom.typ`, which sat three milestones behind
@@ -104,7 +104,7 @@ def test_preview_versions_identical_across_declaration_sites():
     )
 
 
-def test_all_expected_packages_declared():
+def test_all_five_packages_declared():
     """Each declaration site must declare all five expected packages.
 
     Without this, a dropped import in one file could make the identity
