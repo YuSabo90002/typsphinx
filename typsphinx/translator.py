@@ -6724,9 +6724,47 @@ class TypstTranslator(SphinxTranslator):
         )
         raise nodes.SkipNode
 
-    def visit_graphviz(self, node: nodes.Node) -> None:
-        """Visit a graphviz node; renders a placeholder (DEG-01, D-01)."""
-        self._visit_graphical_placeholder(node, "graphviz")
+    def visit_graphviz(self, node: nodes.Element) -> None:
+        """
+        Visit a graphviz node; renders the DOT source as a real diagram.
+
+        Emits ``@preview/diagraph``'s ``render("<dot>")`` (declared at all
+        three import-declaration sites) so ``.. graphviz::``, ``.. digraph::``
+        and ``.. graph::`` produce vector diagrams with no Graphviz binary
+        present -- replacing the former ``[graphviz diagram omitted]``
+        placeholder (Issue #114 / DEG-01).
+
+        The external-file form (``.. graphviz:: some.dot``) stays on the
+        graceful-degrade placeholder path (D-005): Sphinx has already read
+        the file into ``node['code']`` by the time this visitor runs, so
+        without the explicit refusal the scoped-out form would silently
+        start working.
+
+        DOT is escaped once, via the shared ``escape_typst_string`` helper --
+        no second escaping layer. ``:align:`` is discarded without a warning,
+        matching the project-wide state of alignment (D-004).
+
+        Always raises ``SkipNode``: a graphviz node keeps its DOT in
+        ``node['code']`` rather than in Text children, so descending would
+        leak raw source into the body.
+        """
+        if "filename" in node:
+            self._visit_graphical_placeholder(node, "graphviz")
+
+        escaped = escape_typst_string(node["code"])
+
+        if self.in_figure:
+            # Two-space indent mirrors visit_image's figure branch; the
+            # enclosing figure node owns the id and emits its own
+            # `[#figure(...) <label>]` anchor, so no _emit_id_anchors here
+            # (D-003 -- `:name:` lands on the figure, never on the graphviz
+            # node).
+            self.add_text(f'  render("{escaped}")')
+        else:
+            self._emit_id_anchors(node)
+            self.add_text(f'render("{escaped}")\n\n')
+
+        raise nodes.SkipNode
 
     def visit_inheritance_diagram(self, node: nodes.Node) -> None:
         """Visit an inheritance_diagram node; renders a placeholder (DEG-02, D-01)."""
