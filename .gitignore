@@ -114,3 +114,35 @@ dist/
 # direnv — .envrc is tracked (`use flake`); the evaluated cache is machine-local
 /.direnv/
 /.envrc.local
+
+# ── GSD baseline (auto-generated) ──
+.gsd
+.gsd-worktrees/
+.gsd-backups/
+.gsd-id
+.bg-shell/
+nul
+nul.*
+con
+con.*
+prn
+prn.*
+aux
+aux.*
+com[1-9]
+com[1-9].*
+lpt[1-9]
+lpt[1-9].*
+*.code-workspace
+.env.*
+!.env.example
+node_modules/
+.next/
+*.pyc
+.venv/
+target/
+vendor/
+*.log
+coverage/
+.cache/
+tmp/
