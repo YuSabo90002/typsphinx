@@ -3,6 +3,7 @@
 #import "@preview/codly-languages:0.1.10": *
 #import "@preview/mitex:0.2.7": mi, mitex
 #import "@preview/gentle-clues:1.3.1": *
+#import "@preview/diagraph:0.3.7": render
 
 // Initialize codly
 #show: codly-init.with()

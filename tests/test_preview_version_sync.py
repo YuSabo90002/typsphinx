@@ -1,8 +1,9 @@
 """
 Tests guarding the `@preview` version-sync hazard.
 
-typsphinx declares the same four Typst Universe `@preview` package versions
-(codly, codly-languages, mitex, gentle-clues) in three separate places:
+typsphinx declares the same five Typst Universe `@preview` package versions
+(codly, codly-languages, mitex, gentle-clues, diagraph) in three separate
+places:
 `typsphinx/writer.py`, `typsphinx/template_engine.py`, and
 `typsphinx/templates/base.typ`. These must stay in lockstep, or generated
 Typst documents can end up importing mismatched package versions depending
@@ -10,9 +11,9 @@ on which code path produced them. This module asserts the three declaration
 sites agree, so a future single-file edit fails CI loudly instead of
 silently (D-03).
 
-The bundled `examples/` templates are a fourth surface. They are not part of
-the extension's own import generation, so they carry no lockstep *identity*
-requirement across all four packages -- an example may legitimately use only
+The bundled `examples/` templates are a further surface. They are not part
+of the extension's own import generation, so they carry no lockstep *identity*
+requirement across all five packages -- an example may legitimately use only
 some of them, or a different package entirely (charged-ieee). But when an
 example does pin one of the four, a stale pin is not cosmetic: it makes the
 shipped sample fail to compile outright (`codly-languages` older than 0.1.10
@@ -33,7 +34,13 @@ BASE_TYP_PATH = REPO_ROOT / "typsphinx" / "templates" / "base.typ"
 
 EXAMPLES_DIR = REPO_ROOT / "examples"
 
-EXPECTED_PACKAGES = {"codly", "codly-languages", "mitex", "gentle-clues"}
+EXPECTED_PACKAGES = {
+    "codly",
+    "codly-languages",
+    "mitex",
+    "gentle-clues",
+    "diagraph",
+}
 
 # Matches an actual Typst `#import "@preview/<name>:<version>"` statement
 # (not a bare mention in a comment or docstring example). name is
@@ -97,8 +104,8 @@ def test_preview_versions_identical_across_declaration_sites():
     )
 
 
-def test_all_four_packages_declared():
-    """Each declaration site must declare all four expected packages.
+def test_all_expected_packages_declared():
+    """Each declaration site must declare all five expected packages.
 
     Without this, a dropped import in one file could make the identity
     check above vacuously pass (an empty dict equals another empty dict).
@@ -121,11 +128,11 @@ def test_all_four_packages_declared():
 def test_example_templates_match_canonical_versions():
     """Bundled `examples/` .typ templates must not pin a stale version.
 
-    Scans every `.typ` file under `examples/` and, for each of the four
+    Scans every `.typ` file under `examples/` and, for each of the five
     packages typsphinx itself pins, asserts the example agrees with the
     canonical version in `base.typ`. Packages outside that set (e.g. an
     example built on `charged-ieee`) are ignored, and an example that
-    imports none of the four is trivially fine -- this guards against
+    imports none of the five is trivially fine -- this guards against
     *drift*, not against an example choosing a different toolkit.
     """
     canonical = _extract_preview_versions(BASE_TYP_PATH)
