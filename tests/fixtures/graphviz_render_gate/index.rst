@@ -47,3 +47,41 @@ Japanese labels
        b [label="Ondricseventh"];
        a -> b;
    }
+
+.. The two sections below carry S03's option-routing proofs (R004, R005).
+   They are ADDITIVE: the four diagrams above and their seven sentinels
+   belong to S02's R001/R002/R010/R012 proofs and must stay untouched.
+   This note lives in an rST comment rather than visible prose so no
+   sentinel-absence assertion in the module can be satisfied by the
+   fixture's own explanatory text.
+
+Layout option
+---------------
+
+.. The DOT below is deliberately a 3-node CYCLE: a cycle has no ranking,
+   which is what makes neato's force-directed placement diverge visibly
+   from dot's ranked layout, so a dropped ``engine:`` is observable.
+
+.. graphviz::
+   :layout: neato
+
+   digraph layout_form {
+       a [label="Brindlewockeighth"];
+       b [label="Cavorteenninth"];
+       c [label="Drimplenoxtenth"];
+       a -> b;
+       b -> c;
+       c -> a;
+   }
+
+Alt option
+------------
+
+.. graphviz::
+   :alt: Hoskrivendale alt sentinel
+
+   digraph alt_form {
+       a [label="Ferrymantleeleventh"];
+       b [label="Glaskivoretwelfth"];
+       a -> b;
+   }
