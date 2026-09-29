@@ -6744,6 +6744,15 @@ class TypstTranslator(SphinxTranslator):
         no second escaping layer. ``:align:`` is discarded without a warning,
         matching the project-wide state of alignment (D-004).
 
+        ``:layout:`` and its ``:graphviz_dot:`` alias -- Sphinx normalises
+        both onto ``node['options']['graphviz_dot']`` -- route to
+        diagraph's ``engine:`` parameter, and ``:alt:`` (a top-level node
+        attribute) routes to its ``alt:`` parameter. Both values go through
+        the same single ``escape_typst_string`` layer as the DOT itself.
+        Neither parameter is emitted when its option is absent: diagraph's
+        own signature already defaults ``engine: "dot"``, so emitting a
+        redundant default would churn every byte-identity expectation.
+
         Always raises ``SkipNode``: a graphviz node keeps its DOT in
         ``node['code']`` rather than in Text children, so descending would
         leak raw source into the body.
@@ -6753,16 +6762,24 @@ class TypstTranslator(SphinxTranslator):
 
         escaped = escape_typst_string(node["code"])
 
+        params = ""
+        engine = node["options"].get("graphviz_dot")
+        if engine:
+            params += f', engine: "{escape_typst_string(engine)}"'
+        alt = node.get("alt")
+        if alt:
+            params += f', alt: "{escape_typst_string(alt)}"'
+
         if self.in_figure:
             # Two-space indent mirrors visit_image's figure branch; the
             # enclosing figure node owns the id and emits its own
             # `[#figure(...) <label>]` anchor, so no _emit_id_anchors here
             # (D-003 -- `:name:` lands on the figure, never on the graphviz
             # node).
-            self.add_text(f'  render("{escaped}")')
+            self.add_text(f'  render("{escaped}"{params})')
         else:
             self._emit_id_anchors(node)
-            self.add_text(f'render("{escaped}")\n\n')
+            self.add_text(f'render("{escaped}"{params})\n\n')
 
         raise nodes.SkipNode
 
