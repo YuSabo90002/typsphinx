@@ -104,9 +104,13 @@ filterwarnings = [
 line-length = 88
 target-version = ["py312", "py313"]
 include = '\.pyi?$'
+# .agents/ and .gsd/ hold vendored agent-tooling scripts, not project source;
+# they are excluded so `black --check .` reflects this project's own code.
 exclude = '''
 /(
     \.git
+  | \.gsd
+  | \.agents
   | \.tox
   | \.venv
   | _build
@@ -118,6 +122,8 @@ exclude = '''
 [tool.ruff]
 line-length = 88
 target-version = "py312"
+# Same rationale as [tool.black] exclude: vendored agent-tooling scripts.
+extend-exclude = [".agents", ".gsd"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "T20"]
