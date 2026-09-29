@@ -10,6 +10,7 @@ This section provides comprehensive documentation on using typsphinx.
    builders
    templates
    output_layout
+   diagrams
 
 Overview
 --------
@@ -36,3 +37,6 @@ Main Topics
 
 :doc:`output_layout`
    Understand which emitted ``.typ`` file to compile and where it is written
+
+:doc:`diagrams`
+   Render Graphviz DOT diagrams into Typst and PDF output without a dot binary
