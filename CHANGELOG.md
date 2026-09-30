@@ -14,6 +14,92 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pre-commit hooks
 - Additional Typst Universe template integration
 
+## [0.9.8] - 2026-09-30
+
+0.9.8 makes Graphviz diagrams render as real diagrams in Typst and PDF output. The
+`.. graphviz::`, `.. digraph::` and `.. graph::` directives no longer degrade to a
+bordered placeholder — their inline DOT is rendered through the Typst
+`@preview/diagraph` package, which embeds Graphviz 14.1.4 as WASM. No `dot` binary is
+invoked and none was added as a dependency, so typsphinx still compiles a PDF with no
+external CLI.
+
+### Added
+
+- **Inline DOT in `.. graphviz::`, `.. digraph::` and `.. graph::` renders as an actual
+  vector diagram in the compiled PDF (GVZ-01, GVZ-02).** All three directives emit the
+  same `graphviz` doctree node, so one translator path covers them; the emitted `.typ`
+  carries a `render("...")` call instead of the previous
+  `[graphviz diagram omitted]` placeholder. The diagram is vector, not raster — a page
+  carrying one contains no image XObject, so it stays sharp at any zoom.
+- **No Graphviz installation is required to render diagrams (GVZ-10).** `@preview/diagraph`
+  carries Graphviz compiled to WebAssembly, so real Graphviz layout semantics are
+  preserved without a system `dot`. Note that HTML output remains
+  `sphinx.ext.graphviz`'s responsibility and the HTML side *does* still require `dot`.
+- **`:caption:` and `:name:` on a graphviz directive produce a captioned, referenceable
+  figure (GVZ-03).** The diagram becomes a Typst `figure` with the given caption, and
+  `:name:` yields a resolvable anchor so `:numref:` and `:ref:` cross-references to the
+  diagram work.
+- **`:layout:` selects the Graphviz layout engine (GVZ-04).** The option is passed
+  through to diagraph's `engine:` parameter, so `neato`, `fdp`, `circo`, `twopi` and
+  `sfdp` compile and demonstrably change the rendered result. Sphinx's older
+  `:graphviz_dot:` spelling is accepted as an alias for the same option.
+- **`:alt:` is forwarded as alternative text (GVZ-05).** diagraph passes it to Typst's
+  `image(..., alt:)`, so the diagram carries alt text in the PDF instead of losing its
+  accessibility information entirely. Alt text is not recoverable by PDF text
+  extraction, so the gate for it asserts on the emitted `.typ`.
+- **Non-ASCII labels render legibly (GVZ-12).** Japanese node and edge labels resolve
+  through the active template's font configuration and are embedded as real subset
+  glyphs (measured: IPAexGothic, no `.notdef`/tofu), not dropped or boxed.
+- **`@preview/diagraph:0.3.7` joins the version-sync gate (GVZ-09).** The package version
+  is declared identically in `writer.py`, `template_engine.py` and `templates/base.typ`,
+  and `tests/test_preview_version_sync.py` now enforces agreement across five packages
+  instead of four.
+- **The user guide documents the supported surface and its limits, and typsphinx's own
+  docs now contain a real diagram (GVZ-11).** `docs/source/user_guide/diagrams.rst`
+  states what is and is not supported; the diagram in typsphinx's own documentation
+  builds through the `typstpdf` builder, so `tox -e docs-pdf` is a standing dogfooding
+  gate rather than a claim.
+
+### Changed
+
+- **`.. graphviz::` no longer takes the placeholder-degradation path (DEG-01 inverted).**
+  Projects that previously saw `[graphviz diagram omitted]` for an inline-DOT directive
+  will now get a rendered diagram. `_visit_graphical_placeholder` itself is unchanged and
+  keeps two callers — inheritance-diagram and the external-`.dot` refusal below.
+
+### Known Limitations
+
+- **Malformed DOT fails the whole PDF build rather than degrading to a visible error
+  block (GVZ-06).** typsphinx's own translation stays clean — `sphinx-build -b typst`
+  exits 0 and emits the `render()` call — but the downstream `typst.compile()` hard-fails
+  and produces no PDF, so one bad diagram takes the entire document with it. The raised
+  error does carry Graphviz's own diagnostic (for example
+  `Diagraph error: syntax error in line 2 near ';'`), so the real cause is named. The
+  cause is upstream: diagraph 0.3.7 guards its red-error-block recovery on the render
+  call, but calls `plugin.get_labels()` earlier with no status guard, so a syntax error
+  aborts during label measurement before the recovery is reachable. **Workaround:**
+  validate DOT before building — a diagram that renders in Graphviz renders here.
+  Escaping is not the cause of these failures: double quotes, backslashes, `\n` label
+  escapes, `#` and non-ASCII text all survive escaping into the emitted `.typ` (GVZ-13).
+  One related upstream quirk: diagraph accepts an escaped quote inside an *attribute
+  value* but rejects it in a *node-id* position, failing with a bare `unclosed string`
+  and no source location.
+- **A graphviz directive that references an external `.dot` file is refused (GVZ-07).**
+  Only inline DOT is supported. The directive falls back to the bordered placeholder and
+  the build emits exactly one warning naming the limitation; the external file's DOT
+  source does not leak into the output. **Workaround:** paste the DOT into the directive
+  body.
+- **`.. inheritance-diagram::` still renders the bordered placeholder with one warning
+  (GVZ-08, DEG-02).** This milestone deliberately did not change it, and that non-change
+  is asserted by its own regression gate rather than assumed.
+- **`:align:` is not supported on graphviz directives.**
+
+### Fixed
+
+- **The 0.9.4 entry's "Graceful degradation" line no longer overstates what degrades.**
+  That line named `graphviz` alongside `inheritance_diagram`; as of this release only
+  `inheritance-diagram` (and the external-`.dot` refusal) take the placeholder path.
+
 ## [0.9.7] - 2026-09-28
 
 0.9.7 corrects a DEBUG-log quoting defect and changes how this release is published: the
@@ -863,7 +949,8 @@ untouched.
     (BLK-01…06)
 - **Graceful degradation** — `graphviz` and `inheritance_diagram` render a
   visible placeholder block + exactly one warning, with no raw source leaking
-  (DEG-01/DEG-02)
+  (DEG-01/DEG-02). *Superseded in 0.9.8: `graphviz` now renders a real diagram
+  (DEG-01 inverted); only `inheritance-diagram` still degrades.*
 - **Validation gates**
   - Standing real-compile acceptance-fixture pattern
     (`sphinx-build → typst.compile() → pypdf`) extended by every node-handler
@@ -1428,6 +1515,7 @@ untouched.
 
 ---
 
+[0.9.8]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.8
 [0.9.7]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.7
 [0.9.6]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.6
 [0.9.2]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.2
@@ -1452,4 +1540,4 @@ untouched.
 [0.2.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.1
 [0.2.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.0
 [0.1.0b1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.1.0b1
-[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.9.7...HEAD
+[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.9.8...HEAD
