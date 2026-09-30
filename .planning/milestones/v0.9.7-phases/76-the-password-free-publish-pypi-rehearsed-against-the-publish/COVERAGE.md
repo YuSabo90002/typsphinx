@@ -1,0 +1,1 @@
+No external API integration: a two-line credential deletion in release.yml, two translator debug-log call sites routed through the existing quote_path() helper, one test module and phase evidence files only; the gh and PyPI Simple JSON calls are read-only probes plus one CI and one release.yml workflow_dispatch, not an integration being built.

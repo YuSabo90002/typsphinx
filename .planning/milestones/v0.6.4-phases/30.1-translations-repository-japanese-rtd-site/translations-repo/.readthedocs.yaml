@@ -1,0 +1,129 @@
+# Read the Docs build manifest (config-file-v2) for typsphinx-doc-translations,
+# the Japanese *translation project* linked under the English typsphinx parent
+# (RTD Settings -> Translations). This file is a deliberate variant of the
+# parent repository's own .readthedocs.yaml (typsphinx, root of this checkout)
+# -- every key below is either identical to the parent's, or differs for a
+# reason stated inline. It targets the submodule mount point `typsphinx/`
+# rather than this repository's own root, because the documentation *source*
+# lives in the parent and is consumed here only as a pinned git submodule
+# (D-06).
+version: 2
+
+build:
+  os: ubuntu-24.04
+  tools:
+    # Identical to the parent's pin, so the D-03 PDF content comparison
+    # (this ja build vs. a local SPHINX_LANGUAGE=ja build) runs on the same
+    # Python minor version on both sides.
+    python: "3.12"
+  # Carried from the parent unchanged, for symmetry -- D-01/D-10. Measured
+  # nuance (RESEARCH.md Pitfall 3): RTD's own ubuntu-24.04 build image
+  # already ships fonts-noto-cjk-extra and fonts-hanazono baked into the
+  # Docker image itself, independent of this apt_packages line -- this is
+  # why Phase 29's apt step logged "already the newest version" and why the
+  # font Typst actually embedded in the English PDF was `MSNUZX+HanaMinA`
+  # (Hanazono Mincho), not a Noto-named font. This line is therefore very
+  # likely redundant on RTD's current image, but it costs one YAML line and
+  # zero risk to keep, and removing it to empirically test the hypothesis is
+  # explicitly out of this phase's scope.
+  apt_packages:
+    - fonts-noto-cjk
+  jobs:
+    # Runs after the environment is created but before `python.install`, per
+    # RTD's build lifecycle: post_checkout -> pre_create_environment ->
+    # create_environment -> post_create_environment -> pre_install ->
+    # install -> post_install -> pre_build -> build. The catalogs below are
+    # therefore in place long before Sphinx ever runs.
+    post_create_environment:
+      # LOAD-BEARING, do not drop as "redundant cleanup": this repository
+      # git-tracks 13 compiled .mo binaries alongside its 13 .po catalogs
+      # (measured 2026-07-26), so the `typsphinx` submodule checkout arrives
+      # with typsphinx/docs/locale/ja/LC_MESSAGES/*.mo already present.
+      # Sphinx's gettext_auto_build (conf.py, unedited) reuses a compiled
+      # catalog it considers current -- copying our .po files on top of a
+      # surviving .mo would let a build report success while still serving
+      # stale or English text (threat T-30.1-05, I18N-01's named failure
+      # mode). Removing the directory first forces Sphinx to recompile from
+      # the .po files this job copies in below.
+      - rm -rf typsphinx/docs/locale
+      - mkdir -p typsphinx/docs/locale
+      # locale/ (this repository's top level) holds the relocated .po
+      # catalogs; -a preserves timestamps/permissions. The destination is
+      # not arbitrary: the submodule's own conf.py sets
+      # `locale_dirs = ["../locale/"]`, relative to docs/source/conf.py --
+      # i.e. it already resolves to typsphinx/docs/locale/ without any edit
+      # to that file (conf.py stays a read-only mirror of the parent).
+      - cp -a locale/. typsphinx/docs/locale/
+    build:
+      pdf:
+        # Same four commands as the parent's build.jobs.build.pdf, with
+        # docs/source replaced by typsphinx/docs/source (submodule prefix)
+        # -- every other token, including the /tmp build directory and the
+        # $READTHEDOCS_OUTPUT ordering constraint, is identical by design so
+        # this job satisfies the same structural bar
+        # tests/test_readthedocs_config.py enforces on the parent's PDF job.
+        #
+        # The typstpdf builder writes many files into its output directory
+        # (the PDF, one .typ per document, _template.typ, a doctrees tree --
+        # 31 files, measured on the parent 2026-07-25) -- only the PDF may
+        # cross into RTD's public download area, so the build target is a
+        # temporary directory, never $READTHEDOCS_OUTPUT itself (D-04).
+        - mkdir -p /tmp/typst-pdf-build/doctrees
+        - sphinx-build -b typstpdf -d /tmp/typst-pdf-build/doctrees typsphinx/docs/source /tmp/typst-pdf-build/out
+        # $READTHEDOCS_OUTPUT expands to a `_readthedocs/` directory whose
+        # format subdirectory is created by RTD's own post-build ingestion,
+        # not before this job runs -- so `pdf/` must be created explicitly
+        # before the copy below (must precede it; RESEARCH.md Common
+        # Pitfall 3 / parent's own comment).
+        - mkdir -p "$READTHEDOCS_OUTPUT/pdf/"
+        - cp /tmp/typst-pdf-build/out/*.pdf "$READTHEDOCS_OUTPUT/pdf/"
+
+# Without this, RTD clones only the superproject and the typsphinx/
+# directory arrives empty -- the submodule content (and therefore the
+# entire documentation source) would simply not exist in the build
+# container.
+submodules:
+  include: all
+  recursive: false
+
+sphinx:
+  # typsphinx/docs/source/conf.py is a read-only mirror of the parent
+  # repository at the pinned submodule commit -- this manifest works AROUND
+  # it rather than editing it, which is exactly why post_create_environment
+  # above targets typsphinx/docs/locale/: the submodule's own unedited
+  # `locale_dirs = ["../locale/"]` is relative to conf.py's own location and
+  # already resolves there.
+  configuration: typsphinx/docs/source/conf.py
+
+# formats: [pdf] and build.jobs.build.pdf above are used together
+# deliberately, exactly as in the parent: the override replaces RTD's
+# default LaTeX step for that format, so formats: [pdf] alone would
+# silently activate RTD's own LaTeX pipeline and ship an undogfooded PDF
+# instead of typsphinx's own typstpdf output. formats: [pdf] is declared at
+# all because D-01 ships a Japanese PDF -- a decision re-confirmed on this
+# phase's own split-repository premise, not merely inherited from the
+# parent's manifest.
+formats:
+  - pdf
+
+python:
+  install:
+    # Deliberately NOT the parent's `method: uv` / `command: sync` form --
+    # that installs the workspace at the repository root, and here the
+    # typsphinx package lives one directory down, inside the submodule.
+    # `path:` is RTD's documented mechanism for installing a package from a
+    # subdirectory (docs.readthedocs.com/platform/stable/config-file/v2.html).
+    #
+    # RESEARCH.md assumption A2 (stated risk + fallback): if the ja
+    # project's first build log shows an import or autodoc failure, the
+    # correction is a `build.jobs.install` override running an editable
+    # install of `typsphinx[docs]` instead -- a one-line manifest change to
+    # be decided by reading that raw log, not pre-solved here. The risk is
+    # partially mitigated already: the submodule's own conf.py line 16 does
+    # `sys.path.insert(0, os.path.abspath("../.."))`, so autodoc has a
+    # second, independent path to the package even under a non-editable
+    # install.
+    - method: pip
+      path: typsphinx
+      extra_requirements:
+        - docs

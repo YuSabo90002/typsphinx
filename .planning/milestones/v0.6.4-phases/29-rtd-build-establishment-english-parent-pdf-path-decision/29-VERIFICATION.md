@@ -1,0 +1,1343 @@
+---
+phase: 29-rtd-build-establishment-english-parent-pdf-path-decision
+verified: 2026-07-26T00:00:00Z
+status: passed
+score: 10/10 must-haves verified
+behavior_unverified: 0
+overrides_applied: 0
+---
+
+# Phase 29: RTD Build Establishment (English Parent) + PDF Path Decision — Verification Report
+
+**Phase Goal:** A reader can browse typsphinx's English documentation on Read the Docs, built from
+this repository's own commit, and either download a PDF that typsphinx's own `typstpdf` builder
+produced or follow a documented, edit-free link to the Release PDF — with the documentation root
+always landing on a version that exists.
+
+**Verified:** 2026-07-26T00:00:00Z
+**Status:** passed
+**Note on this report's evidentiary basis:** every ROADMAP success criterion below was **independently
+re-checked live** by this verifier (fresh `curl` fetches against `typsphinx.readthedocs.io`, a fresh
+fetch of the raw RTD build log, a fresh pytest run, and `git diff` scope checks) — not merely accepted
+from `29-VERIFICATION.md`'s pre-existing evidence record (which this report replaces; the orchestrator
+re-appends that 1,157-line record beneath this report). Where the live re-check reproduced the recorded
+evidence exactly (including byte-identical SHA-256 hashes a day later), that is called out explicitly.
+
+## Goal Achievement
+
+### Observable Truths
+
+| # | Truth | Status | Evidence |
+|---|-------|--------|----------|
+| 1 | `/en/latest/` serves typsphinx's own real documentation content (SC#1, serving half) | ✓ VERIFIED | Independently re-fetched: `curl -sS -L https://typsphinx.readthedocs.io/en/latest/` → `code=200 size=30451`; body contains "Sphinx to Typst Conversion" (distinctive `docs/source/index.rst` phrase). Reproduces the phase's own 2026-07-25 fetch exactly (same size). |
+| 2 | `typsphinx` was installed on RTD from the checked-out commit, not a stale PyPI wheel (SC#1, provenance half) | ✓ VERIFIED | Independently re-fetched raw build log `https://app.readthedocs.org/api/v2/build/33756855.txt` (`code=200 size=157134`); line 234: `+ typsphinx==0.6.3 (from file:///home/docs/checkouts/readthedocs.org/user_builds/typsphinx/checkouts/latest)` — a `file://` provenance token, not a PyPI index/hash token. `.readthedocs.yaml`'s `python.install` (`method: uv`, `command: sync`, `extras: [docs]`) is the mechanism, structurally asserted by `test_readthedocs_yaml_shape`. |
+| 3 | The documentation root resolves, over real HTTP, to a version that exists and serves real content, with Default Version deliberately left at `latest` (SC#4, RTD-04) | ✓ VERIFIED | Independently re-fetched: `curl -D - -L https://typsphinx.readthedocs.io/` → `HTTP/2 302` / `location: https://typsphinx.readthedocs.io/en/latest/` / `HTTP/2 200`, final effective URL contains `latest`, body matches the same distinctive phrase. The `latest`→`stable` flip is recorded in `## Phase 33 Handoff Precondition` as an explicit, not-yet-done precondition for Phase 33 — correctly out of this phase's scope. |
+| 4 | The raw build log for the PDF-enabling build was read end to end and the `@preview` question is answered from recorded evidence, not from unexamined expectation — zero `latexmk`/`pdflatex`/`.tex` lines and the PDF step completing (SC#2) | ✓ VERIFIED (with a documented reasoning nuance, see below) | Independently re-fetched the same log and re-ran `grep -o -E 'latexmk|pdflatex|\.tex' | wc -l` → `0` — reproduces the phase's own count. `Compiling 1 master document(s) to PDF... Generated PDF: ... build succeeded, 2 warnings.` is directly quoted from the fetched log. |
+| 5 | Branch A (registry reachable) was correctly selected and justified from the recorded log evidence, per the owner's 2026-07-25 selection | ✓ VERIFIED | `## Branch Decision` quotes the zero-LaTeX-marker count and the PDF-completion excerpt as the two log-quoted conjunctive conditions; the third condition (package resolution) is explicitly routed to the two independent evidence lines described in truth #4's nuance below, disclosed rather than papered over. |
+| 6 | The PDF RTD serves for this build content-matches the local `typstpdf` baseline for the same commit — page count and extracted text agree, no tofu/glyph substitution (SC#3 Branch A, RTD-02) | ✓ VERIFIED | Independently re-downloaded `https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/` right now: `code=200`, 93 pages, SHA-256 `d86c31588356bd71500e5411fa0cfc09dddc69b88349b77159f58c635abe07a5` — **byte-identical** to the artifact Plan 05's D-12 checks 1–3 (page count 93, text 131,142 chars equal) were run against and to the artifact the owner visually inspected on 2026-07-25 (page 11, `表`/`図`/`图`/`圖` "not tofu, displaying correctly" — owner's own words, quoted in `## D-12 check 4 — RESOLVED by owner`). The earlier "RTD-02 is NOT met" verdict (recorded when check 4 was still open) is correctly superseded, not edited, by the later resolution. |
+| 7 | RTD-03 is satisfied vacuously because Branch A was taken — no fallback link is needed and Branch B's non-execution is correctly recorded as a skip, not a gap | ✓ VERIFIED | `## SC#3 Branch B — SKIPPED` records the decision verbatim; no edit was made to `docs/source/index.rst`/`README.md`; confirmed via `git diff a616b97..HEAD --name-only` (neither file appears) and no `test_release_pdf_fallback_link_present` exists in the test file (only 4 tests, matching Branch A). |
+| 8 | Milestone invariants hold: no `typsphinx/` runtime change, no new dependency declared | ✓ VERIFIED | `git diff a616b97..HEAD --name-only` (excluding `.planning/`) lists exactly `.readthedocs.yaml`, `docs/source/conf.py`, `tests/test_readthedocs_config.py`. `git diff a616b97..HEAD -- pyproject.toml` is empty. `pyyaml` (6.0.3) and `pypdf` (6.14.2) both import successfully without being declared as direct dependencies (transitive via `sphinx` / already in the `dev` extra). |
+| 9 | The full test suite stays green after the phase's edits, and the four `tests/test_readthedocs_config.py` tests specifically pass | ✓ VERIFIED | Re-ran independently: `uv run python -m pytest -q` → `661 passed, 1 skipped` (0 failed), matching the phase's own claim. `uv run python -m pytest tests/test_readthedocs_config.py -q` → `4 passed`. `black --check` / `ruff check` on the two Python files touched both exit 0. |
+| 10 | Requirements coverage: RTD-01..RTD-04 are each claimed by at least one plan and none are orphaned | ✓ VERIFIED | Plan 01: `[RTD-01]`; Plan 02: `[RTD-01, RTD-04]`; Plan 03: `[RTD-02]`; Plan 04: `[RTD-02, RTD-03]`; Plan 05: `[RTD-02]`; Plan 06: `[RTD-03]` (self-skipped, Branch B not taken). Union == `{RTD-01, RTD-02, RTD-03, RTD-04}`, exactly the phase's declared requirement set in ROADMAP.md and REQUIREMENTS.md's traceability table. No orphaned requirement. |
+
+**Score:** 10/10 truths verified (0 present-but-behavior-unverified).
+
+**Nuance on truth #4 (the `@preview` question) — disclosed explicitly, not treated as a gap:**
+The raw log contains **no** per-package `@preview` resolution or failure line at all — Typst's compiler
+is silent on successful `@preview` resolution, and this absence is honestly recorded in the evidence
+file rather than smoothed over (`## SC#2` Excerpt (c): "No such lines exist in the log. This absence is
+itself the recorded observation."). Two of the four packages (codly, gentle-clues) were confirmed
+resolved by the owner's direct visual inspection of the rendered PDF (styled listings / admonitions
+present) — human-verified, not machine-verified, and honestly labelled as such. The remaining package
+(mitex) is settled by a valid deductive argument from two independently-checked premises, not
+speculation: (1) `typsphinx/templates/base.typ`'s four `#import "@preview/..."` lines are unconditional
+— confirmed by direct file read, no `#if` guard — so `mitex`'s import is evaluated regardless of whether
+the document contains math; (2) the compile that evaluates all four imports exited zero and produced
+the PDF (quoted from the log). Since Typst's `#import` has no partial-failure mode — an unresolved
+`@preview` import aborts the whole compile — premises (1)+(2) jointly entail `mitex` resolved. I
+independently confirmed premise (1) is still true in the current `typsphinx/templates/base.typ` (the
+four `@preview` imports remain unconditional) and premise (2) via my own re-fetch of the log. This is a
+sound argument from directly-observed facts, not an unexamined assumption, and it is exactly the
+evidentiary path Plan 04 anticipated and required for the case where the log turned out silent. I do
+not treat this as a gap, but flag it here so a human reader understands the verdict rests on a
+disclosed 2-premise deduction plus partial owner corroboration for the other two packages, rather than
+on four literal "package resolved" log lines (which do not exist for any @preview-consuming Typst
+build, by the nature of the tool).
+
+### Required Artifacts
+
+| Artifact | Expected | Status | Details |
+|----------|----------|--------|---------|
+| `.readthedocs.yaml` | D-06 two-commit shape: HTML-only base + `formats: [pdf]` + `build.jobs.build.pdf` override + `build.apt_packages: [fonts-noto-cjk]` | ✓ VERIFIED | Read in full; matches both plans' exact prescribed shape. `version: 2`, `build.os: ubuntu-24.04`, `build.tools.python: "3.12"` (matches `.github/workflows/docs.yml`'s pin, bound by `test_build_python_matches_docs_workflow`), `sphinx.configuration`, `python.install` (uv/sync/docs), `formats: [pdf]`, four-command `build.jobs.build.pdf` with mkdir-before-copy ordering, no tox delegation, no secret referenced. |
+| `docs/source/conf.py` | `_resolve_language()` helper wired into `language` and into `html_context["language"]` | ✓ VERIFIED | `_resolve_language()` returns `os.getenv("READTHEDOCS_LANGUAGE", os.getenv("SPHINX_LANGUAGE", "en"))`; `language = _resolve_language()`; `html_context = {"language": language, ...}` — read directly at lines 51/72-73. Wired, not merely present. |
+| `tests/test_readthedocs_config.py` | 4 passing hermetic tests | ✓ VERIFIED | Read in full: `test_readthedocs_yaml_shape`, `test_build_python_matches_docs_workflow`, `test_readthedocs_yaml_pdf_override`, `test_language_seam_precedence` — all plain functions, no `::Test` class segment, no network import (`grep` for `urllib|requests|httpx|socket` finds nothing). Re-ran: `4 passed`. |
+
+### Key Link Verification
+
+| From | To | Via | Status | Details |
+|------|-----|-----|--------|---------|
+| `.readthedocs.yaml` `python.install` | RTD's checked-out commit | `method: uv` / `command: sync` | ✓ WIRED | Raw build log line 234 shows the `file://...checkouts/latest` provenance token — independently re-confirmed live. |
+| `formats: [pdf]` | `build.jobs.build.pdf` override | Must land together or RTD's own LaTeX pipeline activates | ✓ WIRED | Both present in the same commit (`38c7157`); `test_readthedocs_yaml_pdf_override` asserts structurally; zero `latexmk`/`pdflatex`/`.tex` in the actual build log (machine-confirmed, both by the phase's executor and independently by this verifier). |
+| `build.jobs.build.pdf`'s mkdir | the `cp` into `$READTHEDOCS_OUTPUT/pdf/` | ordering (mkdir index < copy index) | ✓ WIRED | Asserted by `test_readthedocs_yaml_pdf_override` (assertion 8); confirmed present in the live-fetched build log (Excerpt (b), lines 462-467). |
+| `build.apt_packages: [fonts-noto-cjk]` | CJK-coverage font embedded in the RTD-built PDF | apt install → Typst font-fallback discovery | ✓ WIRED (with an honestly-recorded surprise) | Apt install succeeded per the log (`fonts-noto-cjk is already the newest version`); the RTD-built PDF embeds `MSNUZX+HanaMinA` (a Hanazono Mincho font providing broad Han coverage) — CJK coverage achieved, though not via a Noto-named font. This surprising-but-non-failing finding is recorded honestly in the evidence record rather than smoothed over, and does not fail D-12 check 3 (coverage, not family-name identity, is the bar). |
+| `docs/source/conf.py` `_resolve_language()` | `language` → `html_context["language"]` | direct assignment | ✓ WIRED | `test_language_seam_precedence` exercises all 4 combinations plus the `html_context["language"] == module.language` wiring assertion; all pass. |
+
+### Behavioral Spot-Checks
+
+| Behavior | Command | Result | Status |
+|----------|---------|--------|--------|
+| `/en/latest/` serves real content | `curl -sS -L https://typsphinx.readthedocs.io/en/latest/` | `code=200 size=30451`, body contains "Sphinx to Typst Conversion" | ✓ PASS |
+| Documentation root resolves to `latest` | `curl -D - -L https://typsphinx.readthedocs.io/` | `302` → `location: .../en/latest/` → `200` | ✓ PASS |
+| RTD-served PDF matches the artifact previously D-12-checked | `curl -L .../_/downloads/en/latest/pdf/` + `sha256sum` | `code=200`, 93 pages, SHA-256 identical to the artifact behind checks 1-4 | ✓ PASS |
+| Raw build log still shows in-repo install + zero LaTeX markers | `curl .../api/v2/build/33756855.txt` + `grep` | `code=200`; install line present; LaTeX-marker count `0` | ✓ PASS |
+| `tests/test_readthedocs_config.py` passes | `uv run python -m pytest tests/test_readthedocs_config.py -q` | `4 passed` | ✓ PASS |
+| Full suite stays green | `uv run python -m pytest -q` | `661 passed, 1 skipped` | ✓ PASS |
+| `black`/`ruff` clean on touched Python files | `uv run black --check` / `uv run ruff check` | both exit 0 | ✓ PASS |
+
+### Probe Execution
+
+No `scripts/*/tests/probe-*.sh` convention exists in this repository and none is declared by this
+phase's plans (D-15 explicitly forbids committing a comparison script for the RTD-vs-local PDF check —
+it is deliberately one-off, hand-run commands recorded verbatim instead). Step 7c: **SKIPPED (no
+runnable probe entry points; D-15 by design)**.
+
+### Requirements Coverage
+
+| Requirement | Source Plan(s) | Description | Status | Evidence |
+|--------------|-----------------|--------------|--------|----------|
+| RTD-01 | Plan 01, Plan 02 | English docs browsable, built from the checked-out commit, not a stale PyPI wheel | ✓ SATISFIED | Live re-fetch of `/en/latest/` (200, real content) + raw-log install-provenance line (`file://...checkouts/latest`), both independently re-confirmed by this verifier. |
+| RTD-02 | Plan 03, Plan 04, Plan 05 | PDF downloaded is typsphinx's own `typstpdf` output, content-verified (not just build status) | ✓ SATISFIED | Branch A selected on recorded evidence; D-12 checks 1-4 all pass (page count, text, CJK-coverage font, owner tofu confirmation); zero LaTeX-toolchain markers rules out RTD's own pipeline. |
+| RTD-03 | Plan 04, Plan 06 | Fallback to Release PDF link if `@preview` registry unreachable | ✓ SATISFIED (vacuously) | Branch A was taken (registry reachable), so the fallback condition's antecedent is false; Plan 06 correctly self-skipped and recorded the skip rather than performing unneeded work. Per the phase-instructions this is not scored as a gap. |
+| RTD-04 | Plan 02 | Documentation root always resolves to an existing, content-serving version | ✓ SATISFIED | Live re-fetch: root → 302 → `/en/latest/` → 200, real content. `latest`→`stable` flip correctly deferred to Phase 33 as an explicit, recorded, not-yet-done precondition — this is by design (`stable` cannot exist until the `v0.6.4` tag builds green), not a gap in this phase. |
+
+No orphaned requirements: REQUIREMENTS.md's traceability table maps exactly RTD-01..RTD-04 to Phase 29,
+and all four are claimed and discharged by the six plans above.
+
+### Anti-Patterns Found
+
+| File | Line | Pattern | Severity | Impact |
+|------|------|---------|----------|--------|
+| — | — | No `TBD`/`FIXME`/`XXX`/`TODO`/`HACK`/`PLACEHOLDER` markers found in any of the three phase-modified files | — | none |
+| `docs/source/conf.py:51-52` | `_resolve_language()` | `os.getenv(name, os.getenv(...))` treats an explicitly-empty-string env var as a real value rather than falling through | ⚠️ WARNING (advisory, from `29-REVIEW.md` WR-02) | Low real-world likelihood — RTD's Language admin setting is a dropdown, not free text, and no producer in this repo sets either var to `""`. Does not block the phase goal. Worth a follow-up hardening pass. |
+| `.readthedocs.yaml:27-33` | `build.jobs.build.pdf` | Fixed, predictable `/tmp/typst-pdf-build/...` path rather than `mktemp -d` | ℹ️ INFO (advisory, from `29-REVIEW.md` WR-03) | Low risk in RTD's single-tenant ephemeral build container; the two real builds recorded in evidence both succeeded using this exact path. Not a functional defect. |
+| `.readthedocs.yaml` (general) | `python.install[].method: uv` | `29-REVIEW.md` WR-01 flagged this shape as unverified against RTD's real config validator, based on static review alone | ✓ RESOLVED, not a live gap | Superseded by empirical evidence: two real RTD builds (`33756718` HTML-only, `33756855` PDF-enabled) both completed with `state: finished, success: true` against this exact manifest shape — the schema concern WR-01 raised is answered by the live builds this phase itself produced, which the code-review agent (working from static file review only) could not see. |
+
+None of these rise to a blocker. WR-02 and WR-03 are legitimate, low-severity hardening suggestions
+worth carrying forward as follow-up debt, not phase-29 gaps.
+
+### Human Verification Required
+
+None outstanding. All owner-manual actions this phase required (RTD project creation + slug
+confirmation, Admin Language = English, Default Version left at `latest`, and the D-12 check 4 visual
+tofu confirmation) were already performed and recorded during phase execution — see the evidence
+record's `## Owner-Manual Steps` and `## D-12 check 4 — RESOLVED by owner` sections. There is no item
+this verification pass needs to route to a human for the first time.
+
+The two Phase-33 handoff preconditions (Default Version `latest`→`stable`, and Default Branch reversal
+to `main` after the milestone merges) are correctly recorded as **not yet done** and explicitly out of
+this phase's scope — they are Phase 33's responsibility, not an open item for phase 29's verification.
+
+### Gaps Summary
+
+No gaps found. All four ROADMAP success criteria are independently confirmed live as of this
+verification pass (2026-07-26), not merely inferred from the phase's own evidence record. The one
+notable nuance — the `@preview` verdict resting on a disclosed 2-premise deduction plus partial owner
+corroboration rather than four literal per-package log lines — is documented above but does not rise to
+a gap: it is the evidentiary path the phase's own plans explicitly anticipated for the case (which
+occurred) where Typst's silent `@preview` resolution leaves no positive per-package log trace, and every
+premise in that deduction was independently re-checked by this verifier against the live log and the
+current `typsphinx/templates/base.typ`.
+
+Milestone invariants hold (no `typsphinx/` change, no new dependency), the full test suite is green
+(661 passed, 1 skipped, 0 failed — independently re-run), and all four RTD-01..RTD-04 requirements are
+accounted for with no orphans.
+
+---
+
+_Verified: 2026-07-26T00:00:00Z_
+_Verifier: Claude (gsd-verifier)_
+
+---
+
+<!-- The orchestrator re-appends the full 1,157-line Phase 29 live-evidence record (§ SC#1 through
+§ D-12 check 4 — RESOLVED by owner) beneath this report. That record is this verifier's primary
+evidence source and was read in full before this report was written; see the Observable Truths table
+above for the specific excerpts and independent re-checks this verification performed against it. -->
+
+---
+
+# Appendix — Phase 29 Live Evidence Record (restored)
+
+Everything below this line is the phase's **live evidence record**: created by Plan 02 and appended to by
+Plans 03, 04, 05, 06 and the execute-phase orchestrator, in that order. It holds every recorded command,
+HTTP fetch, raw-log excerpt and verdict this phase produced, and it is the source the verification report
+above was scored against.
+
+**Why it appears as an appendix.** GSD's `gsd-verifier` owns the filename `{phase}-VERIFICATION.md` and
+writes it with a whole-file `Write`. This phase's plans had already claimed the same filename for the
+evidence record, so the verifier's write necessarily replaced it. The orchestrator took a byte-verified
+copy before dispatching the verifier and restored it here afterwards; the restored bytes are identical to
+the pre-verification file (`sha256 2766442e8f041924a9f0586b661a5da08b313645d20f60fb21e85891b91ebd59`,
+1157 lines). Nothing was rewritten, reordered, or summarized in the restore.
+
+**Note for future phases:** `{phase}-VERIFICATION.md` is a reserved artifact name owned by the verify
+step. A phase that wants a live evidence record should name it something else (e.g.
+`{phase}-EVIDENCE.md`) so the two do not collide.
+
+# Phase 29 — Live Evidence Record
+
+This file is created by Plan 02 and **appended to** by Plans 03/04/05/06. Every later writer adds a new
+`##` section after the existing ones and must never rewrite or reorder what is already here.
+
+## SC#1 — /en/latest/ serves real content
+
+**Command:**
+
+```
+curl -sS -o /tmp/p29-en-latest.html -w 'code=%{http_code} url=%{url_effective} size=%{size_download}\n' -L https://typsphinx.readthedocs.io/en/latest/
+```
+
+**Fetched:** 2026-07-25T14:00:05Z (UTC)
+
+**Output:**
+
+```
+code=200 url=https://typsphinx.readthedocs.io/en/latest/ size=30451
+```
+
+**Matched phrase (from the captured body, with surrounding context):**
+
+```
+<h2>Key Features<a class="headerlink" href="#key-features" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>Sphinx to Typst Conversion</strong>: Convert reStructuredText/Markdown to Typst format</p></li>
+<li><p><strong>Dual Builder Integration</strong>:</p>
+<ul>
+```
+
+**Proves:** `https://typsphinx.readthedocs.io/en/latest/` returns HTTP 200 and serves typsphinx's own
+rendered `docs/source/index.rst` content — the distinctive "Sphinx to Typst Conversion" feature bullet
+appears in the response body, not an RTD placeholder or a 404 page (SC#1, serving half).
+
+## SC#4 — documentation root resolves
+
+**Command (full redirect chain, headers + final status):**
+
+```
+curl -sS -D - -o /tmp/p29-root-body.html -L https://typsphinx.readthedocs.io/ -w 'FINAL: code=%{http_code} url=%{url_effective} size=%{size_download}\n' | grep -E '^(HTTP/|location:|FINAL)' -i
+```
+
+**Fetched:** 2026-07-25T14:00:13Z (UTC)
+
+**Output (redirect chain — status code of each hop plus final effective URL):**
+
+```
+HTTP/2 302
+location: https://typsphinx.readthedocs.io/en/latest/
+HTTP/2 200
+FINAL: code=200 url=https://typsphinx.readthedocs.io/en/latest/ size=30451
+```
+
+**Body content-match command and output:**
+
+```
+grep -q "Sphinx to Typst Conversion" /tmp/p29-root-body.html && echo BODY_MATCH_OK
+```
+```
+BODY_MATCH_OK
+```
+
+**Proves:** `https://typsphinx.readthedocs.io/` issues a single HTTP 302 whose `Location` header names
+`https://typsphinx.readthedocs.io/en/latest/`, and following that redirect lands on HTTP 200 with the
+same distinctive index-page phrase present in the body. The final effective URL contains `latest` — the
+documentation root resolves to an existing, content-serving version (RTD Default Version = `latest`),
+not to a `stable` version that has no build yet (SC#4, RTD-04).
+
+**Combined plan-prescribed verify command (both fetches, both content assertions, re-run for the record):**
+
+```
+curl -sS -o /tmp/p29-en-latest.html -w 'code=%{http_code} url=%{url_effective} size=%{size_download}\n' -L https://typsphinx.readthedocs.io/en/latest/ && curl -sS -o /tmp/p29-root.html -w 'code=%{http_code} url=%{url_effective} size=%{size_download}\n' -L https://typsphinx.readthedocs.io/ && grep -q 'Sphinx to Typst Conversion' /tmp/p29-en-latest.html && grep -q 'Sphinx to Typst Conversion' /tmp/p29-root.html && echo LIVE_FETCH_OK
+```
+```
+code=200 url=https://typsphinx.readthedocs.io/en/latest/ size=30451
+code=200 url=https://typsphinx.readthedocs.io/en/latest/ size=30451
+LIVE_FETCH_OK
+```
+
+## Owner-Manual Steps (human_needed)
+
+The following RTD web-UI actions have **no** `.readthedocs.yaml` representation and no API this phase is
+authorized to script. They are recorded here exactly as the owner reported them in Task 1
+(`checkpoint:human-action`, gate `blocking-human`) — **owner-reported, NOT machine-verified.** No command
+in this repository can assert that these dashboard clicks happened; only their *outcome* (the fetches
+above) is machine-verified.
+
+1. **Slug confirmation** — `human_needed`. The owner confirmed on RTD's import screen that the slug
+   `typsphinx` was unclaimed (it had been measured unclaimed on 2026-07-25 via a 404 at
+   `https://typsphinx.readthedocs.io/`, but RTD's import screen is the authoritative check). The
+   `SLUG TAKEN` stop condition did **not** fire.
+2. **Project creation + GitHub connection** — `human_needed`. Owner-reported: `slug=typsphinx`, created
+   from the GitHub repository `YuSabo90002/typsphinx`, with GitHub connected so pushes trigger builds.
+3. **Admin Language = English** — `human_needed`. Owner-reported: `admin_language=English`.
+4. **Default Version left at `latest`** — `human_needed`. Owner-reported: `default_version=latest`. Not
+   set to `stable` (confirmed independently below by the SC#4 root-fetch, which is machine-verified).
+
+**Fifth owner-manual action, beyond the plan's original four** (recorded per explicit executor
+instruction — see reasoning in the next section and in `## Phase 33 Handoff Precondition`):
+
+5. **RTD Default Branch set to the milestone branch** — `human_needed`. The plan assumed the branch
+   carrying Plan 01's commits would already be buildable by RTD; it was not, because the milestone
+   branch (`gsd/v0.6.4-read-the-docs-migration`) was unpushed at the time and RTD's `latest` version
+   tracks the repository's default branch, which was `main`. The orchestrator surfaced this to the
+   owner, who chose: push the milestone branch (performed by the orchestrator, commit `2d6ff27`), and
+   set **RTD Admin → Advanced settings → Default branch = `gsd/v0.6.4-read-the-docs-migration`** so that
+   `latest` tracks the milestone branch for the duration of the milestone (performed by the owner in the
+   RTD dashboard — `human_needed`, not machine-verifiable from this repository). This step's reversal is
+   recorded as a second, separate precondition in `## Phase 33 Handoff Precondition` below.
+
+**Owner-reported build identity carried forward from Task 1** (used again in the next section):
+
+```
+slug=typsphinx
+admin_language=English
+default_version=latest
+build_url=https://app.readthedocs.org/projects/typsphinx/builds/33756675/
+build_status=Build succeeded
+built_commit=2d6ff27bea2ae205a3f686b1cc53f8d81f9c5ab7
+```
+
+## SC#1 — install provenance from the raw build log
+
+**Build identity** (owner-reported, Task 1):
+
+- Build-detail URL: `https://app.readthedocs.org/projects/typsphinx/builds/33756675/`
+- Build status: `Build succeeded`
+- Built commit: `2d6ff27bea2ae205a3f686b1cc53f8d81f9c5ab7`
+
+**Raw-log HTTP fetch (strengthening step, attempted and successful):**
+
+```
+curl -sS -o /tmp/p29-buildlog-33756675.txt -w 'code=%{http_code} type=%{content_type} size=%{size_download}\n' https://app.readthedocs.org/api/v2/build/33756675.txt
+```
+
+```
+code=200 type=text/plain; charset=utf-8 size=81479
+```
+
+The raw log **is** retrievable over public HTTP — no fallback to owner-paste-only was needed for this
+build. (`https://readthedocs.org/api/v2/build/33756675.txt` was also confirmed to return the identical
+body during discovery; the `app.readthedocs.org` host above is the one recorded as the command of
+record.)
+
+**Decisive install-provenance excerpt, read directly from the fetched log at line 164** (confirmed
+present in the fetched copy at `/tmp/p29-buildlog-33756675.txt`):
+
+```
+ + typsphinx==0.6.3 (from file:///home/docs/checkouts/readthedocs.org/user_builds/typsphinx/checkouts/latest)
+```
+
+Supporting context, lines 116 and 127 of the same log:
+
+```
+   Building typsphinx @ file:///home/docs/checkouts/readthedocs.org/user_builds/typsphinx/checkouts/latest
+      Built typsphinx @ file:///home/docs/checkouts/readthedocs.org/user_builds/typsphinx/checkouts/latest
+```
+
+**Reading:** the decisive token is `(from file:///home/docs/checkouts/readthedocs.org/user_builds/typsphinx/checkouts/latest)` —
+`uv sync` reports `typsphinx` as installed **`from file://...`**, an absolute filesystem path into RTD's
+own checkout of this repository's working tree, not from a package index. A PyPI-index resolve would
+instead have printed a registry/hash-based provenance token — the familiar `+ typsphinx==0.6.3` line
+followed by a wheel filename and a `--hash=sha256:...` (or, in `uv`'s own resolver output, a
+`(index: https://pypi.org/simple)` — style annotation) with no `file://` path at all, and no `Building
+typsphinx @ ...` / `Built typsphinx @ ...` compile-from-source lines, since a PyPI wheel is fetched
+pre-built and never locally "Built". The presence of the `file://...checkouts/latest` path, plus the
+paired `Building`/`Built` lines naming that same path, is what evidences a checked-out-commit install
+rather than a stale published wheel shadowing the working tree (T-29-05).
+
+This fetched copy of the log agrees with the excerpt supplied in the orchestrator's brief; no divergence
+was found.
+
+**Strengthening scan — `latexmk`, `pdflatex`, `.tex` (Plan 04 pre-observation only; Plan 04 owns the
+SC#2 verdict):**
+
+```
+grep -o -E 'latexmk|pdflatex|\.tex' /tmp/p29-buildlog-33756675.txt | wc -l
+```
+
+```
+0
+```
+
+This build predates any PDF-compile step in `.readthedocs.yaml` (Plan 01 was HTML-only), so a count of
+zero is the expected pre-observation, not a verdict on RTD-03/SC#2 — that verdict belongs to Plan 04
+once a PDF build step exists.
+
+## Phase 33 Handoff Precondition
+
+RTD's **Default Version** is deliberately left at `latest` for the entire duration of the v0.6.4
+milestone. `stable` cannot exist until the `v0.6.4` tag itself builds green, because Read the Docs has
+refused builds lacking a `.readthedocs.yaml` since 2023-09-25 and no tag earlier than `v0.6.4` contains
+one. Therefore:
+
+**Precondition A — Default Version flip (`latest` → `stable`):** an owner-manual step handed to
+**Phase 33**, to be performed only **after** the `v0.6.4` tag has been pushed and has built green.
+**Not yet done. `human_needed`.**
+
+**Precondition B — Default Branch reversal (milestone branch → `main`):** a second, separate
+owner-manual step, also handed to **Phase 33** (or later, once the milestone merges to `main`). RTD's
+**Admin → Advanced settings → Default branch** is currently set to
+`gsd/v0.6.4-read-the-docs-migration` (see item 5 in `## Owner-Manual Steps (human_needed)` above) so
+that `latest` tracks the milestone branch while it is unmerged. Once the milestone branch merges into
+`main`, this setting must be reversed: **Default branch `gsd/v0.6.4-read-the-docs-migration` → `main`**,
+so that `latest` resumes tracking the repository's real default branch. This is distinct from
+Precondition A and must not be merged into it — one governs which *version* is default (`latest` vs.
+`stable`), the other governs which *branch* the `latest` version itself tracks.
+**Not yet done. `human_needed`.**
+
+Both preconditions stand alongside the standing invariant that Phases 30, 31 and 32 each re-fetch the
+documentation root as part of their own verification, so RTD-04 remains a checked invariant across the
+whole migration window rather than a one-time check performed only here.
+
+## Pre-RTD Local Simulation of build.jobs.build.pdf
+
+This section is Plan 03, Task 3. `.readthedocs.yaml`'s `build.jobs.build.pdf` override (landed in commit
+`38c7157`) is run locally, command-for-command, with `$READTHEDOCS_OUTPUT` substituted by a fresh temp
+root and the sandbox-compatible `uv run python -m sphinx` invocation substituted for the `sphinx-build`
+console script (CLAUDE.md's documented NixOS workaround — the builder and its arguments are identical).
+This is a one-off, hand-run sequence; **no comparison script is committed** (D-15) — the commands and
+their output below are pasted verbatim for the record.
+
+**Commands (logically identical to the four `build.jobs.build.pdf` entries):**
+
+```
+rm -rf /tmp/p29-03-sim
+mkdir -p /tmp/p29-03-sim/doctrees
+uv run python -m sphinx -b typstpdf -d /tmp/p29-03-sim/doctrees docs/source /tmp/p29-03-sim/out
+mkdir -p /tmp/p29-03-sim/_readthedocs/pdf/
+cp /tmp/p29-03-sim/out/*.pdf /tmp/p29-03-sim/_readthedocs/pdf/
+```
+
+**Build output (tail — full log confirms `build succeeded, 2 warnings`, matching the 2026-07-25
+measurement recorded in 29-CONTEXT.md):**
+
+```
+ビルド中 [typstpdf]: 更新された 13 件のソースファイル
+...
+writing output... [api/index] done
+writing output... [changelog] done
+writing output... [contributing] done
+writing output... [examples/advanced] done
+writing output... [examples/basic] done
+writing output... [examples/index] done
+writing output... [index] done
+writing output... [installation] done
+writing output... [quickstart] done
+writing output... [user_guide/builders] done
+writing output... [user_guide/configuration] done
+writing output... [user_guide/index] done
+writing output... [user_guide/templates] done
+Compiling 1 master document(s) to PDF...
+Generated PDF: /tmp/p29-03-sim/out/typsphinx.pdf
+build succeeded, 2 warnings.
+```
+
+Two pre-existing docutils warnings (`Unexpected indentation` / `Block quote ends without a blank line`
+in `typsphinx/translator.py`'s `visit_toctree` docstring) are unrelated to this plan's `.readthedocs.yaml`
+change — they are a Sphinx autodoc parsing note on this repository's own source, out of scope here.
+
+**Builder's own output directory — full listing (10 entries; more than one, confirming the `*.pdf`
+filter below is load-bearing, not decorative):**
+
+```
+_template.typ
+api
+changelog.typ
+contributing.typ
+examples
+installation.typ
+quickstart.typ
+typsphinx.pdf
+typsphinx.typ
+user_guide
+```
+
+**Simulated RTD download directory — full listing (exactly one file):**
+
+```
+typsphinx.pdf
+```
+
+**Verification command and output, run a second time on a fresh temp root to confirm reproducibility
+(the exact automated command this plan's task specifies):**
+
+```
+rm -rf /tmp/p29-03-sim2 && mkdir -p /tmp/p29-03-sim2/doctrees && uv run python -m sphinx -b typstpdf -q -d /tmp/p29-03-sim2/doctrees docs/source /tmp/p29-03-sim2/out && mkdir -p /tmp/p29-03-sim2/_readthedocs/pdf/ && cp /tmp/p29-03-sim2/out/*.pdf /tmp/p29-03-sim2/_readthedocs/pdf/ && test "$(ls -1 /tmp/p29-03-sim2/_readthedocs/pdf/)" = "typsphinx.pdf" && test "$(ls -1 /tmp/p29-03-sim2/out | wc -l)" -gt 1 && echo SIM_OK
+```
+
+```
+SIM_OK
+```
+
+**Proves:** the manifest's exact `build.jobs.build.pdf` command sequence is syntactically and
+semantically sound — it builds, the mkdir-before-copy ordering works, and the `*.pdf` glob correctly
+admits exactly `typsphinx.pdf` into the simulated download directory while leaving the builder's other
+9 output entries (the `.typ` sources, `_template.typ`, and the `api`/`examples`/`user_guide`
+subdirectories) behind — before any RTD build cycle is spent proving the same thing live.
+
+## D-12 Baseline (local, this commit)
+
+This section is Plan 03, Task 3's dated, per-commit D-12 baseline, captured via `pypdf` (already
+declared in the `dev` extra — no new dependency) against the PDF produced by the simulation above.
+
+**Command:**
+
+```
+python -c "
+import pypdf, os
+r = pypdf.PdfReader('/tmp/p29-03-sim/_readthedocs/pdf/typsphinx.pdf')
+print('pages', len(r.pages))
+fonts = set()
+for page in r.pages:
+    res = page.get('/Resources')
+    if res is None:
+        continue
+    fontdict = res.get('/Font')
+    if fontdict is None:
+        continue
+    for k, v in fontdict.items():
+        obj = v.get_object()
+        bf = obj.get('/BaseFont')
+        if bf:
+            fonts.add(str(bf))
+for f in sorted(fonts):
+    print('/BaseFont', f)
+print('bytes', os.path.getsize('/tmp/p29-03-sim/_readthedocs/pdf/typsphinx.pdf'))
+"
+```
+
+**Output:**
+
+```
+pages 93
+/BaseFont /BLJSKO+IPAexGothic
+/BaseFont /JWAONO+NotoSansCJKjp-Thin
+/BaseFont /LFIBAF+LibertinusSerif-Italic-Identity-H
+/BaseFont /OYQRGH+DejaVuSansMono
+/BaseFont /PEKEPN+LibertinusSerif-Bold-Identity-H
+/BaseFont /SEPNHW+LibertinusSerif-Semibold-Identity-H
+/BaseFont /SVGCJT+Unifont-Identity-H
+/BaseFont /UOQBSW+LibertinusSerif-Regular-Identity-H
+/BaseFont /VOIDKS+DejaVuSansMono-Bold
+bytes 1693967
+```
+
+**Baseline summary (this commit):**
+
+| Field | Value |
+|-------|-------|
+| Page count | **93** |
+| Byte size | **1,693,967 bytes** |
+| Embedded `/BaseFont` list (9 fonts, sorted) | `BLJSKO+IPAexGothic`, `JWAONO+NotoSansCJKjp-Thin`, `LFIBAF+LibertinusSerif-Italic-Identity-H`, `OYQRGH+DejaVuSansMono`, `PEKEPN+LibertinusSerif-Bold-Identity-H`, `SEPNHW+LibertinusSerif-Semibold-Identity-H`, `SVGCJT+Unifont-Identity-H`, `UOQBSW+LibertinusSerif-Regular-Identity-H`, `VOIDKS+DejaVuSansMono-Bold` |
+| Commit SHA (the `.readthedocs.yaml` state simulated — Task 2's commit) | `38c71579053ecb1fc4b4b157eef1a45414a8cb1a` |
+| Local interpreter version | Python 3.13.13 (CPython) |
+| `.readthedocs.yaml` `build.tools.python` | `"3.12"` |
+
+**Notes:**
+
+- **Interpreter-minor caveat:** the local interpreter used for this baseline is Python 3.13.13, while
+  `.readthedocs.yaml`'s `build.tools.python` provisions `"3.12"` on RTD. This is expected — the worktree's
+  `uv sync` resolved the newer minor available on this host, not `3.12` specifically. The D-12 bar (page
+  count and extracted text) is not expected to be interpreter-minor sensitive; if Plan 05's RTD-built PDF
+  comparison observes a mismatch attributable to this difference, it must be recorded verbatim rather
+  than explained away.
+- **D-13 caveat:** per D-13, an exact embedded-font-list match is **not** the bar for Plan 05's
+  comparison. Several fonts in the list above (`IPAexGothic`, `NotoSansCJKjp-Thin`, `DejaVuSansMono`,
+  `DejaVuSansMono-Bold`, `Unifont`) are host-provided, not typst-py-embedded — a perfectly healthy RTD
+  build cannot be expected to reproduce this exact list. Only CJK *coverage* (at least one font with CJK
+  glyph support) is asserted in Plan 05.
+- This baseline's page count (93), font count (9), and byte size are consistent with the 2026-07-25
+  measurement recorded in `29-CONTEXT.md` § "CJK fonts — a new risk found by measurement", re-taken here
+  for this exact commit rather than reused from memory.
+
+## SC#2 — raw build log, @preview verdict
+
+This section is Plan 04, Task 2. All commands below were re-run by the Plan 04 executor directly (not
+copied from the owner's report) so that the recorded evidence is the executor's own machine observation
+over real fetched log text, per D-07.
+
+**Build identity** (owner-reported in the Task 1 checkpoint, and independently re-confirmed below via the
+API v3 status endpoint):
+
+- Build-detail URL: `https://app.readthedocs.org/projects/typsphinx/builds/33756855/`
+- Built commit: `dcc6a523fc2d16f3dae925e17d63a1a24318b6d7` — the exact commit this phase's Plan 03 landed
+  (`.readthedocs.yaml`'s `formats: [pdf]` + `build.jobs.build.pdf` override + `fonts-noto-cjk`)
+- Raw-log URL: `https://app.readthedocs.org/api/v2/build/33756855.txt`
+
+**Independent re-confirmation of build status (API v3, executor's own fetch):**
+
+```
+curl -sS -w '\ncode=%{http_code}\n' "https://app.readthedocs.org/api/v3/projects/typsphinx/builds/33756855/" -H "Accept: application/json"
+```
+
+```
+{"commit":"dcc6a523fc2d16f3dae925e17d63a1a24318b6d7", ... "duration":68, "error":"",
+ "state":{"code":"finished","name":"Finished"}, "success":true, "version":"latest"}
+code=200
+```
+
+**Raw-log HTTP fetch (executor's own fetch, not reused from the orchestrator's staged copy):**
+
+```
+curl -sS -o /tmp/p29-buildlog-33756855.txt -w 'code=%{http_code} type=%{content_type} size=%{size_download}\n' https://app.readthedocs.org/api/v2/build/33756855.txt
+```
+
+```
+code=200 type=text/plain; charset=utf-8 size=157134
+```
+
+```
+wc -l /tmp/p29-buildlog-33756855.txt
+```
+
+```
+1271 /tmp/p29-buildlog-33756855.txt
+```
+
+This matches the byte size (157134) and line count (1271) already noted by the orchestrator's brief; no
+divergence was found between this executor's own fetch and that prior observation.
+
+### Excerpt (a) — `fonts-noto-cjk` apt lines
+
+Verbatim, log lines 142-149:
+
+```
+[rtd-command-info] start-time: 2026-07-25T14:21:18.256903Z, end-time: 2026-07-25T14:21:19.481058Z, duration: 1, exit-code: 0
+apt-get install --assume-yes --quiet -- fonts-noto-cjk
+Reading package lists...
+Building dependency tree...
+Reading state information...
+fonts-noto-cjk is already the newest version (1:20230817+repack1-3).
+fonts-noto-cjk set to manually installed.
+0 upgraded, 0 newly installed, 0 to remove and 378 not upgraded.
+```
+
+### Excerpt (b) — `build.jobs.build.pdf` step lines
+
+Verbatim, log lines 808-816 (the `mkdir` + `sphinx-build` invocation):
+
+```
+[rtd-command-info] start-time: 2026-07-25T14:21:40.949056Z, end-time: 2026-07-25T14:21:40.996532Z, duration: 0, exit-code: 0
+mkdir -p /tmp/typst-pdf-build/doctrees
+
+
+[rtd-command-info] start-time: 2026-07-25T14:21:41.038749Z, end-time: 2026-07-25T14:22:05.894229Z, duration: 24, exit-code: 0
+sphinx-build -b typstpdf -d /tmp/typst-pdf-build/doctrees docs/source /tmp/typst-pdf-build/out
+Running Sphinx v9.1.0
+loading translations [en]... done
+making output directory... done
+```
+
+Verbatim, log lines 1259-1269 (the tail — PDF compile completion, then the `mkdir`/`cp` into
+`$READTHEDOCS_OUTPUT/pdf/`):
+
+```
+Compiling 1 master document(s) to PDF...
+Generated PDF: /tmp/typst-pdf-build/out/typsphinx.pdf
+build succeeded, 2 warnings.
+
+[rtd-command-info] start-time: 2026-07-25T14:22:05.939663Z, end-time: 2026-07-25T14:22:05.987786Z, duration: 0, exit-code: 0
+mkdir -p "$READTHEDOCS_OUTPUT/pdf/"
+
+
+[rtd-command-info] start-time: 2026-07-25T14:22:06.026716Z, end-time: 2026-07-25T14:22:06.085165Z, duration: 0, exit-code: 0
+cp /tmp/typst-pdf-build/out/*.pdf "$READTHEDOCS_OUTPUT/pdf/"
+```
+
+Every one of the four `build.jobs.build.pdf` commands carries `exit-code: 0`. The "2 warnings" in
+`build succeeded, 2 warnings.` are the pre-existing docutils warnings at log lines 1235-1236
+(`Unexpected indentation` / `Block quote ends without a blank line`, both against
+`typsphinx/translator.py`'s `visit_toctree` docstring) — a Sphinx autodoc parsing note on this
+repository's own source, unrelated to the PDF step or to `.readthedocs.yaml`.
+
+### Excerpt (c) — decisive `@preview` lines
+
+**No such lines exist in the log.** This absence is itself the recorded observation — it is not papered
+over. The executor's own whole-log grep for the four package names and the registry host:
+
+```
+grep -n -E 'codly|mitex|gentle-clues|@preview|packages\.typst\.org' /tmp/p29-buildlog-33756855.txt
+```
+
+```
+342:typst_use_mitex = True
+```
+
+The **only** hit across all 1271 lines is line 342, which is Sphinx's `conf.py` value dump
+(`typst_use_mitex = True`) echoed during configuration logging — not a package-resolution event. No line
+anywhere names `codly`, `codly-languages`, `mitex`, or `gentle-clues` as fetched, resolved, or cached; and
+equally, no registry-failure, timeout, or refusal line exists either. `typst-py`'s Typst compiler emits
+nothing per-package on a successful `@preview` resolution, so a silent log is consistent with success and
+is **not** consistent with Branch B's condition (a positive failure/blocked excerpt), which also does not
+appear. Branch B is therefore positively refuted by this log's silence, not merely unselected.
+
+Because the log itself is silent on this specific point, the `@preview` verdict for `mitex`/`codly`/
+`codly-languages`/`gentle-clues` rests on two further, independent lines of evidence — kept here strictly
+separated by evidence type, per this plan's instruction not to blur them:
+
+**(i) Owner's visual inspection of the served PDF — human-verified, NOT machine-verified.**
+The owner opened the PDF that RTD serves (the same file fetched and hashed below) and reported: code
+listings are rendered by **codly** (styled listings are present in the PDF), and admonitions are rendered
+by **gentle-clues** (styled clues are present in the PDF). For **mitex**, the owner reported this was
+**not determinable by inspection**, because the generated PDF contains no mathematics — there is nothing
+for mitex to render, so its absence from the PDF's visible content proves nothing either way. The owner's
+own stated reasoning was that it is implausible mitex alone failed to load while the other three
+packages, imported from the same template in the same compile, worked. This entire item is recorded as
+`human_needed` — owner-reported, not something this executor's own commands can verify.
+
+**(ii) Unconditional-import argument — file-plus-exit-code, checked directly by this executor.**
+This is what actually settles `mitex` (rather than relying on the owner's plausibility reasoning alone),
+and it rests on two premises this executor verified directly rather than assumed:
+
+- **Premise 1 — the import is unconditional, no guard exists.** Read directly from
+  `typsphinx/templates/base.typ` in this worktree at the commit this build built:
+
+  ```
+  8:#import "@preview/codly:1.3.0": *
+  9:#import "@preview/codly-languages:0.1.10": *
+  14:#import "@preview/mitex:0.2.7": *
+  19:#import "@preview/gentle-clues:1.3.1": *
+  ```
+
+  All four `#import` lines sit at the top level of the file with no `#if`/conditional wrapping them — the
+  `mitex` import at line 14 is evaluated unconditionally, exactly like the other three, regardless of
+  whether the compiled document contains any mathematics. Also confirmed by reading
+  `docs/source/conf.py` in full (118 lines): it sets no `typst_template` override, so the RTD build used
+  this repository's default `templates/base.typ` — the same file just quoted, not a customized one.
+- **Premise 2 — the compile step exited zero and produced a PDF.** Quoted already in Excerpt (b) above:
+  `Compiling 1 master document(s) to PDF...` / `Generated PDF: /tmp/typst-pdf-build/out/typsphinx.pdf` /
+  `build succeeded, 2 warnings.`, with the sphinx-build command's own `[rtd-command-info]` line carrying
+  `exit-code: 0`.
+- **Conclusion.** An unresolvable `@preview` import fails typst's whole compile — there is no partial-
+  import failure mode in Typst's `#import` semantics. Since `mitex`'s import is evaluated regardless of
+  whether the document uses any mathematics (Premise 1), and the compile that evaluates it exited zero and
+  produced the PDF (Premise 2), `mitex` must have resolved. This conclusion is a direct consequence of the
+  two checked premises, not an inference about typst's behavior in the abstract.
+
+**Downloads-menu observation (executor's own fetch):**
+
+```
+curl -sS -o /tmp/p29-downloads-pdf.bin -D /tmp/p29-downloads-pdf.hdrs -w 'code=%{http_code} content_type=%{content_type} size=%{size_download}\n' -L https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/
+file /tmp/p29-downloads-pdf.bin
+sha256sum /tmp/p29-downloads-pdf.bin
+```
+
+```
+code=200 content_type=application/pdf size=1697498
+/tmp/p29-downloads-pdf.bin: PDF document, version 1.7, 93 page(s)
+d86c31588356bd71500e5411fa0cfc09dddc69b88349b77159f58c635abe07a5  /tmp/p29-downloads-pdf.bin
+```
+
+RTD's own Downloads menu **does** offer a PDF for this build, at
+`https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/`, and the served file is a genuine PDF (`file`
+confirms `PDF document, version 1.7, 93 page(s)`). The 93-page count matches the D-12 local baseline
+recorded above exactly. **No claim is made here about the PDF's content** (text, glyphs, or font
+correctness) — page-count agreement is a structural observation only; the content comparison belongs to
+Plan 05's D-12 gate, per REQUIREMENTS.md invariant #7.
+
+**LaTeX-toolchain marker counts (executor's own machine search over the fetched log — not owner-reported):**
+
+```
+grep -o -E 'latexmk|pdflatex|\.tex' /tmp/p29-buildlog-33756855.txt | wc -l
+```
+
+```
+0
+```
+
+Source: machine search, run directly by this executor over the fetched raw-log text (not the owner's
+eyeballed count). Zero hits across all 1271 lines for `latexmk`, `pdflatex`, and `.tex` combined — Branch
+A's LaTeX-exclusion requirement (D-07) is met.
+
+**Verdicts:**
+
+- **A1 (apt package name)** — **resolved, valid.** Quoted in Excerpt (a): `fonts-noto-cjk is already the
+  newest version (1:20230817+repack1-3).` with `apt-get install --assume-yes --quiet -- fonts-noto-cjk`
+  under an `exit-code: 0` command wrapper. The package name is correct on RTD's `ubuntu-24.04` image; no
+  loud apt failure occurred.
+- **A2 (temp-directory writability)** — **resolved, writable.** Quoted in Excerpt (b): all four
+  `build.jobs.build.pdf` commands (`mkdir -p /tmp/typst-pdf-build/doctrees`, `sphinx-build -b typstpdf ...`,
+  `mkdir -p "$READTHEDOCS_OUTPUT/pdf/"`, `cp /tmp/typst-pdf-build/out/*.pdf "$READTHEDOCS_OUTPUT/pdf/"`)
+  each carry `exit-code: 0`, and no mkdir/permission-denied line appears anywhere in the 1271-line log.
+- **A4 (raw log reachability)** — **resolved.** The raw log was reached over public HTTP at
+  `https://app.readthedocs.org/api/v2/build/33756855.txt` (`code=200`), fetched independently by this
+  executor above — the same mechanism RTD's build-detail page's "View raw" link exposes for a public
+  project, confirmed reachable without any owner-paste fallback being needed.
+- **Downloads menu** — **PDF offered.** `https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/` →
+  `code=200`, `content_type=application/pdf`, `size=1697498`, 93 pages (structural observation only, no
+  content claim).
+- **LaTeX-toolchain marker counts** — **0** for `latexmk`/`pdflatex`/`.tex` combined, source: machine
+  search over the fetched log (this executor's own `grep` command above), not an owner-reported count.
+
+**What this log supports, and what it does not:**
+
+The log supports, as a matter of quoted text: the apt install of `fonts-noto-cjk` succeeded, the
+`build.jobs.build.pdf` job's four commands all exited zero and produced
+`/tmp/typst-pdf-build/out/typsphinx.pdf`, no LaTeX-toolchain marker appears anywhere, and RTD's Downloads
+menu serves a 93-page PDF at the expected URL. **The log does not contain any per-package `@preview`
+resolution or failure line** — that absence is recorded honestly above, not inferred away. The `@preview`
+verdict for the four Typst Universe packages therefore rests on the two additional, clearly-labelled lines
+of evidence in Excerpt (c): the owner's visual inspection (`human_needed`, codly and gentle-clues
+confirmed rendered, mitex not determinable by inspection) and the unconditional-import argument (file
+premise + exit-code premise, checked directly by this executor, which does settle `mitex`). No claim is
+made anywhere in this section about the PDF's text, glyph, or font-substitution correctness — that
+evaluation is Plan 05's D-12 gate.
+
+## Branch Decision
+
+**Selected: `branch-a`** — registry reachable, RTD serves typsphinx's own PDF.
+
+This selection was made by the owner from the evidence recorded in § "SC#2 — raw build log, @preview
+verdict" above (not by this executor's own inference), following the pre-agreement of 2026-07-25 that
+both outcomes were acceptable so the phase would not deadlock on this decision.
+
+**Justifying excerpt — the two log-quoted conjunctive conditions of Branch A, both satisfied:**
+
+1. Zero LaTeX-toolchain markers, machine-searched by this executor over the fetched log:
+   `grep -o -E 'latexmk|pdflatex|\.tex' /tmp/p29-buildlog-33756855.txt | wc -l` → `0`. A non-zero count
+   would have been a stop condition; it is zero, so Branch A's LaTeX-exclusion requirement is met and a
+   PDF produced by RTD's own LaTeX pipeline is ruled out.
+2. The PDF step completed, quoted verbatim from the log (Excerpt (b) above):
+   ```
+   Compiling 1 master document(s) to PDF...
+   Generated PDF: /tmp/typst-pdf-build/out/typsphinx.pdf
+   build succeeded, 2 warnings.
+   ```
+
+Branch A's third conjunctive condition — the four Typst Universe packages resolving — is **not** answered
+by a log excerpt (Excerpt (c) recorded that no such line exists), so it is answered instead by the two
+independent lines of evidence recorded in § SC#2 Excerpt (c): the owner's visual inspection (codly and
+gentle-clues confirmed rendered; mitex not determinable by inspection, `human_needed`) and the
+unconditional-import argument (the four `#import` lines in `typsphinx/templates/base.typ` are unguarded,
+`docs/source/conf.py` sets no `typst_template` override, and the compile that evaluates all four imports
+exited zero and produced the PDF — therefore `mitex` resolved along with the other three). This routing is
+disclosed here explicitly rather than being papered over as a fourth quoted log line that does not exist.
+
+**Recorded zero marker counts and Downloads-menu URL (restated per this section's requirement):**
+
+- LaTeX-toolchain marker counts: `latexmk`, `pdflatex`, `.tex` combined = **0** (machine search, this
+  executor's own command, above).
+- Downloads-menu PDF URL: `https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/` (`code=200`,
+  `content_type=application/pdf`, `size=1697498`, 93 pages).
+
+**Routing:** Because `branch-a` was selected, **Plan 05** (the Branch A content comparison against the
+D-12 local baseline) **executes**. **Plan 06** (the Branch B fallback documentation-link edit) **is
+skipped** — no edit to `docs/source/index.rst` or `README.md` is made by this phase for the fallback
+link, since Branch A's own path (RTD serving typsphinx's own dogfooded PDF) was taken instead.
+
+## SC#3 Branch A — artifacts under comparison
+
+This section is Plan 05, Task 1. Branch A was confirmed selected (§ "Branch Decision" above), so this
+plan executes in full — this is not the skip path.
+
+**Worktree base commit for this executor:**
+
+```
+git rev-parse HEAD
+```
+```
+f54cd2bb2dd9d07a94b93252faa02adcd5317969
+```
+
+**Confirming no `typsphinx/`/`docs/`/`.readthedocs.yaml` drift since Plan 03's baseline commit** (the
+orchestrator's brief asserted this; re-verified directly rather than assumed):
+
+```
+git diff --stat 38c71579053ecb1fc4b4b157eef1a45414a8cb1a..HEAD -- typsphinx/ docs/ .readthedocs.yaml
+```
+
+```
+(no output — empty diff)
+```
+
+```
+git log --oneline 38c71579053ecb1fc4b4b157eef1a45414a8cb1a..HEAD -- typsphinx/ docs/ .readthedocs.yaml
+```
+
+```
+(no output — no commits touch these paths)
+```
+
+Confirmed: zero drift. Only `.planning/` tracking commits landed between Plan 03's baseline commit and
+this executor's worktree base — the local rebuild below is expected to reproduce Plan 03's baseline
+exactly, and it does (see cross-check below).
+
+**Local baseline rebuild** — same builder/flags as `.readthedocs.yaml`'s `build.jobs.build.pdf`, invoked
+as `uv run python -m sphinx` per `CLAUDE.md`'s worktree-isolated-execution guidance (source directory
+referenced via an absolute out-of-repo symlink to sidestep an unrelated sandbox string-matching quirk in
+this session; the invocation is otherwise identical to the manifest's):
+
+```
+mkdir -p /tmp/p29-05-local/doctrees
+uv run python -m sphinx -b typstpdf -d /tmp/p29-05-local/doctrees <repo>/docs/source /tmp/p29-05-local/out
+```
+
+```
+...
+writing output... [user_guide/configuration] done
+writing output... [user_guide/index] done
+writing output... [user_guide/templates] done
+Compiling 1 master document(s) to PDF...
+Generated PDF: /tmp/p29-05-local/out/typsphinx.pdf
+build succeeded, 2 warnings.
+```
+
+(The "2 warnings" are the same pre-existing `visit_toctree` docstring docutils warnings Plan 03 already
+recorded as out-of-scope — `Unexpected indentation` / `Block quote ends without a blank line` against
+`typsphinx/translator.py`'s docstring, unrelated to this plan's comparison.)
+
+**Local baseline — size, hash, page count, fonts (command and output verbatim):**
+
+```
+sha256sum /tmp/p29-05-local/out/typsphinx.pdf
+```
+```
+dee2ccace2c51f98e934c21a2e08ec678be59cbcabd62e4bed518d90adb2b530  /tmp/p29-05-local/out/typsphinx.pdf
+```
+
+```
+uv run python -c "
+import pypdf, os
+r = pypdf.PdfReader('/tmp/p29-05-local/out/typsphinx.pdf')
+print('pages', len(r.pages))
+fonts = set()
+for page in r.pages:
+    res = page.get('/Resources')
+    if res is None:
+        continue
+    fontdict = res.get('/Font')
+    if fontdict is None:
+        continue
+    for k, v in fontdict.items():
+        obj = v.get_object()
+        bf = obj.get('/BaseFont')
+        if bf:
+            fonts.add(str(bf))
+for f in sorted(fonts):
+    print('/BaseFont', f)
+print('bytes', os.path.getsize('/tmp/p29-05-local/out/typsphinx.pdf'))
+"
+```
+
+```
+pages 93
+/BaseFont /BLJSKO+IPAexGothic
+/BaseFont /JWAONO+NotoSansCJKjp-Thin
+/BaseFont /LFIBAF+LibertinusSerif-Italic-Identity-H
+/BaseFont /OYQRGH+DejaVuSansMono
+/BaseFont /PEKEPN+LibertinusSerif-Bold-Identity-H
+/BaseFont /SEPNHW+LibertinusSerif-Semibold-Identity-H
+/BaseFont /SVGCJT+Unifont-Identity-H
+/BaseFont /UOQBSW+LibertinusSerif-Regular-Identity-H
+/BaseFont /VOIDKS+DejaVuSansMono-Bold
+bytes 1693967
+```
+
+**Local interpreter version:** Python 3.13.13 (CPython) — `uv run python --version`, same as Plan 03's
+recorded baseline. `.readthedocs.yaml`'s `build.tools.python` is `"3.12"`.
+
+**Cross-check against Plan 03's recorded D-12 Baseline (§ "D-12 Baseline (local, this commit)" above):**
+
+| Field | Plan 03 (commit `38c7157`) | This rebuild (commit `f54cd2b`) | Verdict |
+|-------|------------------------------|----------------------------------|---------|
+| Page count | 93 | 93 | **same** |
+| Byte size | 1,693,967 bytes | 1,693,967 bytes | **same** |
+| `/BaseFont` list (9 fonts, sorted) | `BLJSKO+IPAexGothic`, `JWAONO+NotoSansCJKjp-Thin`, `LFIBAF+LibertinusSerif-Italic-Identity-H`, `OYQRGH+DejaVuSansMono`, `PEKEPN+LibertinusSerif-Bold-Identity-H`, `SEPNHW+LibertinusSerif-Semibold-Identity-H`, `SVGCJT+Unifont-Identity-H`, `UOQBSW+LibertinusSerif-Regular-Identity-H`, `VOIDKS+DejaVuSansMono-Bold` | identical list, identical subset tags | **same** |
+| Interpreter | Python 3.13.13 | Python 3.13.13 | **same** |
+
+**No divergence found.** The rebuild reproduces Plan 03's baseline exactly, byte-for-byte-identical
+`/BaseFont` subset tags included — consistent with the confirmed zero-drift `git diff --stat` above.
+
+**RTD-served artifact download (real HTTP, `curl`, following redirects):**
+
+```
+curl -sS -o /tmp/p29-05-rtd.pdf -D /tmp/p29-05-rtd.hdrs -w 'code=%{http_code} content_type=%{content_type} size=%{size_download} url=%{url_effective}\n' -L https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/
+```
+
+```
+code=200 content_type=application/pdf size=1697498 url=https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/
+```
+
+**Fetched:** 2026-07-25T14:46:43Z (UTC)
+
+**PDF-signature confirmation (the bytes are a genuine PDF, not an HTML error page — T-29-12):**
+
+```
+head -c 4 /tmp/p29-05-rtd.pdf
+```
+```
+%PDF
+```
+
+```
+file /tmp/p29-05-rtd.pdf
+```
+```
+/tmp/p29-05-rtd.pdf: PDF document, version 1.7, 93 page(s)
+```
+
+```
+sha256sum /tmp/p29-05-rtd.pdf
+```
+```
+d86c31588356bd71500e5411fa0cfc09dddc69b88349b77159f58c635abe07a5  /tmp/p29-05-rtd.pdf
+```
+
+**Artifact identity summary:**
+
+| Field | Local baseline | RTD-served PDF |
+|-------|----------------|----------------|
+| Path/URL | `/tmp/p29-05-local/out/typsphinx.pdf` | `https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/` |
+| HTTP status | N/A (local build) | 200 |
+| Byte size | 1,693,967 bytes | 1,697,498 bytes |
+| SHA-256 | `dee2ccace2c51f98e934c21a2e08ec678be59cbcabd62e4bed518d90adb2b530` | `d86c31588356bd71500e5411fa0cfc09dddc69b88349b77159f58c635abe07a5` |
+| Page count | 93 | 93 |
+| Commit SHA | `f54cd2bb2dd9d07a94b93252faa02adcd5317969` (this worktree's base; identical `typsphinx/`/`docs/`/`.readthedocs.yaml` to Plan 03's `38c7157`) | `dcc6a523fc2d16f3dae925e17d63a1a24318b6d7` (Plan 03's PDF-enabling commit, per RTD build `33756855` recorded in § SC#2) |
+| Interpreter | Python 3.13.13 (local) | `build.tools.python: "3.12"` (`.readthedocs.yaml`) |
+
+The two byte sizes differ (1,693,967 vs. 1,697,498) — expected and not itself a fidelity concern, since
+PDF byte-for-byte size is sensitive to compression-stream ordering/timestamps across separate `typst`
+compiles even with identical page count and text; the D-12 bar is page count, extracted text and font
+coverage, not byte-identical files. This divergence is recorded here rather than silently ignored.
+
+**Note:** the local-rebuild and RTD-served commits are not identical (`f54cd2b` vs. `dcc6a52`), but the
+confirmed-empty `typsphinx/`/`docs/`/`.readthedocs.yaml` diff between them (above) means the comparison is
+still valid — no source, template, or manifest change separates the two builds, only intervening
+`.planning/` tracking commits.
+
+## SC#3 Branch A — D-12 checks 1-3
+
+This section is Plan 05, Task 2 — the three mechanical D-12 checks, each run as a one-off command with
+`pypdf` (no script committed, per D-15).
+
+### Check 1 — page count
+
+```
+uv run python -c "
+import pypdf
+r1 = pypdf.PdfReader('/tmp/p29-05-local/out/typsphinx.pdf')
+r2 = pypdf.PdfReader('/tmp/p29-05-rtd.pdf')
+print('local_pages', len(r1.pages))
+print('rtd_pages', len(r2.pages))
+print('equal', len(r1.pages) == len(r2.pages))
+"
+```
+
+```
+local_pages 93
+rtd_pages 93
+equal True
+```
+
+**Verdict: PASS.** Local baseline 93 pages, RTD-served PDF 93 pages — equal.
+
+### Check 2 — extracted text
+
+Extracted text from every page of both PDFs with `pypdf`, normalized only whitespace (collapsed runs of
+whitespace via `re.sub(r'\s+', ' ', text).strip()` — no stripping, lowercasing or punctuation removal
+that would hide a real difference), then compared:
+
+```
+uv run python -c "
+import pypdf, re
+def extract(path):
+    r = pypdf.PdfReader(path)
+    return '\n'.join(p.extract_text() or '' for p in r.pages)
+
+local_text = extract('/tmp/p29-05-local/out/typsphinx.pdf')
+rtd_text = extract('/tmp/p29-05-rtd.pdf')
+
+def norm(t):
+    return re.sub(r'\s+', ' ', t).strip()
+
+local_n = norm(local_text)
+rtd_n = norm(rtd_text)
+
+print('local_len', len(local_n))
+print('rtd_len', len(rtd_n))
+print('equal', local_n == rtd_n)
+"
+```
+
+```
+local_len 131142
+rtd_len 131142
+equal True
+```
+
+**Verdict: PASS.** Both normalized extracted-text strings are 131,142 characters and are byte-for-byte
+equal — no differing region exists, so no diff excerpt is needed (the plan requires one only on
+inequality).
+
+### Check 3 — CJK coverage in the RTD-built PDF
+
+Full sorted list of embedded `/BaseFont` names from the RTD artifact:
+
+```
+uv run python -c "
+import pypdf
+r = pypdf.PdfReader('/tmp/p29-05-rtd.pdf')
+fonts = set()
+for page in r.pages:
+    res = page.get('/Resources')
+    if res is None:
+        continue
+    fontdict = res.get('/Font')
+    if fontdict is None:
+        continue
+    for k, v in fontdict.items():
+        obj = v.get_object()
+        bf = obj.get('/BaseFont')
+        if bf:
+            fonts.add(str(bf))
+for f in sorted(fonts):
+    print('/BaseFont', f)
+"
+```
+
+```
+/BaseFont /JTYDWV+UnDotum
+/BaseFont /LFIBAF+LibertinusSerif-Italic-Identity-H
+/BaseFont /MSNUZX+HanaMinA
+/BaseFont /OGUVAD+UnPen
+/BaseFont /OYQRGH+DejaVuSansMono
+/BaseFont /PEKEPN+LibertinusSerif-Bold-Identity-H
+/BaseFont /SEPNHW+LibertinusSerif-Semibold-Identity-H
+/BaseFont /UOQBSW+LibertinusSerif-Regular-Identity-H
+/BaseFont /VOIDKS+DejaVuSansMono-Bold
+```
+
+**Verdict: PASS — CJK coverage present.** The RTD-built PDF embeds `MSNUZX+HanaMinA` — Hanazono Mincho
+"A", a font family whose entire purpose is broad Unicode CJK Unified Ideograph (Han) coverage, including
+many rare/extension characters most fonts omit. That is the specific font name carrying this verdict.
+`JTYDWV+UnDotum` and `OGUVAD+UnPen` (Baekmuk-family Korean Hangul fonts) are also present but are not
+the fonts cited for the verdict, since the four strings this build must render (`docs/source/user_guide/
+configuration.rst:186,240`) are Han ideographs (Japanese/Chinese kanji/hanzi), not Hangul.
+
+**Honest observation, not silently smoothed over:** despite `.readthedocs.yaml`'s `build.apt_packages:
+[fonts-noto-cjk]`, **no font in this list carries a "Noto" name.** This directly answers
+`29-RESEARCH.md`'s Open Question #2 empirically: an apt-installed CJK font package *was* available to
+the build (the build succeeded and CJK-coverage glyphs were embedded), but Typst's font-fallback
+resolution selected a *different* already-present system CJK font (`HanaMinA`, likely from
+`fonts-hanazono` or a comparable package already on RTD's `ubuntu-24.04` image) rather than the
+Noto-family font `fonts-noto-cjk` explicitly installed. This is recorded as the actionable measurement
+Open Question #2 asked for, not worked around or explained away — Typst's fallback chose *a* CJK font,
+just not the one this manifest expected by name. This does not fail check 3 (which requires CJK coverage,
+not a specific family), but it is exactly the kind of surprising result the task instructions require be
+surfaced rather than silently reconciled.
+
+### Caveats (D-13, D-14 — read before over-interpreting checks 1-3)
+
+(a) **Per D-13, an exact font-list match is explicitly NOT the bar.** The local baseline's list (recorded
+in Plan 03 and reconfirmed above) includes host-provided fonts — `IPAexGothic`, `NotoSansCJKjp-Thin`,
+`Unifont`, plus the `DejaVuSansMono` pair — that a perfectly healthy RTD build cannot be expected to
+reproduce identically, and indeed does not (the RTD list instead has `UnDotum`, `HanaMinA`, `UnPen`
+where the local list has `IPAexGothic`, `NotoSansCJKjp-Thin`, `Unifont`). Only CJK *coverage* is asserted
+above — font identity is observation, never a pass/fail condition, and no claim of list equality is made
+anywhere in this record.
+
+(b) **Check 3 keys on font-family names, which is a proxy for coverage, not a per-glyph proof.** A font
+family being "designed for CJK coverage" does not by itself prove every individual glyph this build needs
+was actually drawn from that font correctly — it is a strong signal, not a certainty.
+
+(c) **Per D-14, check 2's text-extraction equality cannot detect glyph substitution.** A tofu-rendered PDF
+(each CJK character replaced by an empty box/rectangle glyph) still contains the correct Unicode code
+points in its internal text layer and would extract identically to a correctly-rendered PDF — text
+extraction is blind to *visual* glyph substitution. This is exactly why check 4 (the owner's visual
+inspection) exists, and the gate must not be simplified down to a text diff.
+
+## SC#3 Branch A — D-12 check 4 (human_needed) and RTD-02 verdict
+
+This section is Plan 05, Task 3.
+
+### Check 4 — visual tofu confirmation (`human_needed`)
+
+**Status: `human_needed`. Not machine-verified. Do not read this as satisfied.**
+
+**Downloaded RTD PDF, local path:** `/tmp/p29-05-rtd.pdf` (the artifact identified in § "SC#3 Branch A —
+artifacts under comparison" above: `sha256 d86c31588356bd71500e5411fa0cfc09dddc69b88349b77159f58c635abe07a5`,
+93 pages).
+
+**Source location of the CJK strings:** `docs/source/user_guide/configuration.rst`, the "Document
+Language" section (`lang` key discussion), lines 186 and 240 — specifically the paragraph explaining the
+automatic-derivation example and the region-subtag limitation note.
+
+**Command used to locate the page(s) in the downloaded PDF:**
+
+```
+uv run python -c "
+import pypdf
+r = pypdf.PdfReader('/tmp/p29-05-rtd.pdf')
+targets = ['表 1', '図 1', 'Tabelle 1', '图 1', '圖 1']
+for i, page in enumerate(r.pages, start=1):
+    text = page.extract_text() or ''
+    for t in targets:
+        if t in text:
+            print(f'page {i}: found {t!r}')
+"
+```
+
+```
+page 11: found '表 1'
+page 11: found '図 1'
+page 11: found 'Tabelle 1'
+page 11: found '图 1'
+page 11: found '圖 1'
+```
+
+**Page location: page 11 of the downloaded PDF (`/tmp/p29-05-rtd.pdf`).** All four CJK strings and the
+German example land on the same page — the entire "Document Language" subsection fits on one PDF page.
+
+**The exact glyph strings to look for, transcribed verbatim from `configuration.rst`:**
+
+- `「表 1」` (line 186 — "a captioned table renders as")
+- `「図 1」` (line 186 — "and a figure as")
+- `「图 1」` (line 240 — the simplified-Chinese example)
+- `「圖 1」` (line 240 — "rather than the traditional")
+
+(`「Tabelle 1」` at line 236 is a German-language example in Latin script — not a CJK glyph-substitution
+risk, included in the location search only because it sits on the same page; it is not part of what the
+owner needs to visually inspect for tofu.)
+
+**The specific thing being judged:** whether the four bracketed strings above render on page 11 as real
+Han ideographs (表, 図, 图, 圖) — or as substitution boxes/rectangles ("tofu") in their place. The
+surrounding Latin-script prose on the same page is not at risk (Typst's bundled Libertinus
+Serif/DejaVuSansMono cover it); only these four specific characters exercise the RTD build's CJK font
+fallback (D-10).
+
+**Why no machine can close this:** per D-14, a tofu-rendered PDF still extracts the *correct* Unicode code
+points — check 2 above already proved the extracted text is byte-for-byte identical to the local
+baseline, and that equality says nothing about whether the glyphs drawn on the page are the real
+characters or empty boxes. Font-family presence (check 3) is a coverage proxy, not a per-glyph
+render-correctness proof. Per this project's standing verification culture (STATE.md § "Accumulated
+Context" — honest `human_needed` abstention over unevidenced assertion), this item is left open rather
+than asserted passing on the strength of checks 1-3 alone.
+
+### Consolidated RTD-02 verdict
+
+| # | D-12 check | Status | Result |
+|---|-----------|--------|--------|
+| 1 | Page count | **machine-verified** | `local_pages 93` == `rtd_pages 93` (command + output in § "D-12 checks 1-3") |
+| 2 | Extracted text | **machine-verified** | Whitespace-normalized text equal, both 131,142 chars (command + output in § "D-12 checks 1-3") |
+| 3 | Embedded CJK-coverage font | **machine-verified** | `MSNUZX+HanaMinA` present in the RTD PDF's `/BaseFont` list (command + output in § "D-12 checks 1-3"); D-13 caveat applies — coverage, not list-identity |
+| 4 | Visual tofu confirmation (owner look) | **`human_needed`** | Page 11 of `/tmp/p29-05-rtd.pdf`; glyphs `「表 1」「図 1」「图 1」「圖 1」`; not yet performed |
+
+**RTD-02 is NOT met.** Three of the four D-12 checks are machine-verified and pass; the fourth — the
+owner's visual confirmation that no tofu/glyph substitution appears on page 11 — remains open. Per
+D-12/D-14/D-15, RTD-02 cannot be recorded as satisfied while check 4 is `human_needed`; this verdict is
+recorded honestly as **not met** rather than as a provisional or conditional pass.
+
+**No build-status or green-download claim is made anywhere in this verdict as evidence about content**
+(REQUIREMENTS.md invariant #7): the RTD build having succeeded and the Downloads-menu PDF having
+downloaded cleanly (both already recorded in § SC#2 and the artifacts section above) speak only to build
+mechanics, not to whether the CJK glyphs on page 11 rendered correctly. That determination rests solely
+on check 4, still open.
+
+**Next action:** the owner opens `/tmp/p29-05-rtd.pdf` at page 11 (or re-downloads it from
+`https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/`) and confirms whether `表`, `図`, `图`, and
+`圖` render as real characters or as substitution boxes, per this project's `workflow.human_verify_mode:
+end-of-phase` (owner confirmation collected in the end-of-phase verification batch).
+
+## SC#3 Branch B — SKIPPED
+
+**Recorded decision (§ "Branch Decision" above): `branch-a`.** Plan 06 therefore does not execute —
+per § "Branch Decision"'s own "Routing" line, Plan 06 is Plan 05's alternative, and exactly one of the
+two does real work. Branch A was taken, so this plan performs no fetch, no verdict, and no content edit.
+
+**No edit was made** to `docs/source/index.rst`, `README.md`, or `tests/test_readthedocs_config.py`.
+RTD-03's Branch-B fallback link (`releases/latest/download/typsphinx.pdf`) is not needed: Branch A's own
+path was taken instead, and RTD itself already serves typsphinx's own dogfooded PDF at
+`https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/` (recorded in § "Branch Decision" above,
+`code=200`, `content_type=application/pdf`, `size=1697498`, 93 pages).
+
+## D-12 check 4 — RESOLVED by owner (closes the RTD-02 verdict)
+
+This section is written by the execute-phase orchestrator after Plan 05 returned, because the item it
+closes was left open by design (`human_needed`) and no plan remained to close it. Per this file's own
+append-only rule, § "SC#3 Branch A — D-12 check 4 (human_needed) and RTD-02 verdict" above is left
+**unaltered**: it records the state at the time Plan 05 ran, when the check genuinely had not been
+performed. This section records the subsequent resolution. Both are true of their own moment; neither
+is rewritten to look like the other.
+
+**Artifact inspected.** The PDF RTD serves at `https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/`,
+re-downloaded by the orchestrator for the inspection:
+
+```
+curl -sS -o typsphinx-rtd-page-check.pdf -w 'code=%{http_code} size=%{size_download}\n' -L \
+  https://typsphinx.readthedocs.io/_/downloads/en/latest/pdf/
+```
+
+```
+code=200 size=1697498
+d86c31588356bd71500e5411fa0cfc09dddc69b88349b77159f58c635abe07a5  typsphinx-rtd-page-check.pdf
+typsphinx-rtd-page-check.pdf: PDF document, version 1.7, 93 page(s)
+```
+
+The SHA-256 is byte-identical to the artifact Plan 05 identified and compared (§ "SC#3 Branch A —
+artifacts under comparison"), so the owner inspected the same artifact the D-12 checks were run against
+— not a later rebuild.
+
+**How page 11 was presented for inspection.** Rendered to a raster image so glyph substitution would be
+visible as drawn, since that is precisely what text extraction cannot reveal (D-14):
+
+```
+nix-shell -p poppler-utils --run "pdftoppm -f 11 -l 11 -r 150 -png typsphinx-rtd-page-check.pdf page11"
+```
+
+The rendered page and the PDF itself were both delivered to the owner.
+
+**Owner's verdict (2026-07-25).** The owner inspected page 11 and reported that the characters are
+rendering normally and are **not** tofu. Owner's words, verbatim:
+
+```
+豆腐になっておらず正常に表示されている
+```
+
+("Not tofu — displaying correctly.")
+
+This covers the four glyph strings § "D-12 check 4" specified: `「表 1」`, `「図 1」`, `「图 1」`, `「圖 1」`
+on page 11.
+
+**Evidence classification.** This is **owner-reported human verification**, exactly as D-12 check 4 was
+designed to be. It is NOT machine-verified and must not be recorded as such. The orchestrator's own
+reading of the rendered image agreed with the owner's, but that observation is corroborating context
+only — the gate is closed by the owner's report, per the plan's design.
+
+**Earlier owner observations that bear on the same question**, recorded here so the record is complete:
+before the Branch Decision was made, the owner independently inspected the served PDF and confirmed that
+code listings are rendered by **codly** and admonitions by **gentle-clues** (recorded in § "SC#2 — raw
+build log, @preview verdict"). Those observations are consistent with this one: the CJK-bearing page and
+the package-rendered elements both render as intended.
+
+### Consolidated RTD-02 verdict — SUPERSEDES the "NOT met" verdict in § "D-12 check 4 (human_needed)"
+
+| # | D-12 check | Status | Result |
+|---|-----------|--------|--------|
+| 1 | Page count | machine-verified | `local_pages 93` == `rtd_pages 93` |
+| 2 | Extracted text | machine-verified | Whitespace-normalized text equal, both 131,142 chars |
+| 3 | Embedded CJK-coverage font | machine-verified | `MSNUZX+HanaMinA` present in the RTD PDF's `/BaseFont` list (D-13 caveat applies — coverage, not list-identity) |
+| 4 | Visual tofu confirmation | **owner-verified (human)** | Page 11 inspected by the owner; `表`, `図`, `图`, `圖` render as real characters, no substitution boxes |
+
+**RTD-02 is MET.** All four D-12 checks now pass — three by recorded command plus output, the fourth by
+the owner's visual inspection. The earlier "NOT met" verdict in the section above was correct when
+written (check 4 was then open) and is superseded here rather than edited, so the sequence stays
+auditable.
+
+**Standing caveats that survive this verdict** (they qualify it; they do not reopen it):
+
+- Per D-13, no claim of font-list equality is made anywhere. Check 3 asserts CJK *coverage* only.
+- Per REQUIREMENTS.md invariant #7, no build-status or clean-download fact is used as evidence about
+  PDF content. The content claims rest on checks 1–4, nothing else.
+- The `fonts-noto-cjk` surprise recorded in § "SC#3 Branch A — D-12 checks 1-3" stands unresolved as a
+  question for later phases: the apt package was installed successfully, but the font Typst actually
+  embedded is `HanaMinA`, not a Noto family. CJK coverage was achieved; whether `build.apt_packages:
+  [fonts-noto-cjk]` is load-bearing for that outcome is **not** established by this phase.

@@ -1,0 +1,1250 @@
+---
+gsd_state_version: "1.0"
+milestone: v0.9.7
+milestone_name: Trusted Publishing and release
+status: Awaiting next milestone
+stopped_at: Milestone v0.9.7 complete, archived and PUBLISHED — no milestone active
+last_updated: "2026-09-28T15:27:59.415Z"
+last_activity: 2026-09-28
+last_activity_desc: Milestone v0.9.7 completed, archived and published to PyPI with Trusted Publishing attestations
+state_head: 3187aac0d73eacb4bf5bba82376b7273e96bf8b8
+progress:
+  total_phases: 2
+  completed_phases: 2
+  total_plans: 11
+  completed_plans: 11
+  percent: 100
+current_phase: null
+current_phase_name: null
+next_phase_number: 78
+---
+
+# Project State
+
+## Project Reference
+
+See: .planning/PROJECT.md (updated 2026-09-28 — full evolution review at the v0.9.7 close)
+
+**Core value:** The `typst`/`typstpdf` builders produce correct, compilable, faithfully-rendered output — and the documented configuration actually takes effect, so a user who copies a documented `conf.py` example gets what the docs promise. The same standard applies to the *publishing* surface: a URL the project publishes must actually resolve, and the PDF a reader downloads must be the one typsphinx itself produced. From v0.7.0 the standard extends again: the output must be *well typeset*, not merely correct.
+**Current focus:** **None — no milestone is active.** v0.9.7 shipped and was published to PyPI on
+2026-09-28 — the first typsphinx release uploaded through Trusted Publishing, with PEP 740
+provenance served by PyPI for both files. The next milestone is scoped by `/gsd-new-milestone`,
+which writes a fresh `REQUIREMENTS.md` and continues phase numbering at **78**.
+
+## Shipped Milestone (v0.9.7 — archived, merged to `main`, **PUBLISHED**)
+
+Full phase detail, binding constraints and success criteria:
+[milestones/v0.9.7-ROADMAP.md](milestones/v0.9.7-ROADMAP.md). Requirements as they stood at close:
+[milestones/v0.9.7-REQUIREMENTS.md](milestones/v0.9.7-REQUIREMENTS.md). Audit:
+[milestones/v0.9.7-MILESTONE-AUDIT.md](milestones/v0.9.7-MILESTONE-AUDIT.md). Phase directories:
+`.planning/milestones/v0.9.7-phases/`. Research: `.planning/milestones/v0.9.7-research/`. Close
+evidence: `v0.9.7-phases/77-*/77-CLOSE-EVIDENCE.md`.
+
+**Shipped 2026-09-28. `typsphinx 0.9.7` is on PyPI.** 2 phases (76–77), 11 plans, 28 tasks,
+**9/9 v1 requirements complete**. `release.yml`'s `publish-pypi` step no longer passes `password:`,
+so the upload went through GitHub OIDC (environment `pypi`) and PyPI serves provenance for both the
+wheel and the sdist (Simple JSON `provenance` non-null; Integrity API 200, one bundle, publisher
+`GitHub|YuSabo90002/typsphinx|release.yml|pypi`). `PYPI_API_TOKEN` is deleted at repository and
+`pypi`-environment scope and revoked on PyPI. MSG-06 closed the fourth MSG-02-family module.
+
+**Publish record.** `origin/main` had moved (Dependabot #157–#160, `uv.lock` only) and was merged
+into the branch (`3187aac0`; CI `36438826267` 12/12). **PR #161** merged as `d1df28ae` (15/15
+checks). Tag `v0.9.7` on that merge commit; release run `36439849556` attempt 1 all success after
+the owner's `pypi` approval. Translations pin → `d1df28ae` (run `36443440802`, commit `3c0f43db`,
+tagged `v0.9.7`); RTD `stable` en/ja both render `typsphinx 0.9.7`. `tox -e linkcheck` 97/97
+`working`. The five fenced checkboxes were flipped by hand against their own readings; the
+guarded-region digest held (`fce6cc7d…`) up to that point.
+
+## Shipped Milestone (v0.9.6 — archived, merged to `main`, **PUBLISHED**)
+
+Full phase detail, binding constraints and success criteria:
+[milestones/v0.9.6-ROADMAP.md](milestones/v0.9.6-ROADMAP.md). Requirements as they stood at close:
+[milestones/v0.9.6-REQUIREMENTS.md](milestones/v0.9.6-REQUIREMENTS.md). Audit:
+[milestones/v0.9.6-MILESTONE-AUDIT.md](milestones/v0.9.6-MILESTONE-AUDIT.md). Phase directories:
+`.planning/milestones/v0.9.6-phases/`. Quick tasks: `.planning/milestones/v0.9.6-quick/`. No
+research was run this milestone (owner decision).
+
+**Shipped 2026-09-22. `typsphinx 0.9.6` is on PyPI.** 2 phases (74–75), 14 plans, 36 tasks, **5/5
+v1 requirements complete**, plus two quick tasks run at the close itself. It carries v0.9.3's,
+v0.9.4's and v0.9.5's completed-but-unpublished output as well as its own fix, under one `## [0.9.6]`
+CHANGELOG heading — so `0.9.3`, `0.9.4` and `0.9.5` join `0.9.1` as permanently unclaimed on PyPI.
+
+**What it delivered.** `doctest_block` had no translator handler at all — and it is not a directive
+an author can opt out of, because docutils' parser auto-detects any `>>>`-led block. The node fell
+through `unknown_visit()` while its `Text` children were still re-emitted as inline text, so an
+`Examples:` docstring collapsed onto one line; where it sat beside other content in the same
+container, the emission was malformed enough that Typst refused the file and `-b typstpdf` wrote no
+PDF for the affected masters. `visit_literal_block` / `depart_literal_block` now accept
+`nodes.doctest_block` and supply the language tag themselves, since `HighlightLanguageTransform`
+sets `node['language']` only on `literal_block`. The gate drives a real `typst.compile()` over both
+the plain-paragraph and the definition-list/field-body context, each recorded RED against the
+pre-handler tree. In the same clean build the docutils `Unexpected indentation` and `Block quote
+ends without a blank line` messages this project's own docstrings raised are gone:
+`sphinx-build -b typst docs/source` goes from `build succeeded, 5 warnings.` to `build succeeded.`
+(QUA-14). REL-16 ends a five-milestone run of declining a `### Known Limitations` section, and the
+candidate set was narrowed from three defects to one on measurement — the other two were fixed in
+v0.8.0, and disclosing a closed defect would have been a false statement in a release note.
+
+**Publish record.** `origin/main` **had** moved from the milestone base `6cc44f22` — Dependabot's
+#152–#155 all merged before the close — so `git merge --no-ff origin/main` went into the branch
+first (one file, `uv.lock`, +30/−30), with `uv lock --check` exit 0 and the merged tree clean under
+the new ruff 0.16.8. **PR #156** merged the branch into `main` as `6fcc5adb` (a real merge commit on
+the first-parent history; 15/15 checks green, including both `windows-latest` and both
+`macos-latest` lanes). Tag `v0.9.6` annotated on that merge commit. `release.yml` run
+`35730551619`: `Validate Release`, `Build Distribution`, `Publish to PyPI` (after the `pypi`
+Environment's manual approval) and `Create GitHub Release` all `success` — **`create-release` had
+never run on a v0.9.x tag**, which REL-15's own text named as unproven. PyPI carries the wheel
+(194,339 B) and the sdist (860,244 B). The Release body's first 100 lines are byte-identical to
+`scripts/extract_changelog_section.py 0.9.6` (7104 bytes, digest `f9a52e3d…`), zero
+`### Planned for Future Releases` leakage. `typsphinx-doc-translations` `update-pin.yml` run
+`35735922806` advanced its submodule pin to exactly `6fcc5adb` and resynced the ja catalogs
+(`158fa1c4`); that repository is tagged `v0.9.6` as a separate action. Read the Docs `stable` was
+**re-measured** on both projects, unlike v0.9.2's close which recorded it as an expectation: `en`
+at `6fcc5adb`, `ja` at `158fa1c4`, both rendering `typsphinx 0.9.6`. (The `ja` page served a stale
+`0.9.2` from CDN cache until the fetch was cache-busted — worth knowing before reading a stale page
+as a failed build.)
+
+**Closeout: `override_closeout`.** For the second time, *every* phase in the milestone read
+`verification_status: stale` / `phase_complete: false` from `init.manager`, while both
+VERIFICATION.md files themselves read `status: passed` (74 at 4/4, 75 at 5/5, zero overrides
+applied). Same measured cause as the last three closes: `.planning/` tracking commits landing after
+each verification and touching files its fingerprint covers. Neither phase's own work changed, and
+the same-day `v0.9.6-MILESTONE-AUDIT.md` (`tech_debt`; requirements 4/5 with REL-15 held by design,
+phases 2/2, integration 6/6, flows 3/3, zero gaps) re-checked both. **Known verification overrides:
+0 newly acknowledged, 11 carried forward from a prior close** (see `## Deferred Items`). The
+pre-close artifact audit found 2 open todos and **both were fixed rather than acknowledged**; the
+re-run reported all artifact types clear.
+
+**Three things worth carrying.** (1) *A deferral's stated reason lapsed before the deferral was
+revisited.* Both todos were held back by Phase 75's prep-only fence, whose cost argument was that
+touching `typsphinx/` or `conf.py` forces SC4's whole green proof to be re-taken on a changed tip.
+By close time `origin/main` had moved and `main`'s protection is `strict`, so that re-take was
+mandatory regardless — the premise was gone, and both closed as quick tasks for no extra CI cost.
+(2) *One todo's own proposed fix was a silent no-op.* Sphinx's `_check_uri` partitions the URI on
+`#` **before** matching `linkcheck_anchors_ignore_for_url`, so the pattern the todo suggested — one
+carrying `#history` — could never match, and a bare `pypi\.org` entry would prefix-match every PyPI
+project page. Reading the installed Sphinx source at planning time is what caught it. (3) *This is
+the project's first unconditionally clean `tox -e linkcheck`: 96/96 `working`, exit 0.* The two
+`v0.9.6` tag URLs resolved the moment the tag existed, exactly as `75-HANDOFF.md` predicted, so its
+Class A obligation was discharged on measurement with no second amendment.
+
+**New at this close: ATT-01.** `release.yml` publishes with `password: ${{ secrets.PYPI_API_TOKEN }}`,
+which puts `pypa/gh-action-pypi-publish` on the API-token path and turns Trusted Publishing off — and
+with it the action's own default `attestations: true`, so the artifacts carry no PEP 740 provenance.
+**The workflow file contains no `attestations` line**; the release run's annotation reports the
+action's default. The fix is removing `password:` from both publish steps after registering a Trusted
+Publisher on PyPI; `id-token: write` and the `pypi` environment already exist. The upload succeeded,
+so this is a supply-chain-provenance gap, not a release blocker.
+
+**Carried unfixed.** MSG-06 (deferred once more under the prep-only fence, and not picked up when
+its two siblings were), QUA-08 (obstacle gone for two consecutive milestones, still unscoped),
+WR-02, WR-03, LNK-01, NUM-01 (now disclosed, still unfixed), and Phase 75's `VALIDATION.md` at
+`status: draft` — the third consecutive release-prep phase to skip `/gsd-validate-phase`.
+
+## Shipped Milestone (v0.9.5 — archived, merged to `main`, NOT published)
+
+Full phase detail, binding constraints and success criteria:
+[milestones/v0.9.5-ROADMAP.md](milestones/v0.9.5-ROADMAP.md). Requirements as they stood at close:
+[milestones/v0.9.5-REQUIREMENTS.md](milestones/v0.9.5-REQUIREMENTS.md). Audit:
+[milestones/v0.9.5-MILESTONE-AUDIT.md](milestones/v0.9.5-MILESTONE-AUDIT.md). Phase directories:
+`.planning/milestones/v0.9.5-phases/`. No research was run this milestone (owner decision) and
+`.planning/quick/` was empty at the close.
+
+**Completed 2026-09-16; nothing published.** 2 phases (72–73), 13 plans, 31 tasks, **4/4 v1
+requirements complete**. `origin/main` **had** moved from the milestone base `098a8ff6` — Dependabot's
+#146–#150 all merged on 2026-09-14 — so the close ran the handoff's conditional update:
+`git merge --no-ff origin/main` into the branch (one file, `uv.lock`, +33/−33), then `uv lock --check`
+exit 0 and the merged tree clean under the new ruff 0.16.7. **PR #151** merged the branch into `main`
+as `43fd7c13` (a merge commit; 15/15 checks green, including both `windows-latest` and both
+`macos-latest` lanes). No tag, no PyPI upload, no GitHub Release; `pyproject.toml` stays `0.9.2` and
+the CHANGELOG bullets are under `## [Unreleased]`, now six bullets from three unpublished milestones.
+REL-14 was checked on five observations after the merge: the merge commit on `origin/main`,
+`version = "0.9.2"`, no `v0.9.5` tag with `v0.9.2` present as positive control, PyPI 404 for `0.9.5`
+against 200 for `0.9.2`, and no `v0.9.5` Release.
+
+**Closeout: `override_closeout`.** For the first time, *every* phase in the milestone read
+`verification_status: stale` / `phase_complete: false` from `init.manager`, while both
+VERIFICATION.md files themselves read `status: passed` (72 at 5/5, 73 at 4/4, zero overrides
+applied). The cause is the known fingerprint drift: `.planning/` tracking commits landing after each
+verification and touching files it covers — Phase 72 by its own `phase.complete`, UAT, security and
+validation commits, Phase 73 by `2a85d98a` (code review), `722a2c30` (`phase.complete`) and
+`29baea5f` (the third fence observation). Neither phase's own work changed, and the same-day
+`v0.9.5-MILESTONE-AUDIT.md` (`tech_debt`; requirements 3/4 with REL-14 held by design, phases 2/2,
+integration 6/6, flows 3/3, zero gaps) re-checked both. The pre-close artifact audit reported **no
+open items**; 12 items acknowledged at prior closes remain suppressed, and none were newly
+acknowledged here.
+
+**What it delivered.** `tox.ini` carries a new `[testenv:linkcheck]` running Sphinx's own
+`sphinx-build -b linkcheck` over `docs/source/` — 95/95 links `working` on a clean run, no
+`conf.py` timing key — kept outside `env_list` so plain `tox` never reaches the network, and named on
+all three surfaces a fresh repo-wide grep found: `CLAUDE.md`, `README.md` and
+`docs/source/contributing.rst` (QUA-13, DOC-24). The root `docs/source/index.rst` toctrees no longer
+duplicate their five section-index children, so `document is referenced in multiple toctrees`
+messages went 5 → 0 with docs-html warnings 3 → 3 and docs-pdf 5 → 5, and every page still included
+exactly once under `-b typst` (DOC-18). `typsphinx/` and `.github/workflows/` were untouched for the
+whole milestone, fenced and re-measured at two separated observations.
+
+**Carried.** QUA-08, the weekly advisory linkcheck CI workflow, was scoped in at roadmap creation and
+deferred to Future the same day — GitHub runs `schedule` only on the default branch and
+`workflow_dispatch` only for a workflow file already there, so it could not be proven on the unmerged
+milestone branch. The obstacle is now gone: the environment it would call is on `main`. The
+release-checkbox auto-flip fired again at Phase 73's `phase.complete` (9 of the 10 prior release-prep
+closes), was caught by the constraint-10 SHA-256 fence and reverted before commit.
+
+## Shipped Milestone (v0.9.4 — archived, merged to `main`, NOT published)
+
+Full phase detail, the 13 binding constraints and success criteria:
+[milestones/v0.9.4-ROADMAP.md](milestones/v0.9.4-ROADMAP.md). Requirements as they stood at close:
+[milestones/v0.9.4-REQUIREMENTS.md](milestones/v0.9.4-REQUIREMENTS.md). Audit:
+[milestones/v0.9.4-MILESTONE-AUDIT.md](milestones/v0.9.4-MILESTONE-AUDIT.md). Phase directories:
+`.planning/milestones/v0.9.4-phases/`. Research: `.planning/milestones/v0.9.4-research/`. Quick
+tasks: `.planning/milestones/v0.9.4-quick/`.
+
+**Completed 2026-09-13; nothing published.** 2 phases (70–71), 20 plans, 42 tasks, **6/6 v1
+requirements complete**. `origin/main` had not moved from the milestone base `d14ca458`, so no
+update merge was needed (trial `merge-tree` exit 0, `is-ancestor` exit 0). **PR #145** merged the
+branch into `main` as `383a07e9` (a merge commit; 15/15 checks green, including both
+`windows-latest` and both `macos-latest` lanes). No tag, no PyPI upload, no GitHub Release;
+`pyproject.toml` stays `0.9.2` and the CHANGELOG bullet is under `## [Unreleased]`, now four bullets
+from two unpublished milestones. REL-13 was checked on five observations after the merge: the merge
+commit on `origin/main`, `version = "0.9.2"`, no `v0.9.4` tag, PyPI 404 for `0.9.4`, and no `v0.9.4`
+Release.
+
+**Closeout: `override_closeout`.** `init.manager` reported Phase 70 `verification_status: stale`
+(`phase_complete: false`). Its VERIFICATION.md fingerprints `.planning/REQUIREMENTS.md`, and
+`5292a85b` (Phase 71 discussion) added REL-13's 10-line AMENDED block to that file after Phase 70
+verified. Phase 70's own work is unchanged, and the same-day `v0.9.4-MILESTONE-AUDIT.md`
+(`tech_debt`, no gaps) re-checked it. Phase 71 read `passed`. One open artifact was acknowledged:
+the `doctest_block` todo (TRN-01).
+
+**What it delivered.** `pyproject.toml` no longer ignores ruff's `UP006`/`UP035`, and every
+`typing.Dict`/`List`/`Set`/`Tuple` in `typsphinx/` and `tests/` is on builtin generics, with
+`Iterator` from `collections.abc` (QUA-09, QUA-11). Behaviour was evidenced unchanged on five legs:
+masked-AST hashes, pytest counts, zero assertion edits, a byte-identical 167-project `.typ` corpus,
+and identical `mypy` output (QUA-12). The only visible change, API-reference type text, was traced
+hunk by hunk (DOC-23). `CLAUDE.md` describes the new style (DOC-22).
+
+## Shipped Milestone (v0.9.3 — archived, merged to `main`, NOT published)
+
+Full phase detail, the 15 binding constraints and success criteria:
+[milestones/v0.9.3-ROADMAP.md](milestones/v0.9.3-ROADMAP.md). Requirements as they stood at close:
+[milestones/v0.9.3-REQUIREMENTS.md](milestones/v0.9.3-REQUIREMENTS.md). Audit:
+[milestones/v0.9.3-MILESTONE-AUDIT.md](milestones/v0.9.3-MILESTONE-AUDIT.md). Phase directories:
+`.planning/milestones/v0.9.3-phases/`. Research: `.planning/milestones/v0.9.3-research/`.
+
+**Completed 2026-09-13; nothing published.** 6 phases (64–69), 27 plans, 70 tasks, **21/21 v1
+requirements complete**. `origin/main` (`cf3305ce`) was merged into the milestone branch with
+`--no-ff`, because `main`'s protection is `strict`. The merged tree passed `uv lock --check`,
+`ruff check .` (ruff 0.16.6) and `black --check .`. **PR #143** then merged the branch into `main`
+as `58d578f2` (a merge commit; 15/15 checks green, including both `windows-latest` and both
+`macos-latest` lanes). No tag, no PyPI upload, no GitHub Release; `pyproject.toml` stays `0.9.2` and
+the CHANGELOG bullets are under `## [Unreleased]`. REL-12 was checked on five observations after the
+merge: the merge commit on `origin/main`, `version = "0.9.2"`, no `v0.9.3` tag, PyPI 404 for `0.9.3`,
+and no `v0.9.3` Release.
+
+**Closeout: `override_closeout`.** `init.manager` reported all six phases' verification as
+fingerprint-stale. Each report's `covered_files` digest broke on later, legitimate edits:
+`REQUIREMENTS.md` (64–67), the Phase 68 review fix, and the owner-requested CHANGELOG wording
+(69). The same-day `v0.9.3-MILESTONE-AUDIT.md` (`tech_debt`, no gaps) stood in, by owner decision.
+Two open artifacts were acknowledged: the linkcheck todo and SEED-005.
+
+**What it delivered.** FHS command shims in `flake.nix` run `ruff`, every tox environment,
+`.venv/bin/uv` and tox's downloaded CPython on the maintainer's NixOS machine (NIX-01..NIX-08).
+The dev extra is back on upstream `tox-uv` (TOX-01..TOX-04). Dependabot is on the `uv` ecosystem
+and was proven on its own #138: `pyproject.toml` and `uv.lock` in one commit, the full CI ran
+(DEP-01..DEP-05). `CLAUDE.md`, `tox.ini` and `flake.nix` describe the landed mechanism
+(DOC-19..DOC-21). `typsphinx/` is untouched.
+
+**Accepted and carried.** `flake.nix` is load-bearing with zero CI coverage and an unexercisable
+darwin branch. The `sphinx-typst-stack` grouped update under `uv` is unobserved (Sphinx 9.1.0 caps
+`docutils<0.23`). A cold `@preview` cache through the FHS sandbox is unmeasured (64 WR-01). Nyquist
+VALIDATION.md is `draft` in all six phases, and no SECURITY.md exists.
+
+## Shipped Milestone (v0.9.2 — archived, PUBLISHED)
+
+Full phase detail, binding constraints and success criteria:
+[milestones/v0.9.2-ROADMAP.md](milestones/v0.9.2-ROADMAP.md). Requirements as they stood at close:
+[milestones/v0.9.2-REQUIREMENTS.md](milestones/v0.9.2-REQUIREMENTS.md). Phase directories:
+`.planning/milestones/v0.9.2-phases/`. Research: `.planning/milestones/v0.9.2-research/`.
+No `MILESTONE-AUDIT.md` was produced for this milestone.
+
+**Shipped 2026-08-31. `typsphinx 0.9.2` is on PyPI.** 2 phases (62–63), 10 plans, 29 tasks,
+**7/7 v1 requirements complete** — the first close since v0.6.4 to be a `verified_closeout`, and the
+first in this project's history to complete inside a single calendar day (~11 hours). It carries
+v0.9.1's entire completed-but-unpublished output as well as its own fix, under one `## [0.9.2]`
+CHANGELOG heading. No `## [0.9.1]` heading and no `v0.9.1` tag were ever created.
+
+**What it delivered.** An image node that was not first in its container was emitted adjacent to the
+preceding code-mode expression, so Typst refused the file with `expected semicolon or line break`
+and `sphinx-build -b typstpdf` raised `ExtensionError` and wrote **no PDF for any master document**
+— including masters containing no image at all, because Typst's `#include()` re-parses the included
+file. `visit_image()`/`depart_image()` now join the separator triad the rest of the translator
+already runs on (`_add_paragraph_separator()`, `_emit_inline_concat_separator()`, and the
+`in_list_item` / `list_item_needs_separator` pair), as a **9-line pure insertion with zero
+deletions** — both the `in_figure` and `else` branch bodies stay textually unmodified and no new
+line-boundary predicate was introduced (IMG-08, IMG-09, IMG-10). The acceptance gate drives a real
+`typst.compile()` through `-b typstpdf` over a 27-document / 18-master fixture — 16 measured failing
+shapes and 9 that must keep passing — recorded RED against a restored pre-fix `translator.py` before
+the fix landed, with 8 of the 9 PASS shapes bound byte-identical to committed goldens and the ninth
+pinned by an exact-delta assertion (TEST-05). Zero pre-existing test edits, measured with
+`git diff --name-status` over the 20 files carrying the 144 `image(` matches.
+
+**The mechanism was amended before a line was written.** A live 27-document probe measured that
+driving the triad from the non-`in_figure` branch alone — as the requirement first specified — leaves
+**4 of 18 masters still refused**: both legend shapes (a legend image has `in_figure == True` and
+never reaches that branch), the field-list-body concat shape (where the unconditional trailing
+newlines break the concat with a *new* refusal, `cannot apply unary '+' to content`), and `index`
+transitively. The leading half was hoisted above the `if self.in_figure:` split and the trailing half
+made concat-aware. This is the second consecutive milestone in which a locked decision was falsified
+by measurement, put to the owner, and closed with an `AMENDED` block rather than read to fit.
+
+**Publish record.** Branch `gsd/v0.9.2-inline-image-blocker-fix-and-release` (103 commits) merged to
+`main` as `45962faa` via **PR #136**, 15/15 checks green including both `windows-latest` and both
+`macos-latest` lanes. Tag `v0.9.2` annotated on that merge commit. `release.yml` run `33318905691`:
+`Validate Release`, `Build Distribution`, `Publish to PyPI` (after the `pypi` Environment's manual
+approval) and `Create GitHub Release` all `success`. PyPI carries the wheel and the sdist. The
+GitHub Release body is **byte-identical** to `scripts/extract_changelog_section.py 0.9.2` — 4083
+bytes / 54 lines, `diff` empty against the published body truncated to that line count, zero
+`### Planned for Future Releases` leakage. `typsphinx-doc-translations` `update-pin.yml` run
+`33320396502` advanced its submodule pin to exactly `45962faa` and resynced the ja catalogs
+(`fcf66da4`); that repository is tagged `v0.9.2` as a separate action.
+
+**Two things worth carrying.** (1) *A post-plan gate caught a false claim inside the release notes
+themselves.* The curated `## [0.9.2]` intro asserted the runtime changes were confined to
+`typsphinx/translator.py`; the same evidence file's own invariant sweep showed five files changed
+since 0.9.0. `63-REVIEW.md` CR-01 and `63-VERIFICATION.md`'s SC#2 block found it independently,
+after the original extractor inspection had passed the structural checks clean. The corrected text
+is what shipped, and the byte-identity proof was re-taken against it. (2) *The checksum fence held
+for the second time running, and this time the requirement was meant to close.* REL-11's SHA-256 of
+`.planning/REQUIREMENTS.md` was verified at phase head, at phase close, after the gap-closure
+commits, inside `63-HANDOFF.md`, and once more by the operator here **after** all
+`phase.complete`-family tooling had run — MATCH on the digest, the line count, the empty
+`--name-only` diff and the three `REL-09` grep hits, every time. `phase.complete` has auto-flipped
+the release requirement against an explicit CONTEXT decision at five consecutive prior release-prep
+closes; it did not flip here. REL-09/REL-10/REL-11 were checked by the operator at this close, on
+the observed publish.
+
+**REL-04 closed on evidence this release generated.** `Create GitHub Release` — the job that failed
+with `uv: command not found` at the v0.7.0 tag push — completed `success`, read from the job's own
+conclusion rather than inferred from the run status. Third consecutive green after v0.8.0 and
+v0.9.0. Its todo, open since 2026-08-04 and acknowledged as deferred at the v0.9.1 close, is now in
+`todos/completed/`.
+
+**Not verified at this close, by owner selection:** Read the Docs `stable` on the `en` and `ja`
+projects was not re-measured. Both projects' Default Versions have been `stable` since the v0.6.4
+close and have needed no re-flip at any subsequent close, but that is an expectation here, not an
+observation. Procedure: `63-HANDOFF.md` § 5, in `.planning/milestones/v0.9.2-phases/`.
+
+## Shipped Milestone (v0.9.1 — archived, never published; its work shipped inside 0.9.2)
+
+Full phase detail, binding constraints and success criteria:
+[milestones/v0.9.1-ROADMAP.md](milestones/v0.9.1-ROADMAP.md). Requirements as they stood at close:
+[milestones/v0.9.1-REQUIREMENTS.md](milestones/v0.9.1-REQUIREMENTS.md). Audit:
+[milestones/v0.9.1-MILESTONE-AUDIT.md](milestones/v0.9.1-MILESTONE-AUDIT.md). Phase directories:
+`.planning/milestones/v0.9.1-phases/`.
+
+**Completed 2026-08-30. Deliberately never published — and this is the headline, not a footnote.**
+4 phases (58–61), 17 plans, 48 tasks, **10/11 v1 requirements complete**. There is no `v0.9.1` tag,
+local or remote; no PyPI upload; no GitHub Release; `pyproject.toml` is still
+`0.9.0`; the milestone's CHANGELOG bullets sit under `## [Unreleased]`. The next published release
+is **0.9.2** (D-02). First close in this project's history to publish nothing.
+
+**What it delivered.** Three latent Windows path defect families closed on the product side:
+`_escapes_outdir()` applies its `isabs`/drive-qualified terms to the backslash-normalized string
+(PATH-01); `_track_image()`'s escape branch became safe end to end — normalized relocation key with
+the raw URI still hashed for the digest anchor, a 255-UTF-8-byte bound cut on character boundaries,
+and `escape_typst_string()` at both `visit_image()` emission sites, gated by a **real
+`typst.compile()`** that turns a Windows-shaped absolute image URI into a `%PDF` (IMG-04..IMG-07);
+and one delimiter-aware `quote_path()` in the new zero-import leaf module `typsphinx/pathfmt.py`
+now carries all 28 path-valued interpolations across `builder.py`, `writer.py` and
+`template_registry.py` (MSG-02..MSG-05), with the identifier-valued `!r` sites measurably untouched.
+Phase 58 first decoupled the two tests that hard-coded `repr()`'s output format (MSG-01), so the
+whole milestone landed with **zero pre-existing test edits** — measured against `58-REPR-CENSUS.md`
+and `git diff --name-status`, not asserted.
+
+**Why it was not released.** On 2026-08-29 the owner reported that `par(image(...))` patterns break
+the build. Reproduced and root-caused the same day: an image node that is not the first thing in its
+paragraph is emitted adjacent to the preceding code-mode expression, so Typst refuses the file with
+`expected semicolon or line break` and `-b typstpdf` raises `ExtensionError` and writes **no PDF for
+any master**. `severity: blocker`. Measured **pre-existing, not a regression** (D-06):
+`git diff v0.9.0..HEAD -- typsphinx/translator.py` is 25 lines, all IMG-05's
+`escape_typst_string()` call, and `visit_image()`'s missing separator is byte-identical to the
+`v0.9.0` tag. Not fixed in this milestone (D-07, prep-only fence plus requirement scope) and not
+disclosed on any public surface (D-05). It is v0.9.2's first requirement.
+
+**Three things worth carrying.** (1) *A locked decision can be falsified by measurement* — Phase 59's
+D-01 and ROADMAP SC#2 both predicted the unfixed tree would be refused with `path must not contain a
+backslash`; it is actually `unclosed delimiter`, because the unfixed pipeline emits a raw backslash
+**and** a raw unescaped `"` at once. Re-measured, put to the owner, closed with an `AMENDED` block.
+(2) *Gates find what plans miss* — Phase 59's code review found a blocker in
+`_bound_relocation_component()` (one reserved *byte* empties a multi-byte leading character) after
+all five plans reported complete, and Phase 60's repo-wide grep found a **fourth** module carrying
+the MSG-02 shape and filed it rather than fixing it out of scope. (3) *CI holds lint authority* —
+Phase 59's CI run 1 failed on `ruff` alone while all six matrix test jobs passed; `ruff` is
+unrunnable in the freshly-`uv sync`ed worktrees every executor runs in.
+
+**Fence held.** REL-09's checkbox was guarded by a SHA-256 of `.planning/REQUIREMENTS.md`
+(`4682f8cd…`) recorded at phase head, re-verified at phase close, again inside `61-HANDOFF.md`, and
+once more by the operator at this close — MATCH every time, `git tag -l 'v0.9.1'` empty at each
+observation. The flip has landed unbidden at five consecutive prior release-prep closes; it did not
+land here.
+
+## Current Position
+
+Phase: none — milestone v0.9.7 complete, archived and PUBLISHED
+Plan: —
+Status: Awaiting next milestone (`/gsd-new-milestone`; phase numbering continues at 78)
+Last activity: 2026-09-28 — v0.9.7 published to PyPI (Trusted Publishing) and archived
+
+Progress: [██████████] 100% (2/2 phases, 11/11 plans)
+
+## Shipped Milestone (v0.9.0 — archived)
+
+Full phase detail, binding constraints and success criteria:
+[`milestones/v0.9.0-ROADMAP.md`](milestones/v0.9.0-ROADMAP.md). Requirements and traceability:
+[`milestones/v0.9.0-REQUIREMENTS.md`](milestones/v0.9.0-REQUIREMENTS.md). Phase artifacts:
+`milestones/v0.9.0-phases/`. Shipped 2026-08-22; 6 phases, 42 plans, 112 tasks, 26/26 requirements.
+
+**Goal:** every `typst_documents` entry can use its own template, Typst Universe package and
+template-function arguments, instead of one globally-configured template being applied to every
+master.
+
+**Six phases, executing 53 → 54 → 54.1 → 55 → 56 → 57:**
+
+| Phase | Name | Requirements |
+|-------|------|--------------|
+| 53 | Template Registry Foundation | TPL-01, TPL-03, TPL-04, TPL-05, CONF-14..18 (9) |
+| 54 | One Bundle Rule — `_template/<key>/`, Per-Document Selection, Four Deletions | TPL-02, CONF-19, OUT-04..07, BLD-05, BLD-06 (8) |
+| 54.1 | Bundle Directory Safety — `templates_path` Collision Refusal and Pre-Write Path Validation (INSERTED) | WR-01, CR-01 (2) |
+| 55 | v0.8.0-Derived Defects | XREF-05, BLD-07, BLD-08, BLD-09, IMG-03 (5) |
+| 56 | Per-Document Template Documentation | DOC-15, DOC-16, DOC-17 (3) |
+| 57 | v0.9.0 Release Prep (prep-only) | REL-08 (1) |
+
+**The one hard ordering constraint is 53 before 54.** Deleting `_write_template_file()` breaks 31
+test files that assert the root `_template.typ`; Phase 53 therefore lands the registry plumbing
+output-identically first, so the tree is green at the boundary and the layout change is isolated
+from the plumbing change. Phase 55 has no functional dependency on 53/54 and is sequenced after them
+only to avoid contending for `builder.py` and `writer.py`.
+
+**Milestone branch:** `gsd/v0.9.0-per-document-templates` — the branch carrying every milestone
+commit — is **not** on `origin`. Milestone invariant #5 is encoded as Phase 53's SC#5 — push it in
+the first phase, evidenced by a completed CI run including the Windows and macOS lanes, produced by
+`gh workflow run CI --ref <branch>` (ci.yml's push/PR triggers are scoped to `main`/`develop`, so
+the push alone runs no CI). *(Corrected 2026-08-15 during Phase 53 planning: originally named
+`gsd/v0.9.0-milestone`, a stale local branch measured at `aed773c9` with zero milestone commits.)*
+
+**Owner decisions locked before roadmapping** (do not re-open at planning): `_template/` is reserved
+wholesale, so `tests/fixtures/template_named_dir_master/` moves in Phase 54; the
+`typst_template_assets` removal ships a `config-inited` handler that also detects `typst_authors` and
+`typst_toctree_defaults` — this codebase's first use of `config-inited`; the bundle copy runs in
+`finish()` off a write-time key accumulator; `_write_template_file()` is deleted, not adapted; and
+`TemplateEngine.resolve_template()` is widened to return the resolved path.
+
+## Shipped Milestone (v0.8.0 — archived)
+
+**SHIPPED 2026-08-15.** Phase detail is archived at
+`milestones/v0.8.0-ROADMAP.md`; requirements at `milestones/v0.8.0-REQUIREMENTS.md`; phase
+directories at `milestones/v0.8.0-phases/`. The brief below is retained as scoped.
+
+**Goal:** move the unit of composition from "one `.typ` shared by every master, with the include
+decision baked in at write time" to "per-master wrapper files that publish their include edge set as
+Typst `state`, plus template-less docname-named content files that emit state-guarded includes at the
+toctree's own position" — cutting the single root B-1, B-2 and defect A all grow from.
+
+**Six phases, executing 47 → 48 → 49 → 50 → 51 → 52:**
+
+| Phase | Name | Requirements |
+|-------|------|--------------|
+| 47 | Two-Layer Output — Content/Wrapper Split, Target-as-Path, Collision Detection | COMP-01..04, OUT-01..03, BLD-02..04 (10) |
+| 48 | Compile-Time Cross-Reference Guard | XREF-03, XREF-04 (2) |
+| 49 | Per-Master Include Graph with State-Guarded Includes | COMP-05..12 (8) |
+| 50 | PR #131 Image Path Defects | IMG-01, IMG-02 (2) |
+| 51 | Two-Layer Output Documentation | DOC-14 (1) |
+| 52 | v0.8.0 Release Prep (prep-only) | REL-07 (1) |
+
+**The one hard ordering constraint: 48 must land no later than 49.** Fixing the include graph turns a
+currently-silent content omission into a hard `label ... does not exist in the document` compile
+abort for any shared document referencing a target present in one master but not another. Shipping the
+graph first produces builds that fail outright. These two phases are **not** independently
+parallelizable, in either direction.
+
+**Milestone invariant #5 is Phase 47's SC#5.** `gsd/v0.8.0-multi-master-composition` exists locally
+with planning commits and has **not** been pushed. It reaches `origin` in Phase 47, not at the release
+PR — the discipline that paid immediately in v0.7.1, and whose absence cost v0.7.0 two defects. This
+milestone raises the stakes: the case-insensitive-filesystem collision gap (research Pitfall 5) is
+structurally invisible on Linux-only local runs.
+
+**Phase 52 is prep-only** — version bump, curated CHANGELOG, evidence, handoff checklist, zero
+irreversible action. REL-07 closes at `/gsd-complete-milestone`, not in the phase.
+
+**Five open questions are assigned, not mapped.** They carry no REQ-IDs and are not counted in
+coverage: B-2's RED state, the CR-01 self-collision policy and the case-normalization scope close in
+Phase 47; `translator.py:4291`'s nature closes in Phase 48; the `:numref:` project-wide-vs-per-wrapper
+divergence closes in Phase 49, on a live two-master fixture — no compile error catches that one.
+
+## Shipped Milestone (v0.7.1 — archived)
+
+Full phase detail, success criteria, and decisions: [`milestones/v0.7.1-ROADMAP.md`](milestones/v0.7.1-ROADMAP.md)
+and [`milestones/v0.7.1-REQUIREMENTS.md`](milestones/v0.7.1-REQUIREMENTS.md). Phase artifacts are
+under `milestones/v0.7.1-phases/`. The MILESTONES.md entry carries the stats, the curated
+accomplishments, and the release record.
+
+**Shipped 2026-08-11.** 8 phases (43-46, incl. inserted 44.1, 44.2, 45.1, 45.2) - 43 plans -
+122 tasks - **19/19** v1 requirements complete, **zero known gaps** - `override_closeout` (no
+milestone audit; 12 open artifacts acknowledged, 5 of which were re-measured and found already
+resolved - see Deferred Items). Timeline 2026-08-04 -> 2026-08-11 (8 days, 421 commits). Code delta
+excluding `.planning/`: 125 files, +10,760 / -935 lines.
+
+Research was deliberately skipped (owner decision 2026-08-04) - a maintenance round over
+already-diagnosed defects, each carrying a file/line-level todo, with the one new-behaviour item
+CONF-08 resolved by direct measurement of Sphinx 9.1.0's LaTeX builder - so this milestone has **no
+`research/SUMMARY.md`**. Coverage grew from 11/11 at roadmap creation to 19/19 through four phase
+insertions; the five owed user-visible CHANGELOG callouts (CONF-08, CONF-09, CONF-10, CONF-11,
+CONF-12) were all delivered in Phase 46's curated `## [0.7.1]` entry, and QUA-04 correctly took none
+(confined to the `dev` extra, D-19).
+
+**Published 2026-08-11.** PR #132 merged to `main` (15/15 CI checks green) and `v0.7.1` tagged on
+merge commit `48bf135`. Release run `31462027486`: `validate` OK -> `build` OK -> `publish-pypi` OK
+(after owner approval of the `pypi` environment) -> `create-release` **OK**. PyPI `typsphinx 0.7.1`
+is live (wheel 135,318 B + sdist 580,288 B). The GitHub Release `Release v0.7.1` carries all three
+assets (`.whl`, `.tar.gz`, and the tag-time `typsphinx.pdf`, 2,436,561 B). Second-repository tag
+done: `typsphinx-doc-translations` pin advanced `87f242a` -> `48bf135` by `update-pin.yml` run
+`31462409929` (commit `cf7fa30`) and tagged `v0.7.1` there.
+
+**REL-04 closed here, for the first time, on generated evidence.** It carried unmet from v0.7.0,
+where run `30848860064`'s `create-release` failed at `uv: command not found` and the fix landed on
+`main` but was never exercised. This close exercised it: `create-release` completed success, and the
+published body was then *measured* - lines 1-77 byte-identical to
+`scripts/extract_changelog_section.py 0.7.1`'s stdout (`diff` clean), zero `git log --pretty`
+commit-dump lines. Milestone invariant #5 (push the branch from Phase 43, not at the release PR) also
+paid: a Windows-only path-separator defect surfaced on a dispatched CI run during Phase 46 instead of
+at the release PR, which is the exact failure mode that cost v0.7.0 two defects.
+
+**Read the Docs `stable` measured live 2026-08-11 (`46-HANDOFF.md` item 5, both projects — owner
+confirmed, then re-measured against RTD's unauthenticated public API and real fetches):** root
+`https://typsphinx.readthedocs.io/` → `/en/stable/` (200); `en` `stable` identifier
+**`48bf135428bb093a77a432d93d16088ce6930342`** — the v0.7.1 merge commit itself — and `ja`
+(project slug `typsphinx-ja`) `stable` identifier **`cf7fa3085078c0c5cc7f6614e89ae042ec95efef`**,
+the translations repo's own v0.7.1-tagged commit. Both versions `active: true` / `built: true`;
+both pages report `0.7.1`; both PDFs served (`en` 2,449,231 B / `ja` 2,642,276 B, `application/pdf`).
+No owner setting flips were needed — both Default Versions have been `stable` since the v0.6.4 close,
+the fourth consecutive close at which none was required.
+
+**`46-HANDOFF.md`'s seven-item publish checklist is now fully discharged; nothing is owed forward.**
+
+**Not a frontend UI milestone** — no phase carried a UI hint. `ui.plan-gate` false-positives on
+"table"/"render"/"page" wording here.
+
+## Shipped Milestone (v0.7.0 — archived)
+
+Full phase detail, success criteria, and decisions: [`milestones/v0.7.0-ROADMAP.md`](milestones/v0.7.0-ROADMAP.md)
+and [`milestones/v0.7.0-REQUIREMENTS.md`](milestones/v0.7.0-REQUIREMENTS.md). Phase artifacts are
+under `milestones/v0.7.0-phases/`. The MILESTONES.md entry carries the stats, the curated
+accomplishments, and the release record.
+
+**Shipped 2026-08-04.** 8 phases (36–42, incl. inserted 40.1) · 57 plans · 158 tasks ·
+**32/33** v1 requirements complete (REL-04 carried to v0.7.1) · `override_closeout` (no milestone
+audit; 6 open artifacts acknowledged — see Deferred Items). Timeline 2026-07-29 → 2026-08-04
+(7 days, 477 commits). Code delta excluding `.planning/`: 80 files, +14,619 / −339 lines.
+
+**Published 2026-08-04.** PR #129 merged to `main` (15/15 CI checks green) and `v0.7.0` tagged on
+merge commit `75fd8ed`. Release run `30848860064`: `validate` ✓ → `build` ✓ → `publish-pypi` ✓
+(after owner approval of the `pypi` environment, 15-minute wait timer) → `create-release` ✗. PyPI
+`typsphinx 0.7.0` is live (wheel 122,514 B + sdist 477,342 B). The GitHub Release
+`Release v0.7.0` was repaired by hand and now carries all three assets (`.whl`, `.tar.gz`, and the
+tag-time `typsphinx.pdf` from `docs.yml`) with the curated `## [0.7.0]` CHANGELOG body plus
+GitHub's auto-generated notes. Second-repository tag done: `typsphinx-doc-translations` pin advanced
+to `75fd8ed` by `update-pin.yml` run `30848873442` (commit `a2150b1f`) and tagged `v0.7.0` there.
+
+**Read the Docs `stable` measured live 2026-08-04 (`41-HANDOFF.md` item 5, both projects):** root
+`https://typsphinx.readthedocs.io/` → `/en/stable/` (302 → 200); `en` `stable` identifier
+`75fd8ed5` (the v0.7.0 merge commit), `ja` `stable` identifier `a2150b1f` (the translations repo's
+own v0.7.0 tag); both pages report `0.7.0`; both PDFs served (`en` 1,965,123 B / `ja` 2,152,807 B,
+`application/pdf`). Both builds `finished` / `success`. No owner setting flips were needed — both
+Default Versions were already `stable` from the v0.6.4 close.
+
+**What shipped:** API reference pages became readable — monospace signatures with hanging-indent
+wrapping and no margin overflow (SIG-01..09), description bodies and field lists indenting by
+nesting depth off one shared `SHARED_INDENT_STEP` constant (IND-01..05, FLD-01..03), admonitions
+re-bucketed onto a taxonomy the owner signed off against a desaturated render (ADM-01..06),
+greenfield full-round-trip docutils citations with degradation hardening (CIT-01..06 + Phase 40.1),
+two remaining compile fatals closed (MATH-02, TBL-03), and the GitHub Release body sourced from the
+curated `## [0.7.0]` CHANGELOG section — the last of these delivered as a mechanism (REL-04) but
+**not** exercised end to end by the release, see Blockers/Concerns; REL-05 (the release itself) is
+complete.
+
+**Standing invariants held:** zero new runtime dependencies; the `@preview` package count stayed at
+four with no new version-lockstep site; every node-handler change carries its own recorded-RED
+GATE-01 fixture — with v0.7.0's amended definition of RED (structural / regex / `pypdf`-text
+assertions written before any code, since these defects compiled fine), and CIT-01 and TBL-03 as
+the two classic-`TypstError` exceptions.
+
+**Three durable lessons** (carried into PROJECT.md Key Decisions):
+
+1. **The gate held under pressure rather than being laundered.** In Phase 40 four of nine gate
+   selectors stayed RED after the handlers landed; all four were defects in the gate module itself,
+   and the corrected module was re-proved 9/9 RED against the pre-fix translator three independent
+   times before being trusted.
+
+2. **A locked decision was reversed on evidence.** Shown a live render at UAT the owner overturned
+   D-03 and re-opened an already-closed Phase 39 (5/5 verified) rather than filing the difference
+   as debt.
+
+3. **A recurring tooling hazard was made falsifiable.** `phase.complete` auto-flipping REL-04/REL-05
+   against a CONTEXT decision was caught and reverted in Phase 41, then pre-empted in Phase 42 by
+   `42-CLOSEOUT-GUARD.md`, which recorded the four at-risk lines verbatim with a file checksum. It
+   did not recur — the hazard looks specific to release-prep phases rather than universal.
+
+## Shipped Milestone (v0.6.5 — archived)
+
+Full phase detail, success criteria, and decisions: [`milestones/v0.6.5-ROADMAP.md`](milestones/v0.6.5-ROADMAP.md)
+and [`milestones/v0.6.5-REQUIREMENTS.md`](milestones/v0.6.5-REQUIREMENTS.md). Phase artifacts are
+archived under `milestones/v0.6.5-phases/`.
+
+**Delivered:** 2/2 v1 requirements across 2 phases / 8 plans — a document mixing prose and math no
+longer aborts the Typst compile. The defect was root-caused **by measurement**, not from the
+backlog's guess: `visit_math` participated in only one of the translator's three separator protocols
+(paragraph, code-mode concat, list-item), so the fatal surfaced in list items, definition-list terms,
+and collapsed confval field bodies rather than in plain paragraphs. Fixed on both the mitex and
+native emission paths (+45 lines, `typsphinx/translator.py` only), pinned by a real-`typst.compile()`
+GATE-01 fixture recorded RED pre-fix, and released as v0.6.5.
+
+**Closeout type:** `override_closeout` — both phases were `phase_complete` with
+`verification_status: passed` and both requirements complete, but no `v0.6.5-MILESTONE-AUDIT.md` was
+produced (owner accepted at close, 2026-07-29: for a 2-phase / 2-requirement hotfix, Phase 35's
+`35-RELEASE-EVIDENCE.md` had already discharged SC#1–SC#5 against live runs — full pytest, the
+lint/type trio, the full-corpus `-b typstpdf` gate, and both docs dogfooding builds). 8 pending
+todos acknowledged as deferred (below).
+
+**Scope fence held:** Phase 35 was prep-only and took no irreversible action — `git tag -l v0.6.5`
+and `git ls-remote --tags origin v0.6.5` were both empty when it finished. The publish half executed
+here at close and is complete:
+
+- PR #125 merged to `main` (13/13 CI checks green before merge); `v0.6.5` tagged on merge commit
+  `839d77f` and pushed.
+
+- Release run 30398631991 green end-to-end after owner approval of the `pypi` environment: PyPI
+  `typsphinx 0.6.5` (wheel + sdist, uploaded 21:15:39–21:15:40Z) and GitHub Release `v0.6.5` with
+  all three assets.
+
+- `typsphinx-doc-translations` pin advanced to `839d77f` (`update-pin.yml` run 30398664663) and
+  tagged `v0.6.5` at `1891a09` — the standing two-repository tagging cost, discharged.
+
+- RTD `stable` measured live on both projects: en identifier `839d77f38ffa`, ja identifier
+  `1891a0905322`; root → `/en/stable/` (302→200), `/ja/stable/` 200, both reporting `0.6.5`, both
+  PDFs served. No owner setting flips were needed this time.
+
+## Shipped Milestone (v0.6.4 — archived)
+
+Full phase detail, success criteria, and decisions: [`milestones/v0.6.4-ROADMAP.md`](milestones/v0.6.4-ROADMAP.md),
+[`milestones/v0.6.4-REQUIREMENTS.md`](milestones/v0.6.4-REQUIREMENTS.md), and
+[`milestones/v0.6.4-MILESTONE-AUDIT.md`](milestones/v0.6.4-MILESTONE-AUDIT.md). Phase artifacts are
+archived under `milestones/v0.6.4-phases/`.
+
+**Delivered:** 13/13 v1 requirements across 6 phases / 33 plans — documentation hosting moved from
+GitHub Pages to Read the Docs (en + ja behind RTD's flyout, the ja site built from the separate
+`typsphinx-doc-translations` repository), the RTD-served PDFs proven to be `typstpdf`'s own artifacts,
+the hand-rolled multilang machinery deleted (net −6.2k lines), every published URL rewritten and
+real-HTTP-verified behind an advisory lychee guard, and the Pages host irreversibly torn down behind a
+freshly re-taken serving gate.
+
+**Closeout type:** `verified_closeout` — milestone audit passed (13/13 requirements, 6/6 phases
+verified, integration all-wired); 5 pending todos acknowledged as deferred (see Deferred Items),
+2 resolved todos filed to `todos/completed/`.
+
+**Standing cost adopted this milestone:** every release tags **two** repositories — the parent and
+`typsphinx-doc-translations` (`/ja/stable/` resolves against the translations repo's own tags).
+
+## Performance Metrics
+
+**Velocity:**
+
+- Total plans completed (project cumulative): 108 (55 through v0.6.2 + 12 in v0.6.3 + 33 in v0.6.4 + 8 in v0.6.5)
+- v0.6.3: 6 phases / 12 plans / 28 tasks, 2026-07-23 → 2026-07-25
+- v0.6.4: 6 phases / 33 plans / 79 tasks, 2026-07-25 → 2026-07-28 (shipped)
+- v0.6.5: 2 phases / 8 plans / 27 tasks, 2026-07-28 → 2026-07-29 (shipped) — the fastest milestone
+  to date; a single-defect hotfix scope held end to end with zero scope creep.
+
+- v0.7.0: 6 phases / 30 plans complete through Phase 39 (36: 4, 37: 9, 38: 9, 39: 8), started
+  2026-07-29 — comparable in shape to v0.6.3/v0.6.4, but with a much higher test-migration load
+  (10 files, 61 render-gate classes) carried per phase. Phase 37 alone migrated 9 exact-string
+  assertions across 5 modules plus `golden.typ`'s 7 signature lines; Phase 39 re-measured its own
+  census and found it matched both the discussion-time and planning-time counts exactly.
+
+*Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 47 P10 | 35min | 3 tasks | 4 files |
+| Phase 53 P05 | 40min | 3 tasks | 3 files |
+
+## Shipped Milestone (v0.6.3 — archived)
+
+Full phase detail, success criteria, and decisions: [`milestones/v0.6.3-ROADMAP.md`](milestones/v0.6.3-ROADMAP.md)
+and [`milestones/v0.6.3-REQUIREMENTS.md`](milestones/v0.6.3-REQUIREMENTS.md). Phase artifacts (PLAN /
+SUMMARY / VERIFICATION / CONTEXT / RESEARCH) are archived under `milestones/v0.6.3-phases/`.
+
+**Delivered:** 7/7 v1 requirements across 6 phases / 12 plans — the inert `typst_toctree_defaults`
+deleted (CONF-05), captioned tables rendering as numbered, cross-referenceable Typst figures
+(TBL-01/TBL-02), `typst_elements` `papersize`/`fontsize` reaching `project()` behind a fail-loud
+allowlist (CONF-04), the orphan config doc and every phantom `typst_*` name purged (DOC-06/DOC-07),
+and Typst's typesetting `lang` following Sphinx's own `language` conf (CONF-07). Closed on a live
+full-corpus regression gate.
+
+**Published 2026-07-25:** PR #121 merged to `main` (CI 13/13 green), tag `v0.6.3` pushed,
+`release.yml` published `typsphinx==0.6.3` to PyPI (wheel + sdist) and created the GitHub Release.
+Milestone branches deleted; only `main` and `gh-pages` remain — `gh-pages` is scheduled for deletion in
+Phase 32 (CI-04).
+
+**Closeout type:** `override_closeout` — all 6 phases were `phase_complete` with
+`verification_status: passed` and all 7 requirements checked off, but no `v0.6.3-MILESTONE-AUDIT.md`
+was produced (owner accepted at close, 2026-07-25: Phase 28's live re-run of the full-corpus gate,
+full pytest suite, and both docs-build tox environments already covers the audit's requirement-coverage
+and integration ground) and 9 pending todos were acknowledged as deferred (below).
+
+**Closed at close, not deferred:** the bundled `examples/advanced` sample was unbuildable on two
+independent axes — five `typst_elements` keys outside the CONF-04 allowlist, and `custom.typ` three
+milestones behind on its `@preview` pins (`unknown variable: kai`). Repaired inline before the tag,
+with `test_preview_version_sync.py` extended over `examples/**/*.typ` to close the drift channel.
+
+## Accumulated Context
+
+### Decisions
+
+Cleared at v0.6.4 close — the full log lives in PROJECT.md Key Decisions (with outcomes) and the
+archived `milestones/v0.6.4-ROADMAP.md`. Standing process decisions that carry forward:
+
+- `branching_strategy: milestone` — ship unit is the milestone; final phase is prep-only Release;
+  publish executes at `/gsd-complete-milestone`; push `main` to `origin` at every close.
+
+- Every release tags **two** repositories (parent + `typsphinx-doc-translations`) — v0.6.4 D-07.
+- Milestone invariant #4 (standing): "anywhere under X" success criteria are checked by a repo-wide
+  grep at discovery time, never against the files a requirement happens to name.
+
+- Run `/gsd-audit-milestone` before each close (v0.6.4 restored it; first verified_closeout since
+  v0.4.4).
+
+- **[Phase 62] Two decisions locked at planning were falsified by measurement and AMENDED with owner
+  acknowledgement before execution** (recorded in `62-01-PLAN.md`'s `<amendments>` block). The
+  operative one: the separator triad scoped to `visit_image()`'s non-`in_figure` branch alone leaves
+  4 of 18 masters red, so the leading half is hoisted *above* the `in_figure`/`else` split instead.
+  The general lesson is the one already in the ledger — a locked `D-NN` carried forward from a prior
+  phase can encode a guess in declarative form; reproduce it before building on it.
+
+- **[Phase 62] An audit belongs in a later wave than the thing it audits.** SC#5's CI authority run
+  and the phase-close measurements were deliberately isolated in wave 4, because this project has
+  already recorded a case where an audit co-located with its subject abstained on its own criterion.
+
+- Standing GATE-01 bar (since v0.6.0): every node-handler change ships a real
+  `sphinx-build → typst.compile()` regression fixture, recorded **red against the unfixed code**
+  before it is accepted as green. **v0.7.0 amends what "red" means** — see the Active Milestone
+  section: every design defect in this milestone compiles fine today, so RED is a structural /
+  regex / `pypdf`-text assertion defined before any code is written, except for CIT-01 (Phase 40),
+  which keeps the classic `TypstError`.
+
+- [Phase 47]: Milestone branch gsd/v0.8.0-multi-master-composition pushed to origin (no PR); CI run 31492380799 completed success including windows-latest/macos-latest lanes, discharging Phase 47 SC#5
+
+- [Phase 48] D-07: ONE shared guard-string derivation point. `_label_existence_guard()` is the sole
+  site that builds a `context`/`query` string; it never derives a label itself, taking only
+  `_namespace_label()`'s output, so demand and supply sides cannot diverge. Four call sites; a fifth
+  spelling is the drift class the decision exists to reject.
+
+- [Phase 48] D-11 accepted at UAT: the per-reference compile-time `query()` costs **-2.37%** on a
+  full corpus, against tiers fixed before the measurement — bottom tier, record only.
+
+- [Phase 48] Owner accepted two named limits rather than hiding them: a coincidental
+  docname/label-namespace collision can still link to the wrong document (todo filed,
+  `48-REVIEW.md` WR-02), and an `:orphan:` target now degrades with zero diagnostic at any layer.
+
+- [Phase 48] G-48-4 **option-a**: whole-document references are guarded only when they resolve onto
+  a real `found_docs` member. The five Sphinx-generated virtual pages (`genindex`, `py-modindex`,
+  `search`, and two `../` forms) have no PDF counterpart and stay dead links by explicit choice.
+
+- [Phase 56] D-03 was AMENDED at planning time against the locked context, on measurement: a
+  hand-run `typst compile` of a **bare-target** wrapper needs no `--root` (Typst default-roots to the
+  compiled file's own directory = `outdir`); only a target carrying a path component, e.g.
+  `manuals/guide.typ`, needs `--root <outdir>`. The note therefore ships **conditionally**, with both
+  branches pinned by a real `typst.compile()` gate (`tests/test_hand_compile_root_gate.py`, 10 tests).
+  A locked D-NN can be falsified by measurement — reproduce, then amend in place with the evidence.
+
+- [Phase 56] D-09/D-10: an "anywhere under X" success criterion's hit set is what the **discovery-time
+  repo-wide grep** returns, not the floor the CONTEXT happens to enumerate. SC#4's grep surfaced two
+  hits beyond the floor (`CLAUDE.md:49` still naming the deleted `_write_template_file`;
+  `examples/charged-ieee/approach2/conf.py:21-25` claiming `typst_package` skips emitting an artifact
+  that no longer exists). Milestone invariant #4 held.
+
+- [Phase 56] A green gate is not proof a gate is load-bearing. The phase verifier ran **three live
+  falsification tests** — reintroducing the retracted "accepted and ignored" phrase, a stale
+  `_template.typ` claim, and an undocumented `raise ExtensionError` shape — and confirmed each turned
+  its own gate RED before accepting the 8/8. Adopt this for doc↔code binding gates.
+
+- [Phase 56] The two `56-REVIEW.md` warnings (stale `Python 3.9` / `Sphinx 5.0` prerequisites on four
+  published surfaces; a dead `../../docs/configuration.rst` link in `examples/advanced/README.md:270`)
+  were measured **pre-existing** and outside SC#4's class ("claims the new layout invalidates"), so
+  the 8/8 verification stands. Owner decision 2026-08-16: split out as a todo, not folded into the
+  phase.
+
+- [Phase 53] SC#2/SC#5 closed on measured evidence: all four configuration shapes plus TPL-04 byte-identical post-change; milestone branch pushed to origin with honest two-run CI history (Run 31875380355 failed on pre-existing test_state_guard_shapes_gate.py path defect unrelated to Phase 53, fixed by d1eff100, Run 31875707734 succeeded on all 12 jobs including windows-latest/macos-latest)
+
+### Pending Todos
+
+- [2026-07-22] [ci, docs] "`sphinx-build -b linkcheck` の CI ジョブを追加する" — [todo file](.planning/todos/pending/2026-07-22-add-sphinx-linkcheck-ci-job.md)
+- [2026-08-14] [translator, docs] "numref numbers diverge per master and vanish entirely for figures reachable on… — [todo file](.planning/todos/pending/2026-08-14-numref-number-diverges-per-master-and-vanishes-for-non-root-only-figures.md)
+
+### Blockers/Concerns
+
+**[Phase 62] Review warnings: WR-02 CLOSED, WR-01 standing by decision.** `62-REVIEW.md` closed with
+0 blockers, 2 warnings, 2 info. **WR-02 is fixed** (`1adad07f`, 2026-08-30, at the owner's
+instruction): `depart_image()`'s new lines now carry the rationale explaining that
+`list_item_needs_separator = True` is NOT redundant with the trailing `"\n\n"` — the flag is what a
+following sibling reads to emit its own leading `"\n"` — so deleting it as cleanup would silently
+re-open `fail_04`. Comment-only: 14/0 numstat, parsed AST identical across the commit, so no Phase 62
+success criterion re-opens (see `62-RED-EVIDENCE.md`'s post-verification addendum, which also
+re-anchors IMG-10's "pure 9/0 insertion" figure to the verified tip `26595728`). **WR-01 stands
+open by decision** — the one-blank-line delta on the image-first-in-paragraph shape is the
+deliberately pinned `.pre_fix.typ` golden delta, not a defect. IN-01/IN-02 are two fixture
+combinations traced by hand as harmless and left uncovered.
+
+**[Phase 47] One open review Warning carried forward, doc-only: WR-02.**
+`47-REVIEW.md` closes at `status: issues_found` with CR-01 and WR-01 both verified-closed and one
+Warning left open. `tests/test_master_include_set_predicate_gate.py`'s module docstring (lines ~25-31)
+still says the pre-fix RED is "recording ... as `xfail(strict=True)`", but commit `e422bfb` removed all
+six `@pytest.mark.xfail` decorators when the 47-13 fix landed. **Re-measured 2026-08-12 at UAT close and
+still live** — `grep -c '@pytest.mark.xfail'` returns `0` while the docstring claim stands. Two class
+docstrings (`TestGhostEntryIncludeSetUnit`, `TestUnhashableDocnameIncludeSetUnit`) carry the milder
+"lands as an xfail" variant of the same staleness. **Not a functional defect** — all 8 tests pass and
+the verbatim RED transcripts remain correctly cited to `47-GAP2-RED-EVIDENCE.md`; the cost is a
+maintainer searching for markers that no longer exist. Fix is a past-tense rewrite, suggested verbatim
+in `47-REVIEW.md`.
+
+**Phase 44.1 SC#2 rests on a falsified premise — a blocking decision waits in wave 2.** Measured
+2026-08-04 during planning and re-measured independently by the orchestrator against the pinned
+typst-py 0.15.0, through real `include()` calls on `tests/fixtures/integration_nested_toctree`:
+Typst's `set heading(offset: N)` is an **absolute assignment** on the style chain, not an increment,
+so a nested scope *replaces* its parent's offset instead of adding to it. `44.1-CONTEXT.md`
+(`<code_context>` "Integration Points") and the source todo both assert that nested toctree scopes
+"accumulate"; neither was verified and both are wrong. Consequence: the locked repair (emit `depth:`
+in `visit_title`, leave `visit_toctree` untouched) satisfies **SC#1** — child resolves at 2 — but
+leaves **SC#2 unmet**, the grandchild resolving at 2 rather than 3. Only
+`context { set heading(offset: heading.offset + 1) }` yields 1 / 2 / 3 / 4. Meeting SC#2 therefore
+requires widening a locked scope, which no planner or executor may do, so `44.1-03` stops as a
+`checkpoint:decision` offering **option-a** (change `visit_toctree`; SC#2 met, scope widened, the two
+`tests/test_toctree_requirement13.py` assertions change) or **option-b** (leave it; re-scope SC#2 as
+unsatisfiable per the SC#3 precedent, file a todo, mark the SC#2 tests `xfail`). Both branches are
+executable; the plan's acceptance criteria are split `Both options` / `Option-a only` /
+`Option-b only`, and D-03's `templates/base.typ` fence holds either way.
+
+**Owed from v0.7.0: REL-04.** The requirement — the GitHub Release body sourced from the curated
+`## [X.Y.Z]` CHANGELOG section — is **not met**. The extractor Phase 41 wrote is correct and
+hand-verified, but the `create-release` job calls `uv run …` with no `astral-sh/setup-uv` step
+(`validate` and `build` both have one; `create-release` never needed uv until REL-04 wired the
+extractor into it), so the first real tag push died at `uv: command not found`, exit 127. The
+release body and its missing wheel/sdist were repaired by hand; `release.yml`'s `create-release` job
+gained the two missing steps on `main` afterwards. **REL-04 closes only when a real tag push runs
+`create-release` to completion** — carried to v0.7.1, and it is the only item in PROJECT.md's
+Requirements Active.
+
+**Both defects this close surfaced share one cause: the milestone branch was never pushed until the
+release PR.** The Windows lanes went RED on PR #129 (three Phase 37 signature render-gate modules
+read `.typ` with a bare `Path.read_text()`, so Windows' cp1252 could not decode UTF-8 — fixed in
+`9a544db` before merge), and `create-release` had never run against a real tag. Neither Windows CI
+nor a tag push touched the branch during any of the eight phases. Pushing the milestone branch early
+— even without opening a PR — would have caught the first one eight phases sooner.
+
+**Carried forward, non-blocking:** eight pending todos (Deferred Items) and one dormant seed. The
+most significant is `nested-table-clobbers-outer-table-state` — a real, severe, pre-existing bug
+where a table nested inside a `list-table` cell silently drops the outer table structure. It is not
+a v0.7.0 regression (verified byte-identical pre- and post-Phase-42) and is the strongest single
+candidate for the next milestone.
+
+**Nothing owed from v0.6.5.** All six `35-HANDOFF.md` items are discharged, including item 4 (the
+RTD `stable` confirmation), which was measured rather than left owner-manual: both projects'
+`stable` rebuilt on the new tags and serve `0.6.5`. The only carried cost is cosmetic and filed —
+the GitHub Release body is still `release.yml`'s commit dump (D-11) — and it is now scoped as
+v0.7.0's REL-04 (Phase 41).
+
+**Nothing owed from v0.6.4.** All owner-manual steps from `33-HANDOFF.md` completed at close
+(2026-07-28, measured via the RTD public API + real fetches): both RTD Default branches → `main`, both
+Default Versions → `stable`, `.gitmodules` `branch` → `main` in `typsphinx-doc-translations`; root URL
+redirects to `/en/stable/` (200) and `/ja/stable/` serves the same release; Issue #119 closed.
+
+**Three carried Warnings from 30.1's review (quality, not gaps):** `contributing.rst` Translations
+section lacks a toolchain-install step; `docs/source/_typst/custom_template.typ` is an unguarded
+FOURTH `@preview` version-lockstep site (the sync test watches 3 surfaces + `examples/`); the live
+translations-repo manifests have no structural test coverage in this repository. Out of v0.7.0
+scope, but note the second one is adjacent to Phase 41's invariant check — any new font selection
+this milestone introduces touches that same file.
+
+**v0.7.0 risk — SIG-07 RESOLVED at Phase 37 planning (2026-08-01), and the answer inverted the
+premise.** The corpus was measured (1,445 real `desc_signature` nodes from Sphinx v9.1.0 `doc/`):
+worst case is a 311-char signature / 41-char qualname / 143pt widest unbreakable token, against a
+production column width of **453.54pt** read from Typst's own `layout()`/`measure()`. **Nothing in
+the real corpus overflows.** The `2.5em` hanging-indent and ZWSP figures in `37-CONTEXT.md` came
+from an artificially narrow 9cm probe frame. Phase 37 keeps the mechanism (`par(hanging-indent:)`
+
++ U+200B after each `.`) because it is cheap and correct, but its GATE-01 RED fixture is built from
+
+a **synthetic ~90+ char dotted identifier** — a corpus-derived fixture cannot go RED. The real
+corpus worst case serves as a non-regression control. Two further measured findings the executor
+needs: `block()`'s default spacing adds ~26.5pt per boundary (so the wrapper must be
+`block(above: 0pt, below: 0pt, sticky: true, …)` or SIG-08's defect returns), and ZWSP poisons
+`pypdf` extraction (a spurious U+200B appears at an unrelated glyph boundary), so every compiled-PDF
+assertion must strip U+200B first. Also open: any new `set text(font: ...)` for
+monospace signatures can silently shadow the `Noto Serif CJK JP` fallback in the `ja` build — Typst
+emits neither a warning nor an error, so the D-03 four-check bar is a Phase 41 success criterion.
+
+UI note (standing): this project's phases are typesetting/config/docs/hosting work, **not** frontend
+UI — `ui.plan-gate` false-positives on PDF/HTML/template wording; use `--skip-ui`. The v0.7.0
+roadmap deliberately carries no `UI hint` annotations for this reason, even though phases 37–39 use
+words like "layout", "page", and "render". Same for `api-coverage.verify-pre` false-positives on
+prose describing compile/render/API-read evidence (three recorded overrides in v0.6.4). GATE-01
+note: honest-verifier — abstain to `human_needed` rather than assert a truth without direct
+evidence.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+
+The one quick task of the v0.9.4 period (`260913-e7n`, Issue #91 closed as not reproducible) was
+archived to `.planning/milestones/v0.9.4-quick/` at the v0.9.4 close.
+
+The two quick tasks of the v0.9.6 period were archived to `.planning/milestones/v0.9.6-quick/` at
+the v0.9.6 close, which is why the table above is empty again. Both were run **at that close**, from
+the pre-close artifact audit's `[R] Resolve` branch, and they close the two pending todos the audit
+surfaced:
+
+- `260922-tbe` (commit `3fbad0f5`) — IN-01: `visit_literal_block` / `depart_literal_block`'s `Args:`
+  docstrings now name the doctest block, matching the signatures Phase 74 widened.
+- `260922-tkt` (commit `2c85ebca`) — the PyPI `#history` linkcheck anchor: `docs/source/conf.py`
+  gains the project's first `linkcheck_*` key, end-anchored at the bare project URL.
+
+D-14's prep-only reason for deferring both had already lapsed by then: `origin/main` had moved
+(Dependabot #152–#155, merged in at `b367f576`) and `main`'s protection is `strict`, so the CI
+re-dispatch their green proof needs was going to be paid regardless.
+
+`260922-tkt` found the todo's own proposed fix to be a silent no-op. Sphinx's
+`_check_uri` splits the URI on `#` **before** matching `linkcheck_anchors_ignore_for_url`, so a
+pattern containing `#history` can never match; and a bare `pypi\.org` entry would prefix-match every
+PyPI project page. The landed pattern is end-anchored at the bare project URL instead.
+
+### Roadmap Evolution
+
+- **2026-09-23** — v0.9.7 roadmap created: **Phases 76–77**, 9/9 v1 requirements mapped, zero
+  orphans, zero duplicates, continuing numbering from v0.9.6's Phase 75. Two phases at
+  `granularity: standard` (nominally 4–6), below the range and below the research summary's own
+  five-phase suggestion. Phase 76 = ATT-01 + ATT-02 + MSG-06 (the workflow edit, the rehearsal that
+  is its only meaningful evidence, and the last MSG-02-family module); Phase 77 = the prep-only
+  release phase carrying ATT-06 (closes there), REL-17's prep half, and ATT-03/ATT-04/ATT-05/DOC-25
+  for coverage only, observed at `/gsd-complete-milestone`. Five decisions baked in: the mechanical
+  76 → 77 ordering (a bumped tree makes the rehearsal fail before the OIDC exchange); MSG-06 in the
+  work phase because the prep-only fence forbids `typsphinx/` changes and already deferred it once
+  for that reason; the research's Phase D and Phase E recognised as the **publish half** rather than
+  as phases; DOC-25 deferred to after ATT-05 so it describes a state that is already true; and
+  ATT-01's `:141-144` citation measured and found to overstate the edit — the credential is two
+  lines, and deleting the cited span literally would delete the publish step. Full rationale in
+  `.planning/ROADMAP.md` under the active-milestone section and its 14 binding constraints.
+
+- **2026-09-16** — v0.9.6 roadmap created: **Phases 74–75**, 5/5 v1 requirements mapped, zero
+  orphans, zero duplicates, continuing numbering from v0.9.5's Phase 73. No research was run (owner
+  decision — the technical facts were measured at scoping and are embedded in `REQUIREMENTS.md`).
+  Two phases at `granularity: standard` (nominally 4–6), below the range for the reason v0.9.4 and
+  v0.9.5 recorded. Baked in: **(a)** TRN-01, TRN-02 and QUA-14 share Phase 74 because they share one
+  acceptance instrument — the clean `-b typst` build of `docs/source`, whose
+  `build succeeded, N warnings.` ledger TRN-01 drives to zero on one message class while QUA-14
+  drives the other to zero and neither may raise the total. **(b)** TRN-02 is the shape requirement
+  (which two contexts, and a recorded-RED real-compile fixture per context), not a verification
+  phase for TRN-01. **(c)** REL-15 maps to Phase 75 for coverage only and is checked at
+  `/gsd-complete-milestone` on observed publish evidence, while REL-16 *does* close inside the
+  phase — so, for the first time in a release-prep phase here, the `REQUIREMENTS.md` fence is
+  line-scoped to REL-15 rather than whole-file. **(d)** QUA-14's discovery is written so a census
+  limited to `TypstTranslator.visit_toctree` fails the criterion; the census comes from the base
+  build's own output over the whole tree. **(e)** The 3-OS CI run and the first push carry no
+  REQ-ID; they are held by 74 SC#4 and 75 SC#4.
+
+- **2026-09-13** — v0.9.4 roadmap created: **Phases 70–71**, 6/6 v1 requirements mapped, zero
+  orphans, zero duplicates, continuing numbering from v0.9.3's Phase 69. Two phases at
+  `granularity: standard` (nominally 4–6). That is below the range because the milestone is one
+  mechanical, single-domain rewrite plus its evidence, and research's one-code-phase + close-prep
+  shape was adopted. Baked in: **(a)** DOC-22 and DOC-23 map to Phase 70. DOC-22's rewrite must
+  precede the conversions, which wave order enforces. DOC-23's diff is against Phase 70's
+  pre-conversion base, and Phase 71's whole-file `REQUIREMENTS.md` fence only works where no other
+  checkbox moves. **(b)** The todo move lands in the ignore-flip commit, not with the `CLAUDE.md`
+  rewrite, so the pending path's last reference (`pyproject.toml:128`) and the pending file leave
+  together. **(c)** After-side evidence runs in a wave after the flip, never co-located with what
+  it audits. **(d)** The 3-OS CI run and milestone invariant #5 carry no REQ-ID; they are held by
+  70 SC#5 and 71 SC#3, with `main`'s run `34730969392` as the pre-conversion baseline.
+
+- **2026-09-02** — v0.9.3 roadmap created: **Phases 64–69**, 21/21 v1 requirements mapped, zero
+  orphans, zero duplicates, continuing numbering from v0.9.2's Phase 63. Six phases at
+  `granularity: standard` (nominally 4–6) — at the top of the range because the milestone contains
+  **two independent tracks**, and compressing across the track boundary would couple work sharing no
+  file and no mechanism. `research/SUMMARY.md`'s A1/A2/B1/B2/C structure was **adopted whole** as
+  Phases 64–68; no boundary was moved. Four decisions are baked in and should not be re-derived
+  during planning: **(a)** all eight NIX requirements are one phase — NIX-02/03/04 are the
+  *acceptance criteria* of the mechanism NIX-01 and NIX-05..08 deliver, and splitting them out would
+  manufacture a phase that is pure verification of another phase's work; **(b)** DEP-03 and DEP-04
+  map to Phase 66 rather than 67, because both ask whether the *configuration* behaves as intended
+  and DEP-04's answer can invalidate the approach before any PR is judged, with DEP-05 carrying the
+  grouped-update **coverage-gap record** so nothing is duplicated; **(c)** DOC-19..21 and REL-12 are
+  separate phases (68, 69) — beyond the nine-milestone prep-only convention, the whole-file SHA-256
+  fence on `.planning/REQUIREMENTS.md` only works in a phase where no other requirement checkbox is
+  meant to move, and DOC-19/20/21 legitimately move three; **(d)** the 3-OS CI matrix run and
+  milestone invariant #5 were again given **no REQ-ID**, carried instead in the success criteria of
+  the phases that need them (64 SC#5, 65 SC#4, 69 SC#3).
+
+- **2026-09-02** — The `#123`/`#128` ordering tension was resolved in the roadmap rather than left
+  to an executor. Research Pitfall 8 says do not close the stale PRs before the proof; PROJECT.md's
+  AMENDED block says they must close so fresh `uv`-ecosystem PRs can open, since
+  `@dependabot recreate` re-runs under the ecosystem a PR was *opened* with. Phase 67 SC#2 holds
+  both: **measure first** whether a `uv`-ecosystem PR can open while a `pip`-ecosystem PR for the
+  same dependency is open; if a close is required to unblock, it is recorded as a **mechanical
+  unblock** rather than as DEP-05's disposal on the merits, and the merit judgement is still taken
+  after DEP-02's proof, on whichever PR carries the bump.
+
+- **2026-09-02** — **The `gsd/v0.9.3-*` decoy pair is live and inverted, exactly as v0.9.2's was.**
+  Canonical `gsd/v0.9.3-toolchain-and-dependency-update-repair` at `efffd892`, decoy
+  `gsd/v0.9.3-milestone` at `7d1f4a70` (canonical + 3) carrying HEAD, strictly linear. Deleting the
+  decoy first — v0.9.1's correction — would orphan the AMENDED-block, research and requirements
+  commits. Fast-forward the canonical pointer first. This is now a **per-milestone recurrence**,
+  observed at v0.9.0, v0.9.2 and v0.9.3.
+
+- **2026-08-27** — v0.9.1 roadmap created: **Phases 58–61**, 11/11 v1 requirements mapped, zero
+  orphans, continuing numbering from v0.9.0's Phase 57. Four phases at `granularity: standard`, each
+  carrying an explicit `**UI hint**: no` override. Three structural decisions were baked in and
+  should not be re-derived during planning: **(a)** MSG-01 is its own first phase, superseding
+  `research/SUMMARY.md`'s finding #4 that the two `repr()`-dependent test edits "must land in the
+  same wave as the source fixes" — that finding predates MSG-01's owner decision and would have
+  destroyed the zero-test-edits evidence for the phases that change product code; **(b)** PATH-01,
+  IMG-04 and IMG-06 are one phase, not three, because `_escapes_outdir()` is called from inside
+  `_track_image()` and all three land in the same ~30-line `builder.py` region — the research's A–F
+  split survives as *plan* structure inside Phase 59, not as phase structure; **(c)** IMG-07 is
+  mapped to Phase 59 rather than floated as a milestone-level obligation, because Typst's
+  value-level backslash refusal couples IMG-04 and IMG-05, so exactly one phase can hold a green
+  real-compile gate.
+
+- **2026-08-27** — Milestone invariant #5 encoded as Phase 58's SC#5, with the branch **measured
+  rather than assumed**: at roadmap time `gsd/v0.9.1-milestone` was three commits ahead of `main`, had no upstream
+  configured, and nothing matching `0.9.1` exists on `origin`. v0.9.0 had to correct an
+  identically-named decoy mid-milestone (`gsd/v0.9.0-milestone` sat at the merge-base with zero
+  milestone commits); this one is the real milestone branch, checked before it was written down.
+
+- **2026-08-27** — The 3-OS matrix run was deliberately **not** given a REQ-ID. It remains the
+  milestone's acceptance bar and is carried in the success criteria of each phase that changes
+  product code (59, 60), then re-run on the bumped tree in 61 — dispatched fresh on each phase's own
+  post-fix tip, never inferred from a prior run.
+
+- **2026-07-28** — v0.6.5 roadmap created: Phases 34–35, continuing numbering from v0.6.4's Phase 33.
+  Backlog item **999.1** promoted into Phase 34 as requirement MATH-01 and removed from ROADMAP.md's
+  Backlog section (the section itself retained with its preamble).
+
+- **2026-07-29** — v0.6.5 closed and archived. ROADMAP.md collapsed to a one-line milestone entry
+  plus a `<details>` block; the Backlog section is still empty of `999.x` items, and now names the
+  8 pending todos as the next milestone's candidate pool. Next milestone starts at Phase 36.
+
+- **2026-07-29** — v0.7.0 roadmap created: **Phases 36–41**, 32/32 v1 requirements mapped, zero
+  orphans. Derived from this milestone's requirements rather than transcribed from
+  `research/SUMMARY.md`'s "Reconciled Build Order", whose Phase 1 (style-module scaffolding) no
+  longer exists after the owner dropped the bundled module. Three pending todos promoted into the
+  milestone (citation support, `visit_math_block` blank line, `release.yml` CHANGELOG extraction).
+  REQUIREMENTS.md's coverage tally was corrected from "29 total" to the measured **32** — a tally
+  error only; no requirement was added, removed, or reworded.
+
+- Phase 36 edited: SC#3 corrected from measurement: the redundant blank line is after the math, not before; PDF-extracted-text RED is impossible (fix yields a byte-identical PDF), so the PDF assertion becomes an invariance guard
+- **2026-08-02** — Phase **40.1 inserted** after Phase 40 (URGENT): Citation Degradation Hardening.
+  Closes `40-REVIEW.md`'s WR-01 / WR-02 / WR-03 — three graceful-degradation gaps in the citation
+  code, of which WR-01 can reach a real Typst compile fatal (a `link()` to a label nothing attaches)
+  — each with a recorded-RED fixture per milestone invariant #4. Kept **out of** Phase 41 by owner
+  decision during Phase 41's discussion (`41-CONTEXT.md` D-11): closing them there would have made
+  the release-prep phase enlarge the very proof obligation its own SC#4 discharges, on the
+  translator, immediately before a release. Consequence recorded in both files: Phase 41's SC#4
+  sweep must cover 40.1's node-handler changes, so 40.1 executes first. No requirement IDs were
+  added, removed, or reworded — 40.1 hardens code CIT-01/CIT-03/CIT-04 already delivered.
+
+- **2026-08-04** — v0.7.1 roadmap created: **Phases 43–46**, 11/11 v1 requirements mapped, zero
+  orphans. Derived from `REQUIREMENTS.md` alone — no `research/SUMMARY.md` exists for this milestone
+  (research deliberately skipped, owner decision 2026-08-04). Eight pending todos plus the dormant
+  SEED-001 were promoted into requirements; `release-create-job-missing-uv-verify-end-to-end` is
+  carried as the open requirement REL-04 rather than as a todo. Milestone invariant #5 is new and is
+  encoded as Phase 43's SC#5 (push the milestone branch to `origin` from the first phase). The final
+  phase (46) is prep-only, pairing REL-06 with REL-04's verification-and-handoff share only —
+  REL-04 itself closes at the publish.
+
+- **2026-08-03** — Backlog item **999.2 promoted into v0.7.0 as Phase 42** at `/gsd-review-backlog`,
+  by owner decision, *after* Phase 41 had already completed. Unlike every prior amendment in this
+  log, this one **adds a requirement to an already-complete milestone**: new requirement **TBL-03**
+  (Tables and labels — a captioned table preceded by a standalone target must emit both labels),
+  v1 total 32 → 33, milestone 7/7 → 7/8, milestone line Phases 36–41 → 36–42. The owner also decided
+  the **v0.7.0 publish blocks on Phase 42** rather than shipping first and deferring the fix, so
+  `/gsd-complete-milestone` is no longer the next action. Two consequences recorded in both files:
+  Phase 41's curated `## [0.7.0]` CHANGELOG entry (SC#2) has no TBL-03 line, and its SC#4
+  invariant sweep was measured over a SHA range ending before Phase 42 — Phase 42's own SC#6 owns
+  reconciling both before the publish. TBL-03 also joins CIT-01 as milestone invariant #4's second
+  classic-`TypstError`-RED exception, and invariant #4's wording was amended accordingly. Nothing was
+  removed or re-assigned away from another phase. The ROADMAP Backlog section is now empty; the next
+  item filed there is 999.3.
+
+- Phase 44.1 inserted after Phase 44: Relative Heading Depth for Toctree Nesting — TOC-01 added; toctree set heading(offset: 1) is inert because visit_title emits absolute level: (URGENT)
+- Phase 45.1 inserted after Phase 45: Custom-Template Parameter Contract Correction (DOC-13) — documented 4-param contract vs. the toctree_*/typst_elements parameters actually passed; fix route left open for discuss-phase (URGENT)
+- Phase 44.2 inserted after Phase 44: typst_documents Title and Author Consumption (CONF-09) — REVERSES Phase 44's D-02; entry[2]/entry[3] wiring lands in v0.7.1 after all; second CHANGELOG callout owed (URGENT)
+- Phase 45.2 inserted after Phase 45: Local Toolchain Repair — tox-uv to tox-uv-bare (QUA-04); tox is non-functional locally (every env exits 127) and 13 test modules fail under the mandated outer uv run; one dependency name; coverage 18/18 -> 19/19; no CHANGELOG callout (URGENT)
+
+- **2026-08-11** — v0.8.0 roadmap created: **Phases 47-52**, 24/24 v1 requirements mapped, zero
+  orphans, zero duplicates. Derived from this milestone's own `REQUIREMENTS.md`;
+  `research/SUMMARY.md`'s build order was adopted for its **sequence** but not its labels (it proposes
+  "Phase 47.1 … 47.6", and in this project decimals are reserved for phases *inserted* mid-milestone).
+  Three deliberate divergences from the suggested structure: **(a)** the BLD-02/03/04 collision work
+  is folded **into** Phase 47 rather than run later, because the split is what creates the
+  self-collision hazard — with target-as-path in the same phase, the common `("index", "index.typ")`
+  config collides immediately, and deferring the guard would ship a phase whose most common
+  configuration is silently wrong; **(b)** OUT-01..03 ride with Phase 47, because B-1's fix *is*
+  "compute include paths from the wrapper's resolved location", the same computation OUT-01 changes;
+  **(c)** COMP-12's full-corpus GATE-02 pass stays inside the composition phase, per PROJECT.md's
+  explicit instruction to treat a convergence failure there as a design-level finding. Also recorded:
+  `research/ARCHITECTURE.md` predates PROJECT.md's design decision and proposes a **flattened**
+  wrapper-side include graph — measured, rejected (it breaks document-order interleaving) and
+  superseded by the state-guarded form. Its file:line integration inventory remains authoritative;
+  its build-order flattening proposal does not.
+
+- **2026-08-11** — OUT-01 is recorded in the roadmap as a deliberate **reversal** of v0.7.1 Phase 44's
+  D-05/D-06/D-07 (a path in a target rejected and truncated to its basename; a nested docname's output
+  forced into its own directory). OUT-02 keeps the security half of the same guards. The precedent is
+  Phase 44.2 reversing Phase 44's D-02 within v0.7.1 — the phase that owns OUT-01 must state the
+  reversal so the executor does not treat the existing guard code as sacred.
+
+- **2026-08-15** — v0.9.0 roadmap created: **Phases 53–57**, 26/26 v1 requirements mapped, zero
+  orphans, zero duplicates. **REL-08 was added to `REQUIREMENTS.md` at roadmap creation** (v1 total
+  25 → 26) as the release requirement of the prep-only final phase, mirroring v0.8.0's REL-07; it
+  closes at `/gsd-complete-milestone`, not in Phase 57. `research/SUMMARY.md`'s seven-phase
+  suggestion was adopted for its **sequence** but not its count: its steps 3–5 (layout, 31-file test
+  migration, deletion of `_write_template_file()`) are one phase because they are one green
+  boundary, and its step 6 (config cleanup) rides with them because Pitfall 5 requires the
+  `config-inited` detection handler in the identical commit as the `add_config_value()` removal. The
+  five v0.8.0-derived defects, which SUMMARY.md explicitly left to the roadmapper, became their own
+  phase (55) rather than being distributed into the registry phases.
+
+- **2026-08-15** — Both of `research/SUMMARY.md`'s "Open Decisions Carried Forward" were **already
+  closed by owner decision** when the roadmap was written and are recorded as binding constraints,
+  not planning questions: `_template/` reserved wholesale (with the `template_named_dir_master`
+  fixture moving in Phase 54), and the `typst_template_assets` removal shipping a `config-inited`
+  warning covering all three removed values. `research/ARCHITECTURE.md` §5 asks for an owner decision
+  on the fixture collision — it has one; the alternative (a different reserved directory name) must
+  not be re-derived at planning.
+
+- Phase 54.1 inserted after Phase 54: Bundle Directory Safety — closes Phase 54 review findings WR-01 (templates_path collision republishes Jinja dir) and CR-01 (CONF-17 checked only at finish(), after full write) (URGENT)
+
+## Deferred Items
+
+Items acknowledged and carried forward from milestone closes:
+
+| Category | Item | Status | Deferred At |
+|----------|------|--------|-------------|
+| Forward-ecosystem | CFG-01 (was FWD-03): user-configurable `@preview` versions | Deferred to v2 | v0.5.0 scoping |
+| Cross-OS verification | XOS-01: cross-OS docs-PDF CI (macOS/Windows) | Deferred to v0.6.x+ | v0.5.0 scoping |
+| Graceful-degrade | DEG-03: real rendering (not placeholder) for `graphviz` / `inheritance_diagram` | Deferred to v2 (image pipeline) | v0.6.1 scoping |
+| Cross-reference | XREF-02: link `manpage` / xrefs to external URLs via a configured base URL | Deferred beyond v0.6.2 | v0.6.1 scoping |
+| Config | CONF-06: `typst_elements` keys beyond papersize/fontsize/**lang** — `lang` was split out as CONF-07 and promoted to v1 on 2026-07-25 (Phase 27.1); the remaining keys stay deferred | Deferred to future milestone | v0.6.3 scoping |
+| Verification | No `v0.6.3-MILESTONE-AUDIT.md` produced (owner accepted; Phase 28's live gate re-run stood in) | Accepted at close | v0.6.3 close |
+| Docs/CI | LNK-01: `sphinx-build -b linkcheck` CI job (structurally blind to README/pyproject — CI-05 covers the real class) | Deferred to Future | v0.6.4 scoping |
+| i18n | I18N-03: a Japanese PDF | **Promoted to v1 2026-07-26** (Phase 30 discussion D-04) — assigned to Phase 30.1 | was v0.6.4 scoping |
+| RTD | RTD-05: pull-request preview builds (one owner-side checkbox, no repo work, enable any time) | Deferred to Future | v0.6.4 scoping |
+| RTD | RTD-06: documentation versions for tags before `v0.6.4` (structurally impossible — no pre-v0.6.4 tag contains `.readthedocs.yaml`) | Deferred to Future | v0.6.4 scoping |
+| UX (accepted loss) | Browser-language auto-redirect at the documentation root — RTD redirects to a *version*, never auto-detects a *language*; reimplementing it would re-add the template code I18N-02 deletes | Accepted regression | v0.6.4 scoping |
+| SEO (accepted loss) | Old `github.io` URLs 404 with no redirect stubs (owner decision 2026-07-25) | Accepted cost | v0.6.4 scoping |
+| Quality (v0.6.4 review) | 30.1 Warnings: contributing.rst toolchain step; `custom_template.typ` fourth lockstep site; no structural tests over translations-repo manifests | Out of v0.6.5 and v0.7.0 scope | v0.6.5 scoping |
+| Todo (ci, docs) | add-sphinx-linkcheck-ci-job | Pending backlog | v0.6.2 close |
+| Todo (translator, examples) | citation-node-support-untracked | **Promoted to v0.7.0 Phase 40** (CIT-01..CIT-06) 2026-07-29 | v0.6.2 close |
+| Todo (builder) | non-str-docname-typeerror-in-typstpdf-finish | Pending backlog | v0.6.2 close |
+| Todo (typing) | modernize-typing-imports-drop-up006-up035-ignore | Pending backlog | v0.6.2 close |
+| Todo (template_engine) | derive-typst-lang-duplicated-warning-block (review IN-01, Info) | Pending backlog | v0.6.3 close |
+| Verification | No `v0.6.5-MILESTONE-AUDIT.md` produced (owner accepted; Phase 35's `35-RELEASE-EVIDENCE.md` live-run coverage stood in for a 2-phase hotfix) | Accepted at close | v0.6.5 close |
+| Todo (translator) | visit-math-block-redundant-blank-line-in-list-items — Phase 34 review WR-01, deferred by D-05 (fixing it pre-release would force re-deriving the GATE-01 fixture) | **Promoted to v0.7.0 Phase 36** (MATH-02) 2026-07-29 | v0.6.5 close |
+| Todo (ci) | release-notes-body-from-changelog-section — `release.yml` release body still a ~296-line commit dump (D-11) | **Promoted to v0.7.0 Phase 41** (REL-04) 2026-07-29 | v0.6.5 close |
+| Todo (docs) | project-md-unterminated-html-comments | Pending backlog | v0.6.5 close |
+| Styling (v0.7.0 scoping) | STY-01/STY-02/STY-03: user-overridable per-directive styling, the bundled Typst style module, and its Typst Universe publication | Deferred to Future (goal narrowed by owner) | v0.7.0 scoping |
+| Rendering (v0.7.0 scoping) | TOP-01: box `.. contents::` (local TOC) as the reference does — D-05's box-less choice stands now that the reference is not an authority | Deferred to Future | v0.7.0 scoping |
+| Citations (v0.7.0 scoping) | CIT-07: `sphinxcontrib-bibtex` support (`:cite:` role, `.bib` files) — a different node family; would use Typst's native `bibliography()`/`cite()` | Deferred to Future | v0.7.0 scoping |
+| Verification | No `v0.7.0-MILESTONE-AUDIT.md` produced (owner accepted: `init.manager` reported all 8 phases `phase_complete=true` / `verification_status=passed`, and every v1 requirement except the two publish-gated REL rows was already Complete) | Accepted at close | v0.7.0 close |
+| Todo (ci, docs) | add-sphinx-linkcheck-ci-job | Acknowledged, deferred to v0.7.1+ (Phase 41 D-14 #1; `links.yml`'s repo-wide lychee check already covers this release's one new link) | v0.7.0 close |
+| Todo (builder, tests) | non-str-docname-typeerror-in-typstpdf-finish | Acknowledged, deferred to v0.7.1+ (Phase 41 D-14 #2 — a builder behaviour change unrelated to REL-04/REL-05) | v0.7.0 close |
+| Todo (source) | modernize-typing-imports-drop-up006-up035-ignore | Acknowledged, deferred to v0.7.1+ (Phase 41 D-14 #4, **doubly deliberate** — `CLAUDE.md` independently instructs "don't modernize typing imports until that todo lands") | v0.7.0 close |
+| Todo (template_engine) | derive-typst-lang-duplicated-warning-block | Acknowledged, deferred to v0.7.1+ (Phase 41 D-14 #3 — a refactor with no release bearing) | v0.7.0 close |
+| Todo (planning docs) | project-md-unterminated-html-comments | Acknowledged, deferred — planning-record hygiene only, no code or published-output effect | v0.7.0 close |
+| Todo (translator) | visit-desc-sig-name-docstring-unbalanced-asterisk-warning | **Resolved by Phase 41 plan 41-03 (D-12); filed to `todos/completed/` at this close** per `41-HANDOFF.md` item 7 | v0.7.0 close |
+| Todo (translator) | table-whitespace-only-title-anchor-divergence | Acknowledged, filed during Phase 42 — a divergence adjacent to TBL-03 but outside its requirement | v0.7.0 close |
+| Todo (translator) | emit-id-anchors-docstring-claims-depart-figure-is-sole-skip-ids-user | Acknowledged, filed during Phase 42 (review WR-01) — deliberately not fixed in-phase because touching `translator.py` after the SC#4/SC#6 artifacts were recorded would move the change outside the SHA range they measured | v0.7.0 close |
+| Todo (translator) | nested-table-clobbers-outer-table-state | Acknowledged, filed during Phase 42 (review IN-02) — a real, severe, **pre-existing** bug verified byte-identical pre- and post-fix: a table nested in a `list-table` cell silently drops the outer table structure because `in_table`/`table_cell_content` are scalars, not a stack. Did not block v0.7.0; a strong candidate for the next milestone | v0.7.0 close |
+| Seed (docs) | SEED-001-readme-quickstart-typst-documents-pdf — README Quick Start does not say that `.typ` files are not compiled to PDF unless `typst_documents` is configured | Dormant; never scoped into v0.7.0 | v0.7.0 close |
+| Todo (ci, release) | release-create-job-missing-uv-verify-end-to-end — REL-04's `create-release` job failed on the v0.7.0 tag push (`uv: command not found`); workflow fixed on `main`, release repaired by hand, but the automation is still unproven | **RESOLVED at the v0.7.1 close** — release run `31462027486`'s `create-release` completed success and the published body was measured byte-identical to the extractor's output. The record can be filed to `todos/completed/` | v0.7.0 close → closed v0.7.1 close |
+| Verification | No `v0.7.1-MILESTONE-AUDIT.md` produced (owner accepted 2026-08-11: `init.manager` reported all 8 phases `phase_complete=true` / `verification_status=passed`, 17/19 requirements were already Complete, and the 2 remaining were the publish-gated REL rows the close itself discharges). Fourth consecutive `override_closeout` | Accepted at close | v0.7.1 close |
+| Todo (ci, docs) | add-sphinx-linkcheck-ci-job | Acknowledged, deferred again — tracked as Future requirement LNK-01; `links.yml`'s repo-wide lychee check already covers the links this release adds (`46-HANDOFF.md` deferral #1) | v0.7.1 close |
+| Todo (source) | modernize-typing-imports-drop-up006-up035-ignore | Acknowledged, deferred again, **doubly deliberate** — `CLAUDE.md` independently instructs "don't modernize typing imports until that todo lands", and the milestone's own binding constraint #6 forbade it (`46-HANDOFF.md` deferral #2) | v0.7.1 close |
+| Todo (builder, tests) | duplicate-typst-documents-target-silently-drops-a-master | Acknowledged, deferred — **re-measured live in Phase 46 and still reachable**: two entries both targeting `manual.typ` make `-b typst` exit 0 with no collision warning and silently drop the first master's body, because Phase 44's guard compares only against `env.found_docs` and the reserved `_template`, never against already-resolved targets. A `typst_documents`-modelling defect, unrelated to release prep (`46-HANDOFF.md` deferral #4). **Named first among next-milestone candidates** | v0.7.1 close |
+| Todo (builder, writer) | a-master-that-is-also-a-toctree-child-is-unrepresentable | Acknowledged, deferred — same `typst_documents`-modelling cluster (`46-HANDOFF.md` deferral #5) | v0.7.1 close |
+| Todo (builder, writer) | shared-document-silently-dropped-from-all-but-first-master | Acknowledged, deferred — the include-dedup ledger is per-build, not per-master; same cluster (`46-HANDOFF.md` deferral #6) | v0.7.1 close |
+| Todo (builder) | rehomed-converted-image-collides-with-srcdir-images-dir | Acknowledged, **ships in v0.7.1 unfixed by owner decision D-27** (major): a converted image rehomed to `images/<basename>` collides with a real source image at `<srcdir>/images/<basename>` — one is never copied, the other document renders the wrong picture, no warning. A **regression in failure mode**: the same project used to abort loudly. Entered the diff via the PR #131 merge; the prep-only fence forbade fixing it in Phase 46. No `### Known Limitations` CHANGELOG section and no GitHub issue, argued in full and declined | v0.7.1 close |
+| Todo (builder) | track-image-rehome-escapes-outdir-for-non-doctreedir-abs-uri | Acknowledged, ships in v0.7.1 unfixed by owner decision D-27 (minor): `relpath(uri, doctreedir)` returns `../`-prefixed paths for an absolute URI outside `doctreedir`, so `copy_image_files()` writes outside `outdir` | v0.7.1 close |
+| Todo (toolchain) | ruff-generic-linux-elf-unrunnable-on-nixos | Acknowledged, deferred — a `flake.nix`-side repair in the same family as QUA-04; `ruff` ships as a compiled Rust ELF that needs `nix-ld`, unlike pure-Python `black`/`mypy`. Does not block SC#3, which takes lint authority from CI (`46-HANDOFF.md` deferral #8) | v0.7.1 close |
+| Seed (docs) | SEED-001-readme-quickstart-typst-documents-pdf | Dormant, but **substantially discharged** by CONF-08 (the default derivation) + DOC-11 (the Quick Start now documents `typst_documents`). Worth re-reading before promoting | v0.7.1 close |
+| Seed (toolchain) | SEED-003-tox-dependency-groups-per-env — split the `dev` extra into PEP 735 `[dependency-groups]` so each tox environment installs only what it needs | Dormant; never scoped into v0.7.1 | v0.7.1 close |
+| Deferred items (Phase 45.1) | Five test modules failing under `uv run sphinx-build` on NixOS (`test_examples_basic.py`, `test_integration_advanced.py`, `test_integration_basic.py`, `test_integration_multi_doc.py`, `test_integration_nested_toctree.py`, 45 failures total) | **RESOLVED, not deferred** — Phase 45.2 (QUA-04) fixed the root cause by renaming `tox-uv` → `tox-uv-bare`. Re-measured at the v0.7.1 close: `test_examples_basic.py` + `test_integration_basic.py` → 27 passed in 8.11s | Phase 45.1 → closed by Phase 45.2 |
+| Todo (ci/docs) | 2026-07-22-add-sphinx-linkcheck-ci-job | Acknowledged, deferred — tracked as Future requirement LNK-01; `links.yml`'s repo-wide lychee check already covers the links each release adds | v0.8.0 close |
+| Todo (source) | 2026-07-22-modernize-typing-imports-drop-up006-up035-ignore | Acknowledged, deferred **doubly deliberately** — `CLAUDE.md` independently instructs not to modernize typing imports until this todo lands, and v0.8.0's binding constraint #9 forbade it for the milestone | v0.8.0 close |
+| Todo (ci/release) | 2026-08-04-release-create-job-missing-uv-verify-end-to-end | Acknowledged — REL-04's own record, **already closed at the v0.7.1 publish** (`create-release` success on run `31462027486`) and again at this close (run `31861043480`). `52-HANDOFF.md` flagged that this record may belong in `todos/completed/` rather than `pending/` and deliberately did not resolve it; it remains open for whoever next triages the ledger | v0.8.0 close |
+| Todo (toolchain/nixos) | 2026-08-11-ruff-generic-linux-elf-unrunnable-on-nixos | Acknowledged, deferred — a `flake.nix`-side repair (Future requirement QUA-06); CI holds lint authority (D-08). **The cost landed this milestone**: an `I001` unsorted import block in `tests/test_builder.py` survived to a release-phase CI run because `ruff` has been unrunnable on this machine since Phase 45.2 | v0.8.0 close |
+| Todo (translator) | 2026-08-12-label-collision-false-negative-in-compile-time-xref-guard | Acknowledged, **ships in v0.8.0 unfixed by owner decision D-01** (minor, NEW failure class created by Phase 48): two docnames sanitizing to the same label string (`a/b` and `a_u2f_b`) let a reference to the absent one render as a working link to the decoy instead of degrading to plain text | v0.8.0 close |
+| Todo (builder) | 2026-08-14-include-edge-key-separators-unescaped-two-edges-can-collide | Acknowledged, ships in v0.8.0 unfixed by owner decision D-01 (minor, NEW failure class created by Phase 49): `make_include_edge_key` does not escape its own `#`/`>` separators, so a docname containing either can collide two edges | v0.8.0 close |
+| Todo (builder) | 2026-08-14-unbounded-recursion-in-derive-master-edge-keys | Acknowledged, ships in v0.8.0 unfixed by owner decision D-01 (minor, NEW failure class created by Phase 49): an include chain deeper than Python's 1000-frame limit raises a raw `RecursionError` rather than a named `ExtensionError`. Sphinx's own 154-document `doc/` corpus does not reach it | v0.8.0 close |
+| Todo (builder) | 2026-08-14-escape-branch-relocation-key-uses-basename-only-two-escaping-images-can-collide | Acknowledged, ships in v0.8.0 unfixed by owner decision D-01 (minor, NEW failure class created by Phase 50): the escape branch keys on `basename` while the collision branch keys on the full `rel_uri`, so two escaping absolute image URIs in different directories sharing a basename collide onto one key | v0.8.0 close |
+| Todo (translator) | 2026-08-14-numref-number-diverges-per-master-and-vanishes-for-non-root-only-figures | Acknowledged, **excluded from every published surface by owner override D-07** — not documented as a limitation and not in the CHANGELOG. Classified as a bug for a later milestone to pick up, `resolves_phase: null` | v0.8.0 close |
+| Todo (builder) | 2026-08-15-track-image-isabs-not-drive-aware-on-py313-windows | Acknowledged, **product-side fix outstanding**. CPython 3.13 narrowed `ntpath.isabs()`, so `typsphinx/builder.py:910`'s bare `path.isabs()` silently skips the entire rehome/relocate/warn branch for a driveless-absolute Windows image URI; the sibling `_escapes_outdir()` already avoids the trap via `posixpath.isabs(stem) or _is_drive_qualified(stem)`. Plan 52-09 fixed only the **test-side** symptom to preserve Phase 52's zero-`typsphinx/`-lines fence, and filed this todo so the fact survives the test fix going green | v0.8.0 close |
+| Seed (docs) | SEED-001-readme-quickstart-typst-documents-pdf | Dormant; substantially discharged by v0.7.1's CONF-08 + DOC-11, and v0.8.0's DOC-14 output-layout page addresses the adjacent confusion. Never scoped into v0.8.0 | v0.8.0 close |
+| Seed (toolchain) | SEED-003-tox-dependency-groups-per-env | Dormant; never scoped into v0.8.0 (Future requirement QUA-07) | v0.8.0 close |
+| Todo (ci, docs) | 2026-07-22-add-sphinx-linkcheck-ci-job | Acknowledged, deferred again — tracked as Future requirement LNK-01; `links.yml`'s repo-wide lychee check already covers the links this release adds (`57-HANDOFF.md` deferrals table) | v0.9.0 close |
+| Todo (source) | 2026-07-22-modernize-typing-imports-drop-up006-up035-ignore | Acknowledged, deferred again **doubly deliberately** — `CLAUDE.md` independently forbids modernizing typing imports until this todo lands, and v0.9.0's own binding constraint repeated it | v0.9.0 close |
+| Todo (ci, release) | 2026-08-04-release-create-job-missing-uv-verify-end-to-end | Acknowledged, **still open, with the settling measurement now attached**. `57-HANDOFF.md` recorded that REL-04's own `## Acceptance` criteria were fully met at the v0.7.1 publish (run `31462027486`, body byte-identical to the extractor's output) and did not move the record on its own authority. Third close at which it is raised; the disposition — file to `todos/completed/` or keep — is the owner's | v0.9.0 close |
+| Todo (toolchain, nixos) | 2026-08-11-ruff-generic-linux-elf-unrunnable-on-nixos | Acknowledged, **kept open and re-annotated with a live recurrence**. This milestone measured on 2026-08-16 that `ruff` runs here and wrote that into a CONTEXT amendment; `57-09` reproduced the ELF-exec failure on 2026-08-22. The main checkout's `.venv` holds an old runnable binary (27,906,360 B) while a worktree venv provisioned today pulls a newer wheel (27,900,480 B) that dies with `Could not start dynamically linked executable` — so measuring `ruff` on the main tree can never detect the hazard, and the owner's refusal to close this on the 2026-08-16 evidence is vindicated | v0.9.0 close |
+| Todo (translator, docs) | 2026-08-14-numref-number-diverges-per-master-and-vanishes-for-non-root-only-figures | Acknowledged, **still excluded from every published surface by owner override D-07** (v0.8.0 51-CONTEXT), carried forward unchanged into the v0.9.0 CHANGELOG | v0.9.0 close |
+| Todo (ci, tooling) | 2026-08-16-dependabot-prs-die-on-uv-lock-locked-mismatch | Acknowledged, deferred — `severity: major`. Its measured `--locked` census (ten steps across four workflows) is what made Phase 57's D-13 hard sequencing constraint concrete; repairing dependabot's own workflow was out of this milestone's scope | v0.9.0 close |
+| Todo (builder) | 2026-08-16-escapes-outdir-isabs-not-backslash-normalized | Acknowledged, deferred — a `builder.py` path predicate, held behind Phase 57's prep-only fence | v0.9.0 close |
+| Todo (builder) | 2026-08-16-track-image-escape-branch-basename-not-normalized | Acknowledged, deferred — same class as the above | v0.9.0 close |
+| Todo (docs) | 2026-08-16-root-toctree-duplicates-section-children-in-html-sidebar | Acknowledged, deferred — an HTML sidebar defect in this project's own docs `index.rst`; real, but neither a release surface nor part of REL-08 | v0.9.0 close |
+| Todo (builder) | 2026-08-17-repr-escaped-paths-in-remaining-user-facing-messages | Acknowledged, deferred — filed by plan `57-11` for the `!r`-path-escaping defect **shape** at the sites `57-11` deliberately left unchanged (output-path collision family, bundle-copy I/O failures, docname/image warnings, `template_registry.py` validation failures). Widened at the phase close with `57-REVIEW.md`'s WR-01: replacing `{value!r}` with `'{value}'` kept `repr()`'s backslash fix but dropped its automatic delimiter selection, so a path containing a literal single quote closes the quote early. **Both halves are resolved by one delimiter-aware quoting helper** | v0.9.0 close |
+| Seed (docs) | SEED-001-readme-quickstart-typst-documents-pdf | Dormant; substantially discharged by v0.7.1's CONF-08 + DOC-11 and v0.8.0's DOC-14. Never scoped into v0.9.0 | v0.9.0 close |
+| Seed (toolchain) | SEED-003-tox-dependency-groups-per-env | Dormant; never scoped into v0.9.0 (Future requirement QUA-07) | v0.9.0 close |
+| Seed (risk) | SEED-004-typst-py-maintenance-risk-vendored-compile-path | Dormant — `typst-py` upstream maintenance is slowing and typsphinx may eventually need to carry an equivalent compile path. Never scoped into v0.9.0; the single largest structural risk on the horizon | v0.9.0 close |
+| Todo (ci, docs) | 2026-07-22-add-sphinx-linkcheck-ci-job | Acknowledged, deferred again — tracked as Future requirement LNK-01. Sixth consecutive close at which it is raised; `links.yml`'s repo-wide lychee check still covers the links each release adds | v0.9.1 close |
+| Todo (source) | 2026-07-22-modernize-typing-imports-drop-up006-up035-ignore | Acknowledged, deferred again **doubly deliberately** — `CLAUDE.md` independently forbids modernizing typing imports until this todo lands, and v0.9.1 was a bug-fix round with no refactor budget | v0.9.1 close |
+| Todo (ci, release) | 2026-08-04-release-create-job-missing-uv-verify-end-to-end | Acknowledged, **still open and now untestable at this close** — v0.9.1 publishes nothing (D-08), so no release run could add evidence either way. REL-04's acceptance criteria were already met at the v0.7.1 publish (run `31462027486`) and again at v0.8.0 (run `31861043480`); the disposition — file to `todos/completed/` or keep — remains the owner's, now for the fourth close running | v0.9.1 close |
+| Todo (toolchain, nixos) | 2026-08-11-ruff-generic-linux-elf-unrunnable-on-nixos | Acknowledged, deferred — unchanged from the v0.9.0 close's finding: the main checkout's `.venv` holds an old runnable `ruff` while a freshly-provisioned worktree venv pulls a wheel whose ELF the stub loader rejects, so measuring `ruff` on the main tree can never detect the hazard. CI holds lint authority (Future requirement QUA-06) | v0.9.1 close |
+| Todo (translator, docs) | 2026-08-14-numref-number-diverges-per-master-and-vanishes-for-non-root-only-figures | Acknowledged, **still excluded from every published surface by owner override D-07** (v0.8.0 51-CONTEXT), carried forward unchanged. `severity: major` | v0.9.1 close |
+| Todo (ci, tooling) | 2026-08-16-dependabot-prs-die-on-uv-lock-locked-mismatch | Acknowledged, deferred — `severity: major`. Repairing dependabot's own workflow was out of a bug-fix round's scope; every dependabot PR still dies before running a test | v0.9.1 close |
+| Todo (docs) | 2026-08-16-root-toctree-duplicates-section-children-in-html-sidebar | Acknowledged, deferred — an HTML sidebar defect in this project's own docs `index.rst`; `severity: minor`, and v0.9.1 touched no documentation surface | v0.9.1 close |
+| Todo (translator) | 2026-08-29-hardcoded-delimiter-path-fragments-in-translator-relative-path-debug-logs | Acknowledged, deferred — **filed by Phase 60's own repo-wide SC#2 grep** (plan 60-05) rather than fixed in-phase: `translator.py`'s two relative-path DEBUG logs quote `up_path`/`down_path` with a hardcoded `'...'` delimiter, the same MSG-02 defect shape Phase 60 closed in `builder.py`/`writer.py`/`template_registry.py`. A fourth module, outside MSG-02..MSG-05's requirement scope. `severity: minor`; the one-line fix is `quote_path()`, which now exists | v0.9.1 close |
+| Todo (translator) | 2026-08-29-inline-image-in-paragraph-emits-unseparated-expression | Acknowledged, **ships unfixed and is the most serious item in this ledger** — `severity: blocker`. An image that is not the first thing in its paragraph is emitted adjacent to the preceding code-mode expression, so Typst aborts with `expected semicolon or line break` and `-b typstpdf` raises `ExtensionError` rather than degrading. Owner-reported and root-caused 2026-08-29, mid-milestone, in `translator.py` — a module v0.9.1's prep-only fence and requirement set both put out of reach. **The strongest single candidate for the next milestone** | v0.9.1 close |
+| Seed (docs) | SEED-001-readme-quickstart-typst-documents-pdf | Dormant; substantially discharged by v0.7.1's CONF-08 + DOC-11 and v0.8.0's DOC-14. Never scoped into v0.9.1 | v0.9.1 close |
+| Seed (toolchain) | SEED-003-tox-dependency-groups-per-env | Dormant; never scoped into v0.9.1 (Future requirement QUA-07) | v0.9.1 close |
+| Seed (risk) | SEED-004-typst-py-maintenance-risk-vendored-compile-path | Dormant — named explicitly in v0.9.1's own scoping as carried forward and *not* in scope. `typst-py` upstream maintenance is slowing and typsphinx may eventually need to carry an equivalent compile path. Still the single largest structural risk on the horizon, and still never scoped into any milestone — third consecutive close | v0.9.1 close |
+| Verification gap (Phase 22.3, archived v0.6.2) | 22.3-VERIFICATION.md — `status: human_needed`, unresolved since the v0.6.2 close | Acknowledged — the outstanding item is human rendering confirmation for `typstpdf` builder warning hardening; no automated gate can close it and no v0.9.1 phase touched that surface | v0.9.1 close |
+| Deferred item (Phase 12, archived v0.6.0) | Plan 12-01: 45 pre-existing NixOS `uv run sphinx-build` failures, plus the `uv run ruff`/`black` ELF note | Acknowledged — **the test-failure half was resolved by Phase 45.2 (QUA-04, `tox-uv` → `tox-uv-bare`)**; the ruff-ELF half survives as the standalone todo above. Marked `status: acknowledged` by direct file edit: the CLI writer refuses the heading-delimited (#3457) entry shape | v0.9.1 close |
+| Deferred item (Phase 12, archived v0.6.0) | Plan 12-02: no `visit_glossary`/`depart_glossary` handler, so `-b typst` emits `WARNING: unknown node type: <glossary ...>` | Acknowledged — the wrapped `definition_list` still renders correctly; the warning is cosmetic. An explicit no-op pass-through would silence it. Marked by direct file edit (heading-delimited shape) | v0.9.1 close |
+| Deferred item (Phase 45.1, archived v0.7.1) | Pre-existing NixOS sandbox failures (45 tests, unrelated to D-B/D-D) | Acknowledged — **already recorded RESOLVED at the v0.7.1 close** (Phase 45.2 fixed the root cause; re-measured 27 passed in 8.11s), but the entry itself was never marked, so it kept resurfacing. Now `status: acknowledged` by direct file edit (heading-delimited shape); a future triage pass should promote it to `resolved` | v0.9.1 close |
+| Todo (ci, docs) | 2026-07-22-add-sphinx-linkcheck-ci-job | Acknowledged, deferred again — seventh consecutive close at which it is raised (Future LNK-01). **The `audit-open acknowledge` writer dropped this file's `created` / `title` / `area` / `files` frontmatter keys**, keeping only its own marker. The keys were restored by hand, with the backtick-leading `title:` value quoted and the new `v0.9.3` marker kept. The unquoted title may be why the v0.9.1 acknowledgement lapsed, but that was not verified | v0.9.3 close |
+| Seed (process) | SEED-005-gsd-workstreams-for-parallel-roadmap-tracks | Dormant — planted during v0.9.3's roadmap approval, never scoped into it | v0.9.3 close |
+| Verification | All six v0.9.3 phases fingerprint-stale at close (`init.manager`), so the close is `override_closeout` | Accepted by the owner — the staleness comes from later legitimate edits to covered files, and the same-day `v0.9.3-MILESTONE-AUDIT.md` re-checked every phase | v0.9.3 close |
+| Todo (translator) | 2026-09-13-doctest-block-unhandled-collapses-examples-to-one-line — `doctest_block` has no translator handler, so `>>>` examples lose every line break (Future TRN-01, `severity: major`) | Acknowledged, deferred — captured during the Issue #91 re-measurement; a behaviour change, out of v0.9.4's scope by construction. The `audit-open acknowledge` writer added stray blank lines to the frontmatter; the one inside `files:` was removed by hand and `audit-open` re-read 0 open | v0.9.4 close |
+| Verification | Phase 70 fingerprint-stale at close (`init.manager`: `phase_complete: false`), so the close is `override_closeout` | Accepted by the owner — the only covered-file change after verification is `5292a85b`, REL-13's AMENDED block in `REQUIREMENTS.md`; the same-day `v0.9.4-MILESTONE-AUDIT.md` re-checked the phase | v0.9.4 close |
+| Verification | **Both** v0.9.5 phases (72 and 73) fingerprint-stale at close (`init.manager`: `phase_complete: false`), so the close is `override_closeout` | Accepted by the owner — both VERIFICATION.md files themselves read `status: passed` (5/5 and 4/4, zero overrides); the staleness comes only from `.planning/` tracking commits landing after each verification and touching covered files, and the same-day `v0.9.5-MILESTONE-AUDIT.md` (`tech_debt`, no gaps) re-checked both. Third consecutive close overridden for this reason, and the first where every phase went stale | v0.9.5 close |
+
+## Session Continuity
+
+Last session: 2026-09-28 (`/gsd-complete-milestone` v0.9.7 — publish half executed per `77-HANDOFF.md`)
+Stopped at: Milestone v0.9.7 complete, archived and published — no milestone active
+Resume: `/gsd-new-milestone`. The last **published** close's procedure and evidence are
+`.planning/milestones/v0.9.7-phases/77-*/77-HANDOFF.md` and `77-CLOSE-EVIDENCE.md`; publishing no
+longer involves any PyPI credential.
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone
