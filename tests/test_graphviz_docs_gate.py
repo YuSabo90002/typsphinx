@@ -195,8 +195,7 @@ class TestPublishedGraphvizProse:
         text = self._page_text()
         for option in (":caption:", ":name:", ":layout:", ":graphviz_dot:", ":alt:"):
             assert option in text, (
-                f"diagrams.rst no longer documents the supported option "
-                f"{option!r}."
+                f"diagrams.rst no longer documents the supported option " f"{option!r}."
             )
 
     def test_page_states_align_is_discarded(self):
@@ -212,24 +211,24 @@ class TestPublishedGraphvizProse:
         """Exclusion 2: external .dot files are not supported -- the diagram
         degrades to a placeholder and the build warns."""
         text = self._page_text()
-        assert "only the inline form renders" in text, (
-            "diagrams.rst no longer states that only the inline form renders."
-        )
+        assert (
+            "only the inline form renders" in text
+        ), "diagrams.rst no longer states that only the inline form renders."
         assert "only inline dot is supported" in text, (
             "diagrams.rst no longer quotes the build's own warning that only "
             "inline DOT is supported."
         )
-        assert ".dot" in text, (
-            "diagrams.rst no longer names external ``.dot`` files at all."
-        )
+        assert (
+            ".dot" in text
+        ), "diagrams.rst no longer names external ``.dot`` files at all."
 
     def test_page_states_inheritance_diagram_still_degrades(self):
         """Exclusion 3: .. inheritance-diagram:: is not routed through
         diagraph and still degrades to a bordered placeholder."""
         text = self._page_text()
-        assert "inheritance-diagram" in text, (
-            "diagrams.rst no longer mentions .. inheritance-diagram::."
-        )
+        assert (
+            "inheritance-diagram" in text
+        ), "diagrams.rst no longer mentions .. inheritance-diagram::."
         assert "routed through diagraph" in text, (
             "diagrams.rst no longer states that inheritance-diagram is NOT "
             "routed through diagraph."
@@ -369,9 +368,9 @@ class TestDogfoodedDiagramBuild:
         """
         _, build_dir = docs_typstpdf_build
         content_typ = build_dir / "user_guide" / "diagrams.typ"
-        assert content_typ.exists(), (
-            f"Expected the content file user_guide/diagrams.typ under {build_dir}."
-        )
+        assert (
+            content_typ.exists()
+        ), f"Expected the content file user_guide/diagrams.typ under {build_dir}."
 
         text = content_typ.read_text(encoding="utf-8")
         assert text.count("render(") == 1, (
@@ -379,9 +378,9 @@ class TestDogfoodedDiagramBuild:
             f"found {text.count('render(')} -- the page's code-block examples "
             f"must not render, and the dogfood diagram must."
         )
-        assert "@preview/diagraph" in text, (
-            "Expected the @preview/diagraph import in user_guide/diagrams.typ."
-        )
+        assert (
+            "@preview/diagraph" in text
+        ), "Expected the @preview/diagraph import in user_guide/diagrams.typ."
 
     def test_built_pdf_contains_the_dogfood_diagram_sentinels(
         self, docs_typstpdf_build
