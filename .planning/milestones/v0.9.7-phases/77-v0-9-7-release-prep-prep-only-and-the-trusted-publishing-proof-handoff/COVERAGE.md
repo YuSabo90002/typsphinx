@@ -1,1 +1,0 @@
-No external API integration: release-metadata literals, CHANGELOG prose, a handoff document and phase evidence files only; the gh, git ls-remote, PyPI Simple JSON and Integrity API, and Read the Docs calls are read-only probes plus one push of the milestone branch and one CI workflow_dispatch, not an integration being built.
