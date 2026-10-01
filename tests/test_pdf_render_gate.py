@@ -423,7 +423,7 @@ class TestFigureLengthRenderGate:
 
         index_typ = temp_build_dir / "index.typ"
         assert index_typ.exists(), "index.typ was not generated"
-        typ_source = index_typ.read_text()
+        typ_source = index_typ.read_text(encoding="utf-8")
 
         # The 200px case must have been converted to the CSS-canonical
         # 1px = 0.75pt Typst length (150pt) -- never emitted as a raw,
@@ -643,7 +643,7 @@ class TestGraphicalPlaceholderCallerCountGuard:
         """
         translator_src = (
             Path(__file__).parent.parent / "typsphinx" / "translator.py"
-        ).read_text()
+        ).read_text(encoding="utf-8")
 
         # 3, not 2: the ``def _visit_graphical_placeholder(`` definition
         # line matches the same substring as the two call sites. Do not
@@ -826,7 +826,7 @@ class TestXrefRefidRenderGate:
         index_typ = temp_build_dir / "index.typ"
         assert index_typ.exists(), "index.typ was not generated"
 
-        typ_source = index_typ.read_text()
+        typ_source = index_typ.read_text(encoding="utf-8")
         assert "link(<" in typ_source, (
             "Expected at least one refid link(<...>, ...) anchor reference "
             "in the generated Typst source -- the :ref:/:term: refid branch "
@@ -1102,7 +1102,7 @@ class TestTrivialBlocksRenderGate:
         # BLK-01: the transition compiled to a real horizontal rule -- a
         # rule has no reliable extracted-text signature, so assert it in
         # the emitted source (backed by the successful compile below).
-        typ_source = index_typ.read_text()
+        typ_source = index_typ.read_text(encoding="utf-8")
         assert "line(length: 100%)" in typ_source, (
             "Expected 'line(length: 100%)' in generated Typst source -- "
             "visit_transition regression"
