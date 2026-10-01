@@ -1,1 +1,0 @@
-No external API integration: release-metadata literals, CHANGELOG prose and phase evidence files only; the gh, PyPI and Read the Docs calls are read-only probes and one workflow_dispatch, not an integration being built.
