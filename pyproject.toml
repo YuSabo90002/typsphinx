@@ -104,26 +104,29 @@ filterwarnings = [
 line-length = 88
 target-version = ["py312", "py313"]
 include = '\.pyi?$'
-# .agents/ and .gsd/ hold vendored agent-tooling scripts, not project source;
-# they are excluded so `black --check .` reflects this project's own code.
+# Vendored/agent-tooling trees are excluded rather than reformatted: .agents holds
+# upstream Anthropic skill scripts that a skill update would overwrite, and
+# .gsd/.claude are machine-local agent state. CI runs `black --check .` at the repo
+# root, so without these the lint job fails on files this project does not own.
 exclude = '''
 /(
     \.git
-  | \.gsd
-  | \.agents
   | \.tox
   | \.venv
   | _build
   | build
   | dist
+  | \.agents
+  | \.gsd
+  | \.claude
 )/
 '''
 
 [tool.ruff]
 line-length = 88
 target-version = "py312"
-# Same rationale as [tool.black] exclude: vendored agent-tooling scripts.
-extend-exclude = [".agents", ".gsd"]
+# Mirrors the [tool.black] exclude above — see the rationale there.
+extend-exclude = [".agents", ".gsd", ".claude"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "T20"]
