@@ -423,7 +423,7 @@ class TestFigureLengthRenderGate:
 
         index_typ = temp_build_dir / "index.typ"
         assert index_typ.exists(), "index.typ was not generated"
-        typ_source = index_typ.read_text()
+        typ_source = index_typ.read_text(encoding="utf-8")
 
         # The 200px case must have been converted to the CSS-canonical
         # 1px = 0.75pt Typst length (150pt) -- never emitted as a raw,
@@ -538,10 +538,18 @@ class TestFigureCaptionRenderGate:
     not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
     reason="typst-py and pypdf are both required for the GATE-01 render gate",
 )
-class TestGraphvizDegradeRenderGate:
+class TestInheritanceDiagramDegradeRenderGate:
     """
-    Real-compile acceptance gate for the DEG-01/DEG-02 graceful-degrade
-    placeholder fix (graphviz and inheritance_diagram nodes).
+    Real-compile acceptance gate for the DEG-02 graceful-degrade
+    placeholder fix (inheritance_diagram nodes only).
+
+    DEG-01's graphviz half lives in tests/test_graphviz_render_gate.py:
+    inline DOT now renders as a real diagram via @preview/diagraph, so the
+    fixture behind this class declares no graph directive at all and the
+    graphviz degrade warning no longer fires. What remains here is the
+    D006/MEM006 regression guard -- the inheritance-diagram path must keep
+    emitting the placeholder and must keep leaking neither raw DOT
+    keywords nor edge-arrow syntax.
 
     Requirements: GATE-01 (11-CONTEXT.md D-01/D-04, 11-RESEARCH.md).
     """
@@ -550,10 +558,10 @@ class TestGraphvizDegradeRenderGate:
         self, graphviz_degrade_render_gate_dir, temp_build_dir
     ):
         """
-        Compile the graphviz/inheritance-diagram render-gate fixture to PDF
-        and confirm the visible placeholder wording is present, no raw
-        DOT/diagram-spec source leaked, and exactly one degrade warning
-        fired per out-of-scope node.
+        Compile the inheritance-diagram render-gate fixture to PDF and
+        confirm the visible placeholder wording is present, no
+        diagram-spec source leaked, and exactly one degrade warning fired
+        for the sole out-of-scope node.
         """
         result = _run_sphinx_build_typst(
             graphviz_degrade_render_gate_dir, temp_build_dir
@@ -564,12 +572,12 @@ class TestGraphvizDegradeRenderGate:
             f"stderr: {result.stderr}"
         )
 
-        # Exactly one degrade warning per out-of-scope node (D-01): the
-        # graphviz directive and the inheritance-diagram directive each
-        # log exactly one logger.warning naming the node type.
-        assert result.stderr.count("graphviz is not supported in Typst output") == 1, (
-            "Expected exactly one graphviz degrade warning:\n" f"{result.stderr}"
-        )
+        # Exactly one degrade warning for the sole out-of-scope node
+        # (D-01): the inheritance-diagram directive logs exactly one
+        # logger.warning naming the node type. The graphviz counterpart
+        # was removed, not weakened -- that warning no longer fires at all
+        # and tests/test_graphviz_render_gate.py asserts its absence
+        # positively.
         assert (
             result.stderr.count("inheritance diagram is not supported in Typst output")
             == 1
@@ -603,6 +611,8 @@ class TestGraphvizDegradeRenderGate:
             "Expected the visible graceful-degrade placeholder wording "
             "(D-01) to be present in the extracted PDF text"
         )
+        # With no graph directive in the fixture, these two can only be
+        # violated by the inheritance-diagram path -- the DEG-02 guard.
         assert "digraph" not in full_text, (
             "Raw DOT source keyword 'digraph' leaked into rendered PDF "
             "text -- DEG-01 SkipNode regression"
@@ -610,6 +620,50 @@ class TestGraphvizDegradeRenderGate:
         assert "->" not in full_text, (
             "Raw DOT edge-arrow syntax leaked into rendered PDF text -- "
             "DEG-01 SkipNode regression"
+        )
+
+
+class TestGraphicalPlaceholderCallerCountGuard:
+    """
+    Static structural guard for the D006/MEM006 invariant: the shared
+    ``_visit_graphical_placeholder`` helper must retain exactly two
+    callers -- the graphviz ``filename`` branch (R007's external-.dot
+    refusal) and ``visit_inheritance_diagram`` (R008's degrade path).
+
+    This is deliberately a source-text check rather than an AST walk or a
+    runtime introspection: what it guards against is an edit that deletes
+    a call site, and the source itself is the cheapest honest signal.
+    """
+
+    def test_visit_graphical_placeholder_has_exactly_two_callers(self):
+        """
+        ``_visit_graphical_placeholder(`` must occur exactly 3 times in
+        translator.py. Losing either caller silently widens the supported
+        surface (R007) or detaches the degrade path (R008).
+        """
+        translator_src = (
+            Path(__file__).parent.parent / "typsphinx" / "translator.py"
+        ).read_text(encoding="utf-8")
+
+        # 3, not 2: the ``def _visit_graphical_placeholder(`` definition
+        # line matches the same substring as the two call sites. Do not
+        # "fix" this to 2 -- that would silently allow one caller to be
+        # deleted.
+        occurrences = translator_src.count("_visit_graphical_placeholder(")
+
+        assert occurrences == 3, (
+            f"Expected exactly 3 occurrences of "
+            f"'_visit_graphical_placeholder(' in typsphinx/translator.py "
+            f"(1 def site + 2 call sites), found {occurrences}. The two "
+            f"required callers are: (1) the graphviz 'filename' branch in "
+            f"visit_graphviz, which keeps external .dot files refused with "
+            f"a placeholder per R007 -- dropping it would let the "
+            f"scoped-out external-file form start rendering by accident; "
+            f"and (2) visit_inheritance_diagram, which keeps the "
+            f"inheritance-diagram degrade placeholder per R008 -- "
+            f"detaching it would break the DEG-02 guard. A count of 2 "
+            f"means one caller went missing; a count above 3 means a new "
+            f"caller was added and this invariant needs re-deciding."
         )
 
 
@@ -772,7 +826,7 @@ class TestXrefRefidRenderGate:
         index_typ = temp_build_dir / "index.typ"
         assert index_typ.exists(), "index.typ was not generated"
 
-        typ_source = index_typ.read_text()
+        typ_source = index_typ.read_text(encoding="utf-8")
         assert "link(<" in typ_source, (
             "Expected at least one refid link(<...>, ...) anchor reference "
             "in the generated Typst source -- the :ref:/:term: refid branch "
@@ -1048,7 +1102,7 @@ class TestTrivialBlocksRenderGate:
         # BLK-01: the transition compiled to a real horizontal rule -- a
         # rule has no reliable extracted-text signature, so assert it in
         # the emitted source (backed by the successful compile below).
-        typ_source = index_typ.read_text()
+        typ_source = index_typ.read_text(encoding="utf-8")
         assert "line(length: 100%)" in typ_source, (
             "Expected 'line(length: 100%)' in generated Typst source -- "
             "visit_transition regression"

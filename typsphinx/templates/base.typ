@@ -18,6 +18,10 @@
 // Requirement 2.8-2.10: Admonition conversion to gentle-clues
 #import "@preview/gentle-clues:1.3.1": *
 
+// Import diagraph for Graphviz DOT rendering
+// Renders DOT in-process via typst-py -- no external `dot` binary (MEM001)
+#import "@preview/diagraph:0.3.7": render
+
 // Initialize codly
 #show: codly-init.with()
 

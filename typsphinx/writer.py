@@ -267,6 +267,7 @@ class TypstWriter(writers.Writer):
         imports.append('#import "@preview/codly-languages:0.1.10": *')
         imports.append('#import "@preview/mitex:0.2.7": mi, mitex')
         imports.append('#import "@preview/gentle-clues:1.3.1": *')
+        imports.append('#import "@preview/diagraph:0.3.7": render')
         imports.append("")
         imports.append("// Initialize codly")
         imports.append("#show: codly-init.with()")

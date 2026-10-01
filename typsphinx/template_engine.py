@@ -706,6 +706,7 @@ class TemplateEngine:
             output_parts.append('#import "@preview/codly-languages:0.1.10": *')
             output_parts.append('#import "@preview/mitex:0.2.7": mi, mitex')
             output_parts.append('#import "@preview/gentle-clues:1.3.1": *')
+            output_parts.append('#import "@preview/diagraph:0.3.7": render')
             output_parts.append("")  # Blank line
             output_parts.append("#show: codly-init.with()")
             output_parts.append("#codly(languages: codly-languages)")

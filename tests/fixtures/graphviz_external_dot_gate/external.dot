@@ -1,0 +1,5 @@
+digraph external {
+    a [label="Wexlorbprime"];
+    b [label="Jontarbsecond"];
+    a -> b;
+}

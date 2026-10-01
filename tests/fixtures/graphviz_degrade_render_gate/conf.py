@@ -1,11 +1,15 @@
-# Sphinx configuration for the GATE-01 graphviz/inheritance-diagram
+# Sphinx configuration for the GATE-01 inheritance-diagram
 # graceful-degrade render-gate fixture.
 #
 # Minimal self-contained project used by tests/test_pdf_render_gate.py to
-# prove the DEG-01/DEG-02 graceful-degrade placeholder fix in a real
-# compile: sphinx-build -> typst.compile() -> pypdf text-extraction,
-# asserting the placeholder wording is present and no raw DOT/diagram-spec
-# source leaks into the generated .typ (Issue #114, D-01).
+# prove the DEG-02 graceful-degrade placeholder fix in a real compile:
+# sphinx-build -> typst.compile() -> pypdf text-extraction, asserting the
+# placeholder wording is present and no diagram-spec source leaks into the
+# generated .typ (Issue #114, D-01).
+#
+# DEG-01's graph half moved to tests/test_graphviz_render_gate.py once
+# inline DOT began rendering via @preview/diagraph, so the graph extension
+# is deliberately absent from `extensions` below.
 
 import os
 import sys
@@ -21,7 +25,6 @@ release = "1.0.0"
 
 extensions = [
     "typsphinx",
-    "sphinx.ext.graphviz",
     "sphinx.ext.inheritance_diagram",
 ]
 

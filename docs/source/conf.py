@@ -40,6 +40,10 @@ extensions = [
     "sphinx_autodoc_typehints",
     "myst_parser",
     "typsphinx",
+    # Needed for the HTML side only: sphinx.ext.graphviz shells out to the dot
+    # binary to rasterise diagrams for HTML. The Typst/PDF side renders the same
+    # DOT source through @preview/diagraph and needs no dot binary at all.
+    "sphinx.ext.graphviz",
 ]
 
 templates_path = ["_templates"]
