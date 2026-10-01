@@ -51,32 +51,14 @@ except ImportError:
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
-EVIDENCE_FILENAME = "49-SHAPES-RED-EVIDENCE.md"
-
-
-def _locate_evidence() -> Path:
-    """Find 49-SHAPES-RED-EVIDENCE.md whether Phase 49 is active or archived.
-
-    The v0.8.0 milestone close moved the whole phase directory from
-    ``.planning/phases/`` to ``.planning/milestones/v0.8.0-phases/``, which
-    silently broke this gate's hardcoded path -- the seven
-    ``test_warning_baseline_preserved`` cases failed with ``FileNotFoundError``
-    on every platform until Phase 53 caught it. Search both roots so the next
-    milestone archival cannot rebreak it the same way.
-    """
-    planning = Path(__file__).parent.parent / ".planning"
-    roots = [planning / "phases", *sorted((planning / "milestones").glob("*"))]
-    for root in roots:
-        hit = next(root.glob(f"49-*/{EVIDENCE_FILENAME}"), None)
-        if hit is not None:
-            return hit
-    raise FileNotFoundError(
-        f"{EVIDENCE_FILENAME} not found under any of: "
-        + ", ".join(str(r) for r in roots)
-    )
-
-
-EVIDENCE_PATH = _locate_evidence()
+# The evidence file lives beside the fixtures rather than under
+# ``.planning/``: it was originally read from the phase directory, which
+# milestone archival moved once (breaking this gate until Phase 53) and which
+# planning-tool changes may move or remove again. The test suite must not
+# depend on planning artifacts.
+EVIDENCE_PATH = (
+    FIXTURES_DIR / "state_guard_shapes_evidence" / "49-SHAPES-RED-EVIDENCE.md"
+)
 
 # The state key decided in 49-EXPECTED-STRUCTURE.md's Emission contract
 # (D-07, measured in 49-EVIDENCE.md's State-syntax measurement) -- fixed

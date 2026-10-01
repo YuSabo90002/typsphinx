@@ -97,6 +97,15 @@ DELETED_LEDGER_ATTRIBUTE = "_included_docnames"
 THIS_FILE = Path(__file__).resolve()
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
+
+# Phase 49's verbatim pre-fix RED transcripts, relocated from ``.planning/``
+# into tests/fixtures/ so test_state_guard_shapes_gate.py does not depend on
+# planning artifacts. It is still planning history, not shippable source or
+# prose, and records the deleted symbol for the same reason ``.planning/``
+# does -- so it is excluded from the sweep exactly as ``.planning/`` is.
+RELOCATED_PLANNING_EVIDENCE = (
+    FIXTURES_DIR / "state_guard_shapes_evidence" / "49-SHAPES-RED-EVIDENCE.md"
+).resolve()
 TWO_MASTER_DIR = FIXTURES_DIR / "state_guard_two_master_gate"
 THREE_MASTER_DIR = FIXTURES_DIR / "state_guard_three_master_gate"
 
@@ -215,7 +224,7 @@ class TestLedgerRemovalFromRepositoryProse:
         offending = []
         for scan_root in REPO_WIDE_SCAN_ROOTS:
             for path in _iter_text_files(scan_root):
-                if path.resolve() == THIS_FILE:
+                if path.resolve() in (THIS_FILE, RELOCATED_PLANNING_EVIDENCE):
                     continue
                 text = path.read_text(encoding="utf-8", errors="ignore")
                 if pattern.search(text):
