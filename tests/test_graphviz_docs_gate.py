@@ -53,6 +53,7 @@ diagrams page exists to explain. The HTML build additionally needs ``furo`` from
 the same absent ``docs`` extra, so it is left to ``tox -e docs-html``.
 """
 
+import html as html_mod
 import importlib.util
 import re
 import shutil
@@ -93,6 +94,47 @@ _DOCS_EXTRA_MODULES = ("myst_parser", "sphinx_autodoc_typehints", "furo")
 # but changes the moment the DOT body is edited -- a literal would turn an
 # ordinary diagram edit into a mysterious gate failure.
 GRAPHVIZ_PNG_SRC_RE = re.compile(r'src="([^"]*graphviz-[0-9a-f]{40}\.png)"')
+
+
+# The raw DOT marker: the opening line of the dogfood diagram's own source,
+# and the exact RED shape measured 2026-10-02 -- on a machine with no `dot`
+# binary this string is served to the reader as page TEXT instead of a
+# rendered image. Read as a literal rather than from diagrams.rst because the
+# assertions below are about this one line, not about the whole DOT body.
+DOT_SOURCE_MARKER = "digraph dogfood {"
+
+# Any HTML tag, used to reduce a built page to its visible text.
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def _visible_text(markup: str) -> str:
+    """
+    Reduce HTML markup to roughly what a reader SEES: drop every tag, then
+    resolve character entities.
+
+    The parameter is ``markup``, not ``html``, so the stdlib ``html`` module
+    (imported here as ``html_mod``) is not shadowed.
+
+    A regex strip is deliberate and sufficient -- neither BeautifulSoup nor
+    lxml is a dependency of this project, and a regex is exactly what was
+    measured when the RED/GREEN contrast was established by hand.
+
+    Two ordering properties are load-bearing:
+
+    * **Unescape AFTER stripping, never before.** Entities that live inside
+      attribute values would otherwise be decoded while still inside a tag
+      and then survive the strip as apparent text.
+    * **Each tag becomes a SPACE, not the empty string**, so two words
+      separated only by a tag boundary do not fuse into one token and
+      invent a match (or hide one) that the reader never sees.
+
+    The property the absence assertions below actually depend on: because the
+    whole ``<img ...>`` tag goes, the text of its ``alt`` attribute goes with
+    it. That matters concretely here -- the dogfood diagram's ``:alt:`` text
+    names both node labels, so ``Vorthaneglim`` IS in the raw markup of a
+    correctly-rendered page and is NOT in its visible text.
+    """
+    return html_mod.unescape(_HTML_TAG_RE.sub(" ", markup))
 
 
 def _docs_extras_available() -> bool:
@@ -500,6 +542,19 @@ class TestDogfoodedDiagramHTMLBuild:
       visible text and once in a broken one. "The node label appears in the
       rendered HTML" would pass only on the broken page. The sentinels stay
       valid for the PDF, which is why Class 2 uses them.
+
+    MEASURED weakness, by construction, and a recorded milestone decision
+    rather than a defect to fix: GitHub Actions' ``ubuntu-latest`` image
+    PREINSTALLS ``dot``, so in CI this class renders a real PNG and PASSES --
+    it would have passed unchanged throughout the entire original defect,
+    which was a missing Graphviz on the *Read the Docs* builder. What this
+    class guards is therefore docs-SOURCE regression: the directive being
+    removed, renamed, or reduced to a literal block. The
+    environment-independent half -- the one that would actually have caught
+    the original defect -- is the configuration gate in
+    ``tests/test_readthedocs_config.py``, which asserts ``graphviz`` is in
+    ``.readthedocs.yaml``'s ``build.apt_packages`` and needs no build at all.
+    Detection is split across those two gates on purpose.
     """
 
     @staticmethod
@@ -584,3 +639,75 @@ class TestDogfoodedDiagramHTMLBuild:
             "graphviz output format is no longer png, so the rendered-PNG "
             "assertions in this class no longer describe the real output."
         )
+
+    def test_raw_dot_source_is_not_visible_page_text(self, docs_html_build):
+        """
+        PRIMARY RED-direction assertion: the raw DOT source line is NOT part
+        of the page's visible text.
+
+        MEASURED 0 on a correctly-rendered page and 1 on the reported broken
+        one, where `sphinx.ext.graphviz` could not reach `dot` and served the
+        reader the diagram's source instead of a picture of it. This is the
+        primary absence check because it holds whether or not the directive
+        carries an `:alt:` option -- see the raw-markup sibling below for why
+        that distinction matters.
+        """
+        _, build_dir = docs_html_build
+        html = self._diagrams_page(build_dir).read_text(encoding="utf-8")
+        text = _visible_text(html)
+        assert DOT_SOURCE_MARKER not in text, (
+            f"Found the raw DOT source line {DOT_SOURCE_MARKER!r} in the "
+            f"visible text of the built diagrams page: the diagram was not "
+            f"rendered and its source is being shown to the reader instead."
+        )
+
+    def test_raw_dot_source_is_absent_from_the_raw_markup_too(self, docs_html_build):
+        """
+        Secondary absence check, over the RAW markup rather than the visible
+        text. MEASURED 0 today -- but, unlike its sibling above, only because
+        the dogfood directive carries an explicit `:alt:` option.
+
+        `sphinx/ext/graphviz.py` computes the image's alt text as
+        `node.get('alt', self.encode(code).strip())`: with NO `:alt:`,
+        upstream falls back to the DOT SOURCE ITSELF as the attribute value.
+        A perfectly rendered page would then still match a raw-markup grep
+        while matching zero times in visible text. So this assertion is
+        legitimately allowed to flip if that option is ever dropped, and
+        asserting it ALONE would really be asserting "an `:alt:` option
+        exists" -- which is why the visible-text check above, not this one,
+        is the load-bearing half.
+        """
+        _, build_dir = docs_html_build
+        html = self._diagrams_page(build_dir).read_text(encoding="utf-8")
+        assert DOT_SOURCE_MARKER not in html, (
+            f"Found the raw DOT source line {DOT_SOURCE_MARKER!r} in the raw "
+            f"markup of the built diagrams page. Check whether the dogfood "
+            f"directive still carries an `:alt:` option -- if it does not, "
+            f"upstream uses the DOT source as the img alt text and this "
+            f"assertion no longer indicates a rendering failure."
+        )
+
+    def test_node_labels_are_not_visible_page_text(self, docs_html_build):
+        """
+        Second RED-direction sentinel: the diagram's node labels are NOT in
+        the page's visible text. MEASURED 0 in GREEN, 1 in RED.
+
+        This is the exact INVERSE of how `NODE_LABEL_SENTINELS` is used in
+        Class 2, and deliberately so. In the PDF the labels are real vector
+        TEXT inside the drawn diagram, so pypdf extracts them and their
+        presence proves the diagram rendered. In HTML the same labels are
+        PIXELS inside a rasterised PNG, so visible text containing them means
+        the opposite: the DOT source leaked onto the page. The labels do
+        appear in the raw markup of a correct page, inside the `:alt:`
+        attribute -- which the tag strip removes along with its tag.
+        """
+        _, build_dir = docs_html_build
+        html = self._diagrams_page(build_dir).read_text(encoding="utf-8")
+        text = _visible_text(html)
+        for sentinel in NODE_LABEL_SENTINELS:
+            assert sentinel not in text, (
+                f"Found the node label {sentinel!r} in the visible text of "
+                f"the built diagrams page: the label should be pixels inside "
+                f"the rendered PNG, so its presence as text means the DOT "
+                f"source leaked onto the page."
+            )
