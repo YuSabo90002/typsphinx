@@ -311,6 +311,243 @@ than it is.
 
 ---
 
+## 7. The `ja` disposition — settled as a tracked deferral (T02)
+
+This section settles R022, the milestone's last external-facing claim. It is
+written by **T02** and is about the **Japanese** site; everything above it
+(§1–§6) is the English site and is T01/T03's subject.
+
+**The branch was already chosen and this section does not revisit it.** Owner
+decision **D015** (2026-10-03) put `ja` **out of scope for M002**: no PR is
+opened in `typsphinx-doc-translations`. What this section fixes is the recorded
+*reason*. A deferral resting on a wrong premise does not satisfy "settled with
+its reason" — it misleads whoever picks it up. Every fact below was re-measured
+in this task against the live repository and the live site, not transcribed from
+planning notes.
+
+### 7.1 Re-measured facts (all measured 2026-10-02T23:40Z)
+
+Measured against `raw.githubusercontent.com/YuSabo90002/typsphinx-doc-translations/main`
+and the GitHub contents API. **Four of the four planning-time facts reproduced
+exactly; one planning-time *interpretation* did not — see §7.2.**
+
+| Fact | Measured value | HTTP | Matches planning? |
+|---|---|---|---|
+| `.gitmodules` → `path` | `typsphinx` | 200 | yes |
+| `.gitmodules` → `url` | `https://github.com/YuSabo90002/typsphinx.git` | 200 | yes |
+| `.gitmodules` → `branch` | `main` | 200 | yes |
+| submodule pin SHA (contents API, `type: submodule`) | `76040d675e49d28d60c1d2248ee317b13164b607` | 200 | yes — **has not advanced** since planning |
+| `.readthedocs.yaml` → `build.apt_packages` | `- fonts-noto-cjk` **only** (one entry) | 200 | yes |
+| `.readthedocs.yaml` → `graphviz` occurrences | **0** | 200 | yes |
+| `.readthedocs.yaml` → `sphinx.configuration` | `typsphinx/docs/source/conf.py` (the submodule's copy) | 200 | yes |
+| `.github/workflows/update-pin.yml` | **exists**, 6334 bytes | 200 | yes |
+| …its `on:` triggers | `schedule` (`cron: "0 6 * * *"`) **and** `workflow_dispatch: {}` — both present | 200 | yes |
+
+The pin's position relative to this repository, measured locally:
+
+| Measurement | Value |
+|---|---|
+| `git merge-base --is-ancestor 76040d675e… origin/main` | **true** — the pin is a real `main` commit |
+| `git rev-list --count 76040d675e…..origin/main` | **1** — the pin is exactly one commit behind `main`'s tip |
+| `origin/main` tip | `9c134be03298e73778ea8457a5e3056edc049a6e` (the same commit §2's RED baseline build 34900405 built) |
+| the pin's own subject | `Merge pull request #164 from YuSabo90002/chore/archive-planning-tree` |
+
+### 7.2 Two causes — and a correction to which of them is actually breaking the page
+
+The plan for this task stated that `ja` is broken by two independent causes:
+(1) a stale source pin, and (2) a missing `graphviz` in the `ja` repo's own
+manifest. **Cause 2 reproduced. Cause 1 did not — as a cause of the missing
+diagram it is measurably not one**, and this is recorded as a flagged
+difference rather than written as planned.
+
+Measured at the pinned SHA `76040d675e…` versus this branch's HEAD:
+
+| Measurement | at pin `76040d675e…` | at this branch HEAD |
+|---|---|---|
+| `graphviz::` directives in `docs/source/user_guide/diagrams.rst` | **4** | 4 |
+| `:alt:` options in that file | 1 | 2 |
+| `graphviz` in **this repo's** `.readthedocs.yaml` | 0 | 2 |
+
+**The four `graphviz::` directives are already present at the pinned commit.**
+So the `ja` page is not missing the diagram because its source is stale — the
+source that emits the diagram is already there. It is missing the diagram for
+one reason only:
+
+> **Cause 2 is the sole cause of the `ja` page's RED state: the `ja`
+> repository's own `.readthedocs.yaml` has no `graphviz` in its
+> `build.apt_packages`, so `dot` is absent in its build container and upstream
+> `render_dot()` fails open exactly as §2 describes for English.**
+
+And the pin advance delivers **nothing** that bears on the render, for a second
+measured reason: `ja` does not consume this repository's `.readthedocs.yaml` at
+all. Its `sphinx.configuration` is `typsphinx/docs/source/conf.py` — the
+submodule's `conf.py`, not the parent's manifest. The `graphviz` line this
+milestone added to **this** repo's `.readthedocs.yaml` therefore never reaches
+the `ja` build container by any route, pinned or fresh.
+
+What the pin advance *does* deliver is content currency: when this milestone
+merges, the daily `update-pin.yml` run advances the pin and the `ja` build picks
+up S02's second `:alt:` option (1 → 2). That matters only to the **secondary,
+raw-HTML** form of assertion A3 (§3), never to whether a diagram renders.
+
+So the corrected premise, which is what makes the deferral honest:
+
+* **Cause 1 (stale pin) — self-healing, and not load-bearing.** It closes with
+  **no `ja`-repo edit at all**, via the daily `schedule` trigger in
+  `update-pin.yml`, at most ~24 hours after the fix lands on `main`. It is not
+  what is breaking the diagram.
+* **Cause 2 (missing `graphviz` in the `ja` manifest) — the whole defect, and
+  unfixable from here.** Nothing in this repository can change it. The fix is a
+  **one-line `- graphviz` addition to an `apt_packages` block that already
+  exists** in the other repo (it currently holds `- fonts-noto-cjk`), i.e. an
+  edit to a block, not a new block. Cause 2 is what keeps D015's deferral
+  correct — and now it is the *only* thing the deferral needs to rest on.
+
+### 7.3 Correcting the misleading `workflow_dispatch` note
+
+R022's current validation text says:
+
+> "The delivery route must be confirmed in that repository first: update-pin.yml
+> does NOT exist in this repo (only ci, docs, drift, links, release), so the
+> workflow_dispatch route cannot be assumed from here."
+
+That sentence is **literally true of `typsphinx`** — re-measured here:
+`.github/workflows/` in this repository holds exactly `ci.yml`, `docs.yml`,
+`drift.yml`, `links.yml`, `release.yml`, and `update-pin.yml` is **absent**.
+But it is **misleading**, and a reader takes it as "the route is unavailable."
+
+**The route IS available**, because the workflow exists exactly where it is
+needed — in `typsphinx-doc-translations`, carrying **both** triggers
+(`schedule` *and* `workflow_dispatch: {}`, measured above). Whoever picks this
+up does not need to build a delivery route: they can advance the pin on demand
+with a `workflow_dispatch` run in that repository, or simply wait for the daily
+`schedule`. The absence of `update-pin.yml` *here* is irrelevant to that.
+
+### 7.4 The live `ja` page — measured
+
+```bash
+curl -sS --max-time 45 \
+  https://typsphinx.readthedocs.io/ja/latest/user_guide/diagrams.html
+```
+
+| Field | Value |
+|---|---|
+| Measured at | **2026-10-02T23:40:35Z** (2026-10-03T08:40:35+0900 local) |
+| HTTP status | **200** |
+| Bytes downloaded | 29470 |
+| `sha256` of body | `ce500fa27fdc8570e01f0082d5f7b6f1dc4b8db30aa9765b8a9ab929a54bad9e` |
+
+Marker counts, using the **same three markers and the same visible-text
+semantics** as §2 and §3 (tag → space, unescape after stripping), so the two
+sites' rows are directly comparable:
+
+| Marker | `ja` count | English count (§2) |
+|---|---|---|
+| `class="graphviz"` | **0** | 0 |
+| `graphviz-[0-9a-f]{40}\.png` | **0** | 0 |
+| `<img` (any image tag) | **0** | 0 |
+| `digraph dogfood {` (raw HTML) | **1** | 1 |
+| `digraph dogfood {` (tag-stripped visible text) | **1** | 1 |
+
+**`ja` is RED in exactly the same shape as the pre-fix English page: 0 / 0 / 1.**
+A reader of the Japanese site today sees the raw DOT source as page text.
+
+### 7.5 Use this URL — the obvious-looking host 404s
+
+Recorded so a future reader does not curl the host that looks right and wrongly
+conclude the site is gone. The `ja` site is served under the **parent's**
+domain, because it is an RTD *translation* of `typsphinx` (confirmed in §5: the
+project's single translation is `typsphinx-ja`), not a separately-served
+project.
+
+| URL | HTTP | Verdict |
+|---|---|---|
+| `https://typsphinx.readthedocs.io/ja/latest/user_guide/diagrams.html` | **200** | **the correct target — use this** |
+| `https://typsphinx.readthedocs.io/ja/latest/` | 200 | correct host, site is live |
+| `https://typsphinx-doc-translations.readthedocs.io/` | **404** | repo name ≠ RTD host; **not** evidence the site is gone |
+| `https://typsphinx-doc-translations.readthedocs.io/ja/latest/` | **404** | same trap, same non-conclusion |
+
+### 7.6 The settled disposition, stated plainly
+
+> **The `ja` site remains RED when M002 closes, by owner choice (D015).**
+
+M002 does **not** address `ja`. It is not partially fixed, not fixed-pending-
+rebuild, and not expected to go GREEN when the English fix merges — because the
+daily pin advance (cause 1) does not touch cause 2, and cause 2 lives in a
+repository this milestone deliberately does not edit. R022 is therefore an
+**accurate tracked deferral**: a known, measured, published defect with a named
+one-line fix, a confirmed delivery route, and an explicit owner decision to
+leave it for later.
+
+Scope boundary honoured by this task: **no edit was made in any other
+repository, and no PR was opened.** D015 scoped that out; it is outward-facing
+work in a different repo requiring explicit owner approval. If such a posting is
+ever authorised, it must use `gh … --body-file`, never inline command
+substitution — the sandbox rejects `$(…)` in `--comment`/`--body` arguments.
+
+---
+
+## 8. Proposed R022 record (applied at slice closeout)
+
+**This task does not mutate the requirement record.** Requirement
+terminalization belongs to slice/milestone closeout, and T02 is an ordinary
+implementation task with no `gsd_requirement_*` tools on its surface. The exact
+replacement strings are drafted here so that closeout's update is accurate and
+reviewable rather than re-derived.
+
+**Status:** keep `deferred`. **Class:** keep `operability`. **Primary owning
+slice:** keep `deferred (no M002 slice)`. Only `Validation` and `Notes` change.
+
+### Proposed `Validation` string
+
+> Deferred — not validated in M002; the ja site remains RED at milestone close
+> by owner decision D015. When picked up: add a one-line `- graphviz` entry to
+> the `build.apt_packages` block that already exists in
+> `typsphinx-doc-translations`'s own `.readthedocs.yaml` (measured
+> 2026-10-02: that block holds `- fonts-noto-cjk` only, and `graphviz` occurs 0
+> times in the file), then curl
+> `https://typsphinx.readthedocs.io/ja/latest/user_guide/diagrams.html` and
+> require `class="graphviz"` ≥ 1, a fetchable `graphviz-<40hex>.png` (HTTP 200 +
+> PNG magic bytes, not merely a `src` string), and `digraph dogfood {` absent
+> from the tag-stripped visible text. The delivery route is **already
+> available** and needs no construction: `.github/workflows/update-pin.yml`
+> exists in that repository with both a `schedule` trigger (`cron: "0 6 * * *"`)
+> and `workflow_dispatch: {}` (measured 2026-10-02), so the pin can be advanced
+> on demand or left to the daily run. Use the parent domain `/ja/` path above —
+> `typsphinx-doc-translations.readthedocs.io` 404s (measured), because ja is an
+> RTD translation of the `typsphinx` project, not a separately-served project.
+
+### Proposed `Notes` string
+
+> Deferred by owner decision D015, 2026-10-03. Measured premise, corrected in
+> S04/T02 (see `docs/S04-PUBLISHED-SITE-EVIDENCE.md` §7): ja consumes this
+> repo's `docs/source` as a pinned git submodule (`.gitmodules`:
+> `path=typsphinx`, `branch=main`, pinned at `76040d675e…`, one commit behind
+> `main`'s tip `9c134be032…`), and its `sphinx.configuration` is the
+> submodule's `typsphinx/docs/source/conf.py` — so conf.py is shared, but
+> `.readthedocs.yaml` is **not**: ja has its own manifest in the separate
+> `typsphinx-doc-translations` repository. The `graphviz` line M002 added to
+> this repo's `.readthedocs.yaml` therefore never reaches the ja build
+> container by any route. Measured at the pinned commit, the 4 `graphviz::`
+> directives are **already present**, so the stale pin is *not* what breaks the
+> ja page — the single cause is the missing `graphviz` in ja's own
+> `apt_packages`, which no edit or test in this repository can fix or verify.
+> The daily `update-pin.yml` advance self-heals pin currency (it will pick up
+> S02's second `:alt:`, relevant only to the secondary raw-HTML form of
+> assertion A3) but cannot fix the render. Measured live 2026-10-02T23:40:35Z:
+> ja is RED in the identical 0 / 0 / 1 shape as the pre-fix English page
+> (`class="graphviz"` 0, png 0, `digraph dogfood {` 1 in both raw HTML and
+> visible text), HTTP 200, `sha256
+> ce500fa27fdc8570e01f0082d5f7b6f1dc4b8db30aa9765b8a9ab929a54bad9e`. Cheap to
+> pick up later as its own milestone — the fix is one line in a block that
+> already exists, and the `workflow_dispatch` delivery route is already
+> available there. **Supersedes** the earlier note's claim that the
+> `workflow_dispatch` route "cannot be assumed from here": that was literally
+> true of `typsphinx` (which has only ci/docs/drift/links/release) and
+> misleading, because `update-pin.yml` exists exactly where it is needed.
+
+---
+
 ## Failure Modes
 
 Every dependency here is **external and networked**, which is the whole risk
@@ -331,6 +568,24 @@ procedure mandates.
 Nothing in this task writes to the filesystem outside
 `docs/S04-PUBLISHED-SITE-EVIDENCE.md` and `/tmp` scratch, and no subprocess
 beyond `curl`/`git`/`python3` is involved.
+
+
+### T02 addendum — the `ja` disposition's own dependencies (§7)
+
+§7 added three external dependencies beyond §2's. Each is a one-shot read whose
+failure makes a *fact unmeasured*, never a fact assumed:
+
+| Dependency | Failure mode | Failure path / handling |
+|---|---|---|
+| `raw.githubusercontent.com/.../typsphinx-doc-translations/main/*` (`.readthedocs.yaml`, `.gitmodules`, `update-pin.yml`) | timeout / connection loss | `curl -sS --max-time 45`; non-zero exit means the fact is **unmeasured**. §7.1 records the HTTP status per row (all 200) so an unmeasured row is visibly distinct from a measured-absent one. |
+| same | **404 read as "the file does not exist"** — the dangerous one | A 404 on `update-pin.yml` would resurrect exactly the wrong premise §7.3 corrects. Handled by recording the status column explicitly and, for `update-pin.yml`, a corroborating byte count (6334) and the parsed `on:` block — a 404 cannot produce either. |
+| GitHub contents API (`/contents/typsphinx?ref=main`) | rate limit (unauthenticated, 403/429) or schema change | The pin SHA is read from `.sha` on an object asserted to be `type: submodule`; §7.1 records both fields. A 403 or a missing key leaves the pin **unmeasured** and blocks the §8 draft text, which quotes the SHA. |
+| `https://typsphinx.readthedocs.io/ja/latest/user_guide/diagrams.html` | timeout / non-200 / CDN-stale body | Same handling as §2's English page: status is a first-class recorded field (200), with byte count and `sha256` so a later reader can tell whether they were served the identical body. A stale body here is **harmless to the verdict** — unlike §4, this measurement expects RED and makes no post-fix claim. |
+| `https://typsphinx-doc-translations.readthedocs.io/` (the 404 trap) | returns 200 in future (RTD project created later) | §7.5's row would become stale. It is recorded as a *measurement with a date*, not an invariant; the conclusion that matters (ja is served under the parent's `/ja/` path) is independently corroborated by §5's translations endpoint. |
+
+Nothing in T02 wrote outside `docs/S04-PUBLISHED-SITE-EVIDENCE.md` and `/tmp`
+scratch, made any network **write**, edited any other repository, or mutated any
+requirement record. Subprocesses were `curl`, `git`, `python3` only.
 
 ## Load Profile
 
@@ -354,6 +609,18 @@ polls to a third-party API**, so the resource that saturates first is
   poll attempts and report "gate unsatisfied" rather than loop indefinitely.
 * **No local load dimension.** The artifact is a single markdown file; there is
   no service, no concurrency, and no data growth.
+
+
+### T02 addendum
+
+T02 added no runtime load dimension. Its network use is a **fixed, bounded set
+of one-shot reads** — 3 raw-file fetches, 1 contents-API call, 4 page/host
+fetches, 9 requests total, no loop and no polling — so the §4 poll loop remains
+the only unbounded term in this slice and the analysis above is unchanged. At
+10x, the first thing to saturate would be the **unauthenticated GitHub API rate
+limit** (60 req/hr/IP, far below RTD's), which is why the pin SHA is read with a
+single contents call rather than by cloning or walking commits. The artifact
+remains one markdown file.
 
 ## Negative Tests
 
@@ -392,3 +659,29 @@ false-verdict paths that the assertions are explicitly written to exclude.
   `TestDogfoodedDiagramHTMLBuild` class RED by removing `dot` from `PATH`) and
   `tests/test_readthedocs_config.py` (asserts the `apt_packages` entry whose
   absence on `main` is the measured root cause in §2).
+
+### T02 addendum — why §7's facts are falsifiable
+
+T02 adds no test, and deliberately so: §6's rule holds — no test may assert a
+live URL or a third-party repository's contents. Falsifiability instead comes
+from the same discipline used above:
+
+* **Each fact carries its HTTP status and its measurement timestamp**, so an
+  unmeasured fact cannot masquerade as a measured one (§7.1).
+* **The planning premise was treated as falsifiable and was in fact falsified.**
+  §7.2 re-measured the claim that a stale pin is one of two causes and found the
+  4 `graphviz::` directives **already present at the pinned commit** — recorded
+  as a flagged difference rather than transcribed. This is the negative result
+  that makes the rest of §7 credible.
+* **The `ja` RED row is a measured negative, not an assumption** (§7.4): 0 / 0 /
+  1, computed with the *same* markers and the same `_visible_text` semantics as
+  §2, so the two sites are comparable and a marker-set drift would show as
+  disagreement.
+* **False conclusion — "the ja site is gone."** Excluded by §7.5 measuring the
+  404ing host explicitly and pinning the correct URL.
+* **False conclusion — "ja will go GREEN when the English fix merges."**
+  Excluded by §7.2's measurement that ja never consumes this repo's
+  `.readthedocs.yaml`, so the pin advance cannot deliver the fix.
+* **Existing offline coverage is unchanged by T02.** No test file was touched;
+  `tests/test_readthedocs_config.py` and `tests/test_graphviz_docs_gate.py`
+  continue to guard the English/local surface exactly as before.
