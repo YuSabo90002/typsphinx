@@ -45,12 +45,38 @@ nix devShell. The ``sys.executable -m sphinx`` child inherits this process's
 PATH, so ``which`` here and the child always agree -- which is what makes the
 guard sound rather than a guess about the subprocess's environment.
 
-HTML (D014): this module deliberately asserts NOTHING about the HTML build. Had
-it, the only safe assertion would be ``returncode == 0``; a zero-warning
-assertion would be wrong, because ``dot command 'dot' cannot be run`` is EXPECTED
-on any machine without Graphviz installed -- which is the very contrast the
-diagrams page exists to explain. The HTML build additionally needs ``furo`` from
-the same absent ``docs`` extra, so it is left to ``tox -e docs-html``.
+RETRACTED (D014, superseded by M002/S03): this docstring previously claimed that
+the module asserted nothing whatsoever about the HTML build, and that the HTML
+build was left entirely to ``tox -e docs-html``. Both halves of that claim are
+now FALSE and are withdrawn rather than quietly rewritten -- the old wording is
+paraphrased here, not quoted, so that a ``grep`` for it finds no surviving
+occurrence. ``TestDogfoodedDiagramHTMLBuild`` (Class 3 below)
+runs a real ``-b html`` build of this docs tree and asserts the dogfooded
+diagram reaches the page as a real ``<img>`` backed by an on-disk PNG.
+
+Why the old reasoning no longer holds: it rested on ``dot command 'dot' cannot
+be run`` being EXPECTED on any machine without Graphviz, which made declining to
+assert look like the only sound option. M002 changed that premise on both
+machines that matter -- ``dot`` is provisioned in the Read the Docs container
+(S01: ``graphviz`` in ``.readthedocs.yaml``'s ``build.apt_packages``, gated by
+``tests/test_readthedocs_config.py``) and in the project's nix devShell (S02:
+``pkgs.graphviz``) -- and where it is still absent, Class 3 SKIPS on
+``shutil.which("dot") is None``. The "expected warning" objection is therefore
+discharged by a skip, not by withholding the assertion. Consistent with that,
+Class 3 makes no warning-count or warning-text claim at all; ``returncode == 0``
+remains its only build-outcome claim.
+
+The old note's ``furo`` observation is still TRUE and is handled, not dropped:
+``-b html`` does need ``furo`` from the ``docs`` extra, which is why
+``_DOCS_EXTRA_MODULES`` covers it alongside the two Sphinx extensions (see the
+dependency-guard note above) -- one guard for all build classes here.
+
+Stated plainly, and unchanged by this retraction: GitHub Actions'
+``ubuntu-latest`` PREINSTALLS ``dot``, so Class 3 would have PASSED throughout
+the entire original defect, whose cause was a missing Graphviz on the *Read the
+Docs* builder. Class 3 guards docs-SOURCE regression; the
+environment-independent half of the detection is the S01 configuration gate in
+``tests/test_readthedocs_config.py``, which needs no build at all.
 """
 
 import html as html_mod
