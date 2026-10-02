@@ -1,0 +1,394 @@
+# S04 — Published-site evidence: the RTD English diagrams page
+
+This file is the measurement record for M002/S04. The milestone criterion it
+serves is the *published* half of **R021**: that the Graphviz fix reaches the
+real page a reader loads from readthedocs.org, not merely a local build. S02
+proved the local build renders the diagram; S03 proved an artifact gate detects
+its absence. Both are builds on the maintainer's machine. Neither has ever
+observed readthedocs.org.
+
+**This file is written BEFORE the fix is merged, and that ordering is the
+point.** Two things are only possible in this pre-merge window:
+
+1. **The RED baseline is observable now and never again.** Once the merge lands
+   and Read the Docs rebuilds, the broken page is gone permanently. A
+   post-merge GREEN with no recorded RED is an unattributable "it works now"
+   with no proof the page was ever broken.
+2. **The assertions are pre-registered.** Writing them down before any
+   post-merge data exists is what stops the measurement from being fitted to
+   whatever the page happens to show. S02 and S03 both used this pre/post
+   discipline; here the external dependency makes a missed baseline
+   unrecoverable rather than merely inconvenient.
+
+Accordingly, §2 below is measured and closed, and §3's assertions are a
+contract with no results attached. Executing them is **T03**, and its
+precondition (a merged fix plus a completed RTD rebuild) does not yet exist.
+Nothing in this task merges anything, opens a PR, or measures a post-merge page.
+
+> **Naming note.** This file is deliberately named `…-EVIDENCE.md` and must
+> never be renamed to the reserved `-VERIFICATION.md` form. A file matching
+> `{phase}-VERIFICATION.md` is overwritten by a later verifier step, which
+> would destroy the irreplaceable baseline in §2.
+
+---
+
+## 1. The pinned target URL
+
+```
+https://typsphinx.readthedocs.io/en/latest/user_guide/diagrams.html
+```
+
+That URL is the single target for every assertion in this file.
+
+### Why `en/stable` is explicitly NOT the target
+
+A task that measured `stable` would record a failure that is really a
+version-resolution artifact rather than anything about the fix. Measured from
+the RTD v3 API on 2026-10-02:
+
+| Version | `type` | `identifier` | `ref` | What it tracks |
+|---|---|---|---|---|
+| `latest` | `branch` | `main` | — | the `main` branch — **the target** |
+| `stable` | `tag` | `d1df28aeb48556910ac6a2e63ac5455d237d6d79` | `v0.9.7` | the v0.9.7 tag |
+
+The diagrams page **postdates the v0.9.7 tag**, so it does not exist in the
+`stable` tree at all. Confirmed by direct request, not inferred:
+
+| Request | HTTP |
+|---|---|
+| `GET /en/stable/user_guide/diagrams.html` | **404** |
+| `GET /en/latest/user_guide/diagrams.html` | **200** |
+| `GET /en/latest/` | **200** |
+
+`pyproject.toml` is already at `version = "0.9.8"` (line 7), so `stable` still
+resolves to v0.9.7 and will keep 404-ing on this path until a **v0.9.8 tag
+ships**. Only after that tag does `stable` become a meaningful second target;
+until then, asserting against it tests the tag, not the fix.
+
+---
+
+## 2. The pre-merge RED baseline — MEASURED, this task
+
+Measured fresh in this task. The values below are observations, not
+transcriptions of the planning-time expectation; the expectation was 0 / 0 / 1
+and is reproduced exactly, so there is no discrepancy to flag.
+
+### The measurement
+
+```bash
+curl -sS --max-time 45 -o /tmp/s04_red.html \
+  https://typsphinx.readthedocs.io/en/latest/user_guide/diagrams.html
+```
+
+| Field | Value |
+|---|---|
+| Measured at | **2026-10-02T23:34:21Z** (2026-10-03T08:34:21+0900 local) |
+| HTTP status | **200** |
+| Bytes downloaded | 29607 |
+| `sha256` of body | `a1ed058c1f352c8b34a068bd634dba70d5a690b1bacf74911d23f18444de6368` |
+
+### Marker counts on that body
+
+| Marker | Count | Meaning |
+|---|---|---|
+| `class="graphviz"` | **0** | no rendered-diagram container |
+| `graphviz-[0-9a-f]{40}\.png` | **0** | no rendered PNG referenced |
+| `<img` (any image tag at all) | **0** | corroborates the above — nothing was rendered |
+| `digraph dogfood {` (raw HTML) | **1** | the DOT source shipped as page content |
+| `digraph dogfood {` (**tag-stripped visible text**) | **1** | and a reader actually SEES it |
+
+The last row is the strongest statement of the defect, and it is worth
+separating from the raw-HTML row: on the published page the marker is in the
+visible text, so this is not an `alt`-attribute artifact (see §3) — it is the
+user-visible fail-open shape S02 documented. The surrounding visible text as
+served:
+
+```
+in your documentation appears as a real vector drawing in the
+generated PDF.
+
+digraph dogfood {
+    "Vorthaneglim" -> "Pellucidrane"
+```
+
+### Which RTD build this page corresponds to
+
+From `GET https://readthedocs.org/api/v3/projects/typsphinx/builds/?limit=5`
+at measurement time (80 builds total; newest five):
+
+| `id` | `commit` | `version` | `state.code` | `success` | `finished` |
+|---|---|---|---|---|---|
+| **34900405** | `9c134be03298e73778ea8457a5e3056edc049a6e` | `latest` | `finished` | `true` | 2026-10-02T14:22:26Z |
+| 34880066 | `76040d675e49d28d60c1d2248ee317b13164b607` | `latest` | `finished` | `true` | 2026-10-01T15:33:43Z |
+| 34879855 | `a78ae3219b25b19d20e07a63f1605a47c8897535` | `latest` | `finished` | `true` | 2026-10-01T15:25:02Z |
+| 34879248 | `634833839dfadf91a261036e90b26409aa4cb8ab` | `latest` | `finished` | `true` | 2026-10-01T14:57:24Z |
+| 34806829 | `c50dd45d263f14302a8b4819072b84b548360803` | `latest` | `finished` | `true` | 2026-09-28T15:33:03Z |
+
+**The baseline is attributable to an exact commit.** Build `34900405` built
+commit `9c134be03298e73778ea8457a5e3056edc049a6e`, and that commit is precisely
+the merge-base of this milestone branch with `origin/main`
+(`git merge-base origin/main HEAD` → `9c134be032…`). So the RED page above is
+the unmodified pre-fix tree, built successfully — not a failed build, not a
+partially-deployed state.
+
+### Why the page is RED while the build reports success
+
+Measured, so no reader has to guess which half of the fix is missing:
+
+| Fact | `origin/main` | this branch (`milestone/M002`, HEAD `296d5397`) |
+|---|---|---|
+| `graphviz::` directives in `docs/source/user_guide/diagrams.rst` | 4 | 4 |
+| `graphviz` in `.readthedocs.yaml` `build.apt_packages` | **absent** | **present** (line 26) |
+| commits ahead / behind `origin/main` | — | 9 ahead, 0 behind |
+
+The directive is *already* on `main`; the missing piece is the system package.
+Upstream `render_dot()` catches the `OSError` from the absent `dot` binary,
+returns `(None, None)` without raising, and the build exits 0 — which is why
+build 34900405 is `success: true` and the page is still broken. That is the
+fail-open shape, confirmed on the published site and not just locally.
+
+---
+
+## 3. The three post-merge assertions (PRE-REGISTERED — no results yet)
+
+Stated as the GREEN contract **before** any post-merge measurement exists. T03
+runs these against the §1 URL and must not alter them to match what it finds.
+
+### A1 — the rendered-diagram container is present
+
+`class="graphviz"` appears **at least once** in the served HTML.
+
+Mechanism: upstream emits `<div class="graphviz">` only on the successful render
+path (`sphinx/ext/graphviz.py:389` and `:402`), with `'graphviz'` in the node
+classes at `:376`. Count 0 is exactly what §2 measured.
+
+### A2 — the referenced PNG is a real, fetchable image
+
+A `graphviz-<40 hex>.png` reference exists (the `graphviz` filename prefix is
+upstream's, `sphinx/ext/graphviz.py:280` / `:359`), **and** that reference is
+then proven to be an image:
+
+1. resolve its `src` against the page URL,
+2. fetch it,
+3. require HTTP **200**, PNG magic bytes (`\x89PNG`), and a non-trivial byte
+   size.
+
+**S02's rule, recorded explicitly because it is the easiest false GREEN here: a
+`src` string alone does not prove a rendered image.** A reference can be present
+and the target 404, so the markup must never be the whole claim — the bytes must
+be fetched.
+
+### A3 — the raw DOT source is absent from VISIBLE TEXT (primary claim)
+
+`digraph dogfood {` appears **zero** times in the **tag-stripped visible text**
+of the served page.
+
+**Why visible text is the primary form, and raw HTML only secondary.** Upstream
+defaults an img's `alt` attribute to the DOT source itself:
+
+```python
+alt = node.get('alt', self.encode(code).strip())   # sphinx/ext/graphviz.py:384
+```
+
+So on a *correctly rendered* page with no explicit `:alt:`, the literal string
+`digraph dogfood {` still survives in the raw HTML — as an attribute value the
+reader never sees. The raw-HTML form of this claim therefore holds on this tree
+**only** because S02 added an explicit `:alt:` to the dogfood directive
+(`docs/source/user_guide/diagrams.rst`, 2 `:alt:` options present at HEAD), and
+it would silently regress to a false RED if anyone removed that option. The
+visible-text form states the actual defect and holds with or without `:alt:`.
+
+Accordingly:
+
+| Claim | Status |
+|---|---|
+| `digraph dogfood {` absent from tag-stripped visible text | **primary — the assertion** |
+| `digraph dogfood {` absent from raw HTML | secondary observation; record it, do not gate on it |
+
+**Use the existing stripper, do not invent another.** The project already has
+one: `_visible_text`, defined at `tests/test_graphviz_docs_gate.py:136`. Two of
+its properties are load-bearing and a re-derived stripper tends to get them
+wrong: each tag becomes a **space** (not the empty string), so two words
+separated only by a tag boundary cannot fuse and invent or hide a match; and
+entities are unescaped **after** stripping, never before, so entities inside
+attribute values are not decoded while still inside a tag and then survive the
+strip as apparent text. T03's measurement and that helper must agree.
+
+---
+
+## 4. The RTD readiness gate — precondition for running §3 at all
+
+**Do not run the §3 assertions until this gate passes.** Running them earlier
+produces a RED that is about deployment timing, not about the fix.
+
+Poll:
+
+```
+https://readthedocs.org/api/v3/projects/typsphinx/builds/?limit=5
+```
+
+until some `results[]` entry satisfies **all three** of:
+
+* `commit` equals the **merge commit** (the SHA on `main` after the merge — not
+  this branch's HEAD, and not the pre-merge `9c134be032…` of §2);
+* `state.code == "finished"`;
+* `success == true`.
+
+Each of those three fields is present and populated in the live response — see
+the §2 build table, which was read from this endpoint.
+
+**CDN staleness is a false-RED source, not a verdict.** A page fetched before
+that build completes — or shortly after it, from an edge cache — may still be
+the old body. A fetch whose markers match the §2 RED **after** the gate has
+passed must trigger a **re-fetch** (re-poll the builds endpoint, confirm the
+build identity again, and request the page again, ideally cache-busted), never a
+RED verdict. The §2 `sha256` is recorded precisely so T03 can recognise "I am
+being served the byte-identical pre-fix page" and distinguish it from a genuine
+post-merge failure.
+
+---
+
+## 5. Documented negative finding — build logs are NOT reachable unauthenticated
+
+Recorded so that no future reader builds a procedure around scraping the build
+log and then discovers it cannot work.
+
+`GET https://readthedocs.org/api/v3/projects/typsphinx/builds/34900405/`
+returns **HTTP 200** with a detail object whose complete top-level key set is:
+
+```
+_links, commit, created, duration, error, finished, id, project, state,
+success, urls, version
+```
+
+There is **no `commands` array and no `config` object**. The per-command
+transcript — the only place the `apt-get install … graphviz` line would appear —
+is therefore **not reachable unauthenticated** at that endpoint.
+
+**Consequence for this slice's method: the served page is the evidence.** The
+build log is a *contingency diagnostic only*, needing the RTD web UI or an
+authenticated token, and is not part of any assertion in §3 or §4. If §3 goes
+RED after §4's gate passes, the log is where a human looks next — it is not a
+step the procedure depends on.
+
+RTD v3 endpoints confirmed working **without** auth (all HTTP 200, measured):
+
+| Endpoint | Returns |
+|---|---|
+| `/api/v3/projects/typsphinx/` | project detail |
+| `/api/v3/projects/typsphinx/builds/?limit=N` | build list with `commit`, `state.code`, `success` |
+| `/api/v3/projects/typsphinx/builds/<id>/` | build detail **minus** `commands`/`config` |
+| `/api/v3/projects/typsphinx/versions/latest/` | `type=branch`, `identifier=main` |
+| `/api/v3/projects/typsphinx/versions/stable/` | `type=tag`, `ref=v0.9.7` |
+| `/api/v3/projects/typsphinx/translations/` | one result: `typsphinx-ja` (`ja`) |
+
+---
+
+## 6. What this evidence does NOT cover
+
+Stated plainly, matching S02's and S03's habit, so nothing here is read as more
+than it is.
+
+* **It is not an automated gate.** This is a one-off, human-initiated
+  measurement against a live external URL. **No test can assert a live URL** —
+  it would make the suite network-dependent and fail offline, in CI sandboxes,
+  and on any RTD outage. The regression protection for this defect lives in two
+  *offline* gates instead: `tests/test_readthedocs_config.py` (asserts
+  `graphviz` is in `.readthedocs.yaml`'s `build.apt_packages`, no build needed)
+  and `tests/test_graphviz_docs_gate.py` (asserts a local build renders the
+  diagram). This file covers the one thing neither can: that the deployed page
+  actually changed.
+* **English site only.** Every URL above is under `/en/`. The `ja` translation
+  (`typsphinx-ja`, confirmed as the project's single translation in §5) is **not**
+  measured here; **R022's disposition is T02's subject**, not this file's.
+* **One page.** `user_guide/diagrams.html` only. No claim is made about any
+  other published page.
+* **A point in time.** §2 is a snapshot of build 34900405; §3 will be a snapshot
+  of one post-merge build. Neither prevents a later regression — only the
+  offline gates above do that.
+* **Not a merge.** This task performed no merge, opened no PR, and measured no
+  post-merge page. §3 and §4 are unexecuted by construction.
+
+---
+
+## Failure Modes
+
+Every dependency here is **external and networked**, which is the whole risk
+surface of this slice. Enumerated with its failure path and the handling this
+procedure mandates.
+
+| Dependency | Failure mode | Failure path / handling |
+|---|---|---|
+| `https://typsphinx.readthedocs.io/…/diagrams.html` (the page) | timeout / connection loss | `curl -sS --max-time 45` bounds the wait; `curl` exits non-zero and the measurement is **inconclusive, not RED**. Retry; a network failure is never recorded as an assertion result. |
+| same | non-200 (404 / 5xx) | HTTP status is recorded as a first-class field (§2 records `200`). A 404 on `stable` is a *version artifact* (§1), not a defect — this is exactly why the target is pinned to `latest`. A 5xx is an RTD outage: re-fetch. |
+| same | **CDN-stale body (the dangerous one)** | Silently returns the pre-fix page and would be read as a genuine RED. §4 mandates: markers matching §2 after the readiness gate passed ⇒ **re-fetch, never a RED verdict**. The recorded `sha256` makes byte-identity with the pre-fix page detectable rather than guessable. |
+| `readthedocs.org/api/v3/.../builds/` (readiness gate) | timeout / connection loss | Polling simply has not satisfied the gate yet. The gate is a *precondition*, so failure to reach it **blocks** §3 rather than failing it. |
+| same | malformed / unexpected JSON shape | The gate reads three specific fields (`commit`, `state.code`, `success`). A missing or renamed field means the gate is **unproven**, which blocks §3. It must not be treated as satisfied by absence — a `KeyError` or a missing key is a block, not a pass. |
+| same | API schema change dropping `commands`/`config` further | Already the measured state (§5) and already designed around: no assertion depends on the build log. |
+| the PNG referenced by A2 | reference present but target 404 / non-PNG / truncated | This is the **false-GREEN** path. A2 explicitly requires fetch + HTTP 200 + `\x89PNG` magic + non-trivial size; a `src` string alone is insufficient (S02's rule). |
+| `tests/test_graphviz_docs_gate.py:136` `_visible_text` | helper moved/renamed, or T03 re-derives its own stripper | A3 names the helper and its two load-bearing properties (tag→space; unescape after strip) so a drifted or hand-rolled stripper is detectable by disagreement rather than silently producing a different answer. |
+
+Nothing in this task writes to the filesystem outside
+`docs/S04-PUBLISHED-SITE-EVIDENCE.md` and `/tmp` scratch, and no subprocess
+beyond `curl`/`git`/`python3` is involved.
+
+## Load Profile
+
+The runtime dimension is small but real: this procedure issues **unauthenticated
+polls to a third-party API**, so the resource that saturates first is
+**readthedocs.org's anonymous API rate limit**, not anything local.
+
+* **Expected load.** §2 used 1 page fetch + 1 build-list call + 1 build-detail
+  call + 2 version calls + 1 translations call + 1 project call. T03 adds a
+  readiness poll loop plus 1 page fetch plus 1 PNG fetch.
+* **10x breakpoint.** 10x arrives via the §4 **poll loop**, not via page
+  fetches: a tight loop against `/builds/` is the only unbounded term. At ~10x a
+  sane cadence, anonymous RTD requests risk HTTP 429 / throttling, which would
+  masquerade as "gate never satisfied".
+* **Protection applied.** The poll is bounded on three axes: `--max-time 45` per
+  request; `?limit=5` so each response is small and fixed-size rather than
+  paging the full 80-build history; and a **slow cadence matched to reality** —
+  RTD builds here take ~45s (build 34900405: created 14:21:40Z, finished
+  14:22:26Z), and a merge-triggered build takes minutes to even start, so the
+  correct interval is tens of seconds, not sub-second. T03 must also cap total
+  poll attempts and report "gate unsatisfied" rather than loop indefinitely.
+* **No local load dimension.** The artifact is a single markdown file; there is
+  no service, no concurrency, and no data growth.
+
+## Negative Tests
+
+This procedure's falsifiability does not rest on tests — no test can assert a
+live URL (§6) — so it is established by a measured negative and by named
+false-verdict paths that the assertions are explicitly written to exclude.
+
+* **The measured negative case is §2 itself.** The three A1–A3 markers were
+  observed at **0 / 0 / 1** on the real published page at a known commit. The
+  assertions are therefore known to *discriminate*: they are not vacuous
+  predicates that any page would satisfy. This is the same
+  "observe it RED before trusting it GREEN" discipline as S03, which forced its
+  gate RED before accepting its GREEN.
+* **False GREEN — `src` string without bytes.** A2 would pass on markup alone
+  while the image 404s. Excluded by requiring fetch + 200 + `\x89PNG` magic +
+  non-trivial size.
+* **False GREEN — `alt` attribute hiding the regression.** If `:alt:` were
+  removed, raw HTML would contain `digraph dogfood {` on a *correctly rendered*
+  page (`sphinx/ext/graphviz.py:384`). Excluded by making **visible text** the
+  primary claim (A3) and raw HTML only a secondary observation.
+* **False RED — CDN-stale page.** Excluded by §4's readiness gate plus the
+  mandated re-fetch, with §2's `sha256` as the byte-identity check.
+* **False RED — wrong version target.** `GET /en/stable/…/diagrams.html` → **404**,
+  measured. Excluded by pinning `latest` and recording *why* (§1), so a future
+  reader cannot reintroduce the `stable` 404 as a finding.
+* **False RED — build not yet finished.** A page fetched between merge and
+  rebuild is legitimately old. Excluded by §4 requiring
+  `state.code == "finished"` **and** `success == true` **and** a matching
+  `commit` before §3 runs at all.
+* **Boundary — `success: true` on a broken page.** Build 34900405 is
+  `success: true` *and* serves the defect (§2), because upstream fails open.
+  This is why A1–A3 assert on the **served page** and never on build status;
+  build success is a precondition, never evidence of the fix.
+* **Existing offline coverage, for completeness.** The regression-protecting
+  negative tests live in `tests/test_graphviz_docs_gate.py` (S03 drove its
+  `TestDogfoodedDiagramHTMLBuild` class RED by removing `dot` from `PATH`) and
+  `tests/test_readthedocs_config.py` (asserts the `apt_packages` entry whose
+  absence on `main` is the measured root cause in §2).
