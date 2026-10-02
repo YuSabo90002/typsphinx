@@ -1,0 +1,41 @@
+% Three entries with pairwise clearly-distinct title strings, so S05's
+% "appears exactly once" count for one entry can never be satisfied by
+% another. The first two are copied verbatim from
+% tests/fixtures/bibtex_citation_render_gate's refs.bib on purpose: their
+% labels and formatted bodies are already measured, so this fixture inherits
+% known-good expectations.
+%
+% Smith2020 is cited exactly once, from chapter_one.rst, via a parenthetical
+% cite:p site. Tanaka2019 is cited exactly once, from chapter_two.rst, via a
+% textual cite:t site. One key per chapter document is what makes
+% cross-document resolution measurable per citing document: each chapter's
+% emitted .typ must carry exactly one query() for its own key's anchor, and
+% that anchor must match a grid row label in refs.typ -- a DIFFERENT document.
+%
+% Nobody2021 must NEVER be cited anywhere in this fixture. It is the UNCITED
+% subject of the uncited-entry assertion: per MEM006 a bare
+% ".. bibliography::" renders ONLY cited entries, so "An intentionally
+% uncited item" must have count 0 in every emitted .typ and in the compiled
+% PDF. Citing it would turn that assertion into a silent no-op. If a later
+% slice needs a third CITED entry, append a fourth rather than citing this
+% one.
+
+@article{Smith2020,
+    author  = "John Smith",
+    title   = "A study of things",
+    journal = "J",
+    year    = "2020"
+}
+
+@book{Tanaka2019,
+    author    = "Taro Tanaka",
+    title     = "Another work entirely",
+    publisher = "Pub",
+    year      = "2019"
+}
+
+@misc{Nobody2021,
+    author = "Hanako Yamada",
+    title  = "An intentionally uncited item",
+    year   = "2021"
+}

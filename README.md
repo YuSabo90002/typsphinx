@@ -31,6 +31,7 @@ typsphinx is a Sphinx extension that enables generating Typst documents from reS
 - **Customizable templates**: Use default or custom Typst templates
 - **Direct PDF generation**: Self-contained PDF generation via typst-py (no external Typst CLI required)
 - **Multi-document support**: Generate multiple Typst files with toctree integration using `#include()`
+- **Bibliographies and citations**: Plain `[Ref]_` reStructuredText citations render directly. For BibTeX, install and enable [sphinxcontrib-bibtex](https://pypi.org/project/sphinxcontrib-bibtex/) yourself — typsphinx does not depend on it and needs no bibliography-specific configuration, because its resolved `:cite:` and `.. bibliography::` nodes are ordinary docutils nodes the existing visitors already handle. Citation and bibliography style is therefore owned by pybtex, the formatter sphinxcontrib-bibtex drives; Typst's own `#bibliography()`/`#cite()` and its CSL styles are not used. See [docs/source/user_guide/bibliography.rst](docs/source/user_guide/bibliography.rst) for the required setup and the constraints that follow from this design.
 
 ## Requirements
 
@@ -286,11 +287,6 @@ typsphinx/
 ├── examples/               # Example projects
 └── pyproject.toml          # Project configuration
 ```
-
-## Known Limitations
-
-- **Bibliography**: BibTeX integration not yet supported
-- **Citations**: reStructuredText citation directives are not yet supported
 
 ## Documentation
 

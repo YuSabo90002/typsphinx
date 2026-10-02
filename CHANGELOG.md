@@ -7,8 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **BibTeX bibliographies and citations render in Typst and in the compiled PDF
+  (R001-R010).** Installing and enabling
+  [sphinxcontrib-bibtex](https://pypi.org/project/sphinxcontrib-bibtex/) yourself is the
+  whole setup — no typsphinx configuration value is involved, because typsphinx carries
+  **zero** bibliography-specific code (`grep -rc bibtex typsphinx/` totals 0). By the
+  time a document reaches the Typst translator, sphinxcontrib-bibtex has already turned
+  every `:cite:` role and `.. bibliography::` directive into ordinary docutils citation,
+  reference and inline nodes that the existing generic visitors handle. Supported
+  citing forms are parenthetical `:cite:p:`, textual `:cite:t:`, multi-key
+  `:cite:p:`A,B``, and footnote-style `:footcite:` with `.. footbibliography::`;
+  entry lists come from `.. bibliography::`, including several independent ones in one
+  project and a single list serving citing sites across documents, with label links
+  resolving across Typst `#include()` boundaries and across page breaks in the PDF.
+  The typst, latex and html builders agree exactly on keys, labels, entry bodies and
+  ordering from the same sources.
+- **A user-guide page documenting bibliography setup and its real constraints
+  (R013).** `docs/source/user_guide/bibliography.rst` states the required `conf.py`
+  setup, every supported citing form, and the three constraints a user can actually
+  trip: entries appear once **per reference list**, not once per document (an entry
+  owned by two `.. bibliography::` directives legitimately renders twice); a
+  `:filter:` expression must put the key string on the left, and degrades
+  **silently** rather than erroring if it does not; and `:keyprefix:` is
+  load-bearing for anchor uniqueness when two bibliographies render the same key.
+  It also states the ownership boundary plainly: citation labels and entry bodies
+  come from pybtex, selected through sphinxcontrib-bibtex's `bibtex_default_style`,
+  and Typst's own `#bibliography()`/`#cite()` are deliberately not used — so Typst's
+  CSL styles are unavailable and a `.csl` file has no effect on typsphinx output.
+
+### Changed
+
+- **`README.md` no longer lists bibliography and reStructuredText citation support as
+  known limitations.** Both claims were false as shipped — plain `[Ref]_` citations have
+  rendered since 0.7.0 — and the README now describes the measured behaviour in its
+  feature list with a pointer to the new user-guide page.
+
 ### Planned for Future Releases
-- BibTeX/bibliography support
 - Glossary generation
 - Index generation
 - Pre-commit hooks

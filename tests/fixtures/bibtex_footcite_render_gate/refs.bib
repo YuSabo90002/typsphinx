@@ -1,0 +1,44 @@
+% Three entries with pairwise clearly-distinct title strings, so S03's
+% "appears exactly once" count for one entry can never be satisfied by
+% another. Copied verbatim from tests/fixtures/bibtex_citation_render_gate's
+% refs.bib on purpose: those three entries' labels and formatted bodies are
+% already measured, so this fixture inherits known-good expectations.
+%
+% Measured formatting from these entries: Smith2020 -> "John Smith. A study of
+% things. J, 2020."; Tanaka2019 -> "Taro Tanaka. Another work entirely. Pub,
+% 2019." Measured footnote labels emitted by typsphinx for the footcite sites
+% below: <index:fn-footcite-smith2020> and <index:fn-footcite-tanaka2019>.
+%
+% Smith2020 and Tanaka2019 are the two FOOTCITED entries. Smith2020 is cited
+% TWICE (a first site and a repeat site) so the definition/reuse footnote
+% form pair has a real subject.
+%
+% Nobody2021 must NEVER be cited in this fixture. It is the UNCITED subject
+% that keeps two S03 assertions from degrading into no-ops: the zero-count of
+% an uncited title in the compiled PDF, and the pin that the translator's
+% documented silent-drop of an unreferenced footnote definition (D-09,
+% translator.py visit_footnote) is structurally UNREACHABLE via
+% footbibliography -- upstream omits uncited entries before populating the
+% container, so typsphinx never receives one to drop. If a later slice needs
+% a third CITED entry, append a fourth rather than citing this one.
+
+@article{Smith2020,
+    author  = "John Smith",
+    title   = "A study of things",
+    journal = "J",
+    year    = "2020"
+}
+
+@book{Tanaka2019,
+    author    = "Taro Tanaka",
+    title     = "Another work entirely",
+    publisher = "Pub",
+    year      = "2019"
+}
+
+@inproceedings{Nobody2021,
+    author    = "Hanako Yamada",
+    title     = "An intentionally uncited proceedings paper",
+    booktitle = "Proc",
+    year      = "2021"
+}

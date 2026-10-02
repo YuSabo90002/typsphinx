@@ -1,0 +1,40 @@
+% Two entries with distinct authors AND clearly distinct title strings, so a
+% later slice's "appears exactly once" count for one entry can never be
+% satisfied by the other. S02 reuses BOTH of them unrewritten for its multi-key
+% and textual (:cite:t:) forms -- add entries here rather than rewriting these
+% two.
+%
+% Measured labels/formatting from these entries: Smith2020 -> label "Smi20",
+% formatted as "John Smith. A study of things. J, 2020."; Tanaka2019 ->
+% label "Tan19".
+%
+% S02 APPENDED a THIRD entry, Nobody2021, which no citing site names and which
+% must STAY uncited. S02 cites both entries above, which would have emptied the
+% uncited set and silently turned
+% tests/test_bibtex_citation_render_gate.py::test_uncited_entries_render_no_row
+% into a no-op -- that test pins MEM006 (a bare ".. bibliography:: " renders
+% ONLY cited entries), so it needs a real uncited subject. Its title is
+% deliberately unlike the other two so a count for one entry can never be
+% satisfied by another. Do NOT cite it; if a later slice needs a third CITED
+% entry, append a fourth rather than citing this one.
+
+@article{Smith2020,
+    author  = "John Smith",
+    title   = "A study of things",
+    journal = "J",
+    year    = "2020"
+}
+
+@book{Tanaka2019,
+    author    = "Taro Tanaka",
+    title     = "Another work entirely",
+    publisher = "Pub",
+    year      = "2019"
+}
+
+@inproceedings{Nobody2021,
+    author    = "Hanako Yamada",
+    title     = "An intentionally uncited proceedings paper",
+    booktitle = "Proc",
+    year      = "2021"
+}

@@ -45,6 +45,12 @@ dev = [
     "build>=1.0",
     "pypdf>=6.14,<7",
     "pillow>=12.3,<13",  # D-07: ADM-04 greyscale render (Image.convert), dev-only
+    # R012/MEM003: bibliography support activates only when the user installs and
+    # enables sphinxcontrib-bibtex themselves. Dev-only so users who write no
+    # bibliographies never carry pybtex and its tree; deliberately NOT a runtime
+    # dependency and NOT a [bibtex] optional extra. Gated by
+    # tests/test_bibtex_dependency_gate.py.
+    "sphinxcontrib-bibtex>=2.7,<3",
 ]
 docs = [
     "furo>=2024.0",

@@ -11,6 +11,7 @@ This section provides comprehensive documentation on using typsphinx.
    templates
    output_layout
    diagrams
+   bibliography
 
 Overview
 --------
@@ -40,3 +41,6 @@ Main Topics
 
 :doc:`diagrams`
    Render Graphviz DOT diagrams into Typst and PDF output without a dot binary
+
+:doc:`bibliography`
+   Cite sources and render reference lists via sphinxcontrib-bibtex

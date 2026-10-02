@@ -1,0 +1,62 @@
+% FOUR entries with PAIRWISE-DISTINCT title strings, so S06's "appears exactly
+% once" count for one entry can never be satisfied by another entry's text. The
+% first two are copied verbatim from
+% tests/fixtures/bibtex_citation_render_gate's refs.bib on purpose: their
+% labels and formatted bodies are already measured, so this fixture inherits
+% known-good expectations for them.
+%
+% Route ownership -- which key proves which part of the full-form surface:
+%
+%   Smith2020  -- cited from chapter_one parenthetically, and again inside the
+%                 multi-key site there. Rendered by the corpus-wide bare
+%                 bibliography in refs.rst.
+%   Tanaka2019 -- cited from chapter_one textually, again inside chapter_one's
+%                 multi-key site, and once more parenthetically from
+%                 chapter_two. It is also the sole subject of chapter_two's
+%                 filtered chapter-local bibliography, which is what makes the
+%                 two-bibliography coexistence measurable on a real key.
+%   Foot2018   -- the FOOTNOTE route, and nothing else. It is cited twice from
+%                 chapter_one, both times via the footnote citing role: the
+%                 first site emits the definition footnote form, the second the
+%                 bare reuse form. It is therefore rendered by
+%                 footbibliography, never by either grid.
+%   Nobody2021 -- PERMANENTLY UNCITED. See below.
+%
+% Nobody2021 must NEVER be cited anywhere in this fixture, and must never be
+% named by any :filter: expression. It is the negative control that keeps every
+% exactly-once count non-vacuous: per MEM006 a bare or filtered
+% ".. bibliography::" renders ONLY cited entries, so "An intentionally uncited
+% note" must have count 0 in every emitted .typ and in the compiled PDF. If
+% that count ever became non-zero it would mean a bibliography started
+% rendering uncited entries, which would silently inflate -- and thereby
+% invalidate -- the exactly-once counts for the three cited keys. Citing it, or
+% adding it to a filter, or adding an :all: option to any directive here, would
+% turn the whole census into a no-op. If a later slice needs another CITED
+% entry, append a fifth rather than citing this one.
+
+@article{Smith2020,
+    author  = "John Smith",
+    title   = "A study of things",
+    journal = "J",
+    year    = "2020"
+}
+
+@book{Tanaka2019,
+    author    = "Taro Tanaka",
+    title     = "Another work entirely",
+    publisher = "Pub",
+    year      = "2019"
+}
+
+@inproceedings{Foot2018,
+    author    = "Ichiro Suzuki",
+    title     = "A footnoted proceeding",
+    booktitle = "Proc",
+    year      = "2018"
+}
+
+@misc{Nobody2021,
+    author = "Hanako Yamada",
+    title  = "An intentionally uncited note",
+    year   = "2021"
+}

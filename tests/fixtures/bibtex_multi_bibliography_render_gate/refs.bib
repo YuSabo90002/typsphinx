@@ -1,0 +1,42 @@
+% Three entries with pairwise clearly-distinct title strings, so S04's
+% "appears exactly once" count for one entry can never be satisfied by
+% another. The first two are copied verbatim from
+% tests/fixtures/bibtex_citation_render_gate's refs.bib on purpose: their
+% labels and formatted bodies are already measured, so this fixture inherits
+% known-good expectations.
+%
+% Smith2020 is cited in Chapter One and is the sole subject of Chapter One's
+% filtered bibliography. Tanaka2019 is cited in Chapter Two and is the sole
+% subject of Chapter Two's filtered bibliography. That one-key-per-chapter
+% split is what makes "two independent grids, each holding exactly its own
+% entry" measurable: a leaked entry shows up as an extra distinct title
+% inside the wrong grid.
+%
+% Nobody2021 must NEVER be cited in this fixture, and must never be named by
+% either :filter: expression. It is the UNCITED subject of the
+% uncited-entry assertion: per MEM006 a bare or filtered ".. bibliography::"
+% renders ONLY cited entries, so "An intentionally uncited" must have count 0
+% in the emitted .typ and in the compiled PDF. Citing it -- or adding it to a
+% filter -- would turn that assertion into a silent no-op. If a later slice
+% needs a third CITED entry, append a fourth rather than citing this one.
+
+@article{Smith2020,
+    author  = "John Smith",
+    title   = "A study of things",
+    journal = "J",
+    year    = "2020"
+}
+
+@book{Tanaka2019,
+    author    = "Taro Tanaka",
+    title     = "Another work entirely",
+    publisher = "Pub",
+    year      = "2019"
+}
+
+@inproceedings{Nobody2021,
+    author    = "Hanako Yamada",
+    title     = "An intentionally uncited proceedings paper",
+    booktitle = "Proc",
+    year      = "2021"
+}
