@@ -185,9 +185,152 @@ acceptance. T02 does **not** show that `sphinx.ext.graphviz` actually invoked it
 that the diagrams page changed, or that the warning baseline moved off one. Those
 are T03's clean-build measurements, in the GREEN column below.
 
-## GREEN column
+## T03 — GREEN column: the clean `docs-html` rebuild
 
-Pending T03. T02 is **done**: `pkgs.graphviz` is provisioned in the flake devShell
-and `dot` is proven to execute and render a real PNG inside the sandbox after a
-reload (see the T02 section above). T03 reruns the clean `docs-html` build and
-fills the after-column of every RED row above.
+### Route used
+
+`tox -e docs-html` itself — the command the success criteria name — not the direct
+`sphinx-build` fallback. It provisioned and ran in this worktree without trouble
+(`docs-html: OK`, `runner = uv-venv-lock-runner`, `extras = docs`, `changedir = docs`).
+As in T02, the reloaded devShell was entered explicitly, because `direnv` never loads
+inside a git worktree:
+
+```
+nix develop --no-write-lock-file ./.#default --command bash -c 'tox -e docs-html'
+```
+
+`dot` resolved inside that invocation to the same store path T02 measured —
+`/nix/store/d5nx177j7n96jmd38x9fpankrpkp5szj-graphviz-12.2.1/bin/dot`,
+`dot - graphviz version 12.2.1 (0)`. `rm -rf docs/_build` ran before **every** build
+below; no measurement here is an incremental rebuild.
+
+### Before / after
+
+| Assertion | RED (T01) | GREEN (T03) |
+|---|---|---|
+| literal `digraph dogfood {` in `diagrams.html` | **present** (1 match) — the reported symptom | **absent** (0 matches) |
+| `digraph dogfood` as *visible page text* (tags stripped) | present | **0 matches** |
+| `class="graphviz"` wrapper | **absent** (0) | **present** (2 — the `div` and the `img` class) |
+| `<img src="…graphviz-<40-hex-sha1>.png">` | **absent** (0) | **present** (1) |
+| referenced PNG exists on disk, non-empty | **no** (0 `graphviz-*` files emitted) | **yes** — see below |
+| diagram emitted as inline `<svg>` or `<object>` | n/a | **no** — 0 `<object>`; `graphviz_output_format` default `png` holds |
+| clean-build `^WARNING:` count, host locale | **1** (the `dot` warning) | **0** |
+| clean-build `^WARNING:` count, `LC_ALL=C LANG=C` | **1** (the `dot` warning) | **0** |
+| strict `-W` clean build | would fail (1 warning) | **exits 0** under both locales |
+| `git diff --stat -- typsphinx/` | empty | **empty** — Typst route untouched |
+| `diagrams.html` size | 29261 bytes | 29381 bytes |
+
+The rendered PNG, resolved from the page's `src` and `stat`ed on disk rather than trusted
+as a string:
+
+| Field | Value |
+|---|---|
+| `src` on the page | `../_images/graphviz-9d601b680ab94eac1febdc364a0d914f474368d3.png` |
+| resolved path | `docs/_build/html/_images/graphviz-9d601b680ab94eac1febdc364a0d914f474368d3.png` |
+| size | **11608 bytes** (non-empty) |
+| `file` output | `PNG image data, 220 x 155, 8-bit/color RGBA, non-interlaced` |
+| sibling emitted | `…png.map`, 41 bytes (the imagemap `dot` also produced) |
+
+The GREEN markup, `docs/_build/html/user_guide/diagrams.html:278` — the `graphviz`
+wrapper div and a real `img` now sit where the bare DOT source used to:
+
+```html
+<div class="graphviz"><img src="../_images/graphviz-9d601b680ab94eac1febdc364a0d914f474368d3.png" alt="Directed graph with two nodes, Vorthaneglim pointing to Pellucidrane." class="graphviz" /></div>
+```
+
+A caution for whoever reads the `<svg` count: `grep -c '<svg' diagrams.html` returns **27**
+on the GREEN page, and none of those are the diagram. They are furo's theme chrome (nav and
+admonition icons). The diagram's own output format is proven `png` by the `<img>` tag above
+and by the file on disk, not by that count.
+
+### Which warning route closed — the strict `-W` one
+
+Per MEM073 the strict route was preferred over grepping a localised log, and it is the one
+that closed: a clean `-W` build **exits 0**, which proves zero warnings independent of
+message language. The log-grep route is recorded alongside it and agrees.
+
+| Route | Locale | Command | Exit | `^WARNING:` | of which `dot` |
+|---|---|---|---|---|---|
+| strict | host (`ja_JP.UTF-8`) | `sphinx-build -W -b html source _build/html` | **0** | 0 | 0 |
+| strict | `LC_ALL=C LANG=C` | `sphinx-build -W -b html source _build/html` | **0** | 0 | 0 |
+| log grep | host (`ja_JP.UTF-8`) | `tox -e docs-html` | 0 | **0** (was 1) | 0 (was 1) |
+
+No unrelated pre-existing warning surfaced under `-W`, so the honest fallback the plan
+allows for was not needed. The MEM075 clean-build baseline for this tree therefore moves
+from **exactly one** `dot` warning to **zero**, which is what makes a future regression of
+this class detectable by a `-W` build instead of requiring someone to notice a missing
+image on a published page.
+
+### Deviation: the raw DOT text needed a `:alt:` to actually leave the page
+
+This is the one unplanned change in T03, and it is recorded here rather than folded away,
+because the mechanism is not obvious and S03's gate has to be written against it.
+
+The first GREEN build rendered the img correctly **and still matched
+`grep 'digraph dogfood {'`**. Measured cause, in the installed extension at
+`sphinx/ext/graphviz.py:384`:
+
+```python
+alt = node.get('alt', self.encode(code).strip())
+```
+
+With no `:alt:` option, upstream uses the **DOT source itself** as the img's `alt`
+attribute. So the literal string survived — but only as an attribute. Measured on that
+build: `digraph dogfood` matched **1** time in the raw HTML and **0** times in the
+tag-stripped visible text. The user-visible defect was already fixed at that point; the
+grep marker was not.
+
+The milestone success criteria require that marker to be *independently absent*, so
+`docs/source/user_guide/diagrams.rst` now passes an explicit `:alt:` on the dogfood
+directive:
+
+```rst
+.. graphviz::
+   :caption: Thessomantic dogfood pipeline
+   :alt: Directed graph with two nodes, Vorthaneglim pointing to Pellucidrane.
+```
+
+Three things make this a fix rather than teaching to the test. It is the upstream-supported
+option (`option_spec` line 122). The diagrams page's own prose *already* advertises `:alt:`
+as supported, and `tests/test_graphviz_docs_gate.py::test_page_documents_the_supported_options`
+already asserts that — so the dogfood diagram was the one place not practising what the page
+documents. And it is the correct accessibility behaviour: a screen reader previously read
+raw DOT syntax aloud. The DOT body in the directive is untouched, so the diagram, its
+caption, and its node labels are unchanged — the PNG's sha1
+(`9d601b68…`) is **byte-identical before and after** the `:alt:` addition, confirming `alt`
+is not an input to the render.
+
+**Note for S03.** The gate has two defensible assertions available, and they are not
+equivalent. Asserting `digraph dogfood {` is absent from the raw HTML is what the current
+tree satisfies, but it is only true because of the `:alt:` above and would regress if
+anyone removed that option. Asserting it is absent from the *tag-stripped visible text* is
+the more robust statement of the actual defect and holds with or without `:alt:`. Prefer
+the latter, or assert both.
+
+### Controls held in T03
+
+| Control | Method | Result |
+|---|---|---|
+| `typsphinx/` untouched | `git diff --stat -- typsphinx/ \| wc -l` | **0** |
+| no test file added or modified | `git diff --stat -- tests/ \| wc -l` | **0** |
+| existing `typstpdf` gate not broken by the rst edit | `pytest tests/test_graphviz_docs_gate.py -q` | **14 passed** |
+| `@preview` versions untouched | not in the diff | `writer.py`, `template_engine.py`, `templates/base.typ` all unchanged |
+| T03's whole diff surface | `git diff --name-only` | `docs/source/user_guide/diagrams.rst` only |
+
+### What this evidence does NOT cover
+
+Stated plainly so nothing here is read as more than it is:
+
+- **The published RTD page (S04).** Everything above is a *local* build on the maintainer's
+  NixOS machine. The `.readthedocs.yaml` `build.apt_packages` half of R021 is a separate
+  provisioning route, and the published page only changes after merge plus an RTD rebuild.
+  Nothing in T03 touched or observed readthedocs.org.
+- **The encoded HTML artifact gate (S03).** T03 asserted the GREEN shape with ad-hoc
+  commands recorded in this file. No test encodes it yet, so this measurement is not
+  regression-protected; that is S03's deliverable, and the note above tells it which
+  assertion to pick.
+- **The ja translated site (R022).** Deferred. The build above ran with the host
+  `LANG=ja_JP.UTF-8` only to probe warning localisation; it emitted the **English**
+  (`code: en`) site. The ja catalogue was never built or inspected.
+- **CI.** The flake devShell is a maintainer-machine concern; CI has no shims and does not
+  build docs through this route.
