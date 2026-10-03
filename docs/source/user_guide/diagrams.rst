@@ -7,6 +7,7 @@ generated PDF.
 
 .. graphviz::
    :caption: Thessomantic dogfood pipeline
+   :alt: Directed graph with two nodes, Vorthaneglim pointing to Pellucidrane.
 
    digraph dogfood {
        "Vorthaneglim" -> "Pellucidrane";

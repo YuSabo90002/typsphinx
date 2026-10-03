@@ -31,22 +31,58 @@ MEASURED (dependency guard), and why Class 2 skips rather than fails: the
 ``py312``/``py313``/``cov`` tox lanes provision ``extras = dev``, which does NOT
 contain ``myst-parser``, ``sphinx-autodoc-typehints`` or ``furo`` -- those live
 in the separate ``docs`` extra. ``docs/source/conf.py`` loads the first two as
-Sphinx extensions, so a real docs build under a dev-only environment aborts with
-``ExtensionError: Could not import extension sphinx_autodoc_typehints`` and
-``rc=2`` before reaching any typsphinx code. Class 2 therefore skips when the
-docs extras are absent, so it never reddens for a provisioning reason unrelated
-to the feature under test. Class 1 carries no such dependency and runs in EVERY
-lane -- it is the always-on, CI-enforced half of this gate.
+Sphinx extensions and names ``furo`` as its HTML theme, so a real docs build
+under a dev-only environment aborts with ``ExtensionError: Could not import
+extension sphinx_autodoc_typehints`` and ``rc=2`` before reaching any typsphinx
+code. Both build classes below therefore skip when the docs extras are absent,
+so neither reddens for a provisioning reason unrelated to the feature under
+test. Class 1 carries no such dependency and runs in EVERY lane -- it is the
+always-on, CI-enforced prose half of this gate.
 
-HTML (D014): this module deliberately asserts NOTHING about the HTML build. Had
-it, the only safe assertion would be ``returncode == 0``; a zero-warning
-assertion would be wrong, because ``dot command 'dot' cannot be run`` is EXPECTED
-on any machine without Graphviz installed -- which is the very contrast the
-diagrams page exists to explain. The HTML build additionally needs ``furo`` from
-the same absent ``docs`` extra, so it is left to ``tox -e docs-html``.
+MEASURED (the second guard, Class 3 only): ``shutil.which("dot")`` is ``None``
+in the ambient shell and resolves to a real Graphviz binary inside the project's
+nix devShell. The ``sys.executable -m sphinx`` child inherits this process's
+PATH, so ``which`` here and the child always agree -- which is what makes the
+guard sound rather than a guess about the subprocess's environment.
+
+RETRACTED (D014, superseded by M002/S03): this docstring previously claimed that
+the module asserted nothing whatsoever about the HTML build, and that the HTML
+build was left entirely to ``tox -e docs-html``. Both halves of that claim are
+now FALSE and are withdrawn rather than quietly rewritten -- the old wording is
+paraphrased here, not quoted, so that a ``grep`` for it finds no surviving
+occurrence. ``TestDogfoodedDiagramHTMLBuild`` (Class 3 below)
+runs a real ``-b html`` build of this docs tree and asserts the dogfooded
+diagram reaches the page as a real ``<img>`` backed by an on-disk PNG.
+
+Why the old reasoning no longer holds: it rested on ``dot command 'dot' cannot
+be run`` being EXPECTED on any machine without Graphviz, which made declining to
+assert look like the only sound option. M002 changed that premise on both
+machines that matter -- ``dot`` is provisioned in the Read the Docs container
+(S01: ``graphviz`` in ``.readthedocs.yaml``'s ``build.apt_packages``, gated by
+``tests/test_readthedocs_config.py``) and in the project's nix devShell (S02:
+``pkgs.graphviz``) -- and where it is still absent, Class 3 SKIPS on
+``shutil.which("dot") is None``. The "expected warning" objection is therefore
+discharged by a skip, not by withholding the assertion. Consistent with that,
+Class 3 makes no warning-count or warning-text claim at all; ``returncode == 0``
+remains its only build-outcome claim.
+
+The old note's ``furo`` observation is still TRUE and is handled, not dropped:
+``-b html`` does need ``furo`` from the ``docs`` extra, which is why
+``_DOCS_EXTRA_MODULES`` covers it alongside the two Sphinx extensions (see the
+dependency-guard note above) -- one guard for all build classes here.
+
+Stated plainly, and unchanged by this retraction: GitHub Actions'
+``ubuntu-latest`` PREINSTALLS ``dot``, so Class 3 would have PASSED throughout
+the entire original defect, whose cause was a missing Graphviz on the *Read the
+Docs* builder. Class 3 guards docs-SOURCE regression; the
+environment-independent half of the detection is the S01 configuration gate in
+``tests/test_readthedocs_config.py``, which needs no build at all.
 """
 
+import html as html_mod
 import importlib.util
+import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -69,9 +105,62 @@ DOCS_CONF_PY_PATH = DOCS_SOURCE_DIR / "conf.py"
 NODE_LABEL_SENTINELS = ("Vorthaneglim", "Pellucidrane")
 CAPTION_SENTINEL = "Thessomantic dogfood pipeline"
 
-# Sphinx extensions the real docs build imports that are NOT in the `dev`
-# extra -- see the dependency-guard note in the module docstring.
-_DOCS_EXTRA_MODULES = ("myst_parser", "sphinx_autodoc_typehints")
+# Sphinx extensions and the HTML theme the real docs builds import that are
+# NOT in the `dev` extra -- see the dependency-guard note in the module
+# docstring. `furo` is reached only by `-b html`, but it is guarded in the
+# SHARED tuple rather than separately because all three ship in the same
+# `docs` extra: there is no environment that has two of them and not the
+# third, so one check covers every build class here.
+_DOCS_EXTRA_MODULES = ("myst_parser", "sphinx_autodoc_typehints", "furo")
+
+# The rendered diagram's `<img src>` in the built HTML, matched by REGEX and
+# never by a hard-coded digest. Upstream names the file after a sha1 of the
+# DOT source plus its options, so the digest is deterministic for a given
+# diagram (MEASURED: graphviz-9d601b680ab94eac1febdc364a0d914f474368d3.png)
+# but changes the moment the DOT body is edited -- a literal would turn an
+# ordinary diagram edit into a mysterious gate failure.
+GRAPHVIZ_PNG_SRC_RE = re.compile(r'src="([^"]*graphviz-[0-9a-f]{40}\.png)"')
+
+
+# The raw DOT marker: the opening line of the dogfood diagram's own source,
+# and the exact RED shape measured 2026-10-02 -- on a machine with no `dot`
+# binary this string is served to the reader as page TEXT instead of a
+# rendered image. Read as a literal rather than from diagrams.rst because the
+# assertions below are about this one line, not about the whole DOT body.
+DOT_SOURCE_MARKER = "digraph dogfood {"
+
+# Any HTML tag, used to reduce a built page to its visible text.
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def _visible_text(markup: str) -> str:
+    """
+    Reduce HTML markup to roughly what a reader SEES: drop every tag, then
+    resolve character entities.
+
+    The parameter is ``markup``, not ``html``, so the stdlib ``html`` module
+    (imported here as ``html_mod``) is not shadowed.
+
+    A regex strip is deliberate and sufficient -- neither BeautifulSoup nor
+    lxml is a dependency of this project, and a regex is exactly what was
+    measured when the RED/GREEN contrast was established by hand.
+
+    Two ordering properties are load-bearing:
+
+    * **Unescape AFTER stripping, never before.** Entities that live inside
+      attribute values would otherwise be decoded while still inside a tag
+      and then survive the strip as apparent text.
+    * **Each tag becomes a SPACE, not the empty string**, so two words
+      separated only by a tag boundary do not fuse into one token and
+      invent a match (or hide one) that the reader never sees.
+
+    The property the absence assertions below actually depend on: because the
+    whole ``<img ...>`` tag goes, the text of its ``alt`` attribute goes with
+    it. That matters concretely here -- the dogfood diagram's ``:alt:`` text
+    names both node labels, so ``Vorthaneglim`` IS in the raw markup of a
+    correctly-rendered page and is NOT in its visible text.
+    """
+    return html_mod.unescape(_HTML_TAG_RE.sub(" ", markup))
 
 
 def _docs_extras_available() -> bool:
@@ -122,13 +211,58 @@ def docs_typstpdf_build(tmp_path_factory):
     """
     if not _docs_extras_available():
         pytest.skip(
-            "docs extras absent (myst-parser / sphinx-autodoc-typehints): the "
-            "real docs build aborts with ExtensionError before reaching any "
-            "typsphinx code -- install the `docs` extra to run this class."
+            "docs extras absent (myst-parser / sphinx-autodoc-typehints / "
+            "furo): the real docs build aborts with ExtensionError before "
+            "reaching any typsphinx code -- install the `docs` extra to run "
+            "this class."
         )
 
     build_dir = tmp_path_factory.mktemp("docs_typstpdf_build")
     result = _run_sphinx_build(DOCS_SOURCE_DIR, build_dir, "typstpdf")
+    return result, build_dir
+
+
+@pytest.fixture(scope="module")
+def docs_html_build(tmp_path_factory):
+    """
+    Build typsphinx's REAL docs tree once with ``-b html`` and hand the
+    completed process and output directory to every test in Class 3.
+
+    Module-scoped for DETERMINISM, not cost. Every assertion in Class 3 reads
+    the SAME artifacts -- one ``diagrams.html`` and the one
+    ``graphviz-<sha1>.png`` it points at -- so a per-test rebuild would let
+    two assertions disagree about the page they are describing. MEASURED: a
+    clean build (fresh outdir, fresh doctrees) takes ~2s, roughly two orders
+    of magnitude cheaper than the sibling 144-page ``typstpdf`` build, so that
+    fixture's "because it is slow" rationale does NOT transfer here.
+
+    Skips, never fails, on either missing prerequisite:
+
+    * the docs extras, exactly as Class 2 does; and
+    * a real ``dot`` binary. ``sphinx.ext.graphviz`` shells out to it, so
+      without it the page carries a warning placeholder instead of a PNG and
+      this class would redden for a provisioning reason unrelated to the
+      feature -- which is the very missing-Graphviz contrast the diagrams page
+      exists to explain. See the module docstring for why checking ``which``
+      in this process is sound for the subprocess.
+    """
+    if not _docs_extras_available():
+        pytest.skip(
+            "docs extras absent (myst-parser / sphinx-autodoc-typehints / "
+            "furo): the real docs build aborts with ExtensionError before "
+            "reaching any typsphinx code -- install the `docs` extra to run "
+            "this class."
+        )
+    if shutil.which("dot") is None:
+        pytest.skip(
+            "no `dot` binary on PATH: sphinx.ext.graphviz cannot rasterise "
+            "the dogfood diagram, so the built page would carry a warning "
+            "placeholder rather than a PNG -- install Graphviz (or enter the "
+            "project's nix devShell) to run this class."
+        )
+
+    build_dir = tmp_path_factory.mktemp("docs_html_build")
+    result = _run_sphinx_build(DOCS_SOURCE_DIR, build_dir, "html")
     return result, build_dir
 
 
@@ -411,3 +545,195 @@ class TestDogfoodedDiagramBuild:
             f"Expected the dogfood diagram's caption {CAPTION_SENTINEL!r} in "
             f"the built PDF -- the figure caption did not render."
         )
+
+
+class TestDogfoodedDiagramHTMLBuild:
+    """
+    R011: a real ``-b html`` build of typsphinx's OWN docs tree, proving the
+    dogfooded diagram reaches the published HTML page as a real ``<img>``
+    backed by an on-disk PNG -- the HTML counterpart to Class 2's PDF proof.
+
+    S02 established this by hand; this class is what makes it durable, so a
+    docs-source regression on that page cannot ship silently.
+
+    Two things this class deliberately does NOT assert, both MEASURED:
+
+    * **No warning count and no warning text.** Warning-based gating here is
+      brittle and locale-dependent -- the build's own summary line is
+      localised (``HTMLページは ... にあります。`` under a Japanese-locale
+      shell). ``returncode == 0`` is the only build-outcome claim made.
+    * **No node-label sentinel.** ``NODE_LABEL_SENTINELS`` has INVERTED
+      polarity in HTML: the labels are pixels inside the PNG, so
+      ``Vorthaneglim`` appears ZERO times in the GREEN page's tag-stripped
+      visible text and once in a broken one. "The node label appears in the
+      rendered HTML" would pass only on the broken page. The sentinels stay
+      valid for the PDF, which is why Class 2 uses them.
+
+    MEASURED weakness, by construction, and a recorded milestone decision
+    rather than a defect to fix: GitHub Actions' ``ubuntu-latest`` image
+    PREINSTALLS ``dot``, so in CI this class renders a real PNG and PASSES --
+    it would have passed unchanged throughout the entire original defect,
+    which was a missing Graphviz on the *Read the Docs* builder. What this
+    class guards is therefore docs-SOURCE regression: the directive being
+    removed, renamed, or reduced to a literal block. The
+    environment-independent half -- the one that would actually have caught
+    the original defect -- is the configuration gate in
+    ``tests/test_readthedocs_config.py``, which asserts ``graphviz`` is in
+    ``.readthedocs.yaml``'s ``build.apt_packages`` and needs no build at all.
+    Detection is split across those two gates on purpose.
+    """
+
+    @staticmethod
+    def _diagrams_page(build_dir: Path) -> Path:
+        """The built diagrams page, asserted present before it is read."""
+        page = build_dir / "user_guide" / "diagrams.html"
+        assert (
+            page.exists()
+        ), f"Expected the built page user_guide/diagrams.html under {build_dir}."
+        return page
+
+    def test_html_build_succeeds(self, docs_html_build):
+        """The real docs HTML build exits 0 (no warning assertion -- see the
+        class docstring for why warning text is not gated here)."""
+        result, _ = docs_html_build
+        assert result.returncode == 0, (
+            f"Expected the real docs html build to succeed:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+    def test_page_carries_a_graphviz_img_backed_by_a_real_png(self, docs_html_build):
+        """
+        The page carries the graphviz ``<img>`` AND the file it points at is
+        a real PNG on disk.
+
+        The on-disk check is the load-bearing half: an ``src`` string alone
+        proves only that upstream emitted a tag, not that Graphviz actually
+        rasterised anything, so the ``src`` is resolved relative to the HTML
+        file and the bytes behind it are inspected.
+        """
+        _, build_dir = docs_html_build
+        page = self._diagrams_page(build_dir)
+        html = page.read_text(encoding="utf-8")
+
+        # MEASURED exactly 2: upstream puts the class on BOTH the wrapping
+        # `div` and the `img` itself (`imgcls = ' '.join([imgcls, 'graphviz',
+        # *node['classes']])`). Asserted as `>= 1` so a future upstream
+        # reshuffle of either site does not redden a working page; `== 1`
+        # would be WRONG today.
+        assert html.count('class="graphviz"') >= 1, (
+            "Expected a graphviz-classed element on the built diagrams page; "
+            "the diagram did not reach the HTML output."
+        )
+
+        match = GRAPHVIZ_PNG_SRC_RE.search(html)
+        assert match is not None, (
+            "Expected an <img src> naming a graphviz-<sha1>.png on the built "
+            "diagrams page -- sphinx.ext.graphviz emitted no rendered image."
+        )
+
+        png_path = (page.parent / match.group(1)).resolve()
+        assert png_path.exists(), (
+            f"The diagrams page points at {match.group(1)!r} but no such file "
+            f"exists at {png_path} -- the <img> is dangling."
+        )
+        data = png_path.read_bytes()
+        # MEASURED 11608 bytes; asserted against a small floor rather than the
+        # exact size, which any Graphviz version bump would move.
+        assert len(data) > 1024, (
+            f"Expected a non-trivial rendered PNG at {png_path}, got "
+            f"{len(data)} bytes."
+        )
+        assert data.startswith(b"\x89PNG"), (
+            f"Expected PNG magic at the head of {png_path}; the file is not a "
+            f"real PNG image."
+        )
+
+    def test_png_output_format_is_pinned(self, docs_html_build):
+        """
+        No ``<object>`` element on the page, which pins the ``png`` output
+        format.
+
+        ``graphviz_output_format`` defaults to ``png`` and the ``svg`` branch
+        emits an ``<object>`` wrapper instead of a plain ``<img>`` -- so this
+        is what keeps the sibling assertion above (which matches a ``.png``
+        ``src``) meaningful rather than silently unsatisfiable. MEASURED 0.
+        """
+        _, build_dir = docs_html_build
+        html = self._diagrams_page(build_dir).read_text(encoding="utf-8")
+        assert "<object" not in html, (
+            "Found an <object> element on the built diagrams page: the "
+            "graphviz output format is no longer png, so the rendered-PNG "
+            "assertions in this class no longer describe the real output."
+        )
+
+    def test_raw_dot_source_is_not_visible_page_text(self, docs_html_build):
+        """
+        PRIMARY RED-direction assertion: the raw DOT source line is NOT part
+        of the page's visible text.
+
+        MEASURED 0 on a correctly-rendered page and 1 on the reported broken
+        one, where `sphinx.ext.graphviz` could not reach `dot` and served the
+        reader the diagram's source instead of a picture of it. This is the
+        primary absence check because it holds whether or not the directive
+        carries an `:alt:` option -- see the raw-markup sibling below for why
+        that distinction matters.
+        """
+        _, build_dir = docs_html_build
+        html = self._diagrams_page(build_dir).read_text(encoding="utf-8")
+        text = _visible_text(html)
+        assert DOT_SOURCE_MARKER not in text, (
+            f"Found the raw DOT source line {DOT_SOURCE_MARKER!r} in the "
+            f"visible text of the built diagrams page: the diagram was not "
+            f"rendered and its source is being shown to the reader instead."
+        )
+
+    def test_raw_dot_source_is_absent_from_the_raw_markup_too(self, docs_html_build):
+        """
+        Secondary absence check, over the RAW markup rather than the visible
+        text. MEASURED 0 today -- but, unlike its sibling above, only because
+        the dogfood directive carries an explicit `:alt:` option.
+
+        `sphinx/ext/graphviz.py` computes the image's alt text as
+        `node.get('alt', self.encode(code).strip())`: with NO `:alt:`,
+        upstream falls back to the DOT SOURCE ITSELF as the attribute value.
+        A perfectly rendered page would then still match a raw-markup grep
+        while matching zero times in visible text. So this assertion is
+        legitimately allowed to flip if that option is ever dropped, and
+        asserting it ALONE would really be asserting "an `:alt:` option
+        exists" -- which is why the visible-text check above, not this one,
+        is the load-bearing half.
+        """
+        _, build_dir = docs_html_build
+        html = self._diagrams_page(build_dir).read_text(encoding="utf-8")
+        assert DOT_SOURCE_MARKER not in html, (
+            f"Found the raw DOT source line {DOT_SOURCE_MARKER!r} in the raw "
+            f"markup of the built diagrams page. Check whether the dogfood "
+            f"directive still carries an `:alt:` option -- if it does not, "
+            f"upstream uses the DOT source as the img alt text and this "
+            f"assertion no longer indicates a rendering failure."
+        )
+
+    def test_node_labels_are_not_visible_page_text(self, docs_html_build):
+        """
+        Second RED-direction sentinel: the diagram's node labels are NOT in
+        the page's visible text. MEASURED 0 in GREEN, 1 in RED.
+
+        This is the exact INVERSE of how `NODE_LABEL_SENTINELS` is used in
+        Class 2, and deliberately so. In the PDF the labels are real vector
+        TEXT inside the drawn diagram, so pypdf extracts them and their
+        presence proves the diagram rendered. In HTML the same labels are
+        PIXELS inside a rasterised PNG, so visible text containing them means
+        the opposite: the DOT source leaked onto the page. The labels do
+        appear in the raw markup of a correct page, inside the `:alt:`
+        attribute -- which the tag strip removes along with its tag.
+        """
+        _, build_dir = docs_html_build
+        html = self._diagrams_page(build_dir).read_text(encoding="utf-8")
+        text = _visible_text(html)
+        for sentinel in NODE_LABEL_SENTINELS:
+            assert sentinel not in text, (
+                f"Found the node label {sentinel!r} in the visible text of "
+                f"the built diagrams page: the label should be pixels inside "
+                f"the rendered PNG, so its presence as text means the DOT "
+                f"source leaked onto the page."
+            )

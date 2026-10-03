@@ -16,6 +16,14 @@ build:
   # glyphs (tofu) on those pages.
   apt_packages:
     - fonts-noto-cjk
+    # Separately from the CJK font rationale above: `sphinx.ext.graphviz`
+    # renders nothing itself -- it shells out to the system `dot` binary,
+    # which no Python extra can supply (R021), so it has to be requested
+    # as a system package here. Without it, upstream `render_dot()`
+    # catches the `OSError` from the missing binary and returns
+    # `(None, None)` without raising, so the build still reports success
+    # while the page ships the escaped DOT source as literal text.
+    - graphviz
   jobs:
     build:
       pdf:

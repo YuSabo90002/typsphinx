@@ -158,6 +158,23 @@
                 pkgs.git
                 # Python toolchain: uv for fast dependency/venv management.
                 pkgs.python3
+                # `sphinx.ext.graphviz` shells out to the `dot` binary, which no
+                # Python extra can supply; without it `render_dot()` catches
+                # `OSError`, logs one warning and emits the escaped DOT source as
+                # literal page text while the build still exits 0. Unconditional
+                # rather than Linux-only: darwin needs `dot` just as much, and it
+                # is not platform-gated the way the FHS shims above are. Per D017
+                # it belongs here and NOT in `fhsRun`'s `targetPkgs`, because the
+                # sandbox inherits the caller's PATH appended after its own FHS
+                # `/usr/bin` -- measured with `node` and `git` as controls -- and
+                # it needs no shim of its own, since `dot` is a leaf binary the
+                # docs build spawns rather than one of the seven documented
+                # entrypoints, and the mount namespace is already inherited.
+                # Proof is the built HTML carrying the rendered
+                # `graphviz-<sha1>.png` img, NOT an interactive `command -v dot`:
+                # `tox -e docs-html` runs sphinx-build inside the sandbox, so only
+                # the sandboxed child's view of PATH is load-bearing.
+                pkgs.graphviz
               ]
               ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux ([ uvShim ] ++ venvShims)
               ++ pkgs.lib.optionals (!pkgs.stdenv.hostPlatform.isLinux) [ pkgs.uv ];

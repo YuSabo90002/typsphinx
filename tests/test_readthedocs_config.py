@@ -10,6 +10,14 @@ commit. This module asserts the commit-1 (HTML-only) shape of
 `.readthedocs.yaml` and the two-layer `READTHEDOCS_LANGUAGE` ->
 `SPHINX_LANGUAGE` -> `"en"` precedence chain in `docs/source/conf.py`.
 
+It also guards the manifest's `build.apt_packages` provisioning seam: a
+live column-0 `.. graphviz::` directive under `docs/source` requires the RTD
+container to install the `graphviz` apt package, because
+`sphinx.ext.graphviz` shells out to the `dot` binary rather than rendering
+in Python. That gate is a pure static file-vs-file check -- see its own
+docstring for the liveness approximation it uses and the boundary it does
+not cover.
+
 PyYAML is available transitively via `sphinx` (confirmed under `uv run`,
 per 29-PATTERNS.md) and is deliberately NOT added as a direct dependency --
 this suite must be run under `uv run pytest`, per CLAUDE.md's standing
@@ -19,6 +27,7 @@ fetch; the suite stays hermetic.
 
 import importlib.util
 import re
+import tomllib
 from pathlib import Path
 
 import yaml
@@ -313,6 +322,108 @@ def test_readthedocs_yaml_pdf_override():
         "inside the English documentation; the Japanese PDF ships from a "
         "different manifest in the typsphinx-doc-translations repository "
         f"(Phase 30.1 D-04/D-05): {sole_command!r}"
+    )
+
+
+def test_readthedocs_yaml_provisions_graphviz_for_live_directive():
+    """A live column-0 `.. graphviz::` binds `build.apt_packages` to `graphviz`.
+
+    `sphinx.ext.graphviz` draws nothing itself -- it shells out to Graphviz's
+    `dot` binary, which is an apt package and not a Python one. This gate is
+    deliberately a pure static file-vs-file check: it reads the `.rst` files
+    under `docs/source`, `.readthedocs.yaml`, and `pyproject.toml` off disk,
+    and runs no subprocess, no network fetch, and no Sphinx build -- so its
+    verdict is identical on Read the Docs, on CI, and on the maintainer's
+    NixOS machine. Build-based detection is rejected on purpose:
+    build-dependence is precisely the property that let the original defect
+    ship (a build reporting success while the page was broken), and Sphinx
+    localises warning bodies to the host `LANG`, so a warning-text assertion
+    would diverge between a local run and CI.
+
+    Documented boundary. Liveness is approximated here by column-0
+    anchoring, which isolates today's single live directive from the prose
+    mentions and the `.. code-block:: rst` sample that merely talk *about*
+    the directive. Indentation is NOT a general liveness rule in this tree
+    -- live indented directives of other types exist here -- so a genuinely
+    live `.. graphviz::` nested inside, say, a `.. only::` or `.. figure::`
+    block would be MISSED by this pattern. The pinned count below is the
+    tripwire for exactly that: any change to the number of live column-0
+    directives fails this gate and forces a human to re-measure and re-pin,
+    rather than letting the approximation drift silently.
+    """
+    live_directive_re = re.compile(r"^\.\. graphviz::", re.MULTILINE)
+    live_directive_sites = []
+    for rst_path in sorted((REPO_ROOT / "docs" / "source").rglob("*.rst")):
+        text = rst_path.read_text(encoding="utf-8")
+        for match in live_directive_re.finditer(text):
+            line_number = text.count("\n", 0, match.start()) + 1
+            live_directive_sites.append(
+                f"{rst_path.relative_to(REPO_ROOT)}:{line_number}"
+            )
+
+    # Asserted FIRST, before anything about the manifest: a tree with zero
+    # live directives must not be able to satisfy this gate silently. This
+    # project has a measured precedent for that blind spot -- a gate that
+    # derived both sides of its comparison from a single helper stayed green
+    # under a mutation that collapsed both sides at once.
+    assert len(live_directive_sites) == 1, (
+        "expected exactly 1 live column-0 `.. graphviz::` directive under "
+        "docs/source -- today's sole site is "
+        "docs/source/user_guide/diagrams.rst:8 -- but found "
+        f"{len(live_directive_sites)}: {live_directive_sites}. This count is "
+        "pinned deliberately: any change to the number of live column-0 "
+        "directives requires a human to re-measure and re-pin it here, "
+        "because both this gate and the apt_packages entry it guards are "
+        "justified only by that measurement."
+    )
+
+    data = _load_readthedocs_yaml()
+    build = data.get("build")
+    assert isinstance(build, dict), (
+        f"`build` did not parse to a mapping in {READTHEDOCS_YAML_PATH} "
+        f"(got {type(build)!r})"
+    )
+    apt_packages = build.get("apt_packages")
+    why_dot_is_required = (
+        "`sphinx.ext.graphviz` shells out to the `dot` binary, and upstream "
+        "`render_dot()` catches the resulting `OSError` and returns "
+        "`(None, None)` without raising -- so when `dot` is absent the page "
+        "silently ships the escaped DOT source as literal text inside a "
+        "build that reports success. Nothing fails; the page is just wrong."
+    )
+    assert isinstance(apt_packages, list), (
+        "`build.apt_packages` must be a list naming `graphviz` while a live "
+        f"`.. graphviz::` directive exists at {live_directive_sites[0]} "
+        f"(got {apt_packages!r}). {why_dot_is_required}"
+    )
+    assert "graphviz" in apt_packages, (
+        "`build.apt_packages` must contain `graphviz` while a live "
+        f"`.. graphviz::` directive exists at {live_directive_sites[0]}; "
+        f"the manifest currently installs {apt_packages!r}. "
+        f"{why_dot_is_required}"
+    )
+
+    # The fix belongs in the container's apt layer, never in a Python extra.
+    # `graphviz` is also the name of a PyPI package (a Python binding that
+    # still requires the system binary), so adding anything graphviz-shaped
+    # to the `docs` extra looks like a fix while leaving the RTD container
+    # just as `dot`-less as before -- that is the exact non-fix this
+    # constraint exists to block.
+    pyproject = tomllib.loads(
+        (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    )
+    docs_extra = pyproject["project"]["optional-dependencies"]["docs"]
+    assert isinstance(
+        docs_extra, list
+    ), f"`project.optional-dependencies.docs` must be a list (got {docs_extra!r})"
+    graphviz_shaped = [req for req in docs_extra if "graphviz" in req.lower()]
+    assert graphviz_shaped == [], (
+        "`graphviz` must appear nowhere in pyproject.toml's `docs` extra, "
+        f"but found {graphviz_shaped}. Graphviz is a system binary (`dot`), "
+        "not a Python dependency: installing a graphviz-shaped Python "
+        "requirement looks like a fix while leaving the Read the Docs "
+        "container still without `dot`. The provisioning seam is "
+        "`.readthedocs.yaml`'s `build.apt_packages`, asserted above."
     )
 
 
