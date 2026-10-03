@@ -548,6 +548,96 @@ slice:** keep `deferred (no M002 slice)`. Only `Validation` and `Notes` change.
 
 ---
 
+## 9. T03 run of 2026-10-03 — HALTED AT THE MERGE GATE (§4 precondition UNMET)
+
+**This section is NOT a result for the §3 assertions.** The three assertions in
+§3 were **not executed**, and no verdict — GREEN or RED — is recorded for them
+here. The §4 readiness gate did not pass, and §4's own rule is that running §3
+before it passes "produces a RED that is about deployment timing, not about the
+fix". So the page was not fetched at all.
+
+**Status: awaiting merge.** This is a precondition that this slice cannot
+self-serve, because merging to `main` is owner-gated and outward-facing. It is
+**not** a failure of the fix, and nothing measured below casts any doubt on the
+fix.
+
+### 9.1 The merge gate — measured
+
+Measured 2026-10-03, in the `M002` worktree, after `git fetch origin`:
+
+| What | Command | Result |
+|---|---|---|
+| `graphviz` count on `origin/main` | `git show origin/main:.readthedocs.yaml \| grep -c graphviz` | **0** |
+| `graphviz` count on local `main` | `git show main:.readthedocs.yaml \| grep -c graphviz` | **0** |
+| `graphviz` count on this branch | `git show HEAD:.readthedocs.yaml \| grep -c graphviz` | **2** |
+| `origin/main` tip | `git rev-parse origin/main` | `9c134be03298e73778ea8457a5e3056edc049a6e` |
+| branch position | `git rev-list --left-right --count origin/main...HEAD` | `0  11` (11 ahead, 0 behind) |
+
+A count of 0 on `origin/main` is exactly the Step-1 stop condition: **the fix is
+not merged.**
+
+**Independent corroboration that nothing has moved since T01.** §2 recorded
+`9c134be032…` as the *pre-merge* `origin/main` SHA at the time the RED baseline
+was captured. `origin/main` still points at that identical SHA. So this is not
+an ambiguous "maybe the merge landed but the count parse is off" reading —
+`origin/main` has not advanced by a single commit since the baseline. There is
+no candidate merge commit to feed into the §4 build poll, which is why the
+builds endpoint was not polled either.
+
+### 9.2 What was deliberately NOT done
+
+Recorded explicitly, because each of these would have corrupted the evidence
+record rather than added to it:
+
+* The published page was **not** fetched. A fetch now would return the §2 RED
+  body (`sha256 ce500fa2…`-era pre-fix page) and could be misread later as the
+  fix having failed.
+* The builds endpoint was **not** polled for a verdict — there is no merge
+  commit to gate on, so any build found would be a pre-fix build.
+* No RED (or GREEN) row was appended beside the §2 baseline. §3 stays
+  pre-registered with no results, exactly as T01 left it.
+* No merge, push, or PR was performed. Step 1 forbids it and the merge is the
+  owner's call.
+
+### 9.3 Controls re-run anyway — all GREEN
+
+These do not depend on the merge, so they were run and are valid now. They are
+the Step-5 control set.
+
+| Control | Command | Expected | Measured | Verdict |
+|---|---|---|---|---|
+| Typst route untouched | `git diff --stat main -- typsphinx/ \| wc -l` | 0 lines | **0** (`--quiet` exit 0) | GREEN |
+| RTD config gate | `uv run pytest tests/test_readthedocs_config.py -q` | 7 passed | **7 passed in 0.04s** | GREEN |
+| HTML artifact gate | `uv run pytest tests/test_graphviz_docs_gate.py -q` with a real `dot` | 20 passed / 0 skipped | **20 passed in 7.29s**, 0 skipped | GREEN |
+
+**The HTML gate needed the `dot` prepend, and the hazard was real.** Inside this
+worktree `command -v dot` returned nothing (direnv never loads `flake.nix`
+here), so a bare run would have reported `6 skipped` with exit code 0 while
+asserting nothing. PATH was prepended with
+`/nix/store/16a7ldk840s8hh41s9ji46qq4qkcarjv-graphviz-12.2.1/bin` — the path the
+plan named, confirmed still present — and `dot -V` reported `graphviz version
+12.2.1 (0)` before the run. Judged by skip count, not exit code: **0 skipped**.
+
+### 9.4 How to resume this task
+
+Nothing in §1–§8 needs redoing. After the owner merges this branch to `main`:
+
+1. `git fetch origin` and re-run the §9.1 table. Proceed only when the
+   `origin/main` `graphviz` count is **non-zero**; capture
+   `git rev-parse origin/main` as the merge commit.
+2. Poll the §4 builds endpoint until a result has that merge commit,
+   `state.code == "finished"` and `success == true`. Record build id, commit,
+   state and timestamp.
+3. Run the §3 A1/A2/A3 assertions against
+   `https://typsphinx.readthedocs.io/en/latest/user_guide/diagrams.html`
+   (not `en/stable` — see §1), reusing `_visible_text` from
+   `tests/test_graphviz_docs_gate.py` for A3.
+4. Append the GREEN row beside the §2 RED baseline. If markers match §2's
+   `sha256` after the gate passed, that is CDN staleness — re-fetch, do not
+   record RED (§4).
+
+---
+
 ## Failure Modes
 
 Every dependency here is **external and networked**, which is the whole risk
@@ -587,6 +677,24 @@ Nothing in T02 wrote outside `docs/S04-PUBLISHED-SITE-EVIDENCE.md` and `/tmp`
 scratch, made any network **write**, edited any other repository, or mutated any
 requirement record. Subprocesses were `curl`, `git`, `python3` only.
 
+### T03 addendum — the merge gate and the controls (§9)
+
+T03 executed only the §9.1 merge gate and the §9.3 controls, so its dependency
+surface is narrower than §2's and §7's — and the one dependency that *could*
+have produced a wrong answer is the local one, not the network.
+
+| Dependency | Failure mode | Failure path / handling |
+|---|---|---|
+| `git fetch origin` (network to GitHub) | timeout / connection loss / auth failure | A failed fetch leaves `origin/main` at a **stale** local value. The dangerous direction is a *false unmet* (fetch failed, old 0 still read) — which is the SAFE direction here: it halts rather than measures. The corroboration in §9.1 (`origin/main` still at §2's `9c134be032…`) is consistent with both "fetch worked, nothing merged" and "fetch failed"; either way the Step-1 conclusion is identical, so the fetch is not load-bearing for the verdict. |
+| `git show <ref>:.readthedocs.yaml` | ref absent → non-zero exit, empty stdout, `grep -c` yields 0 | A missing ref would yield 0 and look like "not merged". Excluded by reading **three** refs in the same run: `origin/main`=0, `main`=0, `HEAD`=**2**. A broken `git show` cannot return 2 for one ref and 0 for another, so the 0s are real content, not read failures. |
+| `readthedocs.org` builds API | n/a this run | **Not contacted.** With no merge commit there is nothing to gate on; §9.2 records this as a deliberate omission so a later reader does not infer a failed poll. |
+| The published page + its PNG | n/a this run | **Not fetched** (§9.2). This is the single most important failure mode avoided: fetching now returns the pre-fix body, and a RED row recorded from it would be indistinguishable in the file from a genuine post-merge failure. |
+| `dot` binary (subprocess, via the HTML gate) | **absent → silent skip, exit code 0** | The live hazard. `command -v dot` returned nothing in this worktree. Handled by prepending a store path and asserting `dot -V` *before* the run, then judging by **skip count** (0 skipped), never by exit code — a bare run yields `6 skipped`/exit 0 while asserting nothing. |
+| `uv run` / worktree `.venv` | missing venv → wrong interpreter or import of the main tree's package | `.venv` confirmed present in the worktree; every command ran via `uv run` per the project's worktree rule, so `import typsphinx` binds to the worktree copy. |
+
+T03 made no network **write**, no `git` mutation (no merge, push, branch, or
+commit), and wrote only to `docs/S04-PUBLISHED-SITE-EVIDENCE.md`.
+
 ## Load Profile
 
 The runtime dimension is small but real: this procedure issues **unauthenticated
@@ -621,6 +729,21 @@ the only unbounded term in this slice and the analysis above is unchanged. At
 limit** (60 req/hr/IP, far below RTD's), which is why the pin SHA is read with a
 single contents call rather than by cloning or walking commits. The artifact
 remains one markdown file.
+
+### T03 addendum
+
+T03's actual load was **zero network polls** — it halted before the §4 poll
+loop, which is the only unbounded term identified above. The §4 poll budget
+therefore remains entirely unspent and the 10x analysis above stands unmodified
+for the resumed run.
+
+The only measured runtime cost was local and small: the two control modules ran
+in **0.04s** (7 tests) and **7.29s** (20 tests). The 10x term there is the HTML
+gate, which shells out to `dot` once per diagram fixture and builds real Sphinx
+projects; at 10x the fixture count it is CPU-bound on `dot` invocations, not
+memory- or network-bound. Protection is scope: the plan's rule to keep verify
+chains to **these two modules only** and never chain the full suite (~120-140s),
+which would risk recording a false timeout.
 
 ## Negative Tests
 
@@ -685,3 +808,30 @@ from the same discipline used above:
 * **Existing offline coverage is unchanged by T02.** No test file was touched;
   `tests/test_readthedocs_config.py` and `tests/test_graphviz_docs_gate.py`
   continue to guard the English/local surface exactly as before.
+### T03 addendum — the boundary this task actually guards
+
+T03 adds no test file either (§6's rule is unchanged: no test may assert a live
+URL). Its negative surface is the **halt condition itself**, and it is the one
+boundary in this slice most likely to be got wrong:
+
+* **The primary negative case is "not merged yet", and it was exercised for
+  real.** The §4 gate was evaluated and **failed**, and the procedure's
+  prescribed response — stop, fetch nothing, record no verdict — was followed
+  and is auditable in §9.2. The pre-registered halt path is the one path this
+  run actually took, so it is now tested by execution rather than by assertion.
+* **False negative excluded: "0 because the read failed."** Three refs read in
+  one run; `HEAD` returned 2 while both `main` refs returned 0 (§9.1). A
+  systematically broken read cannot produce that split.
+* **False negative excluded: "merged, but the count is parsed wrong."**
+  `origin/main` is byte-identical in identity to §2's recorded pre-merge SHA, so
+  the branch is 11 commits ahead with 0 behind — there is no merge commit at
+  all, independent of any `grep` semantics.
+* **False positive excluded: the silent-skip control.** The HTML gate's
+  `shutil.which("dot") is None` guard is precisely a test that passes while
+  asserting nothing. §9.3 records `dot -V` output *and* a 0 skip count, so
+  "20 passed" cannot be a vacuous pass. This is the boundary the plan flagged as
+  judge-by-skip-count-not-exit-code, and it was judged that way.
+* **Boundary left deliberately unmeasured:** A1/A2/A3 have **no** recorded
+  outcome (§9.2). An empty result is the correct representation of "not yet
+  observable"; writing any verdict there would be the failure mode this task
+  exists to avoid.
