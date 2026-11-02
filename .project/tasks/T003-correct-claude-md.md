@@ -10,6 +10,7 @@ worktree: null
 task_branch: null
 files:
   - CLAUDE.md
+  - .gitignore
 ---
 
 # T003 — Correct CLAUDE.md architecture claims and drop the GSD Core worktree-execution text
@@ -26,6 +27,7 @@ CLAUDE.md is loaded into every coding agent and carries stale claims (DOCS-AUDIT
 - `@preview` section: say five packages and name `diagraph`; do not bump or touch any version anywhere (veto/constraint) — this is prose only.
 - `typst_documents`: document the optional fifth element (template registry key), consistent with README.md.
 - Remove `typst_debug` from the "Configuration surface" config list (T002 removes the value in the same wave; CLAUDE.md must not advertise it). Prose only — no code dependency.
+- Plan-defect repair (owner ruling 2026-11-03: "1で"): in `.gitignore`, keep the product rule `build/` and add the line `!/.project/**/build/` directly after it, so GSD Path state under `.project/build/` and `.project/archive/*/build/` is no longer ignored while every other `build/` directory stays ignored. Change nothing else in `.gitignore`.
 - Do not disturb the toolchain-pin paragraphs (`tox-uv~=1.35`, the multi-place sync hazard and "this file's two mentions") or the NixOS shim section — they are verified. Do not touch `.planning/` references elsewhere in the repo.
 
 ## Interface contract
@@ -48,7 +50,7 @@ CLAUDE.md is loaded into every coding agent and carries stale claims (DOCS-AUDIT
 ## Verify
 
 ```bash
-! grep -nE "use_worktrees|#683|baseref-head|base-check" CLAUDE.md && ! grep -n _is_master_document CLAUDE.md && grep -qF 'env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev' CLAUDE.md && grep -q 'uv run' CLAUDE.md && grep -q 'render_wrapper' CLAUDE.md && grep -q 'diagraph' CLAUDE.md && grep -qiE 'five .*@preview|@preview.* five|five Typst Universe' CLAUDE.md && ! grep -nE '~2700|~140' CLAUDE.md && grep -qiE 'fifth element|registry key' CLAUDE.md && ! grep -n 'typst_debug' CLAUDE.md && grep -q 'tox-uv~=1.35' CLAUDE.md
+! grep -nE "use_worktrees|#683|baseref-head|base-check" CLAUDE.md && ! grep -n _is_master_document CLAUDE.md && grep -qF 'env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev' CLAUDE.md && grep -q 'uv run' CLAUDE.md && grep -q 'render_wrapper' CLAUDE.md && grep -q 'diagraph' CLAUDE.md && grep -qiE 'five .*@preview|@preview.* five|five Typst Universe' CLAUDE.md && ! grep -nE '~2700|~140' CLAUDE.md && grep -qiE 'fifth element|registry key' CLAUDE.md && ! grep -n 'typst_debug' CLAUDE.md && grep -q 'tox-uv~=1.35' CLAUDE.md && grep -qxF 'build/' .gitignore && grep -qxF '!/.project/**/build/' .gitignore && ! git check-ignore -q --no-index .project/build/verify-ledger.jsonl .project/build/evidence.json .project/archive/001-probe/build/evidence.json && git check-ignore -q --no-index build/x && git check-ignore -q --no-index examples/basic/build/x
 ```
 
 Heavy: no
@@ -56,3 +58,5 @@ Heavy: no
 ## Log
 
 - 2026-11-03 — created by planner
+- 2026-11-03 — build_T003 (first dispatch, isolate gsd-path-task/T003 at 31b56a4a): edited CLAUDE.md only. Rewrote writer.py bullet for content-file (`translate()`, every docname, imports, no template) plus `render_wrapper()` (per `typst_documents` entry, template + `#include()`) split, symbols checked against writer.py:234/279 and builder.py:2131; dropped translator ~2700/~140 figures (actual 8149 lines / 189 methods); @preview section now five packages incl. `diagraph`; `typst_documents` format gains optional fifth element `documentclass` (template registry key into `typst_document_templates`, README.md naming); removed `typst_debug` from config list; removed the GSD Core "Applicability" paragraph. Detection rule, NixOS boundary, uv recipe + rationale, tox-uv~=1.35 pin text untouched. Verify: exit 0 (pass).
+- 2026-11-03 — orchestrator: landing of the first attempt was refused by the GSD Path ignore-rule check (`.gitignore:78:build/ excludes .project/build/verify-ledger.jsonl` and the archive build paths); no task owned `.gitignore`. Plan-defect repair per owner ruling "1で": `files` gains `.gitignore`, Approach and Verify gain the `!/.project/**/build/` negation and its ignore checks. First-attempt diff (CLAUDE.md, 14 lines changed) is discarded with its isolate; T003 is redispatched at the repaired base.
