@@ -4,20 +4,23 @@ Detection for removed ``typst_*`` configuration values.
 Sphinx has no built-in mechanism for announcing that a `conf.py` sets a
 configuration name the extension no longer registers: ``add_config_value()``
 only ever adds names, and there is no reverse "this name used to be
-registered" lookup. A `conf.py` that still sets one of these three values
+registered" lookup. A `conf.py` that still sets one of these four values
 therefore builds successfully today, with zero diagnostic, while doing
 something materially different than it did before -- silently.
 
-Two of the three names below (``typst_authors``, removed at v0.7.1;
-``typst_toctree_defaults``, removed at v0.6.3) have already been
-unregistered for two milestones, so a sentinel-default re-registration
+Two of the four names below (``typst_authors``, removed at v0.7.1;
+``typst_toctree_defaults``, removed at v0.6.3) had already been
+unregistered for two milestones when this module was written, so a
+sentinel-default re-registration
 (``app.add_config_value("typst_authors", None, ...)`` purely so Sphinx would
 raise on an unknown name) cannot see either of them -- Sphinx only validates
 names it currently owns. And re-registering ``typst_template_assets`` as an
 inert sentinel, solely to make detection easier, would contradict this
 project's own rule against leaving inert configuration registered (see
-PROJECT.md). The only mechanism that reaches all three names through one
+PROJECT.md). The only mechanism that reaches all of these names through one
 path is reading the raw, pre-lookup `conf.py` namespace directly.
+``typst_debug`` (removed at v0.9.8) joined the list later through the
+same path.
 
 This module exists to be that one path.
 """
@@ -52,6 +55,11 @@ REMOVED_CONFIG_VALUES: dict[str, str] = {
         "'typst_toctree_defaults' was removed in v0.6.3 and has no "
         "replacement. It was registered but never read even when it "
         "existed, so deleting it changes no build output."
+    ),
+    "typst_debug": (
+        "'typst_debug' was removed in v0.9.8 and has no replacement. It "
+        "was registered but never read, so deleting it changes no build "
+        "output."
     ),
 }
 

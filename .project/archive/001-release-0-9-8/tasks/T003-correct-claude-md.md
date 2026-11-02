@@ -1,0 +1,67 @@
+---
+id: T003
+title: Correct CLAUDE.md architecture claims and drop the GSD Core worktree-execution text
+wave: 1
+deps: []
+status: done
+agent: build_T003
+base: b1513663c09eb2585eebd5eb671f9a9c67dc9ca8
+worktree: null
+task_branch: null
+files:
+  - CLAUDE.md
+  - .gitignore
+---
+
+# T003 — Correct CLAUDE.md architecture claims and drop the GSD Core worktree-execution text
+
+## Context
+
+CLAUDE.md is loaded into every coding agent and carries stale claims (DOCS-AUDIT #4–#8, all ruled fix-doc, "全部推奨で"). #4: the writer bullet says `TypstWriter.translate()` branches on master vs. included documents via `_is_master_document()`, which no longer exists — `writer.py:234-262` now writes every content file unconditionally with its `@preview` imports and template application moved to the per-document wrapper rendered by `render_wrapper()` (split landed in 36a5f588). #5: translator figures "~2700 lines, ~140 visit_/depart_ methods" — actual 8149 lines / 189 methods. #6: the `@preview` version-sync section names four packages; there are five (`codly` 1.3.0, `codly-languages` 0.1.10, `mitex` 0.2.7, `gentle-clues` 1.3.1, `diagraph` 0.3.7) across `typsphinx/writer.py`, `typsphinx/template_engine.py`, `typsphinx/templates/base.typ`, enforced by `tests/test_preview_version_sync.py`. #7: `typst_documents` format omits the optional fifth element (template registry key; see `typsphinx/__init__.py:58-62` and `examples/charged-ieee/approach2/conf.py:15`). #8: the "Applicability — worktree isolation is the STANDING execution mode" paragraph (around line 116) describes GSD Core tooling (`workflow.use_worktrees`, `#683`, `worktree base-check`, `baseref-head`) that is no longer the project's pipeline.
+
+## Approach
+
+- Remove the GSD Core-specific worktree text so `grep -nE "use_worktrees|#683|baseref-head|base-check" CLAUDE.md` prints nothing. Keep the "Worktree-isolated execution" detection rule, NixOS boundary, the per-worktree recipe (`env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev` + run everything via `uv run`) and its rationale — those are accurate.
+- Rewrite the `writer.py` bullet for the content-file plus `render_wrapper()` split; verify the symbol names against `typsphinx/writer.py` / `typsphinx/builder.py` / `typsphinx/template_engine.py` before writing them. No `_is_master_document` mention may remain.
+- Translator figures: drop them (preferred) or restate them to match `wc -l typsphinx/translator.py` and the count of `def visit_`/`def depart_` at your base. The stale `~2700` / `~140` must not remain.
+- `@preview` section: say five packages and name `diagraph`; do not bump or touch any version anywhere (veto/constraint) — this is prose only.
+- `typst_documents`: document the optional fifth element (template registry key), consistent with README.md.
+- Remove `typst_debug` from the "Configuration surface" config list (T002 removes the value in the same wave; CLAUDE.md must not advertise it). Prose only — no code dependency.
+- Plan-defect repair (owner ruling 2026-11-03: "1で"): in `.gitignore`, keep the product rule `build/` and add the line `!/.project/**/build/` directly after it, so GSD Path state under `.project/build/` and `.project/archive/*/build/` is no longer ignored while every other `build/` directory stays ignored. Change nothing else in `.gitignore`.
+- Do not disturb the toolchain-pin paragraphs (`tox-uv~=1.35`, the multi-place sync hazard and "this file's two mentions") or the NixOS shim section — they are verified. Do not touch `.planning/` references elsewhere in the repo.
+
+## Interface contract
+
+- None
+
+## Intent coverage
+
+- SC3
+
+## Acceptance criteria
+
+1. `grep -nE "use_worktrees|#683|baseref-head|base-check" CLAUDE.md` prints nothing.
+2. The per-worktree recipe `env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev` plus running commands via `uv run` remains documented in CLAUDE.md.
+3. `grep -n _is_master_document CLAUDE.md` prints nothing, and the writer bullet describes the content-file plus `render_wrapper()` split.
+4. The `@preview` version-sync section names five packages including `diagraph`.
+5. The translator line/method figures match the code or are removed (no `~2700` or `~140`).
+6. The `typst_documents` description documents the optional fifth element (template registry key); `typst_debug` is no longer listed as a config value; the `tox-uv~=1.35` toolchain-pin text is intact.
+
+## Verify
+
+```bash
+! grep -nE "use_worktrees|#683|baseref-head|base-check" CLAUDE.md && ! grep -n _is_master_document CLAUDE.md && grep -qF 'env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev' CLAUDE.md && grep -q 'uv run' CLAUDE.md && grep -q 'render_wrapper' CLAUDE.md && grep -q 'diagraph' CLAUDE.md && grep -qiE 'five .*@preview|@preview.* five|five Typst Universe' CLAUDE.md && ! grep -nE '~2700|~140' CLAUDE.md && grep -qiE 'fifth element|registry key' CLAUDE.md && ! grep -n 'typst_debug' CLAUDE.md && grep -q 'tox-uv~=1.35' CLAUDE.md && grep -qxF 'build/' .gitignore && grep -qxF '!/.project/**/build/' .gitignore && b=build && ! git check-ignore -q --no-index ".project/$b/verify-ledger.jsonl" ".project/$b/evidence.json" ".project/archive/001-probe/$b/evidence.json" && git check-ignore -q --no-index "$b/x" && git check-ignore -q --no-index "examples/basic/$b/x"
+```
+
+Heavy: no
+
+## Log
+
+- 2026-11-03 — created by planner
+- 2026-11-03 — build_T003 (first dispatch, isolate gsd-path-task/T003 at 31b56a4a): edited CLAUDE.md only. Rewrote writer.py bullet for content-file (`translate()`, every docname, imports, no template) plus `render_wrapper()` (per `typst_documents` entry, template + `#include()`) split, symbols checked against writer.py:234/279 and builder.py:2131; dropped translator ~2700/~140 figures (actual 8149 lines / 189 methods); @preview section now five packages incl. `diagraph`; `typst_documents` format gains optional fifth element `documentclass` (template registry key into `typst_document_templates`, README.md naming); removed `typst_debug` from config list; removed the GSD Core "Applicability" paragraph. Detection rule, NixOS boundary, uv recipe + rationale, tox-uv~=1.35 pin text untouched. Verify: exit 0 (pass).
+- 2026-11-03 — orchestrator: landing of the first attempt was refused by the GSD Path ignore-rule check (`.gitignore:78:build/ excludes .project/build/verify-ledger.jsonl` and the archive build paths); no task owned `.gitignore`. Plan-defect repair per owner ruling "1で": `files` gains `.gitignore`, Approach and Verify gain the `!/.project/**/build/` negation and its ignore checks. First-attempt diff (CLAUDE.md, 14 lines changed) is discarded with its isolate; T003 is redispatched at the repaired base.
+- 2026-11-03 — build_T003 (second dispatch, primary worktree at b1513663): re-applied the first attempt's CLAUDE.md edits (writer.py bullet rewritten for content file via `translate()` + per-entry wrapper via `render_wrapper()`, symbols checked at writer.py:234/279 and builder.py:2131; translator ~2700/~140 figures dropped; @preview section now five packages incl. `diagraph`; `typst_documents` format gains optional fifth element `documentclass`, a template registry key into `typst_document_templates`; `typst_debug` removed from the config list; GSD Core "Applicability" paragraph removed). `.gitignore`: added `!/.project/**/build/` directly after the product rule `build/` (line 78, the later of the two `build/` lines, so the negation follows both); nothing else changed. Verify: exit 0 (pass). Note: the Verify clause `! git check-ignore -q --no-index <3 paths>` is vacuous — git exits 128 with "fatal: --quiet is only valid with a single pathname", which `!` turns into success. Checked the three `.project/` paths individually instead: each `git check-ignore --no-index` exits 1 (not ignored); `build/x` and `examples/basic/build/x` exit 0 (ignored by .gitignore:78).
+- 2026-11-02 — orchestrator Verify (sidecar gsd-path-verify/task-t003-verify): pass, exit 0; output tail:
+  ```
+  fatal: --quiet is only valid with a single pathname
+  ```

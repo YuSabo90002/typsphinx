@@ -216,3 +216,21 @@ code, and the Typst conversion path was never touched.
   instrument for forcing the skip guard open, not a condition any real builder
   is in. The condition real builders hit is plain absence, which is the
   artifact-level column of the table above.
+
+## Correction
+
+*Appended 2026-11-03 (DOCS-AUDIT #9). The original sentence above is kept
+unedited because this file is append-only evidence.*
+
+The sentence "GitHub Actions' `ubuntu-latest` image preinstalls `dot`, so in CI
+this class renders a real PNG and passes" in "What this evidence does NOT
+cover" is wrong. CI run 41152681591 (`main`, 2026-10-31) logs
+`tests/test_graphviz_render_gate.py::test_no_graphviz_binary_is_installed
+PASSED` on `ubuntu-latest` for both py3.12 and py3.13. At that run that test
+asserted `shutil.which("dot") is None`, so `dot` was **not** on `PATH` in those
+CI test jobs. In CI, the HTML artifact gate's `shutil.which("dot") is None`
+guard therefore skips this class instead of rendering a real PNG. The
+environment-independent guard in CI remains `tests/test_readthedocs_config.py`
+(`graphviz` in `.readthedocs.yaml`'s `build.apt_packages`); the rendered-PNG
+assertion runs only where `dot` is installed, such as the maintainer's flake
+devShell.

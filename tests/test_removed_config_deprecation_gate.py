@@ -15,7 +15,7 @@ D-10, recorded here rather than left implicit: ``config-inited`` fires for
 EVERY builder, not just the Typst ones, because ``app.builder`` does not
 exist yet at this point in Sphinx's build lifecycle -- so this repository's
 own ``docs/source/conf.py`` build (``-b html``) would emit these warnings
-too, if it ever set one of these three names (it does not).
+too, if it ever set one of these four names (it does not).
 """
 
 import subprocess
@@ -26,7 +26,12 @@ import pytest
 
 from typsphinx.removed_config import REMOVED_CONFIG_VALUES
 
-REMOVED_NAMES = ["typst_template_assets", "typst_authors", "typst_toctree_defaults"]
+REMOVED_NAMES = [
+    "typst_template_assets",
+    "typst_authors",
+    "typst_toctree_defaults",
+    "typst_debug",
+]
 
 # D-09's required content, one bespoke phrase per value -- deliberately NOT
 # a single shared template, matching removed_config.py's own design.
@@ -38,6 +43,12 @@ REQUIRED_PHRASES = {
         "department, organization, and email",
     ],
     "typst_toctree_defaults": ["typst_toctree_defaults", "no replacement"],
+    "typst_debug": [
+        "'typst_debug' was removed in v0.9.8",
+        "no replacement",
+        "never read",
+        "changes no build output",
+    ],
 }
 
 MINIMAL_CONF_HEADER = (
@@ -162,7 +173,7 @@ class TestCleanConfigEmitsNoWarnings:
     conf.py actually sets.
     """
 
-    def test_clean_conf_emits_none_of_the_three_warnings(self, tmp_path):
+    def test_clean_conf_emits_none_of_the_four_warnings(self, tmp_path):
         src_dir = _write_project(tmp_path, "proj_clean", "")
         build_dir = tmp_path / "build_clean"
 
@@ -252,26 +263,26 @@ class TestNoWarningSubtype:
 
 class TestMultipleRemovedValuesEachWarnSeparately:
     """
-    DOC-17 ordering edge: a ``conf.py`` setting all three removed values
-    together emits three separate warnings, one per name, in
+    DOC-17 ordering edge: a ``conf.py`` setting all four removed values
+    together emits four separate warnings, one per name, in
     ``REMOVED_CONFIG_VALUES`` declaration order -- never a single
     aggregated warning. Measured by a real build rather than asserted;
-    the three names and their warning bodies are imported from
+    the four names and their warning bodies are imported from
     ``REMOVED_CONFIG_VALUES``, never transcribed.
     """
 
-    def test_all_three_set_together_warn_once_each_in_declaration_order(self, tmp_path):
+    def test_all_four_set_together_warn_once_each_in_declaration_order(self, tmp_path):
         conf_body = "\n".join(
             f"{name} = ['some_value']" for name in REMOVED_CONFIG_VALUES
         )
-        src_dir = _write_project(tmp_path, "proj_all_three", conf_body + "\n")
-        build_dir = tmp_path / "build_all_three"
+        src_dir = _write_project(tmp_path, "proj_all_four", conf_body + "\n")
+        build_dir = tmp_path / "build_all_four"
 
         result = _run_sphinx_build(src_dir, build_dir, "typst")
         combined_output = result.stdout + result.stderr
 
         assert result.returncode == 0, (
-            f"A conf.py setting all three removed values must warn, not "
+            f"A conf.py setting all four removed values must warn, not "
             f"fail, the build:\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )
@@ -288,8 +299,85 @@ class TestMultipleRemovedValuesEachWarnSeparately:
             positions.append(combined_output.index(message))
 
         assert positions == sorted(positions), (
-            f"Expected the three warnings' first-occurrence positions to "
+            f"Expected the four warnings' first-occurrence positions to "
             f"be strictly increasing in REMOVED_CONFIG_VALUES declaration "
             f"order ({list(REMOVED_CONFIG_VALUES)}); got positions "
             f"{positions}:\n{combined_output}"
+        )
+
+
+def _typ_tree(build_dir: Path) -> dict[str, bytes]:
+    """Map every emitted ``.typ`` file's relative path to its bytes."""
+    return {
+        str(path.relative_to(build_dir)): path.read_bytes()
+        for path in sorted(build_dir.rglob("*.typ"))
+    }
+
+
+class TestTypstDebugRemovalChangesNoOutput:
+    """
+    SC4: ``typst_debug`` was registered but never read, so a ``conf.py``
+    setting it must warn exactly once, still exit 0, and emit ``.typ``
+    output byte-identical to the same project without the setting. The
+    same source directory path is reused for both builds so emitted paths
+    cannot differ for an unrelated reason. Edge E6 (idempotency): a
+    repeated build of the same ``conf.py`` warns exactly once again.
+    """
+
+    def test_typst_debug_warns_once_and_leaves_typ_output_identical(self, tmp_path):
+        message = REMOVED_CONFIG_VALUES["typst_debug"]
+        src_dir = _write_project(tmp_path, "proj_debug", "")
+
+        clean_build = tmp_path / "build_without_debug"
+        clean = _run_sphinx_build(src_dir, clean_build, "typst")
+        assert clean.returncode == 0, f"stdout: {clean.stdout}\nstderr: {clean.stderr}"
+        assert message not in clean.stdout + clean.stderr
+
+        (src_dir / "conf.py").write_text(
+            MINIMAL_CONF_HEADER + "typst_debug = True\n", encoding="utf-8"
+        )
+        for attempt in ("first", "repeated"):
+            debug_build = tmp_path / f"build_with_debug_{attempt}"
+            result = _run_sphinx_build(src_dir, debug_build, "typst")
+            combined_output = result.stdout + result.stderr
+
+            assert result.returncode == 0, (
+                f"A conf.py setting typst_debug must warn, not fail, the "
+                f"{attempt} build:\nstdout: {result.stdout}\n"
+                f"stderr: {result.stderr}"
+            )
+            occurrences = combined_output.count(message)
+            assert occurrences == 1, (
+                f"Expected exactly one typst_debug warning on the {attempt} "
+                f"build, found {occurrences}:\n{combined_output}"
+            )
+
+            clean_tree = _typ_tree(clean_build)
+            debug_tree = _typ_tree(debug_build)
+            assert clean_tree, f"No .typ files emitted under {clean_build}"
+            assert debug_tree == clean_tree, (
+                f"Setting typst_debug changed the emitted .typ output on the "
+                f"{attempt} build: {sorted(clean_tree)} vs {sorted(debug_tree)}"
+            )
+
+    @pytest.mark.parametrize("value", ["None", "False", "True", "['x']"])
+    def test_typst_debug_warns_for_any_value(self, tmp_path, value):
+        src_dir = _write_project(
+            tmp_path, "proj_debug_value", f"typst_debug = {value}\n"
+        )
+        result = _run_sphinx_build(src_dir, tmp_path / "build", "typst")
+        combined_output = result.stdout + result.stderr
+
+        assert (
+            result.returncode == 0
+        ), f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        assert combined_output.count(REMOVED_CONFIG_VALUES["typst_debug"]) == 1, (
+            f"Expected exactly one typst_debug warning for value {value}:\n"
+            f"{combined_output}"
+        )
+
+    def test_typst_debug_absent_from_config_registry(self, temp_sphinx_app):
+        assert "typst_debug" not in temp_sphinx_app.config.values, (
+            "typst_debug must stay UNREGISTERED -- it was never read, and "
+            "this project does not leave inert configuration registered."
         )

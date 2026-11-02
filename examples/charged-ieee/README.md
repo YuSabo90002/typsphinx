@@ -153,6 +153,10 @@ typst compile paper.typ output.pdf
 - Approach 1 is recommended for most use cases
 - Approach 2 provides an escape hatch for complex requirements
 - Rich author details (department/organization/location/email) are declared
-  through `typst_template_function["params"]["authors"]` on both approaches —
-  but `typst_package` and `typst_template` are mutually exclusive and cannot
-  be set together
+  through `typst_template_function["params"]["authors"]` in Approach 1 only.
+  Approach 2 does not pass them through configuration: its custom Typst
+  template in `approach2/source/_typst/` hardcodes the department,
+  organization and location for every author and derives each email from
+  the author's name
+- `typst_package` and `typst_template` are mutually exclusive and cannot be
+  set together

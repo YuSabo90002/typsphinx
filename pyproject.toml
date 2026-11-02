@@ -112,7 +112,8 @@ target-version = ["py312", "py313"]
 include = '\.pyi?$'
 # Vendored/agent-tooling trees are excluded rather than reformatted: .agents holds
 # upstream Anthropic skill scripts that a skill update would overwrite, and
-# .gsd/.claude are machine-local agent state. CI runs `black --check .` at the repo
+# .gsd/.claude are machine-local agent state, and .gsd-path holds the GSD Path
+# launcher that its installer regenerates. CI runs `black --check .` at the repo
 # root, so without these the lint job fails on files this project does not own.
 exclude = '''
 /(
@@ -124,6 +125,7 @@ exclude = '''
   | dist
   | \.agents
   | \.gsd
+  | \.gsd-path
   | \.claude
 )/
 '''
@@ -132,7 +134,7 @@ exclude = '''
 line-length = 88
 target-version = "py312"
 # Mirrors the [tool.black] exclude above — see the rationale there.
-extend-exclude = [".agents", ".gsd", ".claude"]
+extend-exclude = [".agents", ".gsd", ".gsd-path", ".claude"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "T20"]

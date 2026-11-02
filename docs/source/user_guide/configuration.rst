@@ -636,6 +636,10 @@ warning carries no warning type -- so the only lever is
      - v0.6.3
      - No replacement -- it was registered but never read even when it
        existed, so deleting it changes no build output.
+   * - ``typst_debug``
+     - v0.9.8
+     - Delete the setting. There is no replacement -- it was registered
+       but never read, so deleting it changes no build output.
 
 A ``conf.py`` setting more than one of these emits one separate warning
 per name, in the order listed above, never a single combined warning.

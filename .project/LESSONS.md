@@ -1,0 +1,2 @@
+- 001-release-0-9-8 — A product ignore rule (`.gitignore` `build/`) that matches `.project/build/` refuses every task landing; check `git check-ignore` against GSD Path state paths at planning time and give `.gitignore` to a task when it matches.
+- 001-release-0-9-8 — A success criterion must be observable at the final-review HEAD before integration; PR required checks, merges, tags, and publication belong in Constraints, because ship cannot route back to define once final review blocks on them.
