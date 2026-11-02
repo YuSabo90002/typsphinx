@@ -3,9 +3,9 @@ id: T003
 title: Correct CLAUDE.md architecture claims and drop the GSD Core worktree-execution text
 wave: 1
 deps: []
-status: pending
-agent: null
-base: null
+status: done
+agent: build_T003
+base: b1513663c09eb2585eebd5eb671f9a9c67dc9ca8
 worktree: null
 task_branch: null
 files:
@@ -60,3 +60,8 @@ Heavy: no
 - 2026-11-03 — created by planner
 - 2026-11-03 — build_T003 (first dispatch, isolate gsd-path-task/T003 at 31b56a4a): edited CLAUDE.md only. Rewrote writer.py bullet for content-file (`translate()`, every docname, imports, no template) plus `render_wrapper()` (per `typst_documents` entry, template + `#include()`) split, symbols checked against writer.py:234/279 and builder.py:2131; dropped translator ~2700/~140 figures (actual 8149 lines / 189 methods); @preview section now five packages incl. `diagraph`; `typst_documents` format gains optional fifth element `documentclass` (template registry key into `typst_document_templates`, README.md naming); removed `typst_debug` from config list; removed the GSD Core "Applicability" paragraph. Detection rule, NixOS boundary, uv recipe + rationale, tox-uv~=1.35 pin text untouched. Verify: exit 0 (pass).
 - 2026-11-03 — orchestrator: landing of the first attempt was refused by the GSD Path ignore-rule check (`.gitignore:78:build/ excludes .project/build/verify-ledger.jsonl` and the archive build paths); no task owned `.gitignore`. Plan-defect repair per owner ruling "1で": `files` gains `.gitignore`, Approach and Verify gain the `!/.project/**/build/` negation and its ignore checks. First-attempt diff (CLAUDE.md, 14 lines changed) is discarded with its isolate; T003 is redispatched at the repaired base.
+- 2026-11-03 — build_T003 (second dispatch, primary worktree at b1513663): re-applied the first attempt's CLAUDE.md edits (writer.py bullet rewritten for content file via `translate()` + per-entry wrapper via `render_wrapper()`, symbols checked at writer.py:234/279 and builder.py:2131; translator ~2700/~140 figures dropped; @preview section now five packages incl. `diagraph`; `typst_documents` format gains optional fifth element `documentclass`, a template registry key into `typst_document_templates`; `typst_debug` removed from the config list; GSD Core "Applicability" paragraph removed). `.gitignore`: added `!/.project/**/build/` directly after the product rule `build/` (line 78, the later of the two `build/` lines, so the negation follows both); nothing else changed. Verify: exit 0 (pass). Note: the Verify clause `! git check-ignore -q --no-index <3 paths>` is vacuous — git exits 128 with "fatal: --quiet is only valid with a single pathname", which `!` turns into success. Checked the three `.project/` paths individually instead: each `git check-ignore --no-index` exits 1 (not ignored); `build/x` and `examples/basic/build/x` exit 0 (ignored by .gitignore:78).
+- 2026-11-02 — orchestrator Verify (sidecar gsd-path-verify/task-t003-verify): pass, exit 0; output tail:
+  ```
+  fatal: --quiet is only valid with a single pathname
+  ```

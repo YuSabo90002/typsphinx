@@ -76,6 +76,7 @@ Thumbs.db
 
 # Project specific - build artifacts
 build/
+!/.project/**/build/
 dist/
 *.egg-info/
 
