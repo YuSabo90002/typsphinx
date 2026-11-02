@@ -88,4 +88,4 @@ Heavy: no
   Checked 85 packages in 0.37ms
   WARNING: html_static_path entry '_static' does not exist
   ```
-- 2026-11-03 — orchestrator: landing of attempt 1 (isolate gsd-path-task/T002 at base 31b56a4a) was refused by the GSD Path ignore-rule check because that base predates T003's  negation (landed in 85543e35). Rejected diff product patch sha256 31a4822c1f4174ad065f63d4bdbd9f4d568ae6b1c5df375c05d1805e1d0bf499; implementation is not at fault. Isolate retired; T002 is redispatched at the current clean HEAD.
+- 2026-11-03 — orchestrator: landing of attempt 1 (isolate gsd-path-task/T002 at base 31b56a4a) was refused by the GSD Path ignore-rule check because that base predates T003's .gitignore negation (landed in 85543e35). Rejected diff product patch sha256 31a4822c1f4174ad065f63d4bdbd9f4d568ae6b1c5df375c05d1805e1d0bf499; implementation is not at fault. Isolate retired; T002 is redispatched at the current clean HEAD.
