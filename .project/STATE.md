@@ -43,3 +43,4 @@ it on completion. If this file and the artifacts disagree, the artifacts win
 - 2026-11-03 — build — T001 and T002 attempt 1 refused at landing (isolate base predates T003 .gitignore fix); redispatch at current HEAD. T003 Verify note: its multi-path check-ignore -q clause is vacuous (fatal 128); coder verified each path separately, and the landing ignore-rule gate proves the same property
 - 2026-11-03 — build — corrected a dropped word in the T001/T002 attempt-1 log lines
 - 2026-11-03 — build — wave 1 review cycle 1 passed
+- 2026-11-03 — build — wave 2 review cycle 1 passed
