@@ -64,3 +64,28 @@ Heavy: no
 ## Log
 
 - 2026-11-03 — created by planner
+- 2026-11-03 — build_T002: unregistered `typst_debug` in `typsphinx/__init__.py`; added `REMOVED_CONFIG_VALUES["typst_debug"]` ("'typst_debug' was removed in v0.9.8 and has no replacement. It was registered but never read, so deleting it changes no build output.") and updated module docstring counts; gate test extended to four names plus `TestTypstDebugRemovalChangesNoOutput` (warn-once + byte-identical `.typ` tree on first and repeated build, any-value parametrize, unregistered check); replaced the two registration tests in `tests/test_config_other_options.py` with `test_typst_debug_no_longer_registered`; added `typst_debug` row (v0.9.8) to configuration.rst Removed Configuration Values table and `"typst_debug": "v0.9.8"` to `REMOVED_NAME_TO_PHRASE`; removed Debug-mode block (incl. `SPHINX_TYPST_DEBUG`) from `examples/advanced/conf.py` and README; README drops `_templates/` tree line (#11) and states the custom template is already enabled by `typst_template = "_typst/custom.typ"` (#12). black/ruff/mypy clean. Verify: pass (47 passed under LC_ALL=C; real sphinx-build warned once, exit 0, `diff -r` empty; VERIFY_RC=0).
+- 2026-11-02 — orchestrator Verify (isolate gsd-path-task/T002): pass, exit 0; output tail:
+  ```
+  loading translations [en]... done
+  making output directory... done
+  building [mo]: targets for 0 po files that are out of date
+  writing output... 
+  building [typst]: targets for 1 source files that are out of date
+  updating environment: [new config] 1 added, 0 changed, 0 removed
+  reading sources... [100%] index
+  
+  looking for now-outdated files... none found
+  pickling environment... done
+  checking consistency... done
+  preparing documents... done
+  writing output... [index] done
+  typst: wrote 1 wrapper file(s) -- compile these: basic-example.typ
+  build succeeded, 2 warnings.
+  WARNING: 'typst_debug' was removed in v0.9.8 and has no replacement. It was registered but never read, so deleting it changes no build output.
+  WARNING: html_static_path entry '_static' does not exist
+  Resolved 95 packages in 0.66ms
+  Checked 85 packages in 0.37ms
+  WARNING: html_static_path entry '_static' does not exist
+  ```
+- 2026-11-03 — orchestrator: landing of attempt 1 (isolate gsd-path-task/T002 at base 31b56a4a) was refused by the GSD Path ignore-rule check because that base predates T003's  negation (landed in 85543e35). Rejected diff product patch sha256 31a4822c1f4174ad065f63d4bdbd9f4d568ae6b1c5df375c05d1805e1d0bf499; implementation is not at fault. Isolate retired; T002 is redispatched at the current clean HEAD.

@@ -40,3 +40,4 @@ it on completion. If this file and the artifacts disagree, the artifacts win
 - 2026-11-03 — build — build started
 - 2026-11-03 — build — plan defect repaired: T003 files +.gitignore for the GSD Path ignore-rule check (owner ruling: 1で)
 - 2026-11-03 — build — plan defect repaired: T003 Verify names ignore-check paths through a variable (brief lint refuses absent literal paths)
+- 2026-11-03 — build — T001 and T002 attempt 1 refused at landing (isolate base predates T003 .gitignore fix); redispatch at current HEAD. T003 Verify note: its multi-path check-ignore -q clause is vacuous (fatal 128); coder verified each path separately, and the landing ignore-rule gate proves the same property
