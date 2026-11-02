@@ -17,8 +17,12 @@ It asserts, of one real compiled artifact, that:
 3. the ``[graphviz diagram omitted]`` placeholder path is GONE for inline
    DOT -- neither the placeholder wording in the PDF nor its one warning in
    sphinx-build's stderr (DEG-01 / Issue #114);
-4. no Graphviz binary was involved: ``shutil.which("dot") is None`` while
-   every diagram above rendered anyway (R010).
+4. no Graphviz binary was involved: the build and compile run with a PATH
+   from which every entry holding an executable ``dot`` was removed, and
+   ``shutil.which("dot", path=<that PATH>) is None`` while every diagram
+   above rendered anyway (R010). This holds whether or not the host PATH
+   has ``dot`` -- the maintainer's devShell provisions Graphviz on purpose
+   for the local HTML docs build.
 
 **The assertion trap (MEM008).** diagraph renders *unquoted* DOT node
 identifiers through Typst **math** mode. Measured by real compile plus
@@ -38,6 +42,7 @@ ERROR, not as a targeted assertion failure -- read the fixture's error, not
 the test names, when this module goes red.
 """
 
+import os
 import shutil
 import subprocess
 import sys
@@ -124,6 +129,32 @@ PLACEHOLDER_WORDING = "omitted"
 PLACEHOLDER_WARNING = "graphviz is not supported in Typst output"
 
 
+def _dot_names() -> tuple[str, ...]:
+    """The executable file names a Graphviz ``dot`` binary can carry here."""
+    return ("dot", "dot.exe") if sys.platform == "win32" else ("dot",)
+
+
+def path_without_dot(path: str) -> str:
+    """
+    Return ``path`` minus every entry that holds an executable ``dot``.
+
+    Every such entry is removed, not only the first one ``shutil.which``
+    would find, so no later entry can re-expose a ``dot`` binary. Kept
+    entries keep their order; empty and nonexistent entries are tolerated
+    (and kept -- they cannot hold ``dot``). Nothing else is stripped: the
+    proof build needs only Python and typst-py.
+    """
+    kept = []
+    for entry in path.split(os.pathsep):
+        has_dot = bool(entry) and any(
+            os.path.isfile(candidate) and os.access(candidate, os.X_OK)
+            for candidate in (os.path.join(entry, name) for name in _dot_names())
+        )
+        if not has_dot:
+            kept.append(entry)
+    return os.pathsep.join(kept)
+
+
 @pytest.fixture(scope="module")
 def graphviz_render_gate_build(tmp_path_factory):
     """
@@ -135,7 +166,12 @@ def graphviz_render_gate_build(tmp_path_factory):
     four-diagram) compile once per test. Depends only on
     ``tmp_path_factory``, which is module-scope-compatible, to avoid a
     pytest ScopeMismatch.
+
+    Both the sphinx-build subprocess and the in-process ``typst.compile``
+    run with ``PATH`` stripped of every entry holding an executable ``dot``
+    (R010); the stripped value is returned as ``stripped_path``.
     """
+    stripped_path = path_without_dot(os.environ.get("PATH", ""))
     source_dir = Path(__file__).parent / "fixtures" / "graphviz_render_gate"
     build_dir = tmp_path_factory.mktemp("graphviz_render_gate") / "_build"
 
@@ -155,6 +191,7 @@ def graphviz_render_gate_build(tmp_path_factory):
         ],
         capture_output=True,
         text=True,
+        env={**os.environ, "PATH": stripped_path},
     )
     assert (
         result.returncode == 0
@@ -167,7 +204,9 @@ def graphviz_render_gate_build(tmp_path_factory):
     # (index.typ), and do it WITHOUT try/except: a fatal must abort the
     # whole module loudly rather than be swallowed into a soft assertion.
     pdf_output = build_dir / "master.pdf"
-    typst.compile(str(master_typ), output=str(pdf_output))
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("PATH", stripped_path)
+        typst.compile(str(master_typ), output=str(pdf_output))
 
     assert pdf_output.exists(), "PDF file was not created"
     assert pdf_output.stat().st_size > 0, "PDF file is empty"
@@ -177,6 +216,7 @@ def graphviz_render_gate_build(tmp_path_factory):
     reader = pypdf.PdfReader(str(pdf_output))
     return {
         "returncode": result.returncode,
+        "stripped_path": stripped_path,
         "stderr": result.stderr,
         "magic": magic,
         "master_source": master_typ.read_text(encoding="utf-8"),
@@ -492,19 +532,57 @@ class TestGraphvizRenderGate:
 
 
 @pytest.mark.slow
-def test_no_graphviz_binary_is_installed():
+@pytest.mark.skipif(
+    not (TYPST_AVAILABLE and PYPDF_AVAILABLE),
+    reason="typst-py and pypdf are both required for the S02 render gate",
+)
+def test_no_graphviz_binary_is_installed(graphviz_render_gate_build):
     """
-    R010: the diagrams above rendered with NO Graphviz binary present.
+    R010: the diagrams above rendered with NO Graphviz binary reachable.
 
-    Asserted rather than narrated, and kept as its own module-level test --
-    outside the class and independent of the shared build fixture -- so its
-    failure message is unambiguous on a machine that happens to have
-    Graphviz installed. A failure here does not mean typsphinx regressed; it
-    means this environment can no longer prove R010, because `dot` on PATH
-    would make the rendering evidence above ambiguous.
+    Asserted against the PATH the proof build itself ran with -- the host
+    PATH stripped of every entry holding an executable ``dot`` -- not
+    against the host PATH. So it passes whether or not the host has
+    Graphviz (the maintainer's devShell provisions it for the local HTML
+    docs build), while still proving that the build which produced the
+    diagrams above could not have reached ``dot``.
     """
-    assert shutil.which("dot") is None, (
-        "a Graphviz `dot` binary is on PATH at "
-        f"{shutil.which('dot')!r}; R010 (diagrams render with no Graphviz "
-        "binary present) cannot be proven in this environment"
+    stripped_path = graphviz_render_gate_build["stripped_path"]
+    found = shutil.which("dot", path=stripped_path)
+    assert found is None, (
+        f"a Graphviz `dot` binary is reachable at {found!r} on the PATH the "
+        "proof build ran with; R010 (diagrams render with no Graphviz binary "
+        "present) is not proven"
     )
+
+
+def _make_executable_dot(directory: Path) -> None:
+    directory.mkdir()
+    name = "dot.exe" if sys.platform == "win32" else "dot"
+    binary = directory / name
+    binary.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    binary.chmod(0o755)
+
+
+def test_path_without_dot_removes_every_dot_entry(tmp_path):
+    """
+    E1: every PATH entry holding an executable ``dot`` is removed, not only
+    the first; clean entries are kept in their original order.
+    """
+    dot_a = tmp_path / "dot_a"
+    dot_b = tmp_path / "dot_b"
+    clean = tmp_path / "clean"
+    _make_executable_dot(dot_a)
+    _make_executable_dot(dot_b)
+    clean.mkdir()
+    missing = tmp_path / "missing"
+
+    path = os.pathsep.join([str(dot_a), str(clean), "", str(dot_b), str(missing)])
+    result = path_without_dot(path).split(os.pathsep)
+
+    assert str(dot_a) not in result
+    assert str(dot_b) not in result
+    assert result == [str(clean), "", str(missing)]
+    assert shutil.which("dot", path=os.pathsep.join(result)) is None
+    # Sanity: the unstripped PATH really did expose a `dot`.
+    assert shutil.which("dot", path=path) is not None

@@ -3,9 +3,9 @@ id: T001
 title: Make the R010 graphviz proof build with every dot-bearing PATH entry stripped
 wave: 1
 deps: []
-status: pending
-agent: null
-base: null
+status: done
+agent: build_T001
+base: 2de42b05b3f03a9a8f88eb4069bc70937195e10a
 worktree: null
 task_branch: null
 files:
@@ -59,3 +59,29 @@ Heavy: yes
 - 2026-11-03 — build_T001: implemented in tests/test_graphviz_render_gate.py — module helper `path_without_dot(path)` (drops every entry with an executable `dot`/`dot.exe`, keeps order, tolerates empty/nonexistent entries); fixture runs `sys.executable -m sphinx` with `env={**os.environ, "PATH": stripped}` and `typst.compile` inside `pytest.MonkeyPatch.context()` with the same PATH, returns `stripped_path`; `test_no_graphviz_binary_is_installed` now uses the fixture and asserts `shutil.which("dot", path=stripped_path) is None` (docstrings + module point 4 updated); added non-slow `test_path_without_dot_removes_every_dot_entry` (two dot dirs interleaved with clean/empty/missing entries). flake.nix untouched.
 - 2026-11-03 — build_T001: Verify pass with host `dot` at /nix/store/...-graphviz-12.2.1/bin/dot: render gate 14 passed; E1 test 1 passed; `tests/` 1730 passed, 1 skipped, 0 failed; black/ruff clean; clean `tox -e docs-html` exit 0, emits docs/_build/html/_images/graphviz-9d601b68….png.
 - 2026-11-03 — orchestrator: landing of attempt 1 (isolate gsd-path-task/T001 at base 31b56a4a) was refused by the GSD Path ignore-rule check because that base predates T003's .gitignore negation (landed in 85543e35). Rejected diff product patch sha256 390c60b993053f7e437b2eceeeff30519b3364672b28d2bd5dde11cda876fc3d; implementation is not at fault. Isolate retired; T001 is redispatched at the current clean HEAD.
+- 2026-11-03 — build_T001 (attempt 2, base 2de42b05): toolchain probe re-run at base: `uv run black --check .` 381 files unchanged; `uv run ruff check .` All checks passed; `uv run mypy typsphinx/` no issues in 9 files — no out-of-scope findings.
+- 2026-11-03 — build_T001 (attempt 2): reviewed the attempt-1 product patch against the contract and re-applied it unchanged with `git apply` to tests/test_graphviz_render_gate.py (helper `path_without_dot`, stripped PATH for the sphinx subprocess and in-process `typst.compile`, `stripped_path` in fixture dict, R010 assertion on the stripped PATH, new E1 test). flake.nix untouched.
+- 2026-11-03 — build_T001 (attempt 2): full Verify exit 0 with host `dot` at /nix/store/d5nx177j7n96jmd38x9fpankrpkp5szj-graphviz-12.2.1/bin/dot: render gate 14 passed; E1 test 1 passed; `tests/` 1730 passed, 1 skipped, 0 failed; black/ruff clean; clean `tox -e docs-html` OK, emits docs/_build/html/_images/graphviz-9d601b680ab94eac1febdc364a0d914f474368d3.png.
+- 2026-11-02 — orchestrator Verify (isolate gsd-path-task/T001): pass, exit 0; output tail:
+  ```
+  
+  索引を生成中... genindex py-modindex 完了
+  モジュールコードをハイライトしています...[ 20%] typsphinx.builder
+  モジュールコードをハイライトしています...[ 40%] typsphinx.pdf
+  モジュールコードをハイライトしています...[ 60%] typsphinx.template_engine
+  モジュールコードをハイライトしています...[ 80%] typsphinx.translator
+  モジュールコードをハイライトしています...[100%] typsphinx.writer
+  
+  追加のページを出力中... search 完了
+  English (code: en) の検索インデックスを出力... 完了
+  オブジェクト インベントリを出力... 完了
+  build succeeded.
+  
+  HTMLページは_build/htmlにあります。
+    docs-html: OK (2.49=setup[0.01]+cmd[2.48] seconds)
+    congratulations :) (2.51 seconds)
+  Resolved 95 packages in 0.63ms
+  Checked 94 packages in 0.38ms
+  All done! ✨ 🍰 ✨
+  1 file would be left unchanged.
+  ```
