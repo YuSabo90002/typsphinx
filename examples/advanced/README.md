@@ -19,7 +19,6 @@ advanced/
 ├── chapter2.rst            # Chapter 2: Figures and tables
 ├── _typst/                 # Typst-owned template directory (typst_template points here)
 │   └── custom.typ          # Example custom Typst template
-├── _templates/             # Sphinx's own templates_path override directory (HTML theme; empty here)
 ├── README.md               # This file
 └── _build/                 # Build output (generated)
     ├── typst/              # Typst markup files (.typ)
@@ -80,13 +79,13 @@ This creates both `.typ` and `.pdf` files in `_build/pdf/`.
 
 ### Using Custom Template
 
-To use the custom template, edit `conf.py` and uncomment:
+The custom template is already enabled in `conf.py` by:
 
 ```python
-typst_template = '_typst/custom.typ'
+typst_template = "_typst/custom.typ"
 ```
 
-Then rebuild:
+Build with:
 
 ```bash
 sphinx-build -b typst . _build/typst
@@ -261,10 +260,6 @@ typst_template = '_typst/custom.typ'
 #     '#import "@preview/codly:1.3.0": *',
 #     '#import "@preview/gentle-clues:1.3.1": *',
 # ]
-
-# Debug mode (optional)
-# Enable for detailed logging
-# typst_debug = False
 ```
 
 See [Configuration Reference](../../docs/source/user_guide/configuration.rst) for complete documentation of all options.

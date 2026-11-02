@@ -86,6 +86,7 @@ REMOVED_NAME_TO_PHRASE = {
     "typst_template_assets": "copied wholesale",
     "typst_authors": "params",
     "typst_toctree_defaults": "No replacement",
+    "typst_debug": "v0.9.8",
 }
 
 # Phase 56 plan 01 (D-02/DOC-15): the retracted element [4] definition

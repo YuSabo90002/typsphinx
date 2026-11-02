@@ -3,9 +3,9 @@ id: T002
 title: Remove the inert typst_debug config value through the removed-config path and fix examples/advanced/README.md
 wave: 1
 deps: []
-status: pending
-agent: null
-base: null
+status: done
+agent: build_T002
+base: 2de42b05b3f03a9a8f88eb4069bc70937195e10a
 worktree: null
 task_branch: null
 files:
@@ -89,3 +89,27 @@ Heavy: no
   WARNING: html_static_path entry '_static' does not exist
   ```
 - 2026-11-03 — orchestrator: landing of attempt 1 (isolate gsd-path-task/T002 at base 31b56a4a) was refused by the GSD Path ignore-rule check because that base predates T003's .gitignore negation (landed in 85543e35). Rejected diff product patch sha256 31a4822c1f4174ad065f63d4bdbd9f4d568ae6b1c5df375c05d1805e1d0bf499; implementation is not at fault. Isolate retired; T002 is redispatched at the current clean HEAD.
+- 2026-11-03 — build_T002 (attempt 2, base 2de42b05): reviewed attempt-1 product patch against the contract and re-applied it unchanged with `git apply` (same 8 declared files; no other paths touched). black/ruff/mypy clean. Verify: pass (47 passed under LC_ALL=C; real sphinx-build with `typst_debug = True` warned once, exit 0, `diff -r` empty; VERIFY_RC=0).
+- 2026-11-02 — orchestrator Verify (isolate gsd-path-task/T002): pass, exit 0; output tail:
+  ```
+  loading translations [en]... done
+  making output directory... done
+  building [mo]: targets for 0 po files that are out of date
+  writing output... 
+  building [typst]: targets for 1 source files that are out of date
+  updating environment: [new config] 1 added, 0 changed, 0 removed
+  reading sources... [100%] index
+  
+  looking for now-outdated files... none found
+  pickling environment... done
+  checking consistency... done
+  preparing documents... done
+  writing output... [index] done
+  typst: wrote 1 wrapper file(s) -- compile these: basic-example.typ
+  build succeeded, 2 warnings.
+  WARNING: 'typst_debug' was removed in v0.9.8 and has no replacement. It was registered but never read, so deleting it changes no build output.
+  WARNING: html_static_path entry '_static' does not exist
+  Resolved 95 packages in 0.63ms
+  Checked 85 packages in 0.52ms
+  WARNING: html_static_path entry '_static' does not exist
+  ```

@@ -96,8 +96,3 @@ typst_template = "_typst/custom.typ"
 #     '#import "@preview/codly:1.3.0": *',
 #     '#import "@preview/gentle-clues:1.3.1": *',
 # ]
-
-# Debug mode (optional)
-# Enable detailed logging for troubleshooting
-# Can also be enabled via SPHINX_TYPST_DEBUG=1 environment variable
-# typst_debug = False

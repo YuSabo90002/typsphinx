@@ -138,9 +138,9 @@ extensions = ['typsphinx']
     assert app.config.typst_template_function is None
 
 
-def test_typst_debug_config_registered(make_app, tmp_path):
-    """Test that typst_debug is registered as a config value"""
-    # Arrange: Create conf.py with typst_debug setting
+def test_typst_debug_no_longer_registered(make_app, tmp_path):
+    """typst_debug was removed in v0.9.8 and is no longer a config value"""
+    # Arrange: Create conf.py that still sets the removed typst_debug
     conf_py = tmp_path / "conf.py"
     conf_py.write_text("""
 extensions = ['typsphinx']
@@ -154,26 +154,6 @@ typst_debug = True
     # Act: Create Sphinx app
     app = make_app(srcdir=tmp_path, builddir=tmp_path / "_build")
 
-    # Assert: Config value should be accessible and correct
-    assert hasattr(app.config, "typst_debug")
-    assert app.config.typst_debug is True
-
-
-def test_typst_debug_default_false(make_app, tmp_path):
-    """Test that typst_debug defaults to False when not set"""
-    # Arrange: Create conf.py without typst_debug
-    conf_py = tmp_path / "conf.py"
-    conf_py.write_text("""
-extensions = ['typsphinx']
-""")
-
-    # Create minimal index.rst
-    index_rst = tmp_path / "index.rst"
-    index_rst.write_text("Test\n====\n\nContent.")
-
-    # Act: Create Sphinx app
-    app = make_app(srcdir=tmp_path, builddir=tmp_path / "_build")
-
-    # Assert: Default should be False
-    assert hasattr(app.config, "typst_debug")
-    assert app.config.typst_debug is False
+    # Assert: the name is not registered, so Sphinx exposes no value for it
+    assert "typst_debug" not in app.config.values
+    assert not hasattr(app.config, "typst_debug")

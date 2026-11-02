@@ -53,8 +53,6 @@ def setup(app: Sphinx) -> dict[str, Any]:
     app.add_config_value(
         "typst_template_function", None, "html", [str, dict, type(None)]
     )
-    # Task 13.4: Debug mode
-    app.add_config_value("typst_debug", False, "html", [bool])
     # Phase 53 (TPL-01): named template definitions, keyed by a registry
     # key referenced from a typst_documents entry's fifth element. Absent
     # or empty is legal -- it resolves to a registry containing only the
