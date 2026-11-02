@@ -75,6 +75,7 @@ typsphinx users installing from PyPI (Sphinx authors producing Typst/PDF output)
 - Python 3.12+, black/ruff/mypy clean as CI runs them; Typst `@preview` versions stay in lockstep across `writer.py`, `template_engine.py`, `templates/base.typ`.
 - `main` is protected with six required checks; integration mode is `pull-request` — Path opens the PR, the owner merges.
 - Releases run through `.github/workflows/release.yml` on a `v*` tag push (PyPI trusted publishing). After the milestone PR merges, Claude pushes `v0.9.8` on the merge commit only with the owner's approval and then confirms `pip install typsphinx==0.9.8`; this is a post-ship step, not a milestone criterion.
+- The milestone PR to `main` must have all six required checks green before the owner merges it; `main`'s branch protection enforces this at merge time. It is observed at integration, not judged as a final-review criterion (C2).
 - If pre-release checks find a regression, the release stops until it is fixed (owner ruling).
 - Test commands that assert warning text run under `LC_ALL=C`.
 
@@ -97,3 +98,4 @@ typsphinx users installing from PyPI (Sphinx authors producing Typst/PDF output)
 ## Corrections
 
 - C1 2026-11-03: "すまんdotの扱いはローカルでhtmlビルドを通すのもあるし、dotをflakeでインストールするのはどうだ"
+- C2 2026-11-03: "本来SC6は書かれる要件ではないってことかな" → ruling "1": SC6's clause "the milestone PR to `main` has all six required checks green" is not a final-review criterion. The PR is opened by ship integration after final review, and `main` branch protection enforces the six checks at merge, so that clause is observed at integration (see Constraints). Final review judges SC6 on its remaining clauses at the reviewed HEAD. The SC6 text is kept verbatim so earlier wave-review quotes stay valid. This was recorded outside `$gsd-path-define` by owner ruling, because GSD Path 1.7.1 has no route from `ship/active` back to define: undo refuses `build: complete milestone`, and build recovery does not reopen ship.

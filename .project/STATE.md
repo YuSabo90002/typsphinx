@@ -2,14 +2,14 @@
 pipeline: gsd-path/v2
 project: typsphinx
 milestone: release-0-9-8
-phase: ship
+phase: shipped
                     # inspect only for brownfield; greenfield starts at define
                     # roadmap only in program flow (CHARTER.md exists)
-status: active
+status: done
 branch: gsd-path/M001
                     # the router rebinds before any next-milestone file change
                     # the bound branch is never main; ship integrates it there
-archive: null       # persisted archive transaction path; never recomputed
+archive: .project/archive/001-release-0-9-8
 integration_default: pull-request
 integration: pull-request
 integration_source: default
@@ -45,3 +45,6 @@ it on completion. If this file and the artifacts disagree, the artifacts win
 - 2026-11-03 — build — wave 1 review cycle 1 passed
 - 2026-11-03 — build — wave 2 review cycle 1 passed
 - 2026-11-03 — ship — build done; final review pending
+- 2026-11-03 — ship — owner ruling C2 recorded in INTENT.md outside define (no ship-to-define route in 1.7.1): SC6 PR-checks clause observed at integration; review_final redispatched for SC6
+- 2026-11-03 — ship — final gate passed; shipping approval pending
+- 2026-11-03 — shipped — archive preflight passed; shipment recorded
