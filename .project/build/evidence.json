@@ -1,0 +1,104 @@
+{
+  "canonical_project_dir": ".project",
+  "command": "verify-landed",
+  "head": "f016dd0f5707c20eed216965ffeba8ed2db95231",
+  "project_dir": ".project",
+  "tasks": [
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M001",
+        "candidates": [
+          {
+            "base": "2de42b05b3f03a9a8f88eb4069bc70937195e10a",
+            "commit": "66ff6b9bb32ed784b9d7c90b9e3ce7f601ccfaeb",
+            "valid": true
+          }
+        ],
+        "head": "f016dd0f5707c20eed216965ffeba8ed2db95231",
+        "subject": "T001: Make the R010 graphviz proof build with every dot-bearing PATH entry stripped"
+      },
+      "landed_commit": "66ff6b9bb32ed784b9d7c90b9e3ce7f601ccfaeb",
+      "reasons": [],
+      "task": {
+        "base": "2de42b05b3f03a9a8f88eb4069bc70937195e10a",
+        "id": "T001",
+        "status": "done",
+        "task_file": ".project/tasks/T001-r010-stripped-path-proof.md"
+      }
+    },
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M001",
+        "candidates": [
+          {
+            "base": "2de42b05b3f03a9a8f88eb4069bc70937195e10a",
+            "commit": "f649ed9bda1ccd224e3ebc2aa28f7339111dd4ec",
+            "valid": true
+          }
+        ],
+        "head": "f016dd0f5707c20eed216965ffeba8ed2db95231",
+        "subject": "T002: Remove the inert typst_debug config value through the removed-config path and fix examples/advanced/README.md"
+      },
+      "landed_commit": "f649ed9bda1ccd224e3ebc2aa28f7339111dd4ec",
+      "reasons": [],
+      "task": {
+        "base": "2de42b05b3f03a9a8f88eb4069bc70937195e10a",
+        "id": "T002",
+        "status": "done",
+        "task_file": ".project/tasks/T002-remove-typst-debug.md"
+      }
+    },
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M001",
+        "candidates": [
+          {
+            "base": "b1513663c09eb2585eebd5eb671f9a9c67dc9ca8",
+            "commit": "85543e35bf4077f2a43ce7d9be222e891e64ec88",
+            "valid": true
+          }
+        ],
+        "head": "f016dd0f5707c20eed216965ffeba8ed2db95231",
+        "subject": "T003: Correct CLAUDE.md architecture claims and drop the GSD Core worktree-execution text"
+      },
+      "landed_commit": "85543e35bf4077f2a43ce7d9be222e891e64ec88",
+      "reasons": [],
+      "task": {
+        "base": "b1513663c09eb2585eebd5eb671f9a9c67dc9ca8",
+        "id": "T003",
+        "status": "done",
+        "task_file": ".project/tasks/T003-correct-claude-md.md"
+      }
+    },
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M001",
+        "candidates": [
+          {
+            "base": "c76c3e238a828e75daf1fe922d064afa4979bfb6",
+            "commit": "e9b854ce5d3c19d44eec2bd24fa8d56240313e9b",
+            "valid": true
+          }
+        ],
+        "head": "f016dd0f5707c20eed216965ffeba8ed2db95231",
+        "subject": "T004: Fold Unreleased into 0.9.8, fix the remaining stale doc claims, and prove release readiness"
+      },
+      "landed_commit": "e9b854ce5d3c19d44eec2bd24fa8d56240313e9b",
+      "reasons": [],
+      "task": {
+        "base": "c76c3e238a828e75daf1fe922d064afa4979bfb6",
+        "id": "T004",
+        "status": "done",
+        "task_file": ".project/tasks/T004-release-prep-0-9-8.md"
+      }
+    }
+  ]
+}

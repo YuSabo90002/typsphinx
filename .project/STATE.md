@@ -2,7 +2,7 @@
 pipeline: gsd-path/v2
 project: typsphinx
 milestone: release-0-9-8
-phase: build
+phase: ship
                     # inspect only for brownfield; greenfield starts at define
                     # roadmap only in program flow (CHARTER.md exists)
 status: active
@@ -44,3 +44,4 @@ it on completion. If this file and the artifacts disagree, the artifacts win
 - 2026-11-03 — build — corrected a dropped word in the T001/T002 attempt-1 log lines
 - 2026-11-03 — build — wave 1 review cycle 1 passed
 - 2026-11-03 — build — wave 2 review cycle 1 passed
+- 2026-11-03 — ship — build done; final review pending
