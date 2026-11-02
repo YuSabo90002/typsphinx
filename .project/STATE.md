@@ -39,3 +39,4 @@ it on completion. If this file and the artifacts disagree, the artifacts win
 - 2026-11-03 — plan — plan approved
 - 2026-11-03 — build — build started
 - 2026-11-03 — build — plan defect repaired: T003 files +.gitignore for the GSD Path ignore-rule check (owner ruling: 1で)
+- 2026-11-03 — build — plan defect repaired: T003 Verify names ignore-check paths through a variable (brief lint refuses absent literal paths)
