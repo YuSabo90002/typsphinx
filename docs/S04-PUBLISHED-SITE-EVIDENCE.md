@@ -835,3 +835,28 @@ boundary in this slice most likely to be got wrong:
   outcome (§9.2). An empty result is the correct representation of "not yet
   observable"; writing any verdict there would be the failure mode this task
   exists to avoid.
+
+## Post-merge results
+
+*Appended 2026-11-03 (DOCS-AUDIT #10). §9 halted at the merge gate; this section
+records the measurement that §9 could not take. §3's assertions are applied
+unchanged.*
+
+* **Merge gate now met.** The fix merged to `main` as `6c55e5b1` ("Merge pull
+  request #165 from YuSabo90002/milestone/M002", committed 2026-10-03).
+* **Page measured:** https://typsphinx.readthedocs.io/en/latest/user_guide/diagrams.html,
+  fetched with `curl -sS -L` on 2026-11-03 (JST; 2026-11-02T16:22Z) — HTTP 200.
+* **A1 — PASS.** `class="graphviz"` occurs 1 time in the served HTML.
+* **A2 — PASS.** The page references
+  `../_images/graphviz-9d601b680ab94eac1febdc364a0d914f474368d3.png`; resolved
+  against the page URL to
+  https://typsphinx.readthedocs.io/en/latest/_images/graphviz-9d601b680ab94eac1febdc364a0d914f474368d3.png
+  and fetched: HTTP 200, `Content-Type: image/png`, first bytes `\x89PNG`,
+  11362 bytes. The reference is backed by real image bytes, not markup alone.
+* **A3 — PASS.** `digraph dogfood {` occurs 0 times in the tag-stripped,
+  entity-unescaped visible text of the served page (tags replaced by spaces,
+  then `html.unescape`, the same order as `tests/test_graphviz_docs_gate.py`'s
+  `_visible_text`), and 0 times in the raw HTML as well.
+
+No test asserts this live URL (§6's rule is unchanged); this is a one-time
+recorded observation.

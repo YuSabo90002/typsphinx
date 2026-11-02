@@ -3,9 +3,9 @@ id: T004
 title: Fold Unreleased into 0.9.8, fix the remaining stale doc claims, and prove release readiness
 wave: 2
 deps: [T002]
-status: pending
-agent: null
-base: null
+status: done
+agent: build_T004
+base: c76c3e238a828e75daf1fe922d064afa4979bfb6
 worktree: null
 task_branch: null
 files:
@@ -76,3 +76,27 @@ Heavy: no
 ## Log
 
 - 2026-11-03 — created by planner
+- 2026-11-03 — build_T004: CHANGELOG.md: first `## [Unreleased]` now holds only `### Planned for Future Releases`; bibliography Added (R001-R010, R013) appended after Graphviz Added and README Changed item after DEG-01 Changed in `## [0.9.8] - 2026-11-03`; lead paragraph extended (bibliography + `typst_debug` removal); new `### Removed` item for `typst_debug` worded from `typsphinx/removed_config.py` (registered but never read, one warning by name, ignored, no output change); Fixed item now names the 0.6.0 entry (#3). Link block already correct (verified, not re-added); README status already `Stable (v0.9.8)` (unchanged). S03: appended `## Correction` citing CI run 41152681591 (#9). S04: appended `## Post-merge results` — measured live with curl 2026-11-03 JST: HTTP 200; A1 PASS (`class="graphviz"` x1); A2 PASS (`_images/graphviz-9d601b68….png` HTTP 200, image/png, `\x89PNG`, 11362 bytes); A3 PASS (`digraph dogfood {` 0 in visible text and raw HTML); merge `6c55e5b1` PR #165 (#10). charged-ieee README: rich author details limited to Approach 1; "on both approaches" removed (#13). Deviation: Approach asked to name `approach2/source/_typst/_template.typ`, but `tests/test_bundle_layout_sweep_gate.py` (in Verify) forbids the `/_template.typ` basename in that README, so the text points at "its custom Typst template in `approach2/source/_typst/`". New `tests/test_release_0_9_8_docs_gate.py` (file reads + git log for E4; skips on no git / shallow). Note for landing: E4 test expects the heading date 2026-11-03 to equal the `%cs` committer date of the commit that adds it — the landing commit must be dated 2026-11-03 (committer TZ), else the heading must be updated to that date. Verify (full command, exact) exit 0: 34 passed; 3 passed; black/ruff clean; uv build + twine check PASSED for wheel and sdist. Log: /tmp/claude-1000/-home-yuta-Documents-typsphinx/e3f192a2-e39e-4324-9fe0-108e1e879fe0/scratchpad/t004-verify.log. Re-synced main `.venv` with `--extra dev --extra docs` afterwards. No tags created or pushed.
+- 2026-11-02 — orchestrator Verify (sidecar gsd-path-verify/task-t004-verify): pass, exit 0; output tail:
+  ```
+  adding 'typsphinx/__init__.py'
+  adding 'typsphinx/builder.py'
+  adding 'typsphinx/pathfmt.py'
+  adding 'typsphinx/pdf.py'
+  adding 'typsphinx/removed_config.py'
+  adding 'typsphinx/template_engine.py'
+  adding 'typsphinx/template_registry.py'
+  adding 'typsphinx/translator.py'
+  adding 'typsphinx/writer.py'
+  adding 'typsphinx/templates/README.md'
+  adding 'typsphinx/templates/base.typ'
+  adding 'typsphinx-0.9.8.dist-info/licenses/LICENSE'
+  adding 'typsphinx-0.9.8.dist-info/METADATA'
+  adding 'typsphinx-0.9.8.dist-info/WHEEL'
+  adding 'typsphinx-0.9.8.dist-info/entry_points.txt'
+  adding 'typsphinx-0.9.8.dist-info/top_level.txt'
+  adding 'typsphinx-0.9.8.dist-info/RECORD'
+  removing build/bdist.linux-x86_64/wheel
+  Successfully built dist/typsphinx-0.9.8.tar.gz
+  Successfully built dist/typsphinx-0.9.8-py3-none-any.whl
+  ```
