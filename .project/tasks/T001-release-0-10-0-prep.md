@@ -3,9 +3,9 @@ id: T001
 title: Prepare release 0.10.0 — version, README status, dated CHANGELOG section with breaking-change lead, newest-first order, and gate tests that follow the version
 wave: 1
 deps: []
-status: pending
-agent: null
-base: null
+status: done
+agent: build_T001
+base: d3e33bccfb008560106232d050e7324140df9e13
 worktree: null
 task_branch: null
 files:
@@ -63,3 +63,27 @@ Heavy: yes
 ## Log
 
 - 2026-11-03 — created by plan (quick mode)
+- 2026-11-03 — build_T001 (coder): implemented. pyproject.toml and uv.lock project entry -> 0.10.0 (`uv sync` via the fallback nixpkgs uv rewrote uv.lock `revision = 5` to `3`; restored to 5 by hand, `uv lock --check` with uv 0.13.6 passes, no resolution change — the only uv.lock diff is the typsphinx version line). README status -> "Stable (v0.10.0)". CHANGELOG: new `## [0.10.0] - 2026-11-03` directly above `## [0.9.8]` with a lead paragraph (codly 1.3.0 -> 2.0.0 breaking change, code-mode `codly.new(raw(...))`, shared `<outdir>/_typsphinx/deps.typ` public contract, custom-template migration pointing at the Templates page "Migrating from codly 1.3" note); every former Unreleased entry moved under it unchanged (Added, Changed); `## [Unreleased]` now holds only `### Planned for Future Releases`. Note: at base the Unreleased section had no Python 3.14 (M005) entries, so none were moved. `## [0.1.0b1]` block moved below `## [0.2.0]` byte-identical (diffed against HEAD). Link block: `[Unreleased]` -> `v0.10.0...HEAD`, `[0.10.0]` tag link added above `[0.9.8]`. Tests: test_deps_contract_docs_gate.py changelog helpers repointed to `## [0.10.0]` (assertions kept; the Planned check now its own test against Unreleased; the two test functions renamed `..._0_10_0_...`); test_release_0_9_8_docs_gate.py link test now only asserts the `[0.9.8]` tag link (renamed `test_link_block_keeps_v0_9_8_tag_link`); new tests/test_release_0_10_0_docs_gate.py (version, README status, Unreleased-only-Planned, placement above 0.9.8, git-log -S commit-date check with today fallback, lead fragments, former entries present, link block, PEP 440 descending order via packaging.version, extract script output). Verify (exactly as written, TMPDIR=/tmp/claude-1000): EXIT=0 — targeted gates 50 passed; uv build into mktemp dir produced typsphinx-0.10.0 wheel+sdist, twine check passed; `LC_ALL=C uv run pytest tests/` 1892 passed, 1 skipped; black/ruff/mypy clean. No dist/ left in the repo.
+- 2026-11-03 — orchestrator Verify (isolate gsd-path-task/T001): pass, exit 0; output tail:
+  ```
+  adding 'typsphinx/pdf.py'
+  adding 'typsphinx/removed_config.py'
+  adding 'typsphinx/template_engine.py'
+  adding 'typsphinx/template_registry.py'
+  adding 'typsphinx/translator.py'
+  adding 'typsphinx/typst_deps.py'
+  adding 'typsphinx/writer.py'
+  adding 'typsphinx/templates/README.md'
+  adding 'typsphinx/templates/base.typ'
+  adding 'typsphinx-0.10.0.dist-info/licenses/LICENSE'
+  adding 'typsphinx-0.10.0.dist-info/METADATA'
+  adding 'typsphinx-0.10.0.dist-info/WHEEL'
+  adding 'typsphinx-0.10.0.dist-info/entry_points.txt'
+  adding 'typsphinx-0.10.0.dist-info/top_level.txt'
+  adding 'typsphinx-0.10.0.dist-info/RECORD'
+  removing build/bdist.linux-x86_64/wheel
+  Successfully built /tmp/tmp.GKSM4ZRUmF/typsphinx-0.10.0.tar.gz
+  Successfully built /tmp/tmp.GKSM4ZRUmF/typsphinx-0.10.0-py3-none-any.whl
+  All done! ✨ 🍰 ✨
+  399 files would be left unchanged.
+  ```

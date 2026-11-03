@@ -342,5 +342,5 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
 ---
 
-**Status**: Stable (v0.9.8) - Production ready
+**Status**: Stable (v0.10.0) - Production ready
 **Python**: 3.12+ | **Sphinx**: 9.1+ | **Typst**: 0.15+

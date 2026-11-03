@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned for Future Releases
+- Index generation
+- Pre-commit hooks
+- Additional Typst Universe template integration
+
+## [0.10.0] - 2026-11-03
+
+0.10.0 contains breaking changes for custom templates. codly is upgraded from 1.3.0 to
+2.0.0 (`@preview/codly:2.0.0`, which needs Typst 0.15), and every code block is now
+emitted as a code-mode `codly.new(raw(...))` expression. Every build also writes one
+shared dependencies file, `<outdir>/_typsphinx/deps.typ`, which every content file,
+wrapper and the bundled template import instead of pinning their own package versions;
+its path and exported names are a public contract. A custom template that used
+`codly-init` or the state-style `codly` configuration call must be migrated: see the
+"Migrating from codly 1.3" note in the Templates page's `deps.typ` section, and the
+migration entry under Changed below.
+
 ### Added
 
 - **One shared dependencies file per build: `<outdir>/_typsphinx/deps.typ`.** Every
@@ -80,11 +97,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   path, so pass `--root <outdir>` when compiling a file that does not sit at the
   output directory's top level. The `typstpdf` builder already compiles with that
   root.
-
-### Planned for Future Releases
-- Index generation
-- Pre-commit hooks
-- Additional Typst Universe template integration
 
 ## [0.9.8] - 2026-11-03
 
@@ -1386,6 +1398,77 @@ untouched.
   - Added `visit_comment()` and `depart_comment()` methods to TypstTranslator
   - Comments are completely omitted from output as intended for source-level documentation
 
+## [0.2.0] - 2025-10-16
+
+### Fixed
+
+- **Issue #5**: Fixed nested toctree relative path issues in `#include()` directives (PR #14)
+  - Corrected relative path calculation for nested toctree structures
+  - Added comprehensive debug logging for path resolution
+  - Added E2E Typst compilation tests and integration tests
+  - Improved code coverage to 94%
+
+- **Issue #10**: Fixed typstpdf builder auto-discovery (PR #12)
+  - Registered `typstpdf` builder in `entry_points` for automatic Sphinx discovery
+  - Updated documentation to reflect optional extension registration
+  - Added test coverage for typstpdf entry point
+
+### Improved
+
+- **Issue #7**: Simplified toctree output format (PR #15)
+  - Changed from multiple `#block(breakable: true)[]` to single content block
+  - Improved readability and maintainability of generated Typst code
+  - Resolved lint and format errors in test files
+
+### Documentation
+
+- **Issue #6**: Documented custom node support using Sphinx standard API (PR #16)
+  - Added "Working with Third-Party Extensions" section to README.md
+  - Documented usage of Sphinx's standard `app.add_node()` API
+  - Provided practical example with sphinxcontrib-mermaid integration
+  - Clarified that NodeHandlerRegistry is unnecessary - Sphinx already provides this functionality
+  - **Requirement 11 is now complete**: Custom node support via Sphinx's standard extension mechanism
+
+- **Issue #8**: Added acknowledgment for AI-assisted development (PR #9)
+  - Added Claude Code and Kiro-style Spec-Driven Development to acknowledgments
+
+- **PR #11**: Improved CLAUDE.md with repository information and guidelines
+  - Added repository owner and URL information
+  - Added language guidelines for GitHub interactions
+  - Added issue template references
+
+### Dependencies
+
+- **Dependabot updates**:
+  - Bump astral-sh/setup-uv from 4 to 7 (PR #1)
+  - Bump actions/checkout from 4 to 5 (PR #2)
+  - Bump codecov/codecov-action from 4 to 5 (PR #3)
+
+### Requirements Status
+
+**All 13 requirements now fully implemented**:
+- Requirement 1: Sphinx Builder Integration (100%)
+- Requirement 2: Doctree to Typst Conversion (100%)
+- Requirement 3: Cross-References and Links (100%)
+- Requirement 4: Math Support (mitex) (100%)
+- Requirement 5: Typst Native Math (100%)
+- Requirement 6: Figures and Tables (100%)
+- Requirement 7: Code Highlighting (100%)
+- Requirement 8: Templates and Customization (100%)
+- Requirement 9: Self-Contained PDF Generation (100%)
+- Requirement 10: Error Handling and Logging (100%)
+- Requirement 11: Extensibility and Plugin Support (100%) - **Now complete**
+- Requirement 12: Testing and Documentation (100%)
+- Requirement 13: Multi-Document Integration (100%)
+
+### Testing
+
+- **317 tests** with **94% code coverage**
+- All tests passing across Python 3.9, 3.10, 3.11, 3.12
+- CI/CD pipeline validated on Linux, macOS, Windows
+
+---
+
 ## [0.1.0b1] - 2025-10-13
 
 ### Added
@@ -1559,77 +1642,7 @@ untouched.
 
 ---
 
-## [0.2.0] - 2025-10-16
-
-### Fixed
-
-- **Issue #5**: Fixed nested toctree relative path issues in `#include()` directives (PR #14)
-  - Corrected relative path calculation for nested toctree structures
-  - Added comprehensive debug logging for path resolution
-  - Added E2E Typst compilation tests and integration tests
-  - Improved code coverage to 94%
-
-- **Issue #10**: Fixed typstpdf builder auto-discovery (PR #12)
-  - Registered `typstpdf` builder in `entry_points` for automatic Sphinx discovery
-  - Updated documentation to reflect optional extension registration
-  - Added test coverage for typstpdf entry point
-
-### Improved
-
-- **Issue #7**: Simplified toctree output format (PR #15)
-  - Changed from multiple `#block(breakable: true)[]` to single content block
-  - Improved readability and maintainability of generated Typst code
-  - Resolved lint and format errors in test files
-
-### Documentation
-
-- **Issue #6**: Documented custom node support using Sphinx standard API (PR #16)
-  - Added "Working with Third-Party Extensions" section to README.md
-  - Documented usage of Sphinx's standard `app.add_node()` API
-  - Provided practical example with sphinxcontrib-mermaid integration
-  - Clarified that NodeHandlerRegistry is unnecessary - Sphinx already provides this functionality
-  - **Requirement 11 is now complete**: Custom node support via Sphinx's standard extension mechanism
-
-- **Issue #8**: Added acknowledgment for AI-assisted development (PR #9)
-  - Added Claude Code and Kiro-style Spec-Driven Development to acknowledgments
-
-- **PR #11**: Improved CLAUDE.md with repository information and guidelines
-  - Added repository owner and URL information
-  - Added language guidelines for GitHub interactions
-  - Added issue template references
-
-### Dependencies
-
-- **Dependabot updates**:
-  - Bump astral-sh/setup-uv from 4 to 7 (PR #1)
-  - Bump actions/checkout from 4 to 5 (PR #2)
-  - Bump codecov/codecov-action from 4 to 5 (PR #3)
-
-### Requirements Status
-
-**All 13 requirements now fully implemented**:
-- Requirement 1: Sphinx Builder Integration (100%)
-- Requirement 2: Doctree to Typst Conversion (100%)
-- Requirement 3: Cross-References and Links (100%)
-- Requirement 4: Math Support (mitex) (100%)
-- Requirement 5: Typst Native Math (100%)
-- Requirement 6: Figures and Tables (100%)
-- Requirement 7: Code Highlighting (100%)
-- Requirement 8: Templates and Customization (100%)
-- Requirement 9: Self-Contained PDF Generation (100%)
-- Requirement 10: Error Handling and Logging (100%)
-- Requirement 11: Extensibility and Plugin Support (100%) - **Now complete**
-- Requirement 12: Testing and Documentation (100%)
-- Requirement 13: Multi-Document Integration (100%)
-
-### Testing
-
-- **317 tests** with **94% code coverage**
-- All tests passing across Python 3.9, 3.10, 3.11, 3.12
-- CI/CD pipeline validated on Linux, macOS, Windows
-
----
-
+[0.10.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.10.0
 [0.9.8]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.8
 [0.9.7]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.7
 [0.9.6]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.6
@@ -1655,4 +1668,4 @@ untouched.
 [0.2.1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.1
 [0.2.0]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.2.0
 [0.1.0b1]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.1.0b1
-[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.9.8...HEAD
+[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.10.0...HEAD

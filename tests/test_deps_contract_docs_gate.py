@@ -12,7 +12,8 @@ Reads files only -- no Sphinx build. It pins:
   drift warning, and N4;
 * ``output_layout.rst``: ``_typsphinx/`` is reserved, and hand compiles use
   the output directory as the compile root;
-* ``CHANGELOG.md`` ``[Unreleased]`` and ``CLAUDE.md``'s ``@preview`` section.
+* ``CHANGELOG.md`` ``[0.10.0]`` (formerly ``[Unreleased]``) and ``CLAUDE.md``'s
+  ``@preview`` section.
 
 The export list is DERIVED from ``render_default_deps()`` (explicit import
 items, ``as`` module aliases, ``#let`` names, and the names
@@ -319,21 +320,33 @@ def test_output_layout_names_the_reserved_directory_and_compile_root():
 
 
 # --------------------------------------------------------------------------
-# AC4: CHANGELOG [Unreleased]
+# AC4: CHANGELOG -- the entries moved from [Unreleased] into [0.10.0] (M006)
 # --------------------------------------------------------------------------
 
 
-def _unreleased_section() -> str:
+def _changelog_section(predicate) -> str:
     lines = _read(CHANGELOG).splitlines()
-    start = lines.index("## [Unreleased]")
+    start = next(i for i, line in enumerate(lines) if predicate(line))
     end = start + 1
     while end < len(lines) and not lines[end].startswith("## ["):
         end += 1
     return _flat("\n".join(lines[start:end]))
 
 
-def test_changelog_unreleased_records_the_change():
-    section = _unreleased_section()
+def _unreleased_section() -> str:
+    return _changelog_section(lambda line: line == "## [Unreleased]")
+
+
+def _release_0_10_0_section() -> str:
+    return _changelog_section(lambda line: line.startswith("## [0.10.0]"))
+
+
+def test_changelog_unreleased_keeps_planned_for_future_releases():
+    assert "### Planned for Future Releases" in _unreleased_section()
+
+
+def test_changelog_0_10_0_records_the_change():
+    section = _release_0_10_0_section()
     assert "`<outdir>/_typsphinx/deps.typ`" in section
     assert "`typsphinx-init`" in section
     assert "`typsphinx/typst_deps.py`" in section
@@ -341,11 +354,10 @@ def test_changelog_unreleased_records_the_change():
     assert "drift warning" in section
     assert "`template dependency drift: ...`" in section
     assert "--root <outdir>" in section
-    assert "### Planned for Future Releases" in section
 
 
-def test_changelog_unreleased_records_the_codly_2_breaking_change():
-    section = _unreleased_section()
+def test_changelog_0_10_0_records_the_codly_2_breaking_change():
+    section = _release_0_10_0_section()
     assert "**Breaking: codly is upgraded from 1.3.0 to 2.0.0" in section
     assert "`codly-init`" in section
     assert "`codly.new(...)`" in section
