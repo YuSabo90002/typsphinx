@@ -1756,6 +1756,10 @@ class TypstBuilder(Builder):
         # templates_path directory into build output.
         self._validate_used_template_paths()
 
+        # Validate `typst_dependencies` before anything is written, so a bad
+        # value leaves ZERO ".typ" files on disk.
+        self._validate_typst_dependencies()
+
         logger.info("preparing documents... ", nonl=True)
         self.prepare_writing(docnames)
         logger.info("done")
@@ -2529,15 +2533,80 @@ class TypstBuilder(Builder):
         ``super().finish()`` before compiling) always compiles against it.
         Written as bytes so no newline translation happens and a rebuild
         produces identical bytes. Tolerates a builder whose ``write()``
-        never ran: it needs only ``self.outdir``.
+        never ran: it needs only ``self.outdir``, ``self.srcdir`` and
+        ``self.config``. When ``typst_dependencies`` is set, that one file
+        is copied byte-identical instead; nothing else under
+        ``_typsphinx/`` is created or deleted.
         """
-        # Effective dependencies file content. The single seam where a
-        # user-supplied file would replace the generated default.
-        content = render_default_deps().encode("utf-8")
+        # The effective dependencies file: the user's `typst_dependencies`
+        # file when set, else the generated default. Both modes write the
+        # same one path on every build, so switching modes between builds
+        # always leaves the newly effective file. Re-resolved (and
+        # re-checked) here because tests drive finish() without write().
+        user_deps = self._resolve_typst_dependencies()
 
         deps_dir = Path(self.outdir) / DEPS_OUTPUT_DIR
         deps_dir.mkdir(parents=True, exist_ok=True)
-        (deps_dir / DEPS_FILENAME).write_bytes(content)
+        dest = deps_dir / DEPS_FILENAME
+        if user_deps is None:
+            dest.write_bytes(render_default_deps().encode("utf-8"))
+        else:
+            # Byte copy: no re-encoding, no newline change (N3).
+            shutil.copyfile(user_deps, dest)
+
+    def _resolve_typst_dependencies(self) -> str | None:
+        """Resolve ``typst_dependencies`` to the file it names.
+
+        Returns:
+            ``None`` when the value is ``None`` (generate the default
+            ``deps.typ``); otherwise the resolved path,
+            ``os.path.join(srcdir, value)`` (an absolute value passes
+            through), as ``typst_template`` is resolved.
+
+        Raises:
+            ExtensionError: The value is not a ``str`` (Sphinx only warns
+                on a type mismatch), is ``""``, or resolves to something
+                that is not an existing regular file. The message starts
+                with ``typst_dependencies:`` and names the configured value
+                and the resolved path through ``quote_path()``.
+        """
+        value = getattr(self.config, "typst_dependencies", None)
+        if value is None:
+            return None
+        if not isinstance(value, str):
+            raise ExtensionError(
+                "typst_dependencies: expected a file path (str) or None, "
+                f"got {type(value).__name__} {value!r}"
+            )
+        if value == "":
+            raise ExtensionError(
+                f"typst_dependencies: empty path {quote_path(value)} -- set "
+                "a file path, or None to use the generated default"
+            )
+        resolved = path.join(str(self.srcdir), value)
+        if not path.exists(resolved):
+            raise ExtensionError(
+                f"typst_dependencies: file not found: {quote_path(value)} "
+                f"(resolved to {quote_path(resolved)})"
+            )
+        if not path.isfile(resolved):
+            raise ExtensionError(
+                f"typst_dependencies: not a regular file: {quote_path(value)} "
+                f"(resolved to {quote_path(resolved)})"
+            )
+        return resolved
+
+    def _validate_typst_dependencies(self) -> None:
+        """Refuse a bad ``typst_dependencies`` value pre-write.
+
+        Called from ``write()`` next to this class's other pre-write
+        validators, so a refusal leaves zero ``.typ`` files on disk. The
+        user's file is only located, never parsed or validated (N3).
+
+        Raises:
+            ExtensionError: See ``_resolve_typst_dependencies()``.
+        """
+        self._resolve_typst_dependencies()
 
 
 class TypstPDFBuilder(TypstBuilder):

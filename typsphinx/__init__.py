@@ -44,6 +44,9 @@ def setup(app: Sphinx) -> dict[str, Any]:
     # Register configuration values
     app.add_config_value("typst_documents", _default_typst_documents, "html", [list])
     app.add_config_value("typst_template", None, "html", [str, type(None)])
+    # Path (srcdir-relative or absolute) to one file copied byte-identical
+    # to <outdir>/_typsphinx/deps.typ in place of the generated default.
+    app.add_config_value("typst_dependencies", None, "html", [str, type(None)])
     app.add_config_value("typst_template_mapping", None, "html", [dict, type(None)])
     app.add_config_value("typst_use_mitex", True, "html", [bool])
     app.add_config_value("typst_elements", {}, "html", [dict])

@@ -3,9 +3,9 @@ id: T002
 title: Add the typst_dependencies config value that replaces the generated _typsphinx/deps.typ with a verbatim copy of the user's file
 wave: 1
 deps: [T001]
-status: pending
-agent: null
-base: null
+status: done
+agent: build_T002
+base: 10ec848c0f42cec98d0a40a6ad8bd18057567900
 worktree: null
 task_branch: null
 files:
@@ -62,3 +62,29 @@ Heavy: yes
 ## Log
 
 - 2026-11-03 — created by planner
+- 2026-11-03 — build_T002: registered `typst_dependencies` (default `None`, `[str, type(None)]`) in `typsphinx/__init__.py`; added `TypstBuilder._resolve_typst_dependencies()` (raises `ExtensionError` `typst_dependencies: ...` for non-`str`, `""`, missing path, non-regular file; value and resolved path via `quote_path()`) and `_validate_typst_dependencies()` called in `write()` right after `_validate_used_template_paths()`; `_write_dependencies_file()` now re-resolves and `shutil.copyfile`s the user file, else writes the default bytes. Added `tests/test_typst_dependencies_gate.py` (registration, SC3 byte copy + only `deps.typ` under `_typsphinx/`, typstpdf PDF + no five-spec literals, missing/dir/non-str refusals with zero `.typ`, E4, E6 absolute + CRLF/non-ASCII/no-trailing-newline byte identity, E2 incremental/-E both modes and set→unset→set) and fixture `tests/fixtures/typst_dependencies_override/` (`deps/my-deps.typ` = default with gentle-clues 1.3.0; note/warning/tip, code block, inline+block math).
+- 2026-11-03 — build_T002: gentle-clues 1.3.0 measurement: built the fixture with `-b typstpdf` under an empty `XDG_CACHE_HOME` (typst-py 0.15.0); the cache then held freshly fetched `preview/gentle-clues/1.3.0` (plus codly 1.3.0, codly-languages 0.1.10, mitex 0.2.7, diagraph 0.3.7, linguify 0.5.0); rc=0 and PDF written. 1.3.0 kept. (`TYPST_PACKAGE_CACHE_PATH` is not honoured by typst-py.)
+- 2026-11-03 — build_T002: Verify (task command, verbatim) — pass (VERIFY_RC=0; pytest 25 passed). black/ruff repo-wide clean, mypy typsphinx/ clean. Full `LC_ALL=C uv run pytest tests/`: 1774 passed, 1 skipped, 1 failed — `tests/test_registry_documentation_gate.py::TestErrorCatalogueAgreesWithCode::test_code_to_docs_every_non_excluded_shape_is_published` flags the four new `typst_dependencies:` raise sites as unpublished in configuration.rst's "When the Build Stops" catalogue. That path is outside T002 `files`; T005 (wave 2) owns adding the stop case there. Fragments to publish (each one literal chunk): `typst_dependencies: expected a file path (str) or None, got `, `typst_dependencies: empty path `, `typst_dependencies: file not found: `, `typst_dependencies: not a regular file: `. Red until T005 lands.
+- 2026-11-03 — orchestrator Verify (sidecar gsd-path-verify/task-t002-verify): pass, exit 0; output tail:
+  ```
+   + sphinxcontrib-applehelp==2.0.0
+   + sphinxcontrib-bibtex==2.7.0
+   + sphinxcontrib-devhelp==2.0.0
+   + sphinxcontrib-htmlhelp==2.1.0
+   + sphinxcontrib-jsmath==1.0.1
+   + sphinxcontrib-qthelp==2.0.0
+   + sphinxcontrib-serializinghtml==2.0.0
+   + tomli-w==1.2.0
+   + tox==4.64.10
+   + tox-uv==1.37.2
+   + tox-uv-bare==1.37.2
+   + twine==7.0.0
+   + types-docutils==0.23.0.20260923
+   + typing-extensions==4.16.0
+   + typsphinx==0.9.8 (from file:///home/yuta/.gsd-path/projects/4018706f853274cd7713143cf7ba094e230867e5ad2bfc5891d0cd69027eb98b/4b529697c911aff5766d6b9c03f122ba2ed9565d87a00e2f51ea62f3fd0642ec/verify/task-t002-verify)
+   + typst==0.15.0
+   + urllib3==2.7.0
+   + uv==0.13.6
+   + virtualenv==21.5.1
+  WARNING: html_static_path entry '_static' does not exist
+  ```
