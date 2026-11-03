@@ -1,15 +1,15 @@
 ---
 pipeline: gsd-path/v2
 project: typsphinx
-milestone: externalize-typst-deps
+milestone: windows-test-portability
 phase: shipped
                     # inspect only for brownfield; greenfield starts at define
                     # roadmap only in program flow (CHARTER.md exists)
 status: done
-branch: gsd-path/M002
+branch: gsd-path/M003
                     # the router rebinds before any next-milestone file change
                     # the bound branch is never main; ship integrates it there
-archive: .project/archive/002-externalize-typst-deps
+archive: .project/archive/003-windows-test-portability
 integration_default: pull-request
 integration: pull-request
 integration_source: default
@@ -60,6 +60,17 @@ it on completion. If this file and the artifacts disagree, the artifacts win
 - 2026-11-03 — plan — owner ruling recorded INTENT correction C2 (SC2 wording: no #import @preview/<five> line) before plan approval; owner chose C2:1
 - 2026-11-03 — plan — plan approved
 - 2026-11-03 — build — build started
+- 2026-11-03 — ship — build done; final review pending
+- 2026-11-03 — ship — final gate passed; shipping approval pending
+- 2026-11-03 — shipped — archive preflight passed; shipment recorded
+- 2026-11-03 — inspect — next milestone bound gsd-path/M003 at base f8e9b152e13d05ff54b2c645cd950537cde0836f; previous archive .project/archive/002-externalize-typst-deps, ship a4863ca221a5adb48bbae76faedc5d7483259255, integration f8e9b152e13d05ff54b2c645cd950537cde0836f (PR #188), branch gsd-path/M002
+- 2026-11-03 — inspect — inspection artifacts passed
+- 2026-11-03 — define — definition started
+- 2026-11-03 — define — milestone intent approved
+- 2026-11-03 — plan — planning started
+- 2026-11-03 — plan — plan approved
+- 2026-11-03 — build — build started
+- 2026-11-03 — build — Constraint observation: ci.yml run 41592991566 on temp branch ci-probe/m003-windows at 9a1dc595 succeeded, including Test Python 3.12/3.13 on windows-latest; temp branch deleted
 - 2026-11-03 — ship — build done; final review pending
 - 2026-11-03 — ship — final gate passed; shipping approval pending
 - 2026-11-03 — shipped — archive preflight passed; shipment recorded

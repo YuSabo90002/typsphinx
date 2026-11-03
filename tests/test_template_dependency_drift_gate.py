@@ -15,6 +15,7 @@ under ``LC_ALL=C`` and assert on stderr. Unit tests call
 """
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -29,6 +30,9 @@ from typsphinx.typst_deps import (
 FIXTURES = Path(__file__).parent / "fixtures" / "template_dependency_drift"
 TEMPLATE_BODY = (FIXTURES / "template_body.typ").read_text(encoding="utf-8")
 DRIFT_MARKER = "template dependency drift: "
+# Sphinx colourises stderr on win32 (and under FORCE_COLOR) unless NO_COLOR
+# is set; strip every ANSI SGR sequence before slicing a captured line.
+ANSI_SGR_RE = re.compile(r"\x1b\[[0-9;]*m")
 
 DEFAULT_VERSIONS = {p.name: p.version for p in DEFAULT_PACKAGES}
 
@@ -89,11 +93,8 @@ def _build(src: Path) -> tuple[Path, subprocess.CompletedProcess]:
 
 
 def _drift_messages(result: subprocess.CompletedProcess) -> list[str]:
-    return [
-        line[line.index(DRIFT_MARKER) :]
-        for line in result.stderr.splitlines()
-        if DRIFT_MARKER in line
-    ]
+    lines = (ANSI_SGR_RE.sub("", line) for line in result.stderr.splitlines())
+    return [line[line.index(DRIFT_MARKER) :] for line in lines if DRIFT_MARKER in line]
 
 
 def _message(relpath: str, package: str, template: str, deps: str) -> str:

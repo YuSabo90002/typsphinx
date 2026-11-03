@@ -1,0 +1,32 @@
+{
+  "canonical_project_dir": ".project",
+  "command": "verify-landed",
+  "head": "e49874de04156038662865134a0357b7fa337028",
+  "project_dir": ".project",
+  "tasks": [
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M003",
+        "candidates": [
+          {
+            "base": "3307123fceb391388cb8be1dab03467ad2913a75",
+            "commit": "9a1dc59529cae4962c5ff3f7238d0aabf9805be7",
+            "valid": true
+          }
+        ],
+        "head": "e49874de04156038662865134a0357b7fa337028",
+        "subject": "T001: Make the eight Windows-failing tests platform-independent and add typst_deps.py to the README tree"
+      },
+      "landed_commit": "9a1dc59529cae4962c5ff3f7238d0aabf9805be7",
+      "reasons": [],
+      "task": {
+        "base": "3307123fceb391388cb8be1dab03467ad2913a75",
+        "id": "T001",
+        "status": "done",
+        "task_file": ".project/tasks/T001-windows-portable-tests.md"
+      }
+    }
+  ]
+}
