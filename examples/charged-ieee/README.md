@@ -160,5 +160,5 @@ typst compile paper.typ output.pdf
   template in `approach2/source/_typst/` hardcodes the department,
   organization and location for every author and derives each email from
   the author's name
-- `typst_package` and `typst_template` are mutually exclusive and cannot be
-  set together
+- Setting both `typst_package` and `typst_template` is unsupported: the build
+  warns and ignores `typst_package`, honouring `typst_template`

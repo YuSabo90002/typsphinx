@@ -3,9 +3,9 @@ id: T001
 title: Update CLAUDE.md to match the code, retire the docs/S0x evidence files and their gate checks, and fix three stale doc claims
 wave: 1
 deps: []
-status: pending
-agent: null
-base: null
+status: done
+agent: build_T001
+base: 5aee2fb977eec2376e4f7bfed01492c6cd6dd4f5
 worktree: null
 task_branch: null
 files:
@@ -74,3 +74,27 @@ Heavy: no
   Checked 94 packages in 0.32ms
   ```
 - 2026-11-03 — orchestrator plan defect repair: the Verify clause `test -z "$(git ls-files 'docs/S0*')"` reads the index, but the isolate Verify runs on the coder's unstaged working tree, so it can never pass before landing (coder diff otherwise complete; every other clause exit 0). The clause is removed; the three `! test -e docs/S0…` clauses and the repo grep still prove SC2 on the tree, and `git ls-files` absence is checked by review after landing. Rejected isolate diff: 8 declared paths (CHANGELOG.md, CLAUDE.md, README.md, examples/charged-ieee/README.md, tests/test_release_0_9_8_docs_gate.py, three docs/S0* deletions), patch sha256 d2cbc03c1a0f1fe3cddfef5442ec18c2e803a8293b9a5b488c31750a617e2ecf, preserved outside the repo for an unchanged re-apply at the new base.
+- 2026-11-03 — orchestrator: serial retry at base 5aee2fb9 re-applied the preserved build_T001 ready diff unchanged (patch sha256 d2cbc03c1a0f1fe3cddfef5442ec18c2e803a8293b9a5b488c31750a617e2ecf, `git apply` clean, 8 declared paths); no orchestrator-authored product change. Authoritative Verify follows via `finish`.
+- 2026-11-03 — orchestrator Verify (sidecar gsd-path-verify/task-t001-verify): pass, exit 0; output tail:
+  ```
+   + sphinx-intl==2.4.0
+   + sphinxcontrib-applehelp==2.0.0
+   + sphinxcontrib-bibtex==2.7.0
+   + sphinxcontrib-devhelp==2.0.0
+   + sphinxcontrib-htmlhelp==2.1.0
+   + sphinxcontrib-jsmath==1.0.1
+   + sphinxcontrib-qthelp==2.0.0
+   + sphinxcontrib-serializinghtml==2.0.0
+   + tomli-w==1.2.0
+   + tox==4.64.10
+   + tox-uv==1.37.2
+   + tox-uv-bare==1.37.2
+   + twine==7.0.0
+   + types-docutils==0.23.0.20260923
+   + typing-extensions==4.16.0
+   + typsphinx==0.9.8 (from file:///home/yuta/.gsd-path/projects/4018706f853274cd7713143cf7ba094e230867e5ad2bfc5891d0cd69027eb98b/4b529697c911aff5766d6b9c03f122ba2ed9565d87a00e2f51ea62f3fd0642ec/verify/task-t001-verify)
+   + typst==0.15.0
+   + urllib3==2.7.0
+   + uv==0.13.6
+   + virtualenv==21.5.1
+  ```

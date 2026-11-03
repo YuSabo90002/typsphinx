@@ -82,7 +82,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   root.
 
 ### Planned for Future Releases
-- Glossary generation
 - Index generation
 - Pre-commit hooks
 - Additional Typst Universe template integration

@@ -31,8 +31,6 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CHANGELOG = REPO_ROOT / "CHANGELOG.md"
-S03 = REPO_ROOT / "docs" / "S03-ARTIFACT-GATE-EVIDENCE.md"
-S04 = REPO_ROOT / "docs" / "S04-PUBLISHED-SITE-EVIDENCE.md"
 ADVANCED_README = REPO_ROOT / "examples" / "advanced" / "README.md"
 CHARGED_IEEE_README = REPO_ROOT / "examples" / "charged-ieee" / "README.md"
 
@@ -160,18 +158,6 @@ def test_audit_3_fixed_item_names_0_6_0_entry() -> None:
     assert "0.9.4 entry" not in _read(CHANGELOG)
     fixed = _subsection_items(_section_0_9_8(), "Fixed")
     assert any("0.6.0 entry" in item for item in fixed), fixed
-
-
-def test_audit_9_s03_has_correction_citing_ci_run() -> None:
-    text = _read(S03)
-    assert "\n## Correction\n" in text
-    assert "41152681591" in text.split("\n## Correction\n", 1)[1]
-
-
-def test_audit_10_s04_has_post_merge_results() -> None:
-    text = _read(S04)
-    assert "\n## Post-merge results\n" in text
-    assert 'class="graphviz"' in text.split("\n## Post-merge results\n", 1)[1]
 
 
 def test_audit_11_advanced_readme_has_no_templates_line() -> None:
