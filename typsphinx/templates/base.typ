@@ -6,8 +6,8 @@
 // Typst Universe packages (codly, codly-languages, mitex, gentle-clues,
 // diagraph) come from the build's generated /_typsphinx/deps.typ -- the one
 // place their versions are pinned (Design 3.3/3.5/3.6, Requirement 4.1,
-// 2.8-2.10, 7.4). The wrapper applies the typsphinx-init show rule (codly
-// setup) itself, so this template does not.
+// 2.8-2.10, 7.4). The wrapper applies the typsphinx-init show rule (codly language
+// registration) itself, so this template does not.
 #import "/_typsphinx/deps.typ": *
 
 // FID-13: distinguish external hyperlinks with color + underline (D-01).

@@ -3,10 +3,9 @@ Codly Offset Render Gate
 
 This fixture exists solely to be compiled to PDF by
 ``tests/test_pdf_render_gate.py`` -- a regression gate for the GATE-02
-corpus fatal ``TypstError: unexpected argument: start``, which fired
-because codly 1.3.0's ``codly()`` function has no ``start`` parameter (it
-was renamed to ``offset``, an additive delta). It is not meant to be read
-as prose.
+corpus fatal ``TypstError: unexpected argument: start``: a start line
+number must be expressed as codly's additive offset, and only when it
+differs from 1. It is not meant to be read as prose.
 
 Explicit lineno-start
 ----------------------

@@ -3,9 +3,9 @@ id: T001
 title: Move deps.typ to codly 2.0.0, emit every code block as code-mode codly.new(raw(...)), rewrite the 1.3-era tests and document the contract change
 wave: 1
 deps: []
-status: pending
-agent: null
-base: null
+status: done
+agent: build_T001
+base: 46eb036ba984e361c9b68f6e1a07cc5d0cc9c3a4
 worktree: null
 task_branch: null
 files:
@@ -140,3 +140,27 @@ Heavy: yes
   387 files would be left unchanged.
   ```
 - 2026-11-03 — orchestrator: `finish` refused landing ("landing allow-list differs from the base task: extra tests/test_deps_output_gate.py, tests/test_integration_basic.py") because the `files` and Verify repairs must be part of the dispatch base. Returned to pending for a fresh serial dispatch at a new base that carries both repairs. The coder's complete ready diff (30 modified paths, all declared, no untracked files) is preserved outside the repo as a patch (sha256 e8ae8cfa6fbeb9923011d072a8bef27286c14b37f3b2b3437a39e43f72c4d43c) and the primary product paths are restored to the base so the base is clean; the redispatch re-applies that diff and reruns Verify.
+- 2026-11-03 — orchestrator: serial redispatch at base 46eb036b re-applied the preserved build_T001 ready diff unchanged (patch sha256 e8ae8cfa6fbeb9923011d072a8bef27286c14b37f3b2b3437a39e43f72c4d43c, `git apply` clean, 30 declared paths); no orchestrator-authored product change. Authoritative Verify follows via `finish`.
+- 2026-11-03 — orchestrator Verify (sidecar gsd-path-verify/task-t001-verify): pass, exit 0; output tail:
+  ```
+   + sphinxcontrib-bibtex==2.7.0
+   + sphinxcontrib-devhelp==2.0.0
+   + sphinxcontrib-htmlhelp==2.1.0
+   + sphinxcontrib-jsmath==1.0.1
+   + sphinxcontrib-qthelp==2.0.0
+   + sphinxcontrib-serializinghtml==2.0.0
+   + tomli-w==1.2.0
+   + tox==4.64.10
+   + tox-uv==1.37.2
+   + tox-uv-bare==1.37.2
+   + twine==7.0.0
+   + types-docutils==0.23.0.20260923
+   + typing-extensions==4.16.0
+   + typsphinx==0.9.8 (from file:///home/yuta/.gsd-path/projects/4018706f853274cd7713143cf7ba094e230867e5ad2bfc5891d0cd69027eb98b/4b529697c911aff5766d6b9c03f122ba2ed9565d87a00e2f51ea62f3fd0642ec/verify/task-t001-verify)
+   + typst==0.15.0
+   + urllib3==2.7.0
+   + uv==0.13.6
+   + virtualenv==21.5.1
+  All done! ✨ 🍰 ✨
+  387 files would be left unchanged.
+  ```

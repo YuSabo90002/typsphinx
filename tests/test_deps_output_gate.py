@@ -99,7 +99,7 @@ def _assert_default_deps(build_dir: Path) -> None:
     text = deps.read_text(encoding="utf-8")
     assert deps.read_bytes() == render_default_deps().encode("utf-8")
     for package in DEFAULT_PACKAGES:
-        assert f'#import "{package.spec}": {package.items}' in text.splitlines()
+        assert package.import_line() in text.splitlines()
     assert "#let typsphinx-init(body)" in text
 
 

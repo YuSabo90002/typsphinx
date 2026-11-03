@@ -3,9 +3,9 @@
 #
 # Minimal self-contained project used by
 # tests/test_codly_caption_listitem_leak_render_gate.py to prove, via a real
-# compile, that a captioned literal_block nested in a list_item opens its
-# `{ }` wrapper as `#{` (re-entering Typst code mode) instead of leaking the
-# codly config call as visible prose (FID-12).
+# compile, that a captioned literal_block nested in a list_item is emitted
+# as one code-mode figure(codly.new(...), ...) expression and leaks no codly
+# configuration as visible prose (FID-12).
 
 project = "Codly Caption Listitem Leak Render Gate"
 author = "Test Author"

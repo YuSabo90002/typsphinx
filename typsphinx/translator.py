@@ -624,7 +624,6 @@ class TypstTranslator(SphinxTranslator):
         # Code block container state (Issue #20)
         self.in_captioned_code_block = False
         self.code_block_caption = ""
-        self.code_block_label = ""
 
         # Unified code mode state
         self.in_paragraph = False
@@ -654,7 +653,6 @@ class TypstTranslator(SphinxTranslator):
         # independent, exactly like _push_figure_state/_pop_figure_state
         # does for the figure scalars proper.
         self._legend_list_item_stack: list[tuple[bool, bool]] = []
-        self.in_literal_block = False  # Track if currently in a code block
 
         # SIG-01..SIG-05 monospace-propagation flag (37-EMISSION-CONTRACT.md
         # section 2/4): True for the entire duration of a desc_signature's
@@ -1389,10 +1387,6 @@ class TypstTranslator(SphinxTranslator):
             for child in node.children:
                 if isinstance(child, nodes.caption):
                     self.code_block_caption = child.astext()
-                elif isinstance(child, nodes.literal_block):
-                    # Extract label from :name: option
-                    if child.get("names"):
-                        self.code_block_label = child.get("names")[0]
         # Other container types: just process children
         pass
 
@@ -1407,7 +1401,6 @@ class TypstTranslator(SphinxTranslator):
         if "literal-block-wrapper" in node.get("classes", []):
             self.in_captioned_code_block = False
             self.code_block_caption = ""
-            self.code_block_label = ""
 
     def visit_paragraph(self, node: nodes.paragraph) -> None:
         """
@@ -1794,20 +1787,14 @@ class TypstTranslator(SphinxTranslator):
         Visit a text node.
 
         Wraps text in text() function for unified code mode.
-        Uses string escaping (not markup escaping).
-
-        Exception: Inside literal blocks, text is output directly
-        without text() wrapping to preserve code content.
+        Uses string escaping (not markup escaping). A code block's text
+        never reaches here: ``visit_literal_block`` emits ``node.astext()``
+        itself and skips its children.
 
         Args:
             node: The text node
         """
         text_content = node.astext()
-
-        # Inside literal blocks, output text directly (no wrapping)
-        if self.in_literal_block:
-            self.add_text(text_content)
-            return
 
         # SIG-01..SIG-05 (37-EMISSION-CONTRACT.md section 4): inside a
         # desc_signature, every text-bearing descendant routes through the
@@ -1816,12 +1803,10 @@ class TypstTranslator(SphinxTranslator):
         # desc_sig_space, desc_sig_punctuation, desc_sig_operator,
         # inline.default_value, desc_sig_literal_string/number and the
         # C/C++-only desc_sig_keyword_type get monospace "for free" with no
-        # dedicated per-node handler (contract section 4.3). Unlike
-        # in_literal_block above, this branch is NOT a bare unescaped
-        # emission -- it still escapes and still participates in every
-        # separator protocol (paragraph/concat/list-item), because
-        # signature text is still prose-adjacent content, just typeset in
-        # monospace. Do not collapse this into the in_literal_block shape.
+        # dedicated per-node handler (contract section 4.3). This branch
+        # still escapes and still participates in every separator protocol
+        # (paragraph/concat/list-item), because signature text is still
+        # prose-adjacent content, just typeset in monospace.
         if self.in_signature_text:
             # Same FID-11 soft-wrap collapse as the plain-text path below.
             sig_text_content = text_content.replace("\n", " ")
@@ -1858,8 +1843,8 @@ class TypstTranslator(SphinxTranslator):
         # conventionally use for a soft wrap. Collapse to a single space
         # here, strictly BEFORE escaping (D-Disc-1, Pattern 2), so this does
         # not bypass or weaken escape_typst_string's own escaping. The
-        # guard set is safe: in_literal_block already early-returned above;
-        # line_block/line content uses a structural linebreak() via
+        # guard set is safe: a code block's Text children are never visited
+        # (visit_literal_block raises SkipNode); line_block/line content uses a structural linebreak() via
         # depart_line, never an embedded '\n' in a line's own Text child;
         # inline raw()/literal content never routes through visit_Text at
         # all (visit_literal escapes node.astext() directly).
@@ -2436,154 +2421,126 @@ class TypstTranslator(SphinxTranslator):
         """
         Visit a literal block (code block) node.
 
-        Implements Task 4.2.2: codly forced usage, with codly(highlights: ...)
-        for :emphasize-lines: (codly 1.3.0 has no codly-range(highlight: ...) API)
-        Design 3.5: All code blocks use codly; highlighted lines use codly(highlights: ...)
-        Requirements 7.3, 7.4: Support line numbers and highlighted lines
-        Issue #20: Support :linenos:, :caption:, and :name: options
-        Issue #31: Support :lineno-start: and :dedent: options
+        Every code block is emitted as ONE code-mode codly 2.0 expression,
+        followed by a newline::
+
+            codly.new(raw("ESC", block: true, lang: "LANG"),
+                      number-enabled: false, offset: OFF,
+                      highlighted: (H1, H2), skip-last-empty: false)
+
+        (on one line in the output; every named argument is optional, in
+        that order). ``ESC`` is ``escape_typst_string(node.astext())``, so
+        the code text is a plain Typst string literal and no character in
+        it -- quote, backslash, backtick run, ``#``, ``$`` -- can end or
+        re-enter anything. The expression carries no leading ``#`` and no
+        list-item brace wrapper: it is valid in every code-mode context the
+        translator places a block in (document top level, admonition body,
+        list item, table cell, figure body).
+
+        Sphinx option mapping (codly 2.0):
+
+        - ``:linenos:`` absent -> ``number-enabled: false`` (codly numbers
+          lines by default).
+        - ``:lineno-start: N`` with ``N != 1`` -> ``offset: N - 1``; codly
+          adds ``offset`` to the 1-based source line number. LiteralInclude
+          always sets ``linenostart`` (default 1), hence the ``!= 1`` guard.
+        - ``:emphasize-lines:`` -> ``highlighted``; codly keys it by the
+          DISPLAYED line number, so each Sphinx line gets the emitted
+          offset added. Sphinx does not dedupe ``hl_lines`` and every
+          ``highlighted`` entry takes the next palette colour, so the lines
+          are deduplicated and sorted.
+        - Language ``""``, ``"none"`` or ``"default"`` -> no ``lang`` (no
+          badge); a doctest_block without a language -> ``"python"``.
+        - An empty or whitespace-only block -> ``skip-last-empty: false``,
+          so it still renders as one codly row instead of a hairline.
+
+        A captioned block (literal-block-wrapper container) is wrapped as
+        ``figure(EXPR, caption: text("ESC_CAPTION"), kind: raw)``. The
+        figure carries no label (codly would then emit a hidden per-line
+        figure for every code line); a ``:name:`` is anchored by the
+        metadata anchor ``visit_container`` emits before the figure.
+
+        Children are never visited (``SkipNode``): a parsed-literal's inline
+        markup is flattened to its text, which is all ``raw()`` can carry.
+
+        Known limitation: a form feed, vertical tab, NEL or U+2028 in the
+        code is passed through unchanged and Typst's raw splits the line
+        there, while Sphinx counts lines by newline only.
 
         Args:
             node: The literal block node, or a doctest block delegated here
+
+        Raises:
+            nodes.SkipNode: Always, after the expression is emitted.
         """
         # Anchor node["ids"] via the shared markup-block helper. Both a
         # ``:name:`` and a propagated ``.. _t:`` before the block set
         # node["ids"] (and names) on the literal_block; the reference side
         # resolves to the sanitized ID, so anchoring ids -- not names -- is
-        # what a link(<id>, ...) needs. This REPLACES the old
-        # depart_literal_block ` <label>` postfix (removed below): a bare
-        # ` <label>` after a code-mode raw block does not join ("cannot join
-        # content with label"), and it anchored the NAME, which diverges from
-        # the id whenever the name contains characters docutils rewrites (e.g.
-        # a space). Captioned ``:name:`` blocks carry the id on the outer
-        # literal-block-wrapper CONTAINER (handled in visit_container), so the
-        # inner literal_block has no ids there -> no-op, no double-define. A
-        # plain code block has no ids -> no-op, byte-unchanged.
+        # what a link(<id>, ...) needs. Captioned ``:name:`` blocks carry
+        # the id on the outer literal-block-wrapper CONTAINER (handled in
+        # visit_container), so the inner literal_block has no ids there ->
+        # no-op, no double-define. A plain code block has no ids -> no-op.
         self._emit_id_anchors(node)
 
         # Add newline separator if in list item and not first element
         if self.in_list_item and self.list_item_needs_separator:
             self.add_text("\n")
 
-        # Mark that we're in a literal block (disable text() wrapping)
-        self.in_literal_block = True
-
-        # Issue #20: Handle captioned code blocks
-        # If we're in a captioned code block (literal-block-wrapper container),
-        # wrap the code block in figure() (no # prefix in code mode)
-        if self.in_captioned_code_block and self.code_block_caption:
-            # Escape special characters in caption
-            escaped_caption = self.code_block_caption
-            # Start figure with caption (will add closing bracket in depart)
-            # No # prefix in code mode
-            self.add_text(f"figure(caption: [{escaped_caption}])[\n")
-
-        # If in list item, wrap codly() calls and code block in { } to make
-        # it an expression. FID-12: when this list-item wrapper is ALSO
-        # opened immediately inside a captioned figure's markup-mode [...]
-        # content (see the `figure(caption: [...])[` block above), a bare
-        # '{' is parsed as LITERAL TEXT in Typst markup mode -- it does NOT
-        # re-enter code mode, and the per-block codly config call that
-        # follows leaks as visible prose instead of executing. Only '#{'
-        # re-enters code mode from markup mode. When NOT captioned, we are
-        # already in a CODE-mode context (top level, admonition, table
-        # cell, or the enum()/list argument position), so the wrapper stays
-        # bare, byte-unchanged from before.
-        if self.in_list_item:
-            wrapper_prefix = (
-                "#"
-                if (self.in_captioned_code_block and self.code_block_caption)
-                else ""
-            )
-            self.add_text(f"{wrapper_prefix}{{\n")
-
-        # Per-block codly config (number-format / offset / codly-range) is a
-        # code-mode FUNCTION CALL, and whether it needs a leading `#` depends
-        # on the surrounding Typst mode:
-        #   * Document top level, admonitions (info({...})), list items and
-        #     table cells all place the block in a CODE-mode `{ }` context,
-        #     where a bare `codly(...)` executes -- emit it bare.
-        #   * A CAPTIONED code block opens a MARKUP content block above
-        #     (`figure(caption: [...])[`), where a bare `codly(...)` is typeset
-        #     as LITERAL PROSE -- leaking the config text and, for codly-range,
-        #     never applying the highlight (the corpus bug). There it must
-        #     carry a leading `#` so Typst executes it.
-        # The one exception is a captioned code block that is ALSO in a list
-        # item: the `{ }` wrapper emitted just above re-enters code mode inside
-        # the figure's `[...]`, so it is bare again. Hence: markup (needs `#`)
-        # iff captioned AND not in a list-item `{ }` wrapper. Same markup/
-        # code-mode confusion class as Phase-15 bug #15 (block_quote).
-        in_markup_context = (
-            self.in_captioned_code_block
-            and self.code_block_caption
-            and not self.in_list_item
-        )
-        codly_prefix = "#" if in_markup_context else ""
-
-        # Check for :linenos: option (Issue #20)
-        # If linenos is not set or False, disable line numbers in codly
         linenos = node.get("linenos", False)
-        if not linenos:
-            self.add_text(f"{codly_prefix}codly(number-format: none)\n")
-
-        # Extract highlight_args if present (Task 4.2.2)
         highlight_args = node.get("highlight_args", {})
         hl_lines = highlight_args.get("hl_lines", [])
-
-        # Issue #31: Support :lineno-start: option
-        # Sphinx stores lineno-start in highlight_args['linenostart']. Note
-        # that Sphinx's LiteralInclude directive ALWAYS populates
-        # linenostart (defaulting to 1) even without an explicit
-        # :lineno-start: option (see LiteralIncludeReader.__init__), so the
-        # `!= 1` guard below is required to avoid a spurious codly() call
-        # for the common "plain :linenos:" case.
-        #
-        # codly's @preview 1.3.0 codly() function has no `start` parameter
-        # -- it accepts `offset` (int), an ADDITIVE delta applied as
-        # `line.number + offset` where `line.number` is the raw block's
-        # 1-indexed line number (see codly/1.3.0/src/lib.typ). To make the
-        # first displayed line number equal Sphinx's `linenostart`, the
-        # offset must be `linenostart - 1` (offset=0 is codly's default,
-        # matching linenostart=1).
         lineno_start = highlight_args.get("linenostart")
-        if linenos and lineno_start is not None and lineno_start != 1:
-            self.add_text(f"{codly_prefix}codly(offset: {lineno_start - 1})\n")
 
-        # Highlight the Sphinx :emphasize-lines: lines. codly 1.3.0 has NO
-        # `codly-range(highlight: ...)` API -- codly-range(start, end) DISPLAYS
-        # a line range and requires a positional `start`, so the old
-        # `codly-range(highlight: (...))` call was invalid Typst that aborted
-        # the compile with "missing argument: start" the moment it executed. It
-        # only ever appeared to "work" in a markup context, where it leaked as
-        # un-executed literal prose (never highlighting anything). The correct
-        # per-line-highlight API is
-        #   codly(highlights: ((line: N, start: 1, end: none, fill: <color>), ...))
-        # -- start: 1 (column 1) + end: none (rest of the line) highlights the
-        # whole emphasized line. codly clears `highlights` after each raw block,
-        # so this is scoped to this block only (no bleed into later blocks).
-        if hl_lines:
-            highlight_entries = ", ".join(
-                f"(line: {line}, start: 1, end: none, fill: yellow)"
-                for line in hl_lines
-            )
-            # Trailing comma keeps a single-entry highlights tuple a valid array.
-            self.add_text(f"{codly_prefix}codly(highlights: ({highlight_entries},))\n")
-
-        # Typst code block syntax: ```language\ncode\n```
-        # Extract language if specified
         # Sphinx's HighlightLanguageTransform only assigns `language` to
         # `literal_block` nodes, so a doctest_block always arrives with none
         # -- a non-empty language already on the node is honoured (D-02),
         # `highlight_language` is deliberately not followed, and the "python"
-        # fallback is keyed on the node class, so every literal_block keeps
-        # its current output (D-03).
+        # fallback is keyed on the node class (D-03). "none" and Sphinx's
+        # "default" carry no language codly could badge or highlight.
         language = node.get("language", "") or (
             "python" if isinstance(node, nodes.doctest_block) else ""
         )
+        if language in ("none", "default"):
+            language = ""
+
+        text = node.astext()
+        raw_args = f'"{escape_typst_string(text)}", block: true'
         if language:
-            self.add_text(f"```{language}\n")
-        else:
-            self.add_text("```\n")
+            raw_args += f', lang: "{escape_typst_string(language)}"'
+
+        args = [f"raw({raw_args})"]
+        if not linenos:
+            args.append("number-enabled: false")
+        offset = 0
+        if linenos and lineno_start is not None and lineno_start != 1:
+            offset = lineno_start - 1
+            args.append(f"offset: {offset}")
+        if hl_lines:
+            displayed = [str(line + offset) for line in sorted(set(hl_lines))]
+            # A single-entry array needs its trailing comma: `(11,)`.
+            entries = (
+                displayed[0] + "," if len(displayed) == 1 else ", ".join(displayed)
+            )
+            args.append(f"highlighted: ({entries})")
+        if text.strip() == "":
+            args.append("skip-last-empty: false")
+
+        expression = f"codly.new({', '.join(args)})"
+
+        if self.in_captioned_code_block and self.code_block_caption:
+            escaped_caption = escape_typst_string(self.code_block_caption)
+            expression = (
+                f'figure({expression}, caption: text("{escaped_caption}"), kind: raw)'
+            )
+
+        self.add_text(f"{expression}\n")
+
+        # Mark that next element in list item needs separator
+        if self.in_list_item:
+            self.list_item_needs_separator = True
+
+        raise nodes.SkipNode
 
     def depart_literal_block(
         self, node: nodes.literal_block | nodes.doctest_block
@@ -2591,41 +2548,13 @@ class TypstTranslator(SphinxTranslator):
         """
         Depart a literal block (code block) node.
 
-        Issue #20: Handle closing figure bracket and labels.
+        Never reached during a walk: ``visit_literal_block`` emits the whole
+        block and raises ``SkipNode``, which skips the departure too. Kept
+        as a no-op so the visitor table stays complete.
 
         Args:
             node: The literal block node, or a doctest block delegated here
         """
-        # Clear literal block flag
-        self.in_literal_block = False
-
-        # Close code block
-        self.add_text("\n```\n")
-
-        # Close the { } wrapper if we're in a list item
-        if self.in_list_item:
-            self.add_text("}")
-
-        # Issue #20: Close figure wrapper if we're in a captioned code block
-        if self.in_captioned_code_block and self.code_block_caption:
-            # Close the figure's trailing content block with ]
-            self.add_text("]")
-            # Add label if present
-            if self.code_block_label:
-                self.add_text(
-                    f" <{self._namespace_label(self._current_docname(), self.code_block_label)}>"
-                )
-            self.add_text("\n\n")
-        else:
-            # Normal code block - just add spacing. Any :name:/propagated-target
-            # id is anchored by _emit_id_anchors in visit_literal_block (the old
-            # ` <label>` postfix here failed to join a code-mode raw block with
-            # a label and anchored the name instead of the id).
-            self.add_text("\n")
-
-        # Mark that next element in list item needs separator
-        if self.in_list_item:
-            self.list_item_needs_separator = True
 
     def visit_doctest_block(self, node: nodes.doctest_block) -> None:
         """
@@ -2640,13 +2569,13 @@ class TypstTranslator(SphinxTranslator):
         dispatch entry rather than being reached through ``literal_block``'s.
 
         This method delegates wholesale to ``visit_literal_block``: the
-        fence, the codly configuration, id anchors and the list-item
+        ``codly.new(raw(...))`` expression, id anchors and the list-item
         separator discipline are all shared, with no second emission path.
         This is the same shape Sphinx's own writers use for this node --
         a delegating call in the HTML5 writer, a class-attribute alias in
         the LaTeX and Texinfo writers.
 
-        The ``python`` fence language is supplied in ``visit_literal_block``
+        The ``python`` language is supplied in ``visit_literal_block``
         itself when the node carries none.
 
         Args:
@@ -2658,8 +2587,8 @@ class TypstTranslator(SphinxTranslator):
         """
         Depart a doctest block (a ``>>>`` interactive example) node.
 
-        Delegates wholesale to ``depart_literal_block``, matching
-        ``visit_doctest_block``.
+        Delegates wholesale to ``depart_literal_block`` (a no-op, never
+        reached during a walk), matching ``visit_doctest_block``.
 
         Args:
             node: The doctest block node.
@@ -2725,12 +2654,12 @@ class TypstTranslator(SphinxTranslator):
         # Generate terms() function with all items (no # prefix in code mode).
         # The DEFINITION (2nd arg) is wrapped in a `{ ... }` content block: a
         # definition may hold several block-level children (a paragraph, then a
-        # code fence, then a list), which depart_definition assembles as bare,
+        # code block, then a list), which depart_definition assembles as bare,
         # blank-line-separated statements. Blank-line separation of sequential
         # content is valid only at document top level; as a bare function
         # argument Typst reads the first statement (e.g. par({...})) as the
         # WHOLE argument and then expects a comma at the next statement
-        # (codly(...)/a fence/list({...})) -> "expected comma" (GATE-02 fatal
+        # (codly.new(...)/list({...})) -> "expected comma" (GATE-02 fatal
         # #7, directives.typ:1718 + ~16 corpus files). Inside `{ }` Typst
         # auto-joins the statements into one content value -- a valid single
         # argument. The TERM (1st arg) keeps its own +-concat assembly (D-03/
@@ -2772,7 +2701,7 @@ class TypstTranslator(SphinxTranslator):
         Used by :meth:`_wrap_definition_arg` to avoid double-wrapping a
         definition buffer that is already a single content value. No current
         translator emission produces such a buffer (definition children all
-        start with a function name or a backtick fence), so this is a defensive
+        start with a function name), so this is a defensive
         guard, but it keeps the wrap idempotent.
 
         Args:

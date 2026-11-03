@@ -1578,15 +1578,12 @@ class TestFootnoteRenderGate:
 
 
 # ---------------------------------------------------------------------------
-# GATE-02 corpus fatal #14 (Phase 15): codly's @preview 1.3.0 codly()
-# function has no `start` parameter -- typsphinx emitted `codly(start: N)`
-# for :linenos: code blocks with a known Sphinx `linenostart`, which
-# codly 1.3.0 rejects with `TypstError: unexpected argument: start`. The
-# correct parameter is `offset` (an additive delta: displayed number =
-# line.number + offset, so offset = linenostart - 1). Sphinx's
+# GATE-02 corpus fatal #14 (Phase 15), re-pointed at codly 2.0: Sphinx's
+# :lineno-start: N maps to codly 2.0's `offset: N - 1` field on the block's
+# own codly.new(...) call (displayed number = source line + offset). Sphinx's
 # LiteralInclude directive always populates highlight_args['linenostart']
 # (defaulting to 1) even without an explicit :lineno-start: option, so the
-# fix also guards against emitting a spurious offset:0 call for that
+# translator also guards against emitting a spurious `offset: 0` for that
 # default case. This is a FAST (non-slow, offline) render gate -- no
 # network/corpus dependency, following the TestAdmonitionPdfRenderGate
 # pattern above rather than the @pytest.mark.slow GATE-01 pattern.
@@ -1599,8 +1596,8 @@ class TestFootnoteRenderGate:
 )
 class TestCodlyOffsetRenderGate:
     """
-    Real-compile acceptance gate for the codly `start:` -> `offset:`
-    API-mismatch fix (GATE-02 corpus fatal #14).
+    Real-compile acceptance gate for the :lineno-start: -> codly 2.0
+    ``offset`` mapping (GATE-02 corpus fatal #14).
 
     Requirements: GATE-02 (15-CONTEXT.md), Issue #31 (:lineno-start:).
     """
@@ -1613,11 +1610,12 @@ class TestCodlyOffsetRenderGate:
         :lineno-start: 5 code-block, a plain :linenos: code-block, and a
         plain :linenos: literalinclude -- the exact construct that produced
         20 fatal occurrences in the real Sphinx doc/ corpus) to PDF and
-        confirm: (1) the emitted .typ source uses `codly(offset: ...)`,
-        never the removed `codly(start: ...)`; (2) no spurious offset call
-        is emitted for the default linenostart=1 case; (3) typst.compile()
-        succeeds (no `unexpected argument: start` TypstError) and all three
-        code blocks' content reaches the extracted PDF text.
+        confirm: (1) the explicit block's codly.new(...) carries
+        ``offset: 4`` and no ``start:`` field; (2) neither default-start
+        block carries an offset; (3) no markup fence and no bare ``codly(``
+        call is emitted; (4) typst.compile() succeeds and all three code
+        blocks' content reaches the extracted PDF text with no leaked
+        configuration text.
         """
         source_dir = fixtures_dir / "codly_offset_render_gate"
 
@@ -1632,34 +1630,28 @@ class TestCodlyOffsetRenderGate:
         assert index_typ.exists(), "index.typ was not generated"
 
         typ_source = index_typ.read_text(encoding="utf-8")
+        blocks = [
+            line for line in typ_source.splitlines() if line.startswith("codly.new(")
+        ]
+        assert len(blocks) == 3, typ_source
 
-        # Source-level check: the removed `start:` parameter must never be
-        # emitted, and the explicit :lineno-start: 5 block must emit the
-        # correct offset (5 - 1 = 4).
-        assert "codly(start:" not in typ_source, (
-            "codly 1.3.0 has no `start` parameter -- emitting it causes "
-            "'TypstError: unexpected argument: start'"
-        )
-        assert "codly(offset: 4)" in typ_source, (
-            "Expected codly(offset: 4) for the :lineno-start: 5 code-block "
-            "(offset = linenostart - 1)"
-        )
+        explicit = [b for b in blocks if "CODLYEXPLICITSTARTSENTINEL" in b]
+        assert len(explicit) == 1, typ_source
+        assert explicit[0].endswith('lang: "python"), offset: 4)'), explicit[0]
+        assert not any("start:" in block for block in blocks), blocks
 
-        # The plain :linenos: code-block (no explicit :lineno-start:) never
-        # populates highlight_args['linenostart'] in Sphinx, so it must not
-        # emit any offset call either.
-        #
-        # The literalinclude block DOES get linenostart=1 from Sphinx by
-        # default -- this must be guarded against emitting `codly(offset: 0)`
-        # (or the removed `codly(start: 1)`), matching codly's own default.
-        assert "codly(offset: 0)" not in typ_source, (
-            "linenostart=1 (the default) must not emit a spurious "
-            "codly(offset: 0) call"
-        )
+        # The plain :linenos: code-block never gets a linenostart; the
+        # literalinclude gets linenostart=1 -- neither may carry an offset.
+        for sentinel in ("CODLYPLAINLINENOSSENTINEL", "CODLYLITERALINCLUDESENTINEL"):
+            (block,) = [b for b in blocks if sentinel in b]
+            assert "offset:" not in block, block
+            assert "number-enabled" not in block, block
 
-        # 2. Compile the emitted .typ to PDF with typst-py, WITHOUT
-        # try/except: a leaked codly(start:...) call must abort the compile
-        # here and fail the test loudly (this is the crux of the fatal).
+        assert "```" not in typ_source, typ_source
+        assert not re.search(r"(^|[^.a-z-])codly\(", typ_source), typ_source
+
+        # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
+        # an invalid codly field must abort the compile here and fail loudly.
         wrapper_typ = temp_build_dir / "master.typ"
         assert wrapper_typ.exists(), "master.typ (wrapper) was not generated"
         pdf_output = temp_build_dir / "master.pdf"
@@ -1671,8 +1663,6 @@ class TestCodlyOffsetRenderGate:
             magic = f.read(4)
             assert magic == b"%PDF", "Generated file is not a valid PDF"
 
-        # 3. Extract text with pypdf and confirm all three code blocks'
-        # content reached the compiled PDF.
         reader = pypdf.PdfReader(str(pdf_output))
         full_text = "\n".join(page.extract_text() for page in reader.pages)
 
@@ -1685,7 +1675,7 @@ class TestCodlyOffsetRenderGate:
                 f"Expected code-block sentinel '{sentinel}' in extracted " "PDF text"
             )
 
-        for leaked_token in LEAK_SIGNATURES:
+        for leaked_token in CODLY_CONFIG_LEAK_SIGNATURES + LEAK_SIGNATURES:
             assert leaked_token not in full_text, (
                 f"Literal Typst source '{leaked_token}' leaked into "
                 "rendered PDF text -- codly markup/code-mode regression"
@@ -1883,33 +1873,35 @@ class TestBlockQuoteMarkupModeRenderGate:
 
 
 # ---------------------------------------------------------------------------
-# Per-block codly config leak (captioned code block) + codly-range invalid-API
-# fatal. Two related defects string-agreement tests never caught (they never
-# real-compiled): (1) in a captioned code block, emitted as the MARKUP form
-# `figure(caption: [...])[ ... ]`, a bare `codly(number-format: none)` /
-# highlight call is typeset as LITERAL PROSE -- leaking the config text and
-# never applying the highlight (the corpus bug). (2) The highlight call was
-# `codly-range(highlight: (...))`, which is not a codly 1.3.0 API:
-# `codly-range(start, end)` displays a line range and needs a positional
-# `start`, so the call aborts the compile with `missing argument: start` the
-# instant it executes (in ANY code-mode context -- top level, admonition,
-# list). The fix (a) `#`-prefixes the config in markup context so Typst
-# executes it, and (b) replaces codly-range with the correct
-# `codly(highlights: ((line: N, start: 1, end: none, fill: ...), ...))` API.
-# FAST (non-slow, offline) render gate, following the TestCodlyOffsetRenderGate
-# / TestBlockQuoteMarkupModeRenderGate pattern.
+# Per-block codly config leak (captioned code block) + invalid highlight API,
+# re-pointed at codly 2.0. Under codly 1.3 a captioned code block was emitted
+# as the MARKUP form `figure(caption: [...])[ ... ]`, where a bare per-block
+# config call was typeset as LITERAL PROSE (the corpus bug), and the
+# emphasize-lines call once used an API that aborted the compile. With codly
+# 2.0 every block -- captioned or not -- is one code-mode
+# `codly.new(raw(...), ...)` expression whose options are named arguments, so
+# no configuration call exists that could leak. This gate keeps proving it:
+# no markup fence, no bare `codly(` call, the highlight lands on the block's
+# own `highlighted:` field, the PDF compiles, and no configuration text
+# reaches the PDF. FAST (non-slow, offline) render gate, following the
+# TestCodlyOffsetRenderGate / TestBlockQuoteMarkupModeRenderGate pattern.
 # ---------------------------------------------------------------------------
 
-# codly-config tokens that must NEVER reach the extracted PDF prose -- each is
-# a per-block config call that must be EXECUTED (invisible), not typeset. The
-# fixture's own descriptive prose deliberately avoids naming these so this
-# sweep is unambiguous.
+# codly configuration tokens that must NEVER reach the extracted PDF prose --
+# 1.3-era call forms and codly 2.0 field names alike. The fixtures' own
+# descriptive prose deliberately avoids naming these so this sweep is
+# unambiguous.
 CODLY_CONFIG_LEAK_SIGNATURES = (
     "codly(",
+    "codly.new",
     "codly-range(",
     "number-format",
+    "number-enabled",
     "highlights:",
     "highlight:",
+    "highlighted:",
+    "offset:",
+    "block: true",
 )
 
 
@@ -1919,9 +1911,8 @@ CODLY_CONFIG_LEAK_SIGNATURES = (
 )
 class TestCodlyConfigLeakRenderGate:
     """
-    Real-compile acceptance gate for the per-block codly-config markup/
-    code-mode leak (captioned code block) and the codly-range invalid-API
-    compile fatal.
+    Real-compile acceptance gate for the per-block codly-config leak class
+    (captioned code block) and the emphasize-lines highlight API.
 
     Requirements: GATE-02 class ("code-mode function call leaks as text"),
     Sphinx :emphasize-lines: / :caption: support.
@@ -1932,20 +1923,19 @@ class TestCodlyConfigLeakRenderGate:
     ):
         """
         Compile the codly_config_leak_render_gate fixture (a captioned code
-        block with :emphasize-lines: -- the MARKUP-context corpus bug -- and a
-        plain top-level code block with :emphasize-lines: -- the code-mode
-        codly-range compile-fatal) to PDF and confirm:
+        block with :emphasize-lines: and a plain top-level code block with
+        :emphasize-lines:) to PDF and confirm:
 
-        - (source) the invalid ``codly-range(`` API is NEVER emitted;
-        - (source) the captioned block's config is emitted as EXECUTED markup
-          calls ``#codly(number-format: none)`` and ``#codly(highlights: ...)``
-          (with the leading ``#``), never bare;
-        - (source) the top-level block's highlight is the bare code-mode
-          ``codly(highlights: ...)`` call (no ``#`` inside ``#{ ... }``);
-        - typst.compile() succeeds (no ``missing argument: start`` TypstError);
-        - no codly-config token (``codly(`` / ``codly-range(`` /
-          ``number-format`` / ``highlights:`` / ``highlight:``) leaks into the
-          extracted PDF prose, and no LEAK_SIGNATURES token appears;
+        - (source) the captioned block is one code-mode
+          ``figure(codly.new(...), caption: text(...), kind: raw)``
+          expression carrying ``number-enabled: false, highlighted: (2,)``;
+        - (source) the top-level block is a bare code-mode
+          ``codly.new(...)`` carrying ``highlighted: (3,)``;
+        - (source) no markup fence, no bare ``codly(`` call, no markup
+          ``figure(caption: [`` form and no ``codly-range(``;
+        - typst.compile() succeeds;
+        - no codly-config token leaks into the extracted PDF prose, and no
+          LEAK_SIGNATURES token appears;
         - every code-block sentinel reaches the compiled PDF.
         """
         source_dir = fixtures_dir / "codly_config_leak_render_gate"
@@ -1962,42 +1952,35 @@ class TestCodlyConfigLeakRenderGate:
 
         typ_source = index_typ.read_text(encoding="utf-8")
 
-        # The removed invalid API must never be emitted anywhere.
-        assert "codly-range(" not in typ_source, (
-            "codly 1.3.0 has no codly-range(highlight: ...) API -- "
-            "codly-range(start, end) requires a positional `start` and aborts "
-            "the compile with 'missing argument: start' when executed"
-        )
+        assert "```" not in typ_source, typ_source
+        assert not re.search(r"(^|[^.a-z-])codly\(", typ_source), typ_source
+        assert "codly-range(" not in typ_source, typ_source
+        assert "figure(caption: [" not in typ_source, typ_source
 
-        # Captioned (markup) context: the config must be EXECUTED with a
-        # leading `#`, or it leaks as literal prose inside figure(...)[...].
-        assert "figure(caption:" in typ_source, (
-            "Expected the captioned code block to emit a figure(caption: ...) "
-            "wrapper -- fixture/handler regression"
-        )
-        assert "#codly(number-format: none)" in typ_source, (
-            "The captioned code block's number-format config was not emitted "
-            "as an executed markup call (#codly(...)) -- it would leak as "
-            "literal prose inside figure(...)[...]"
-        )
-        assert "#codly(highlights: ((line: 2, start: 1, end: none," in typ_source, (
-            "The captioned code block's emphasize-lines highlight was not "
-            "emitted as an executed markup call (#codly(highlights: ...)) with "
-            "the correct codly(highlights: ...) API"
-        )
+        captioned = [
+            line
+            for line in typ_source.splitlines()
+            if line.startswith("figure(codly.new(raw(")
+        ]
+        assert len(captioned) == 1, typ_source
+        assert "CODLYCAPEMPHSENTINEL" in captioned[0]
+        assert captioned[0].endswith(
+            'lang: "python"), number-enabled: false, highlighted: (2,)), '
+            'caption: text("Captioned example"), kind: raw)'
+        ), captioned[0]
 
-        # Top-level (code-mode) context: the highlight is the bare
-        # codly(highlights: ...) call -- a `#`-prefixed call would be invalid
-        # inside the document's `#{ ... }` code block.
-        assert "\ncodly(highlights: ((line: 3, start: 1, end: none," in typ_source, (
-            "The top-level code block's emphasize-lines highlight was not "
-            "emitted as the bare code-mode codly(highlights: ...) call"
-        )
+        top_level = [
+            line
+            for line in typ_source.splitlines()
+            if line.startswith("codly.new(raw(") and "CODLYTOPEMPHSENTINEL" in line
+        ]
+        assert len(top_level) == 1, typ_source
+        assert top_level[0].endswith(
+            'lang: "python"), number-enabled: false, highlighted: (3,))'
+        ), top_level[0]
 
         # Compile the emitted .typ to PDF with typst-py, WITHOUT try/except:
-        # before the fix the top-level codly-range(highlight: ...) call aborted
-        # the ENTIRE compile here with 'missing argument: start' -- this is the
-        # must-fail-until-fixed guard for the invalid-API fatal.
+        # an invalid codly field or a stray markup island aborts it here.
         wrapper_typ = temp_build_dir / "master.typ"
         assert wrapper_typ.exists(), "master.typ (wrapper) was not generated"
         pdf_output = temp_build_dir / "master.pdf"
@@ -2026,13 +2009,10 @@ class TestCodlyConfigLeakRenderGate:
                 "text -- codly config leak render regression"
             )
 
-        # No codly-config token may leak into the rendered prose (the exact
-        # captioned-block corpus symptom), and no generic LEAK_SIGNATURES form.
         for leaked_token in CODLY_CONFIG_LEAK_SIGNATURES + LEAK_SIGNATURES:
             assert leaked_token not in full_text, (
                 f"codly-config token '{leaked_token}' leaked into rendered PDF "
-                "text -- the per-block config must be EXECUTED, not typeset as "
-                f"literal prose (captioned markup/code-mode regression):\n{full_text}"
+                f"text (captioned markup/code-mode regression):\n{full_text}"
             )
 
 

@@ -1,34 +1,21 @@
 """
-Real-compile regression gate for the FID-12 markup/code-mode leak fix
-(Phase 21 Plan 01, GATE-01).
+Real-compile regression gate for the FID-12 markup/code-mode leak class
+(Phase 21 Plan 01, GATE-01), re-pointed at codly 2.0 code-mode emission.
 
-The shipping bug: a ``literal_block`` with BOTH a ``:caption:`` AND nested
-in a ``list_item`` leaks its codly config wrapper as visible text. Root
-cause (21-RESEARCH.md D-Disc-2, verified against a real compile): a
-captioned code block opens Typst MARKUP mode via
-``figure(caption: [...])[``, and the list-item ``{ }`` wrapper's own
-OPENING brace was unconditionally bare -- but a bare ``{`` written directly
-inside Typst markup mode is parsed as LITERAL TEXT, not as a code-embed
-delimiter. Only ``#{`` re-enters code mode. The existing code's own
-docstring comment assumed the bare ``{`` "re-enters code mode inside the
-figure's ``[...]``" -- that assumption was the bug.
+The original bug: a ``literal_block`` with BOTH a ``:caption:`` AND nested
+in a ``list_item`` leaked its codly 1.3 config wrapper as visible text,
+because the captioned figure opened a Typst MARKUP block and the list-item
+brace wrapper inside it was read as literal text.
 
-Fix: in ``visit_literal_block``, the list-item wrapper's opening brace
-carries a leading ``#`` iff ``self.in_captioned_code_block and
-self.code_block_caption`` (i.e. exactly the combined captioned+list-item
-case); otherwise it stays the bare ``{``, byte-unchanged for the
-non-captioned list-item case. The existing ``in_markup_context`` /
-``codly_prefix`` predicate a few lines below is already correct and stays
-unchanged -- it already excludes ``self.in_list_item``, since once the
-wrapper's own opening brace is fixed, code inside it is correctly back in
-CODE mode (possibly ``#``-prefixed) and the per-block codly calls must stay
-bare.
-
-Confirmed this session: the structural (``.typ``-level) assert below FAILS
-against the pre-fix translator (the wrapper's opening brace is bare ``{``,
-not ``#{``) and PASSES with the fix applied.
+With codly 2.0 the whole block is one code-mode expression,
+``figure(codly.new(raw(...), ...), caption: text("..."), kind: raw)``: no
+markup content block, no markup fence, no list-item brace wrapper and no
+state-style ``codly`` configuration call exist that could leak. This gate
+builds the captioned-list-item fixture to PDF and asserts that invariant
+at the ``.typ`` level and that no configuration text leaks into the PDF.
 """
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -96,9 +83,9 @@ def _run_sphinx_build_typstpdf(
 )
 class TestCodlyCaptionListitemLeakRenderGate:
     """
-    Real-compile regression gate proving the FID-12 fix opens the list-item
-    wrapper of a captioned code block as `#{` (re-entering code mode)
-    instead of leaking its codly config call as visible prose.
+    Real-compile regression gate proving a captioned code block inside a
+    list item is one code-mode codly.new(...) figure expression and leaks
+    no codly configuration text into the PDF.
 
     Requirements: FID-12, GATE-01.
     """
@@ -111,12 +98,11 @@ class TestCodlyCaptionListitemLeakRenderGate:
         (``.typ``) level:
 
         - the build exits cleanly and did not report a compile failure;
-        - the list-item wrapper immediately following the captioned
-          figure's markup open is ``#{`` (the ``#``-prefixed fix), NOT the
-          pre-fix bare ``{`` -- asserted by the substring ``"])[\\n#{\\n"``,
-          which is ABSENT pre-fix (pre-fix emits ``"])[\\n{\\n"`` instead);
-        - ``master.pdf`` exists, is non-empty, and begins with the ``%PDF``
-          magic bytes.
+        - the captioned list-item block is one code-mode
+          ``figure(codly.new(raw(...)), caption: text(...), kind: raw)``
+          expression, with no brace wrapper of either form;
+        - no markup fence and no bare ``codly(`` call appear anywhere;
+        - ``master.pdf`` exists, is non-empty, and begins with ``%PDF``.
         """
         result = _run_sphinx_build_typstpdf(
             codly_caption_listitem_leak_render_gate_dir, temp_build_dir
@@ -135,18 +121,17 @@ class TestCodlyCaptionListitemLeakRenderGate:
         assert typ_output.exists(), "index.typ was not emitted"
         typ_text = typ_output.read_text(encoding="utf-8")
 
-        assert "])[\n#{\n" in typ_text, (
-            "Expected the list-item wrapper's opening brace immediately "
-            "after the captioned figure's markup open to be '#{' (re-"
-            "entering Typst code mode) -- pre-fix it is the bare '{' form "
-            f"(FID-12 regression):\n{typ_text}"
-        )
-        assert "])[\n{\n" not in typ_text, (
-            "Found the pre-fix bare '{' wrapper form immediately after the "
-            "captioned figure's markup open -- a bare '{' inside markup "
-            "mode is parsed as literal text, leaking the codly config call "
-            f"as visible prose (FID-12 regression):\n{typ_text}"
-        )
+        assert "\nfigure(codly.new(raw(" in typ_text, typ_text
+        assert re.search(
+            r"^figure\(codly\.new\(raw\(.*LISTITEMCAPSENTINEL.*\), "
+            r'caption: text\(".*"\), kind: raw\)$',
+            typ_text,
+            re.M,
+        ), typ_text
+        assert "```" not in typ_text, typ_text
+        assert not re.search(r"(^|[^.a-z-])codly\(", typ_text), typ_text
+        assert "#{\ncodly" not in typ_text and "{\ncodly" not in typ_text, typ_text
+        assert "figure(caption: [" not in typ_text, typ_text
 
         pdf_output = temp_build_dir / "master.pdf"
         assert pdf_output.exists(), (
@@ -168,9 +153,9 @@ class TestCodlyCaptionListitemLeakRenderGate:
         Build the fixture through ``-b typstpdf``, extract the compiled
         PDF's text with pypdf, and confirm (D-09):
 
-        - the leaked codly config text is ABSENT from extracted prose --
-          neither ``"number-format"`` nor a bare ``"codly("`` call string
-          appears;
+        - no codly configuration text leaks into extracted prose --
+          neither ``"number-format"``, ``"number-enabled"``,
+          ``"codly.new"`` nor a bare ``"codly("`` call string appears;
         - the code block's own sentinel identifier IS present (the
           executed code block still rendered).
         """
@@ -195,6 +180,8 @@ class TestCodlyCaptionListitemLeakRenderGate:
             "Found the leaked 'number-format' codly config token in "
             f"extracted PDF text (FID-12 regression):\n{full_text}"
         )
+        assert "number-enabled" not in full_text, full_text
+        assert "codly.new" not in full_text, full_text
         assert "codly(" not in full_text, (
             "Found a leaked bare 'codly(' call string in extracted PDF "
             f"text (FID-12 regression):\n{full_text}"

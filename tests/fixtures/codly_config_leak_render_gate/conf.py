@@ -2,11 +2,11 @@
 # leak render-gate fixture.
 #
 # Minimal self-contained project used by tests/test_pdf_render_gate.py to
-# prove, via a real compile, that visit_literal_block emits every per-block
-# codly configuration call (``codly(number-format: none)`` for the
-# line-numbers-off case, ``codly-range(highlight: (...))`` for the
-# ``:emphasize-lines:`` case) as an EXECUTED code-mode call, never as
-# markup content that Typst would typeset as literal prose.
+# prove, via a real compile, that visit_literal_block expresses every
+# per-block codly option (line numbers off, ``:emphasize-lines:``) as a
+# named argument of the block's own code-mode codly.new(...) call -- for a
+# captioned block too -- so no configuration text can be typeset as literal
+# prose.
 
 project = "Codly Config Leak Render Gate"
 author = "Test Author"

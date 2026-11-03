@@ -1,11 +1,11 @@
-# Sphinx configuration for the codly `start:` -> `offset:` API-mismatch
-# render-gate fixture (GATE-02 fatal #14).
+# Sphinx configuration for the :lineno-start: -> codly `offset:` render-gate
+# fixture (GATE-02 fatal #14).
 #
 # Minimal self-contained project used by tests/test_pdf_render_gate.py to
-# prove, via a real compile, that visit_literal_block emits the codly 1.3.0
-# `offset:` parameter (not the removed `start:` parameter) for :linenos:
-# code blocks with an explicit :lineno-start:, AND that it emits NO
-# spurious offset/start call for the default linenostart=1 case -- covering
+# prove, via a real compile, that visit_literal_block emits codly 2.0's
+# `offset: N - 1` field (never a `start:` field) on the codly.new(...) call
+# of a :linenos: code block with an explicit :lineno-start:, AND that it
+# emits NO spurious offset for the default linenostart=1 case -- covering
 # both the `.. code-block::` and `.. literalinclude::` directive forms
 # (Sphinx's LiteralInclude always populates highlight_args['linenostart'],
 # defaulting to 1, even without an explicit :lineno-start: option).

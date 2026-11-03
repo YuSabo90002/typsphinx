@@ -182,7 +182,9 @@ class TestBasicSphinxProjectBuild:
         content = typ_file.read_text()
         # Should contain code block with Python code
         assert "def hello():" in content
-        assert 'print("Hello, World!")' in content
+        # The code is an escaped string literal inside codly.new(raw(...)).
+        assert 'print(\\"Hello, World!\\")' in content
+        assert "codly.new(raw(" in content
 
     def test_generated_typ_has_emphasis(self, basic_project_dir, temp_build_dir):
         """Test that the generated .typ file contains emphasis formatting."""

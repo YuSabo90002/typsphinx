@@ -12,9 +12,9 @@ Captioned code block nested in a numbered list item
 ------------------------------------------------------
 
 A captioned code block nested inside a numbered list's list item combines
-two contexts at once (a captioned figure's markup mode AND a list-item
-code-mode wrapper); its per-block codly configuration must still execute
-rather than leaking as visible prose.
+two contexts at once (a captioned listing figure AND a list item); it must
+render as one listing, with none of its block configuration leaking as
+visible prose.
 
 1. The first item is plain prose with no code block.
 2. The second item contains a captioned code block.

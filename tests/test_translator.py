@@ -20,6 +20,20 @@ def simple_document():
     return doc
 
 
+def _emit_code_block(translator, node, doctest=False):
+    """Visit one code block directly and return the translator output.
+
+    ``visit_literal_block`` emits the whole ``codly.new(raw(...))``
+    expression and raises ``SkipNode`` (children and departure are skipped).
+    """
+    visit = (
+        translator.visit_doctest_block if doctest else translator.visit_literal_block
+    )
+    with pytest.raises(nodes.SkipNode):
+        visit(node)
+    return translator.astext()
+
+
 def test_translator_state_initialization(simple_document, mock_builder):
     """Test that translator initializes state variables correctly."""
     from typsphinx.translator import TypstTranslator
@@ -1026,290 +1040,201 @@ def test_list_item_with_reference(simple_document, mock_builder):
 
 
 def test_literal_block_without_language(simple_document, mock_builder):
-    """Test that literal blocks without language are converted correctly."""
+    """A literal block without a language is one codly.new(raw(...)) call
+    with no ``lang`` argument."""
     from typsphinx.translator import TypstTranslator
 
     translator = TypstTranslator(simple_document, mock_builder)
 
-    # Create a literal block without language
     literal_block = nodes.literal_block(text="def hello():\n    print('Hello')")
-    translator.visit_literal_block(literal_block)
-    translator.visit_Text(nodes.Text("def hello():\n    print('Hello')"))
-    translator.depart_Text(nodes.Text("def hello():\n    print('Hello')"))
-    translator.depart_literal_block(literal_block)
+    output = _emit_code_block(translator, literal_block)
 
-    output = translator.astext()
-    # Should generate code block with backticks
-    assert "```" in output
-    assert "def hello():" in output
-    assert "print('Hello')" in output
+    assert output == (
+        "codly.new(raw(\"def hello():\\n    print('Hello')\", block: true), "
+        "number-enabled: false)\n"
+    )
+    assert "```" not in output
 
 
 def test_literal_block_with_language(simple_document, mock_builder):
-    """Test that literal blocks with language specification are converted correctly."""
+    """The language goes into raw(..., lang: ...)."""
     from typsphinx.translator import TypstTranslator
 
     translator = TypstTranslator(simple_document, mock_builder)
 
-    # Create a literal block with language
     literal_block = nodes.literal_block(text="def hello():\n    print('Hello')")
     literal_block["language"] = "python"
-    translator.visit_literal_block(literal_block)
-    translator.visit_Text(nodes.Text("def hello():\n    print('Hello')"))
-    translator.depart_Text(nodes.Text("def hello():\n    print('Hello')"))
-    translator.depart_literal_block(literal_block)
+    output = _emit_code_block(translator, literal_block)
 
-    output = translator.astext()
-    # Should generate code block with language specification
-    assert "```python" in output
-    assert "def hello():" in output
-    assert "print('Hello')" in output
+    assert output == (
+        "codly.new(raw(\"def hello():\\n    print('Hello')\", block: true, "
+        'lang: "python"), number-enabled: false)\n'
+    )
 
 
 def test_literal_block_escaping(simple_document, mock_builder):
-    """Test that literal blocks handle special characters correctly."""
-    from typsphinx.translator import TypstTranslator
+    """Code text is string-escaped once; backticks, ``$``, ``#``, quotes and
+    backslashes survive as plain string content."""
+    from typsphinx.translator import TypstTranslator, escape_typst_string
 
     translator = TypstTranslator(simple_document, mock_builder)
 
-    # Create a literal block with special characters
-    literal_block = nodes.literal_block(text="x = `value`\ny = ${var}")
+    code = 'x = `value`\ny = ${var}\nz = "```" # \\d\tend'
+    literal_block = nodes.literal_block(text=code)
     literal_block["language"] = "bash"
-    translator.visit_literal_block(literal_block)
-    translator.visit_Text(nodes.Text("x = `value`\ny = ${var}"))
-    translator.depart_Text(nodes.Text("x = `value`\ny = ${var}"))
-    translator.depart_literal_block(literal_block)
+    output = _emit_code_block(translator, literal_block)
 
-    output = translator.astext()
-    # Special characters should be preserved in code block
-    assert "```bash" in output
-    assert "x = `value`" in output
-    assert "y = ${var}" in output
+    assert output == (
+        f'codly.new(raw("{escape_typst_string(code)}", block: true, '
+        'lang: "bash"), number-enabled: false)\n'
+    )
+    assert '\\"```\\"' in output
+    assert "\\\\d\\tend" in output
 
 
 def test_literal_block_with_linenos(simple_document, mock_builder):
-    """Test that literal blocks with line numbers are handled correctly (Task 4.2)."""
+    """:linenos: keeps codly's default numbering: no number-enabled field."""
     from typsphinx.translator import TypstTranslator
 
     translator = TypstTranslator(simple_document, mock_builder)
 
-    # Create a literal block with linenos option
     literal_block = nodes.literal_block(text="line 1\nline 2\nline 3")
     literal_block["language"] = "python"
     literal_block["linenos"] = True
-    translator.visit_literal_block(literal_block)
-    translator.visit_Text(nodes.Text("line 1\nline 2\nline 3"))
-    translator.depart_Text(nodes.Text("line 1\nline 2\nline 3"))
-    translator.depart_literal_block(literal_block)
+    output = _emit_code_block(translator, literal_block)
 
-    output = translator.astext()
-    # Should generate raw block with numbering parameter
-    # Typst #raw() with numbering: "line-1" or similar
-    assert "#raw(" in output or "```python" in output
-    if "#raw(" in output:
-        # Check for numbering parameter
-        assert "numbering:" in output or "line-1" in output
+    assert output == (
+        'codly.new(raw("line 1\\nline 2\\nline 3", block: true, lang: "python"))\n'
+    )
 
 
 def test_literal_block_with_highlight_lines(simple_document, mock_builder):
-    """
-    Test that literal blocks with highlight_args generate codly(highlights: ...).
-
-    codly 1.3.0 has no codly-range(highlight: ...) API -- codly-range(start, end)
-    displays a line range and aborts the compile with "missing argument: start"
-    when executed. :emphasize-lines: must use the codly(highlights: ((line: N,
-    start: 1, end: none, fill: ...), ...)) full-line-highlight API instead.
-    """
+    """:emphasize-lines: maps to codly 2.0's ``highlighted`` field."""
     from typsphinx.translator import TypstTranslator
 
     translator = TypstTranslator(simple_document, mock_builder)
 
-    # Create a literal block with highlight_args
     literal_block = nodes.literal_block(text="line 1\nline 2\nline 3\nline 4")
     literal_block["language"] = "python"
     literal_block["highlight_args"] = {"hl_lines": [2, 3]}
-    translator.visit_literal_block(literal_block)
-    translator.visit_Text(nodes.Text("line 1\nline 2\nline 3\nline 4"))
-    translator.depart_Text(nodes.Text("line 1\nline 2\nline 3\nline 4"))
-    translator.depart_literal_block(literal_block)
+    output = _emit_code_block(translator, literal_block)
 
-    output = translator.astext()
-    # Should generate the valid codly(highlights: ...) call, never the removed
-    # codly-range(highlight: ...) invalid API.
-    assert (
-        "codly(highlights:" in output
-    ), "Should generate codly(highlights: ...) for highlighted lines"
-    assert "codly-range(" not in output, "Must not emit the invalid codly-range() API"
-    assert (
-        "line: 2" in output and "line: 3" in output
-    ), "Should include highlighted line numbers as codly highlight entries"
-    assert "```python" in output, "Should still use code block with language"
+    assert output.endswith(
+        'lang: "python"), number-enabled: false, highlighted: (2, 3))\n'
+    )
+    assert "highlights:" not in output
+    assert "fill:" not in output
 
 
 def test_literal_block_with_linenos_and_highlights(simple_document, mock_builder):
-    """
-    Test literal blocks with both line numbers and highlights (Task 4.2.2).
-
-    codly provides line numbers by default; :emphasize-lines: uses the
-    codly(highlights: ...) full-line-highlight API (not the invalid
-    codly-range(highlight: ...)).
-    """
+    """:linenos: + :emphasize-lines: -- a single entry keeps its trailing
+    comma so it stays an array."""
     from typsphinx.translator import TypstTranslator
 
     translator = TypstTranslator(simple_document, mock_builder)
 
-    # Create a literal block with both options
     literal_block = nodes.literal_block(text="def foo():\n    x = 1\n    return x")
     literal_block["language"] = "python"
     literal_block["linenos"] = True
     literal_block["highlight_args"] = {"hl_lines": [2]}
-    translator.visit_literal_block(literal_block)
-    translator.visit_Text(nodes.Text("def foo():\n    x = 1\n    return x"))
-    translator.depart_Text(nodes.Text("def foo():\n    x = 1\n    return x"))
-    translator.depart_literal_block(literal_block)
+    output = _emit_code_block(translator, literal_block)
 
-    output = translator.astext()
-    # Should generate the valid codly(highlights: ...) call for the highlights.
-    assert (
-        "codly(highlights:" in output
-    ), "Should generate codly(highlights: ...) for highlighted lines"
-    assert "codly-range(" not in output, "Must not emit the invalid codly-range() API"
-    assert "line: 2" in output, "Should include highlighted line number"
-    assert "```python" in output, "Should use code block with language"
+    assert output.endswith('lang: "python"), highlighted: (2,))\n')
+    assert "number-enabled" not in output
 
 
 def test_literal_block_with_highlight_ranges(simple_document, mock_builder):
-    """
-    Test literal blocks with multiple highlighted lines (Task 4.2.2).
-
-    Each :emphasize-lines: line becomes its own codly highlight entry
-    ((line: N, start: 1, end: none, fill: ...)) in a single codly(highlights: ...)
-    call.
-    """
+    """Sphinx's hl_lines are deduplicated and sorted (``2-4,4,6`` arrives as
+    ``[2, 3, 4, 4, 6]``): every entry takes the next palette colour."""
     from typsphinx.translator import TypstTranslator
 
     translator = TypstTranslator(simple_document, mock_builder)
 
-    # Create a literal block with range highlights (simulating ":emphasize-lines: 2,4-6")
     literal_block = nodes.literal_block(
         text="line 1\nline 2\nline 3\nline 4\nline 5\nline 6"
     )
     literal_block["language"] = "python"
-    # hl_lines can contain individual lines and ranges
-    literal_block["highlight_args"] = {"hl_lines": [2, 4, 5, 6]}
-    translator.visit_literal_block(literal_block)
-    translator.visit_Text(nodes.Text("line 1\nline 2\nline 3\nline 4\nline 5\nline 6"))
-    translator.depart_Text(nodes.Text("line 1\nline 2\nline 3\nline 4\nline 5\nline 6"))
-    translator.depart_literal_block(literal_block)
+    literal_block["highlight_args"] = {"hl_lines": [6, 2, 3, 4, 4]}
+    output = _emit_code_block(translator, literal_block)
 
-    output = translator.astext()
-    # Should generate a single codly(highlights: ...) call, one entry per line.
-    assert "codly(highlights:" in output, "Should generate codly(highlights: ...)"
-    assert "codly-range(" not in output, "Must not emit the invalid codly-range() API"
-    # Each highlighted line is its own (line: N, ...) entry.
-    for line in (2, 4, 5, 6):
-        assert (
-            f"line: {line}" in output
-        ), f"Should include highlight entry for line {line}"
+    assert output.endswith("number-enabled: false, highlighted: (2, 3, 4, 6))\n")
 
 
 def test_literal_block_unsupported_language_warning(simple_document, mock_builder):
-    """Test handling of unsupported languages (Task 4.2)."""
+    """An unknown language key is passed through; codly shows it verbatim."""
     from typsphinx.translator import TypstTranslator
 
     translator = TypstTranslator(simple_document, mock_builder)
 
-    # Create a literal block with potentially unsupported language
     literal_block = nodes.literal_block(text="some code")
     literal_block["language"] = "obscure-language-xyz"
+    output = _emit_code_block(translator, literal_block)
 
-    translator.visit_literal_block(literal_block)
-    translator.visit_Text(nodes.Text("some code"))
-    translator.depart_Text(nodes.Text("some code"))
-    translator.depart_literal_block(literal_block)
-
-    output = translator.astext()
-    # Should still generate code block (Typst handles unknown languages gracefully)
-    assert "```obscure-language-xyz" in output or "```" in output
+    assert output == (
+        'codly.new(raw("some code", block: true, lang: "obscure-language-xyz"), '
+        "number-enabled: false)\n"
+    )
 
 
 def test_literal_block_with_lineno_start(simple_document, mock_builder):
-    """Test literal block with :lineno-start: option (Issue #31).
-
-    Note: Sphinx stores :lineno-start: in highlight_args['linenostart'].
-    """
+    """:lineno-start: N -> ``offset: N - 1`` (codly adds offset to the 1-based
+    source line number)."""
     from typsphinx.translator import TypstTranslator
 
     translator = TypstTranslator(simple_document, mock_builder)
 
-    # Create a literal block with linenos and lineno-start options
-    # Sphinx stores lineno-start in highlight_args
     literal_block = nodes.literal_block(text='def my_function():\n    return "line 42"')
     literal_block["language"] = "python"
     literal_block["linenos"] = True
     literal_block["highlight_args"] = {"linenostart": 42}
-    translator.visit_literal_block(literal_block)
-    translator.visit_Text(nodes.Text('def my_function():\n    return "line 42"'))
-    translator.depart_Text(nodes.Text('def my_function():\n    return "line 42"'))
-    translator.depart_literal_block(literal_block)
+    output = _emit_code_block(translator, literal_block)
 
-    output = translator.astext()
-    # codly 1.3.0 has no `start` parameter -- it uses `offset`, an additive
-    # delta (offset = linenostart - 1) applied to the raw block's 1-indexed
-    # line.number. See translator.py visit_literal_block for the transform.
-    assert "codly(offset: 41)" in output, "Should generate #codly(offset: 41)"
-    assert "codly(start:" not in output, "Should not use the removed start: param"
-    assert "```python" in output, "Should still use code block with language"
+    assert output.endswith('lang: "python"), offset: 41)\n')
+    assert "start:" not in output
 
 
-def test_literal_block_with_lineno_start_without_linenos(simple_document, mock_builder):
-    """Test that :lineno-start: without :linenos: is ignored (Issue #31).
-
-    Note: Sphinx stores :lineno-start: in highlight_args['linenostart'].
-    """
+@pytest.mark.parametrize("start, offset", [(0, -1), (2, 1), (1000, 999)])
+def test_literal_block_lineno_start_boundaries(
+    simple_document, mock_builder, start, offset
+):
+    """E4: ``0`` -> ``offset: -1``, ``1000`` -> ``offset: 999``."""
     from typsphinx.translator import TypstTranslator
 
     translator = TypstTranslator(simple_document, mock_builder)
 
-    # Create a literal block with lineno-start but without linenos
+    literal_block = nodes.literal_block(text="a\nb")
+    literal_block["linenos"] = True
+    literal_block["highlight_args"] = {"linenostart": start}
+    output = _emit_code_block(translator, literal_block)
+
+    assert output == f'codly.new(raw("a\\nb", block: true), offset: {offset})\n'
+
+
+def test_literal_block_with_lineno_start_without_linenos(simple_document, mock_builder):
+    """:lineno-start: without :linenos: emits no offset, and numbers stay off."""
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
     literal_block = nodes.literal_block(text='def my_function():\n    return "test"')
     literal_block["language"] = "python"
     literal_block["highlight_args"] = {"linenostart": 42}
-    translator.visit_literal_block(literal_block)
-    translator.visit_Text(nodes.Text('def my_function():\n    return "test"'))
-    translator.depart_Text(nodes.Text('def my_function():\n    return "test"'))
-    translator.depart_literal_block(literal_block)
+    output = _emit_code_block(translator, literal_block)
 
-    output = translator.astext()
-    # Should not generate a line-number-offset call at all (no start: --
-    # removed param -- and no offset: since linenos itself is unset)
-    assert (
-        "#codly(start:" not in output
-    ), "Should not generate start parameter without linenos"
-    assert (
-        "#codly(offset:" not in output
-    ), "Should not generate offset parameter without linenos"
-    # Should disable line numbers
-    assert "codly(number-format: none)" in output
-    assert "```python" in output
+    assert output.endswith('lang: "python"), number-enabled: false)\n')
+    assert "offset:" not in output
 
 
 def test_literal_block_with_linenos_default_start_no_offset_emitted(
     simple_document, mock_builder
 ):
-    """A :linenos: block whose linenostart is 1 must NOT emit a codly()
-    offset/start call -- this is the default case and matches codly's own
-    default (offset=0).
+    """A :linenos: block whose linenostart is 1 emits no offset.
 
-    Regression test for the GATE-02 corpus fatal: Sphinx's LiteralInclude
-    directive ALWAYS populates highlight_args['linenostart'] (defaulting to
-    1) even without an explicit :lineno-start: option -- unlike CodeBlock,
-    which only sets it when :lineno-start: is given. Before the fix, the
-    `lineno_start is not None` guard alone was too loose and emitted a
-    spurious `codly(start: 1)` (a call codly 1.3.0 rejects outright with
-    "unexpected argument: start") for every plain `:linenos:`
-    literalinclude block -- the exact construct hit 20x across 4 Sphinx
-    tutorial docs in the real corpus.
+    Sphinx's LiteralInclude directive ALWAYS populates
+    highlight_args['linenostart'] (defaulting to 1) even without an explicit
+    :lineno-start: option -- unlike CodeBlock, which only sets it when
+    :lineno-start: is given -- so the ``!= 1`` guard keeps every plain
+    ``:linenos:`` literalinclude block free of a spurious ``offset: 0``.
     """
     from typsphinx.translator import TypstTranslator
 
@@ -1318,61 +1243,30 @@ def test_literal_block_with_linenos_default_start_no_offset_emitted(
     literal_block = nodes.literal_block(text="line 1\nline 2\nline 3")
     literal_block["language"] = "python"
     literal_block["linenos"] = True
-    # Simulates LiteralIncludeReader's always-present default: linenostart=1
-    # even though no explicit :lineno-start: option was given.
     literal_block["highlight_args"] = {"linenostart": 1}
-    translator.visit_literal_block(literal_block)
-    translator.visit_Text(nodes.Text("line 1\nline 2\nline 3"))
-    translator.depart_Text(nodes.Text("line 1\nline 2\nline 3"))
-    translator.depart_literal_block(literal_block)
+    output = _emit_code_block(translator, literal_block)
 
-    output = translator.astext()
-    assert "codly(start:" not in output, "Should never emit the removed start: param"
-    assert (
-        "codly(offset:" not in output
-    ), "Should not emit a spurious offset: for the default linenostart=1 case"
-    assert "```python" in output
+    assert output == (
+        'codly.new(raw("line 1\\nline 2\\nline 3", block: true, lang: "python"))\n'
+    )
 
 
 def test_literal_block_with_lineno_start_and_emphasize(simple_document, mock_builder):
-    """Test literal block with :lineno-start: and :emphasize-lines: (Issue #31).
-
-    Note: Sphinx stores :lineno-start: in highlight_args['linenostart'].
-    """
+    """E5: ``highlighted`` is keyed by DISPLAYED numbers, so each Sphinx line
+    gets the offset added (:lineno-start: 100 + line 2 -> 101)."""
     from typsphinx.translator import TypstTranslator
 
     translator = TypstTranslator(simple_document, mock_builder)
 
-    # Create a literal block with linenos, lineno-start, and highlights
-    # Sphinx stores both linenostart and hl_lines in highlight_args
     literal_block = nodes.literal_block(
         text="def process_data(data):\n    result = transform(data)\n    return result"
     )
     literal_block["language"] = "python"
     literal_block["linenos"] = True
     literal_block["highlight_args"] = {"hl_lines": [2], "linenostart": 100}
-    translator.visit_literal_block(literal_block)
-    translator.visit_Text(
-        nodes.Text(
-            "def process_data(data):\n    result = transform(data)\n    return result"
-        )
-    )
-    translator.depart_Text(
-        nodes.Text(
-            "def process_data(data):\n    result = transform(data)\n    return result"
-        )
-    )
-    translator.depart_literal_block(literal_block)
+    output = _emit_code_block(translator, literal_block)
 
-    output = translator.astext()
-    # Should generate both codly(offset: 99) and codly(highlights: ...)
-    # (codly 1.3.0 uses offset = linenostart - 1, not start:)
-    assert "codly(offset: 99)" in output, "Should generate offset parameter"
-    assert "codly(start:" not in output, "Should not use the removed start: param"
-    assert "codly(highlights:" in output, "Should generate the highlights call"
-    assert "codly-range(" not in output, "Must not emit the invalid codly-range() API"
-    assert "line: 2" in output, "Should include highlighted line number"
-    assert "```python" in output
+    assert output.endswith('lang: "python"), offset: 99, highlighted: (101,))\n')
 
 
 def test_literal_block_with_dedent_numeric(simple_document, mock_builder):
@@ -1386,23 +1280,14 @@ def test_literal_block_with_dedent_numeric(simple_document, mock_builder):
 
     translator = TypstTranslator(simple_document, mock_builder)
 
-    # Simulate Sphinx's behavior: text is already dedented by Sphinx parser
-    # Original: "    def nested_function():\n        print(\"indented\")"
-    # After :dedent: 4 processing by Sphinx:
     literal_block = nodes.literal_block(
         text='def nested_function():\n    print("indented")'
     )
     literal_block["language"] = "python"
     literal_block["dedent"] = 4  # This is stored but text is already processed
-    translator.visit_literal_block(literal_block)
-    translator.visit_Text(nodes.Text('def nested_function():\n    print("indented")'))
-    translator.depart_Text(nodes.Text('def nested_function():\n    print("indented")'))
-    translator.depart_literal_block(literal_block)
+    output = _emit_code_block(translator, literal_block)
 
-    output = translator.astext()
-    # Should have dedented content (already processed by Sphinx)
-    assert "def nested_function():" in output, "Should have dedented first line"
-    assert '    print("indented")' in output, "Should preserve relative indentation"
+    assert 'raw("def nested_function():\\n    print(\\"indented\\")"' in output
 
 
 def test_literal_block_with_dedent_auto(simple_document, mock_builder):
@@ -1415,27 +1300,14 @@ def test_literal_block_with_dedent_auto(simple_document, mock_builder):
 
     translator = TypstTranslator(simple_document, mock_builder)
 
-    # Simulate Sphinx's behavior: text is already auto-dedented by Sphinx
-    # Original: "    def nested_function():\n        print(\"auto dedent\")"
-    # After :dedent: (auto) processing by Sphinx:
     literal_block = nodes.literal_block(
         text='def nested_function():\n    print("auto dedent")'
     )
     literal_block["language"] = "python"
     literal_block["dedent"] = True
-    translator.visit_literal_block(literal_block)
-    translator.visit_Text(
-        nodes.Text('def nested_function():\n    print("auto dedent")')
-    )
-    translator.depart_Text(
-        nodes.Text('def nested_function():\n    print("auto dedent")')
-    )
-    translator.depart_literal_block(literal_block)
+    output = _emit_code_block(translator, literal_block)
 
-    output = translator.astext()
-    # Should have auto-dedented content (already processed by Sphinx)
-    assert "def nested_function():" in output, "Should have auto-dedented first line"
-    assert '    print("auto dedent")' in output, "Should preserve relative indentation"
+    assert 'raw("def nested_function():\\n    print(\\"auto dedent\\")"' in output
 
 
 def test_literal_block_with_dedent_and_other_options(simple_document, mock_builder):
@@ -1448,9 +1320,6 @@ def test_literal_block_with_dedent_and_other_options(simple_document, mock_build
 
     translator = TypstTranslator(simple_document, mock_builder)
 
-    # Simulate Sphinx's behavior: text is already dedented
-    # Original: "        def inner_function():\n            return \"dedented\""
-    # After :dedent: 8 processing by Sphinx:
     literal_block = nodes.literal_block(
         text='def inner_function():\n    return "dedented"'
     )
@@ -1458,48 +1327,97 @@ def test_literal_block_with_dedent_and_other_options(simple_document, mock_build
     literal_block["dedent"] = 8
     literal_block["linenos"] = True
     literal_block["highlight_args"] = {"hl_lines": [1]}
-    translator.visit_literal_block(literal_block)
-    translator.visit_Text(nodes.Text('def inner_function():\n    return "dedented"'))
-    translator.depart_Text(nodes.Text('def inner_function():\n    return "dedented"'))
-    translator.depart_literal_block(literal_block)
+    output = _emit_code_block(translator, literal_block)
 
-    output = translator.astext()
-    # Should have dedented content with line numbers and highlights
-    assert "def inner_function():" in output, "Should have dedented content"
-    assert '    return "dedented"' in output, "Should preserve relative indentation"
-    assert "codly(highlights:" in output, "Should have highlights"
-    assert "codly-range(" not in output, "Must not emit the invalid codly-range() API"
-    assert "```python" in output
+    assert output == (
+        'codly.new(raw("def inner_function():\\n    return \\"dedented\\"", '
+        'block: true, lang: "python"), highlighted: (1,))\n'
+    )
 
 
 def test_literal_block_with_dedent_short_lines(simple_document, mock_builder):
     """Test literal block with :dedent: on short lines (Issue #31).
 
     Note: Sphinx handles edge cases like empty lines and short lines correctly.
-    This test verifies that such content is properly rendered.
+    This test verifies that the empty line survives inside the string.
     """
     from typsphinx.translator import TypstTranslator
 
     translator = TypstTranslator(simple_document, mock_builder)
 
-    # Simulate Sphinx's behavior: text is already dedented
-    # Original: "    def foo():\n\n    pass"
-    # After :dedent: 4 processing by Sphinx:
     literal_block = nodes.literal_block(text="def foo():\n\npass")
     literal_block["language"] = "python"
     literal_block["dedent"] = 4
-    translator.visit_literal_block(literal_block)
-    translator.visit_Text(nodes.Text("def foo():\n\npass"))
-    translator.depart_Text(nodes.Text("def foo():\n\npass"))
-    translator.depart_literal_block(literal_block)
+    output = _emit_code_block(translator, literal_block)
 
+    assert 'raw("def foo():\\n\\npass", block: true' in output
+
+
+@pytest.mark.parametrize("language", ["", "none", "default"])
+def test_literal_block_languages_without_badge(simple_document, mock_builder, language):
+    """``""``, ``"none"`` and Sphinx's ``"default"`` omit ``lang`` (no badge)."""
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    literal_block = nodes.literal_block(text="x")
+    literal_block["language"] = language
+    output = _emit_code_block(translator, literal_block)
+
+    assert output == 'codly.new(raw("x", block: true), number-enabled: false)\n'
+
+
+@pytest.mark.parametrize("text", ["", "   ", "\n"])
+def test_literal_block_empty_keeps_its_row(simple_document, mock_builder, text):
+    """E3: an empty or whitespace-only block emits ``skip-last-empty: false``."""
+    from typsphinx.translator import TypstTranslator, escape_typst_string
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    literal_block = nodes.literal_block(text=text)
+    literal_block["language"] = "python"
+    output = _emit_code_block(translator, literal_block)
+
+    assert output == (
+        f'codly.new(raw("{escape_typst_string(text)}", block: true, '
+        'lang: "python"), number-enabled: false, skip-last-empty: false)\n'
+    )
+
+
+def test_literal_block_all_fields_in_contract_order(simple_document, mock_builder):
+    """Every optional field at once, in the Interface-contract order."""
+    from typsphinx.translator import TypstTranslator
+
+    translator = TypstTranslator(simple_document, mock_builder)
+
+    literal_block = nodes.literal_block(text="   ")
+    literal_block["language"] = "c"
+    literal_block["linenos"] = True
+    literal_block["highlight_args"] = {"hl_lines": [1, 1], "linenostart": 5}
+    output = _emit_code_block(translator, literal_block)
+
+    assert output == (
+        'codly.new(raw("   ", block: true, lang: "c"), offset: 4, '
+        "highlighted: (5,), skip-last-empty: false)\n"
+    )
+
+
+def test_parsed_literal_children_are_flattened(simple_document, mock_builder):
+    """A parsed-literal's inline children are never visited: the block is
+    emitted from node.astext(), so no Typst code lands inside the string."""
+    from typsphinx.translator import TypstTranslator
+
+    literal_block = nodes.literal_block()
+    literal_block += nodes.strong(text="bold")
+    literal_block += nodes.Text(" text")
+    simple_document += literal_block
+
+    translator = TypstTranslator(simple_document, mock_builder)
+    simple_document.walkabout(translator)
     output = translator.astext()
-    # Should handle dedented content with empty lines
-    assert "def foo():" in output, "Should have dedented first line"
-    assert "pass" in output, "Should have dedented last line"
-    # Empty line should remain empty
-    lines = output.split("\n")
-    assert any(line == "" for line in lines), "Should preserve empty lines"
+
+    assert 'codly.new(raw("bold text", block: true), number-enabled: false)' in output
+    assert "strong(" not in output
 
 
 def test_definition_list_conversion(simple_document, mock_builder):
@@ -2485,54 +2403,33 @@ def test_code_block_without_linenos(simple_document, mock_builder):
 
     translator = TypstTranslator(simple_document, mock_builder)
 
-    # Create a literal block WITHOUT linenos option
     literal_block = nodes.literal_block(text="def hello():\n    return 'world'")
     literal_block["language"] = "python"
-    # linenos is NOT set (or False)
+    output = _emit_code_block(translator, literal_block)
 
-    translator.visit_literal_block(literal_block)
-    translator.visit_Text(nodes.Text("def hello():\n    return 'world'"))
-    translator.depart_Text(nodes.Text("def hello():\n    return 'world'"))
-    translator.depart_literal_block(literal_block)
-
-    output = translator.astext()
-
-    # Should contain code block
-    assert "```python" in output
-    assert "def hello():" in output
-
-    # Should contain #codly(number-format: none) to disable line numbers
-    assert "codly(number-format: none)" in output or "number-format: none" in output
+    assert output == (
+        "codly.new(raw(\"def hello():\\n    return 'world'\", block: true, "
+        'lang: "python"), number-enabled: false)\n'
+    )
 
 
 def test_code_block_with_linenos(simple_document, mock_builder):
-    """Test code block with :linenos: option - should enable line numbers."""
+    """Test code block with :linenos: option - codly's default numbering."""
     from docutils import nodes
 
     from typsphinx.translator import TypstTranslator
 
     translator = TypstTranslator(simple_document, mock_builder)
 
-    # Create a literal block WITH linenos option
     literal_block = nodes.literal_block(text="def hello():\n    return 'world'")
     literal_block["language"] = "python"
     literal_block["linenos"] = True
+    output = _emit_code_block(translator, literal_block)
 
-    translator.visit_literal_block(literal_block)
-    translator.visit_Text(nodes.Text("def hello():\n    return 'world'"))
-    translator.depart_Text(nodes.Text("def hello():\n    return 'world'"))
-    translator.depart_literal_block(literal_block)
-
-    output = translator.astext()
-
-    # Should contain code block
-    assert "```python" in output
-    assert "def hello():" in output
-
-    # Should NOT disable line numbers (codly default shows line numbers)
-    # Or explicitly enable them - codly's default is to show line numbers
-    # So we just check that number-format: none is NOT present
-    assert "number-format: none" not in output
+    assert output == (
+        "codly.new(raw(\"def hello():\\n    return 'world'\", block: true, "
+        'lang: "python"))\n'
+    )
 
 
 def test_code_block_linenos_with_highlights(simple_document, mock_builder):
@@ -2543,41 +2440,24 @@ def test_code_block_linenos_with_highlights(simple_document, mock_builder):
 
     translator = TypstTranslator(simple_document, mock_builder)
 
-    # Create a literal block WITH both linenos and emphasize-lines
     literal_block = nodes.literal_block(text="def hello():\n    return 'world'")
     literal_block["language"] = "python"
     literal_block["linenos"] = True
     literal_block["highlight_args"] = {"hl_lines": [1]}
+    output = _emit_code_block(translator, literal_block)
 
-    translator.visit_literal_block(literal_block)
-    translator.visit_Text(nodes.Text("def hello():\n    return 'world'"))
-    translator.depart_Text(nodes.Text("def hello():\n    return 'world'"))
-    translator.depart_literal_block(literal_block)
-
-    output = translator.astext()
-
-    # Should contain code block
-    assert "```python" in output
-    assert "def hello():" in output
-
-    # Should have highlight via the valid codly(highlights: ...) API
-    assert (
-        "codly(highlights: ((line: 1, start: 1, end: none, fill: yellow),))" in output
-    )
-    assert "codly-range(" not in output, "Must not emit the invalid codly-range() API"
-
-    # Should NOT disable line numbers
-    assert "number-format: none" not in output
+    assert output.endswith('lang: "python"), highlighted: (1,))\n')
+    assert "number-enabled" not in output
 
 
 def test_code_block_with_caption(simple_document, mock_builder):
-    """Test code block with :caption: option - should wrap in #figure()."""
+    """A captioned code block is a code-mode listing figure with a
+    string-escaped caption."""
     from docutils import nodes
 
     from typsphinx.translator import TypstTranslator
 
-    # Manually create container structure that Sphinx generates for captioned code blocks
-    # Structure: container[literal-block-wrapper] > (caption + literal_block)
+    # Structure Sphinx generates: container[literal-block-wrapper] > (caption + literal_block)
     container = nodes.container()
     container["classes"].append("literal-block-wrapper")
 
@@ -2597,32 +2477,59 @@ def test_code_block_with_caption(simple_document, mock_builder):
     simple_document.walkabout(translator)
     output = translator.astext()
 
-    # Should contain #figure() wrapper
-    assert "figure(caption: [Example function])" in output or "figure(" in output
-    # Should contain code block
-    assert "```python" in output
-    assert "def example():" in output
-    # Should use trailing content block format: #figure(...)[code]
-    # The closing ] should appear after the code block
-    assert "]" in output
+    assert (
+        'figure(codly.new(raw("def example():\\n    pass", block: true, '
+        'lang: "python"), number-enabled: false), '
+        'caption: text("Example function"), kind: raw)\n'
+    ) in output
+    assert "```" not in output
+    assert "#figure" not in output
+
+
+def test_code_block_caption_special_characters_are_escaped(
+    simple_document, mock_builder
+):
+    """A caption with ``]``, ``#``, ``$`` and a quote stays string content."""
+    from docutils import nodes
+
+    from typsphinx.translator import TypstTranslator
+
+    container = nodes.container()
+    container["classes"].append("literal-block-wrapper")
+    caption = nodes.caption()
+    caption += nodes.Text('Cap ]br #x $m$ "q"')
+    literal_block = nodes.literal_block()
+    literal_block += nodes.Text("x")
+    container += caption
+    container += literal_block
+    simple_document += container
+
+    translator = TypstTranslator(simple_document, mock_builder)
+    simple_document.walkabout(translator)
+    output = translator.astext()
+
+    assert 'caption: text("Cap ]br #x $m$ \\"q\\""), kind: raw)' in output
 
 
 def test_code_block_with_caption_and_name(simple_document, mock_builder):
-    """Test code block with :caption: and :name: options."""
+    """A captioned :name: block is anchored by the metadata anchor
+    visit_container emits; the figure itself carries no label (codly 2.0
+    would add a hidden per-line figure for every code line)."""
     from docutils import nodes
 
     from typsphinx.translator import TypstTranslator
 
-    # Manually create container structure that Sphinx generates
+    # Sphinx puts the :name: (names + ids) on the wrapper container.
     container = nodes.container()
     container["classes"].append("literal-block-wrapper")
+    container["names"].append("code-example")
+    container["ids"].append("code-example")
 
     caption = nodes.caption()
     caption += nodes.Text("Example function")
 
     literal_block = nodes.literal_block()
     literal_block["language"] = "python"
-    literal_block["names"].append("code-example")  # This is how :name: is stored
     literal_block += nodes.Text("def example():\n    pass")
 
     container += caption
@@ -2634,12 +2541,13 @@ def test_code_block_with_caption_and_name(simple_document, mock_builder):
     simple_document.walkabout(translator)
     output = translator.astext()
 
-    # Should contain #figure() with caption
-    assert "figure(caption: [Example function])" in output or "figure(" in output
-    # Should contain label
-    assert "<code-example>" in output
-    # Should contain code block
-    assert "```python" in output
+    anchor = "[#metadata(none) <code-example>]"
+    assert anchor in output
+    figure = output[output.index("figure(codly.new(") :]
+    assert figure.startswith("figure(codly.new(")
+    assert output.index(anchor) < output.index("figure(codly.new(")
+    assert "<code-example>" not in figure
+    assert "kind: raw)\n" in figure
 
 
 def test_code_block_with_name_only_emits_joinable_id_anchor(
@@ -2650,18 +2558,14 @@ def test_code_block_with_name_only_emits_joinable_id_anchor(
     A ``:name:`` (like a propagated ``.. _t:`` target) makes docutils assign
     BOTH ``names`` AND ``ids`` to the literal_block, and a same-document
     ``:ref:`` resolves to the sanitized ID. The block must therefore emit a
-    Typst anchor for its ID. It is emitted as the clean, joinable
-    ``[#metadata(none) <id>]`` markup block -- NOT the old bare ` <label>`
-    postfix, which appended a label directly after a code-mode raw block and
-    aborted the compile with "cannot join content with label" (and anchored
-    the name rather than the id). See the rubric/missing-anchor sweep.
+    Typst anchor for its ID, as the clean, joinable ``[#metadata(none) <id>]``
+    markup block before the codly.new(...) expression -- never a bare
+    ` <label>` postfix after it.
     """
     from docutils import nodes
 
     from typsphinx.translator import TypstTranslator
 
-    # Create literal_block with name+id but no caption (no container wrapper).
-    # Real docutils assigns both when :name: is given; mirror that here.
     literal_block = nodes.literal_block()
     literal_block["language"] = "python"
     literal_block["names"].append("code-example")  # :name: option
@@ -2674,17 +2578,10 @@ def test_code_block_with_name_only_emits_joinable_id_anchor(
     simple_document.walkabout(translator)
     output = translator.astext()
 
-    # Should NOT wrap in #figure() (no caption)
-    assert "#figure(" not in output
-    # Should anchor the ID via the clean, joinable metadata-block form
-    # (docname is None in this unit context, so the label is un-namespaced).
+    assert "figure(" not in output
     assert "[#metadata(none) <code-example>]" in output
-    # The old broken bare-postfix form must NOT be emitted: a ` <label>`
-    # immediately after the closing code fence does not join in code mode.
-    assert "``` <code-example>" not in output
-    assert "```\n <code-example>" not in output
-    # Should contain code block
-    assert "```python" in output
+    assert output.index("[#metadata(none) <code-example>]") < output.index("codly.new(")
+    assert "<code-example>" not in output[output.index("codly.new(") :]
 
 
 def test_code_block_all_options(simple_document, mock_builder):
@@ -2693,18 +2590,21 @@ def test_code_block_all_options(simple_document, mock_builder):
 
     from typsphinx.translator import TypstTranslator
 
-    # Create container structure with all options
     container = nodes.container()
     container["classes"].append("literal-block-wrapper")
+    container["names"].append("code-example")
+    container["ids"].append("code-example")
 
     caption = nodes.caption()
     caption += nodes.Text("Example function")
 
     literal_block = nodes.literal_block()
     literal_block["language"] = "python"
-    literal_block["names"].append("code-example")  # :name: option
     literal_block["linenos"] = True  # :linenos: option
-    literal_block["highlight_args"] = {"hl_lines": [1]}  # :emphasize-lines: option
+    literal_block["highlight_args"] = {
+        "hl_lines": [1],
+        "linenostart": 3,
+    }  # :emphasize-lines: + :lineno-start:
     literal_block += nodes.Text("def example():\n    pass")
 
     container += caption
@@ -2716,21 +2616,12 @@ def test_code_block_all_options(simple_document, mock_builder):
     simple_document.walkabout(translator)
     output = translator.astext()
 
-    # Should have line numbers (no number-format: none)
-    assert "number-format: none" not in output
-    # Should have highlights via the valid codly(highlights: ...) API. This is a
-    # CAPTIONED code block -> emitted inside the markup figure(...)[...] content
-    # block, so the highlight call must be executed with a leading `#`.
     assert (
-        "#codly(highlights: ((line: 1, start: 1, end: none, fill: yellow),))" in output
-    )
-    assert "codly-range(" not in output, "Must not emit the invalid codly-range() API"
-    # Should have figure with caption
-    assert "figure(" in output
-    # Should have label
-    assert "<code-example>" in output
-    # Should contain code block
-    assert "```python" in output
+        'figure(codly.new(raw("def example():\\n    pass", block: true, '
+        'lang: "python"), offset: 2, highlighted: (3,)), '
+        'caption: text("Example function"), kind: raw)\n'
+    ) in output
+    assert "[#metadata(none) <code-example>]" in output
 
 
 # --- Issue #40: Table Header Support ---
@@ -3923,19 +3814,18 @@ def test_image_path_adjustment_subdirectory(simple_document, mock_builder):
 
 
 def test_doctest_block_defaults_to_python_fence(simple_document, mock_builder):
-    """D-01: a doctest_block without a language falls back to a python fence."""
+    """D-01: a doctest_block without a language falls back to python."""
     from typsphinx.translator import TypstTranslator
 
     translator = TypstTranslator(simple_document, mock_builder)
 
     node = nodes.doctest_block(text=">>> 1 + 1\n2")
-    translator.visit_doctest_block(node)
-    translator.visit_Text(nodes.Text(">>> 1 + 1\n2"))
-    translator.depart_Text(nodes.Text(">>> 1 + 1\n2"))
-    translator.depart_doctest_block(node)
+    output = _emit_code_block(translator, node, doctest=True)
 
-    output = translator.astext()
-    assert "```python\n>>> 1 + 1\n2\n```" in output
+    assert output == (
+        'codly.new(raw(">>> 1 + 1\\n2", block: true, lang: "python"), '
+        "number-enabled: false)\n"
+    )
     # D-03: the doctree is never mutated with the fallback language.
     assert node.get("language") is None
 
@@ -3948,14 +3838,10 @@ def test_doctest_block_honours_existing_language(simple_document, mock_builder):
 
     node = nodes.doctest_block(text=">>> 1 + 1\n2")
     node["language"] = "pycon"
-    translator.visit_doctest_block(node)
-    translator.visit_Text(nodes.Text(">>> 1 + 1\n2"))
-    translator.depart_Text(nodes.Text(">>> 1 + 1\n2"))
-    translator.depart_doctest_block(node)
+    output = _emit_code_block(translator, node, doctest=True)
 
-    output = translator.astext()
-    assert "```pycon\n" in output
-    assert "```python" not in output
+    assert 'lang: "pycon"' in output
+    assert 'lang: "python"' not in output
 
 
 def test_literal_block_without_language_keeps_bare_fence(simple_document, mock_builder):
@@ -3965,18 +3851,14 @@ def test_literal_block_without_language_keeps_bare_fence(simple_document, mock_b
     translator = TypstTranslator(simple_document, mock_builder)
 
     literal_block = nodes.literal_block(text="x = 1")
-    translator.visit_literal_block(literal_block)
-    translator.visit_Text(nodes.Text("x = 1"))
-    translator.depart_Text(nodes.Text("x = 1"))
-    translator.depart_literal_block(literal_block)
+    output = _emit_code_block(translator, literal_block)
 
-    output = translator.astext()
-    assert "```\nx = 1\n```" in output
-    assert "```python" not in output
+    assert output == 'codly.new(raw("x = 1", block: true), number-enabled: false)\n'
 
 
 def test_doctest_block_shares_list_item_wrapper(simple_document, mock_builder):
-    """D-03: doctest_block shares the list-item { } wrapper and separator re-arm."""
+    """D-03: doctest_block shares the list-item separator discipline, and no
+    brace wrapper is emitted around the expression."""
     from typsphinx.translator import TypstTranslator
 
     translator = TypstTranslator(simple_document, mock_builder)
@@ -3984,11 +3866,10 @@ def test_doctest_block_shares_list_item_wrapper(simple_document, mock_builder):
     translator.list_item_needs_separator = True
 
     node = nodes.doctest_block(text=">>> 1 + 1\n2")
-    translator.visit_doctest_block(node)
-    translator.visit_Text(nodes.Text(">>> 1 + 1\n2"))
-    translator.depart_Text(nodes.Text(">>> 1 + 1\n2"))
-    translator.depart_doctest_block(node)
+    output = _emit_code_block(translator, node, doctest=True)
 
-    output = translator.astext()
-    assert "{\ncodly(number-format: none)\n```python\n>>> 1 + 1\n2\n```\n}" in output
+    assert output == (
+        '\ncodly.new(raw(">>> 1 + 1\\n2", block: true, lang: "python"), '
+        "number-enabled: false)\n"
+    )
     assert translator.list_item_needs_separator is True
