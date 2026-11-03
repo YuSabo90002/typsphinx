@@ -2,10 +2,10 @@
 pipeline: gsd-path/v2
 project: typsphinx
 milestone: externalize-typst-deps
-phase: plan
+phase: build
                     # inspect only for brownfield; greenfield starts at define
                     # roadmap only in program flow (CHARTER.md exists)
-status: done
+status: active
 branch: gsd-path/M002
                     # the router rebinds before any next-milestone file change
                     # the bound branch is never main; ship integrates it there
@@ -59,3 +59,4 @@ it on completion. If this file and the artifacts disagree, the artifacts win
 - 2026-11-03 — plan — planning started
 - 2026-11-03 — plan — owner ruling recorded INTENT correction C2 (SC2 wording: no #import @preview/<five> line) before plan approval; owner chose C2:1
 - 2026-11-03 — plan — plan approved
+- 2026-11-03 — build — build started
