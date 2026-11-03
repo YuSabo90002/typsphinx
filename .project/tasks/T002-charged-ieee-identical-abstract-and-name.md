@@ -3,9 +3,9 @@ id: T002
 title: Make charged-ieee approach1 render the same abstract as approach2 and replace the stale sphinx-typst name in its README
 wave: 1
 deps: []
-status: pending
-agent: null
-base: null
+status: done
+agent: build_T002
+base: d3e33bccfb008560106232d050e7324140df9e13
 worktree: null
 task_branch: null
 files:
@@ -52,3 +52,11 @@ Heavy: no
 ## Log
 
 - 2026-11-03 — created by plan (quick mode)
+- 2026-11-03 — build_T002: ready. Pre-fix measurement: approach1 PDF abstract extracted as 'Abstract—This paper presents novel approaches to machine \nlearning\napplications in computer vision. We demonstrate state-of-the-art \nresults on\nbenchmark datasets ...' (hard breaks from the Typst string's embedded newlines) vs approach2 '... machine \nlearning applications in computer vision. We demonstrate state-\nof-the-art results ... compre -\nhensive analysis of our methodology.\n'. Added to tests/test_examples_charged_ieee_gate.py: `_abstract_text()` (page-1 text from "Abstract" to "Index Terms", line breaks kept, CR LF/CR folded to LF), `TestChargedIeeeExamplesGate::test_both_approaches_render_identical_abstract` (builds both with typstpdf, asserts equal), and module-level `test_readme_names_typsphinx_not_sphinx_typst` (no "sphinx-typst", "identical output" kept). Both new tests FAILED on unmodified conf.py/README (2 failed, 2 passed). Fix: approach1/conf.py `ieee_abstract` is now one logical line via implicit string concatenation (same words); README's 3 "sphinx-typst" -> "typsphinx" (lines 3, 7, 150); identical-output claim kept. Task Verify run as written: uv sync ok, grep checks ok, `8 passed in 4.02s`. black --check and ruff clean on changed files. Note (not changed, outside files): docs/source/examples/advanced.rst:25 shows the same triple-quoted `ieee_abstract` pattern.
+- 2026-11-03 — orchestrator Verify (isolate gsd-path-task/T002): pass, exit 0; output tail:
+  ```
+  ........                                                                 [100%]
+  8 passed in 3.93s
+  Resolved 95 packages in 0.57ms
+  Checked 94 packages in 0.34ms
+  ```
