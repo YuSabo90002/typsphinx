@@ -18,6 +18,8 @@ files:
   - README.md
   - tests/test_preview_version_sync.py
   - tests/test_deps_contract_docs_gate.py
+  - tests/test_deps_output_gate.py
+  - tests/test_integration_basic.py
   - tests/test_translator.py
   - tests/test_pdf_render_gate.py
   - tests/test_template_codly.py
@@ -96,7 +98,7 @@ typsphinx pins `@preview/codly:1.3.0` in `typsphinx/typst_deps.py` (`DEFAULT_PAC
 ## Verify
 
 ```bash
-env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev --extra docs && LC_ALL=C uv run pytest tests/test_preview_version_sync.py tests/test_deps_contract_docs_gate.py tests/test_translator.py tests/test_pdf_render_gate.py tests/test_template_codly.py tests/test_codly_caption_listitem_leak_render_gate.py tests/test_deflist_definition_multiblock_render_gate.py tests/test_doctest_block_render_gate.py tests/test_preview_smoke_gate.py tests/test_typst_dependencies_gate.py -o addopts="" -q && grep -q '"@preview/codly:2.0.0"' typsphinx/typst_deps.py && ! grep -nE '```|codly_prefix' typsphinx/translator.py && ! grep -q 'codly:1.3.0' README.md && T=$(mktemp -d) && LC_ALL=C uv run sphinx-build -q -E -b html docs/source "$T/html" && grep -q '2.0.0' "$T/html/user_guide/templates.html" && grep -q 'lang-set_' "$T/html/user_guide/templates.html" && LC_ALL=C uv run pytest tests/ && uv run black --check typsphinx tests && uv run ruff check typsphinx tests && uv run mypy typsphinx/
+env -u VIRTUAL_ENV -u UV_PROJECT_ENVIRONMENT uv sync --extra dev --extra docs && LC_ALL=C uv run pytest tests/test_preview_version_sync.py tests/test_deps_contract_docs_gate.py tests/test_translator.py tests/test_pdf_render_gate.py tests/test_template_codly.py tests/test_codly_caption_listitem_leak_render_gate.py tests/test_deflist_definition_multiblock_render_gate.py tests/test_doctest_block_render_gate.py tests/test_preview_smoke_gate.py tests/test_typst_dependencies_gate.py -o addopts="" -q && grep -q '"@preview/codly:2.0.0"' typsphinx/typst_deps.py && ! grep -nE '`{3}|codly_prefix' typsphinx/translator.py && ! grep -q 'codly:1.3.0' README.md && T=$(mktemp -d) && LC_ALL=C uv run sphinx-build -q -E -b html docs/source "$T/html" && grep -q '2.0.0' "$T/html/user_guide/templates.html" && grep -q 'lang-set_' "$T/html/user_guide/templates.html" && LC_ALL=C uv run pytest tests/ && uv run black --check typsphinx tests && uv run ruff check typsphinx tests && uv run mypy typsphinx/
 ```
 
 Heavy: yes
@@ -104,3 +106,37 @@ Heavy: yes
 ## Log
 
 - 2026-11-03 — created by planner
+- 2026-11-03 — build_T001: NEEDS-ORCHESTRATOR: may T001 edit `tests/test_deps_output_gate.py` and `tests/test_integration_basic.py` (both absent from `files`), which the full-suite run shows asserting 1.3-era output? — readings: (a) add both to T001 `files` and redispatch; the fixes are mechanical: `test_deps_output_gate.py:102` `_assert_default_deps` builds `f'#import "{package.spec}": {package.items}'`, which must become `package.import_line()` (6 failures), and `test_integration_basic.py:185` asserts unescaped fence text `'print("Hello, World!")'` while the code is now a string literal (`print(\"Hello, World!\")`) (1 failure); (b) leave them to another task, so T001's AC8 and Verify `pytest tests/` cannot pass on this tree.
+  - Implemented (all within `files`): `typst_deps.py` codly `@preview/codly:2.0.0` `alias="codly"` (`PreviewPackage.alias` + `__post_init__` exactly-one validation, `import_line()` `as` form); `typsphinx-init` = `show: codly.lang-set_(languages: codly-languages)` + `body`. `translator.visit_literal_block` emits the Interface-contract `codly.new(raw("ESC", block: true[, lang]), [number-enabled: false][, offset][, highlighted][, skip-last-empty: false])` + newline, then raises SkipNode; captioned → `figure(<expr>, caption: text("ESC"), kind: raw)`, no label on the figure; fence, `codly_prefix`, list-item `{`/`#{` wrapper, `in_literal_block` passthrough and dead `code_block_label` removed; `depart_literal_block` is now a no-op. templates.rst row/`typsphinx-init` paragraph/migration note; CHANGELOG Unreleased breaking entry (no literal `codly(`); README pin → 2.0.0; base.typ/custom_template.typ comment wording. Tests rewritten for the new shape (translator, pdf_render_gate offset/config-leak gates, caption-listitem, deflist, doctest, preview_smoke, template_codly, preview_version_sync, deps_contract_docs_gate, admonitions, integration_advanced, typst_dependencies_gate); none of the leak gates was deleted; fixture prose updated; `typst_dependencies_override/deps/my-deps.typ` migrated to `as codly` + `codly.lang-set_`; `template_dependency_drift/user_deps.typ` keeps its 1.3.0 pin (only built with `-b typst`, never compiled).
+  - Verify (run in primary checkout, LC_ALL=C): uv sync dev+docs OK; listed pytest subset 230 passed; codly 2.0.0 grep OK; no ``` / `codly_prefix` in translator.py; README has no `codly:1.3.0`; HTML templates page has `2.0.0` and `lang-set_`; `pytest tests/` → 7 failed, 1838 passed, 1 skipped (all 7 in the two unlisted files above) → Verify exit 1. Run separately after: `black --check typsphinx tests` clean, `ruff check typsphinx tests` clean, `mypy typsphinx/` clean.
+- 2026-11-03 — Orchestrator answer: (a) — both files are added to T001 `files` as a documented plan defect repair; T001 AC8 and INTENT SC9 require `pytest tests/` to pass on this landing, SYNTHESIS decision "Existing tests and fixtures that encode 1.3 output" assigns 1.3-era test rewrites to the emission task, and neither file is declared by T002/T003. Edit them as described and rerun Verify.
+- 2026-11-03 — build_T001 (redispatch after Orchestrator answer (a)): `tests/test_deps_output_gate.py` `_assert_default_deps` now compares against `package.import_line()`; `tests/test_integration_basic.py::test_generated_typ_has_code_block` asserts the escaped `print(\"Hello, World!\")` plus `codly.new(raw(`. Nothing else changed. Full task Verify rerun exactly as written (primary checkout): exit 0 — listed subset 230 passed; greps OK; HTML templates page has `2.0.0` and `lang-set_`; `LC_ALL=C uv run pytest tests/` 1845 passed, 1 skipped, 0 failed; `black --check typsphinx tests` 387 unchanged; `ruff check typsphinx tests` clean; `mypy typsphinx/` clean.
+- 2026-11-03 — orchestrator Verify (sidecar gsd-path-verify/task-t001-verify): fail, exit 2; output tail:
+  ```
+  bash: -c: line 1: unexpected EOF while looking for matching `''
+  ```
+- 2026-11-03 — orchestrator plan defect repair: the Verify's literal triple-backtick grep pattern closed the Verify code fence early, so the isolate ran a truncated command (bash EOF while looking for matching quote, exit 2); the pattern is rewritten to the equivalent ERE '`{3}|codly_prefix' with no other change. No product change.
+- 2026-11-03 — orchestrator Verify (sidecar gsd-path-verify/task-t001-verify): pass, exit 0; output tail:
+  ```
+   + sphinxcontrib-bibtex==2.7.0
+   + sphinxcontrib-devhelp==2.0.0
+   + sphinxcontrib-htmlhelp==2.1.0
+   + sphinxcontrib-jsmath==1.0.1
+   + sphinxcontrib-qthelp==2.0.0
+   + sphinxcontrib-serializinghtml==2.0.0
+   + tomli-w==1.2.0
+   + tox==4.64.10
+   + tox-uv==1.37.2
+   + tox-uv-bare==1.37.2
+   + twine==7.0.0
+   + types-docutils==0.23.0.20260923
+   + typing-extensions==4.16.0
+   + typsphinx==0.9.8 (from file:///home/yuta/.gsd-path/projects/4018706f853274cd7713143cf7ba094e230867e5ad2bfc5891d0cd69027eb98b/4b529697c911aff5766d6b9c03f122ba2ed9565d87a00e2f51ea62f3fd0642ec/verify/task-t001-verify)
+   + typst==0.15.0
+   + urllib3==2.7.0
+   + uv==0.13.6
+   + virtualenv==21.5.1
+  All done! ✨ 🍰 ✨
+  387 files would be left unchanged.
+  ```
+- 2026-11-03 — orchestrator: `finish` refused landing ("landing allow-list differs from the base task: extra tests/test_deps_output_gate.py, tests/test_integration_basic.py") because the `files` and Verify repairs must be part of the dispatch base. Returned to pending for a fresh serial dispatch at a new base that carries both repairs. The coder's complete ready diff (30 modified paths, all declared, no untracked files) is preserved outside the repo as a patch (sha256 e8ae8cfa6fbeb9923011d072a8bef27286c14b37f3b2b3437a39e43f72c4d43c) and the primary product paths are restored to the base so the base is clean; the redispatch re-applies that diff and reruns Verify.
