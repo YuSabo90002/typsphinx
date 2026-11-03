@@ -3,9 +3,9 @@ id: T003
 title: Compile every example and the project docs to PDF under codly 2.0, fix charged-ieee approach1's title and the advanced README claims
 wave: 1
 deps: [T001, T002]
-status: pending
-agent: null
-base: null
+status: done
+agent: build_T003
+base: 2277b882636c6c88436827971b2438fe5457ec55
 worktree: null
 task_branch: null
 files:
@@ -62,3 +62,27 @@ Heavy: yes
 ## Log
 
 - 2026-11-03 — created by planner
+- 2026-11-03 — build_T003: approach1/conf.py params gain `"title": project` (charged-ieee README's Approach 1 snippet updated to match, noting the "Paper Title" default when omitted); examples/advanced/README.md inline math now quotes ``mi(`E = mc^2`)`` (code mode, no `#`) and seealso is "rendered through #tip[] with a "See also" title" (emitted title is Sphinx's "See also"); examples/advanced/_typst/custom.typ left unchanged (its codly wording is not misleading). tests/test_examples_charged_ieee_gate.py: both approaches' PDF text (pypdf, whitespace-normalised) contains "Machine Learning Applications in Computer Vision" and not "Paper Title", approach1 show-rule region carries `title:`; confirmed RED with the title param removed. New tests/test_examples_typstpdf_gate.py: typstpdf builds of examples/basic and examples/advanced into tmp_path (exit 0, `%PDF`, non-empty), README inline-math form read from README and found verbatim in a `-b typst` build of examples/advanced, seealso in a tmp_path copy of examples/advanced (it has no seealso of its own) renders via `tip(` not `info(`. Verify run as written: EXIT=0 — gates 6 passed; README greps pass; `tox -e docs-pdf` OK (build succeeded); `LC_ALL=C uv run pytest tests/` 1883 passed, 1 skipped, 0 failed; black/ruff/mypy clean. No build output left under examples/.
+- 2026-11-03 — orchestrator Verify (sidecar gsd-path-verify/task-t003-verify): pass, exit 0; output tail:
+  ```
+   + sphinxcontrib-bibtex==2.7.0
+   + sphinxcontrib-devhelp==2.0.0
+   + sphinxcontrib-htmlhelp==2.1.0
+   + sphinxcontrib-jsmath==1.0.1
+   + sphinxcontrib-qthelp==2.0.0
+   + sphinxcontrib-serializinghtml==2.0.0
+   + tomli-w==1.2.0
+   + tox==4.64.10
+   + tox-uv==1.37.2
+   + tox-uv-bare==1.37.2
+   + twine==7.0.0
+   + types-docutils==0.23.0.20260923
+   + typing-extensions==4.16.0
+   + typsphinx==0.9.8 (from file:///home/yuta/.gsd-path/projects/4018706f853274cd7713143cf7ba094e230867e5ad2bfc5891d0cd69027eb98b/4b529697c911aff5766d6b9c03f122ba2ed9565d87a00e2f51ea62f3fd0642ec/verify/task-t003-verify)
+   + typst==0.15.0
+   + urllib3==2.7.0
+   + uv==0.13.6
+   + virtualenv==21.5.1
+  All done! ✨ 🍰 ✨
+  398 files would be left unchanged.
+  ```

@@ -64,6 +64,7 @@ ieee_authors = [
 typst_template_function = {
     "name": "ieee",
     "params": {
+        "title": project,
         "abstract": ieee_abstract,
         "index-terms": ieee_keywords,
         "paper-size": "a4",

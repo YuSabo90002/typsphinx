@@ -35,7 +35,13 @@ proving the user's own wrapper is what actually runs.
 No assertion anywhere in this module matches on Typst compiler error text
 (D-06).
 
-Requirements: CONF-02, D-12.
+M004 SC7 (doc-audit queue row 1, fix-code): both approaches' PDFs carry the
+configured ``project`` as the paper title and never charged-ieee's own
+"Paper Title" default, so ``examples/charged-ieee/README.md``'s
+identical-output claim holds. The title is checked on the PDF's extracted
+text (pypdf, whitespace-normalised because the IEEE title may wrap).
+
+Requirements: CONF-02, D-12, M004 SC5, M004 SC7.
 """
 
 import re
@@ -44,6 +50,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from pypdf import PdfReader
 
 try:
     import typst  # noqa: F401
@@ -67,6 +74,31 @@ APPROACH2_DIR = EXAMPLES_DIR / "approach2"
 # template, proving the custom template (not the bundled default) is what
 # was actually written and imported.
 DEFAULT_TEMPLATE_HEADER_MARKER = "// Default Typst template for sphinx-typst"
+
+# Both samples' conf.py ``project`` -- the paper title each PDF must carry.
+PROJECT_TITLE = "Machine Learning Applications in Computer Vision"
+# charged-ieee's own default title, printed when no ``title`` argument
+# reaches the ``ieee`` call.
+PACKAGE_DEFAULT_TITLE = "Paper Title"
+
+
+def _normalised_pdf_text(pdf_path: Path) -> str:
+    """Extract every page's text and collapse all whitespace runs to one space."""
+    reader = PdfReader(str(pdf_path))
+    text = " ".join(page.extract_text() or "" for page in reader.pages)
+    return " ".join(text.split())
+
+
+def _assert_project_title(pdf_path: Path) -> None:
+    text = _normalised_pdf_text(pdf_path)
+    assert PROJECT_TITLE in text, (
+        f"Expected the project title {PROJECT_TITLE!r} in {pdf_path.name}; "
+        f"extracted text starts: {text[:300]!r}"
+    )
+    assert PACKAGE_DEFAULT_TITLE not in text, (
+        f"{pdf_path.name} still carries charged-ieee's default "
+        f"{PACKAGE_DEFAULT_TITLE!r} title"
+    )
 
 
 def _run_sphinx_build(
@@ -201,6 +233,10 @@ class TestChargedIeeeExamplesGate:
         assert "organization:" in show_rule_region
         assert "location:" in show_rule_region
         assert "email:" in show_rule_region
+        # SC7: the params route now names the title explicitly.
+        assert "title:" in show_rule_region
+
+        _assert_project_title(pdf_path)
 
     def test_approach2_custom_template_sample_actually_uses_package(self, tmp_path):
         """
@@ -266,3 +302,7 @@ class TestChargedIeeeExamplesGate:
         )
         master_text = master_typ_path.read_text(encoding="utf-8")
         assert '#import "/_template/typst/_template.typ": project' in master_text
+
+        # SC7: same paper title as approach1 -- the README's identical-output
+        # claim, checked on both sides.
+        _assert_project_title(pdf_path)

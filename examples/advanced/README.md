@@ -135,7 +135,8 @@ claimed by only one of them.
 
 Supports both inline and block mathematics:
 
-**Inline:** `:math:`E = mc^2`` → `#mi(`E = mc^2`)`
+**Inline:** `:math:`E = mc^2`` → ``mi(`E = mc^2`)`` (emitted in code mode, so no
+`#` prefix)
 
 **Block with label:**
 
@@ -203,7 +204,7 @@ Special boxes for notes, warnings, tips using gentle-clues package:
    This is important (rendered as #warning(title: "Important")[]).
 
 .. seealso::
-   See also section (rendered as #info(title: "See Also")[]).
+   See also section (rendered through #tip[] with a "See also" title).
 ```
 
 All admonitions are automatically converted to beautiful colored boxes using the
