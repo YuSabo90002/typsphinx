@@ -47,6 +47,8 @@ from pathlib import Path
 
 import pytest
 
+from typsphinx.translator import escape_typst_string
+
 try:
     import typst  # noqa: F401
 
@@ -61,7 +63,18 @@ MASTER_DOCNAMES = ["index", "context_a_paragraph", "context_b_nonfirst_positions
 SHAPE_SENTINELS = ["ctx_a_paragraph", "ctx_b1_definition", "ctx_b2_bullet"]
 
 UNKNOWN_DOCTEST_BLOCK = "unknown node type: <doctest_block"
-FENCE_OPEN = "codly(number-format: none)\n```python\n"
+CODE_OPEN = "codly.new(raw("
+
+
+def _codly_expression(block: str) -> str:
+    """The one code-mode expression a doctest block is emitted as (codly 2.0):
+    the block text as an escaped string literal, ``python`` language, no line
+    numbers -- every source line kept, in order, as ``\\n``-joined string
+    content."""
+    return (
+        f'codly.new(raw("{escape_typst_string(block)}", block: true, '
+        'lang: "python"), number-enabled: false)\n'
+    )
 
 
 def _run_sphinx_build_typstpdf(
@@ -177,8 +190,9 @@ def doctest_block_build(tmp_path_factory):
 class TestDoctestBlockRenderGate:
     """
     Real-compile regression gate proving TRN-01/TRN-02: a ``>>>`` doctest
-    block renders as a codly-styled ``python`` fence with its line structure
-    intact, in both D-06 contexts, through a real ``typst.compile()``.
+    block renders as one code-mode ``codly.new(raw(..., lang: "python"))``
+    expression with its line structure intact, in both D-06 contexts,
+    through a real ``typst.compile()``.
     """
 
     def test_build_exits_zero_without_compile_failure(self, doctest_block_build):
@@ -227,18 +241,19 @@ class TestDoctestBlockRenderGate:
         typ_text = _read_typ(build_dir, "context_a_paragraph")
         block = _source_doctest_block("context_a_paragraph.rst", "ctx_a_paragraph")
 
-        assert FENCE_OPEN + block + "\n```\n" in typ_text, (
-            "Expected the doctest block inside a codly-styled python fence, "
-            f"lines verbatim and in source order:\n{typ_text}"
+        assert _codly_expression(block) in typ_text, (
+            "Expected the doctest block as one codly.new(raw(...)) python "
+            f"expression, lines verbatim and in source order:\n{typ_text}"
         )
+        assert "```" not in typ_text, typ_text
         assert 'text(">>> ' not in typ_text, (
             'Found a collapsed text(">>> ...") run -- the doctest block was '
             f"not routed through the code-block emission path:\n{typ_text}"
         )
-        fence_index = typ_text.index(FENCE_OPEN)
+        fence_index = typ_text.index(CODE_OPEN)
         trailing_index = typ_text.index("Trailing paragraph after the doctest block.")
         assert trailing_index > fence_index, (
-            "Expected the trailing paragraph to appear AFTER the fence in "
+            "Expected the trailing paragraph to appear AFTER the code block in "
             f"source order:\n{typ_text}"
         )
 
@@ -253,19 +268,20 @@ class TestDoctestBlockRenderGate:
             "Expected the definition-list term 'Examples:' to appear as a "
             f"terms.item(...) call:\n{typ_text}"
         )
-        assert FENCE_OPEN + block + "\n```" in typ_text, (
-            "Expected shape (b1)'s doctest block inside a codly-styled python "
-            f"fence, lines verbatim and in source order:\n{typ_text}"
+        assert _codly_expression(block).rstrip("\n") in typ_text, (
+            "Expected shape (b1)'s doctest block as one codly.new(raw(...)) "
+            f"python expression, lines verbatim and in source order:\n{typ_text}"
         )
+        assert "```" not in typ_text, typ_text
         assert 'text(">>> ' not in typ_text, (
             'Found a collapsed text(">>> ...") run -- the doctest block was '
             f"not routed through the code-block emission path:\n{typ_text}"
         )
         leading_index = typ_text.index("Leading paragraph of the definition.")
-        fence_index = typ_text.index(FENCE_OPEN)
+        fence_index = typ_text.index(CODE_OPEN)
         assert leading_index < fence_index, (
             "Expected the leading paragraph of the definition to appear BEFORE "
-            f"the fence in source order:\n{typ_text}"
+            f"the code block in source order:\n{typ_text}"
         )
 
     def test_context_b2_bullet_list_item_line_structure(self, doctest_block_build):
@@ -275,20 +291,22 @@ class TestDoctestBlockRenderGate:
             "context_b_nonfirst_positions.rst", "ctx_b2_bullet"
         )
 
-        # The list-item `{ }` wrapper visit_literal_block opens only when
-        # in_list_item is true.
-        assert "{\n" + FENCE_OPEN + block + "\n```\n}" in typ_text, (
-            "Expected shape (b2)'s doctest block inside the list-item { } "
-            f"wrapper AND a codly-styled python fence:\n{typ_text}"
+        # Inside a list item the expression is newline-separated from the
+        # leading paragraph and carries no brace wrapper of its own.
+        expression = _codly_expression(block)
+        assert "\n" + expression in typ_text, (
+            "Expected shape (b2)'s doctest block as one newline-separated "
+            f"codly.new(raw(...)) python expression:\n{typ_text}"
         )
+        assert "{\n" + expression not in typ_text, typ_text
         assert 'text(">>> ' not in typ_text, (
             'Found a collapsed text(">>> ...") run -- the doctest block was '
             f"not routed through the code-block emission path:\n{typ_text}"
         )
         leading_index = typ_text.index("Leading paragraph in the list item.")
-        fence_index = typ_text.index(FENCE_OPEN + block)
+        fence_index = typ_text.index(expression)
         trailing_index = typ_text.index("Trailing paragraph in the same list item.")
         assert leading_index < fence_index < trailing_index, (
-            "Expected leading paragraph, then the fence, then the trailing "
+            "Expected leading paragraph, then the code block, then the trailing "
             f"paragraph, in that source order:\n{typ_text}"
         )

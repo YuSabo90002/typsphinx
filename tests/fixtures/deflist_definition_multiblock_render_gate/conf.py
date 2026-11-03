@@ -23,7 +23,9 @@
 #
 # Fix: the terms.item assembly wraps the definition (2nd) arg in `{ ... }`, so
 # Typst auto-joins the block statements into one content value. A single-block
-# definition wraps to {par({...})} and renders identically.
+# definition wraps to {par({...})} and renders identically. (The codly 1.3
+# per-block config call and fence above are historical: the code block is now
+# one code-mode codly.new(raw(...), ...) expression.)
 
 project = "Deflist Multiblock Definition Render Gate"
 author = "Test Author"

@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **One shared dependencies file per build: `<outdir>/_typsphinx/deps.typ`.** Every
   `typst` and `typstpdf` build writes it. It imports the five Typst Universe packages
   (codly, codly-languages, mitex, gentle-clues, diagraph) and defines the
-  `typsphinx-init` show function, which sets up codly. Every content file and every
+  `typsphinx-init` show function, which registers codly's language table. Every
+  content file and every
   wrapper now starts with `#import "/_typsphinx/deps.typ": *` and
   `#show: typsphinx-init` instead of its own package imports. The path, its exported
   names and `typsphinx-init` are a public contract for template authors, listed on
@@ -34,6 +35,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking: codly is upgraded from 1.3.0 to 2.0.0 (`@preview/codly:2.0.0`, which
+  needs Typst 0.15).** codly 2.0 replaces 1.3's state-mutating API with a constructor,
+  `codly.new(body, ..fields)`, and scoped show rules such as `codly.set_` and
+  `codly.lang-set_`. Visual styling follows codly 2.0's defaults (colours, radius,
+  language badge, the multi-colour highlight palette); 1.3's look is not recreated.
+  - **Every code block is now one code-mode `codly.new(raw(...), ...)` expression.**
+    A `literal_block` or `doctest_block` is emitted as
+    `codly.new(raw("...", block: true, lang: "..."), ...)` with the code text as an
+    escaped string literal, instead of a markup fence preceded by state-style `codly`
+    configuration calls. `:linenos:` maps to `number-enabled`, `:lineno-start:` to
+    `offset`, and `:emphasize-lines:` to `highlighted` (deduplicated, and keyed by the
+    displayed line number, so `:emphasize-lines:` combined with `:lineno-start:` now
+    highlights the right line). A captioned block becomes
+    `figure(codly.new(...), caption: text("..."), kind: raw)`, so a caption
+    containing `]`, `#` or `$` renders verbatim. A `parsed-literal` block keeps its
+    text, but its inline markup is flattened.
+  - **`/_typsphinx/deps.typ` exports `codly` as a module.** It imports
+    `#import "@preview/codly:2.0.0" as codly`; `codly-init` and the state-style `codly`
+    configuration function are gone, with no compatibility shim. `typsphinx-init` now
+    only registers `codly-languages` through `codly.lang-set_`.
+  - **Migration for template authors.** Remove `#show: codly-init.with()`; replace a
+    state-style `codly` configuration call with `#show: codly.set_(...)` or pass the
+    fields to one block with `codly.new(...)`. A `typst_dependencies` file must import
+    codly as a module (`#import "@preview/codly:2.0.0" as codly`), because the
+    generated markup calls `codly.new`.
+  - **Raw blocks written by users are no longer rendered through codly.**
+    `typsphinx-init` installs no rule that turns raw blocks into codly blocks, so a raw
+    block in a custom template or a `.. raw:: typst` directive gets Typst's ordinary
+    raw rendering. Wrap it in `codly.new(...)` to render it through codly.
+  - **Known limitation:** a form feed, vertical tab, NEL or U+2028 in code is passed
+    through unchanged, and Typst splits the raw line there while Sphinx counts lines
+    by newline only, so displayed numbers and highlighted lines after such a character
+    can shift.
 - **The five package versions have a single source.** They are defined once, in
   `typsphinx/typst_deps.py`, which generates the default `deps.typ`. `writer.py`,
   `template_engine.py` and the bundled `templates/base.typ` no longer carry their own

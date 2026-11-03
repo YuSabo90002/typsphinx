@@ -15,7 +15,9 @@ Reads files only -- no Sphinx build. It pins:
 * ``CHANGELOG.md`` ``[Unreleased]`` and ``CLAUDE.md``'s ``@preview`` section.
 
 The export list is DERIVED from ``render_default_deps()`` (explicit import
-items, ``#let`` names, and the names ``typsphinx-init`` uses) plus the
+items, ``as`` module aliases, ``#let`` names, and the names
+``typsphinx-init`` uses, member accesses such as ``codly.lang-set_``
+excluded) plus the
 gentle-clues names the translator emits, read from ``translator.py``'s
 ``_visit_admonition`` call sites -- never a hand-copied list -- so renaming
 an export fails this gate until the docs follow.
@@ -122,6 +124,9 @@ def _default_deps_exports() -> set[str]:
     for items in re.findall(r'^#import "@preview/[^"]+": (.+)$', text, re.M):
         if items.strip() != "*":
             names.update(item.strip() for item in items.split(","))
+    names.update(
+        re.findall(r'^#import "@preview/[^"]+" as ([A-Za-z][\w-]*)$', text, re.M)
+    )
     names.update(re.findall(r"^#let ([A-Za-z][\w-]*)", text, re.M))
     init_match = re.search(
         rf"^#let {re.escape(INIT_FUNCTION_NAME)}\(body\) = \{{(.*?)^\}}",
@@ -129,7 +134,8 @@ def _default_deps_exports() -> set[str]:
         re.M | re.S,
     )
     assert init_match, "render_default_deps() no longer defines typsphinx-init"
-    tokens = set(re.findall(r"[A-Za-z][\w-]*", init_match.group(1)))
+    # A name after `.` is a module member (`codly.lang-set_`), not an export.
+    tokens = set(re.findall(r"(?<![.\w-])[A-Za-z][\w-]*", init_match.group(1)))
     names.update(tokens - {"show", "with", "body", "languages"})
     names.update(_translator_gentle_clues_names())
     return names
@@ -146,8 +152,10 @@ def test_translator_emits_exactly_the_nine_gentle_clues_names():
 
 def test_derived_export_list_covers_the_k3_contract():
     exports = _default_deps_exports()
-    for name in ("codly", "codly-init", "codly-languages", "mi", "mitex", "render"):
+    for name in ("codly", "codly-languages", "mi", "mitex", "render"):
         assert name in exports, (name, sorted(exports))
+    assert "codly-init" not in exports, sorted(exports)
+    assert "lang-set_" not in exports, sorted(exports)
     assert INIT_FUNCTION_NAME in exports
     assert EXPECTED_GENTLE_CLUES_NAMES <= exports
 
@@ -250,7 +258,25 @@ def test_templates_lists_the_default_versions():
 def test_templates_describes_typsphinx_init():
     section = _templates_section()
     assert f"``{INIT_FUNCTION_NAME}`` is a show function" in section
+    assert "``codly.lang-set_``" in section
+    assert "show: codly.lang-set_(languages: codly-languages)" in section
+    assert "installs no rule that turns raw blocks into codly blocks" in section
+
+
+def test_templates_codly_row_exports_the_module_not_codly_init():
+    raw = _templates_section_raw()
+    row = raw[raw.index("   * - codly\n") :]
+    row = row[: row.index("   * - codly-languages")]
+    assert "``codly``, imported as a module" in _flat(row), row
+    assert "codly-init" not in row, row
+
+
+def test_templates_carries_the_codly_1_3_migration_note():
+    section = _templates_section()
+    assert "**Migrating from codly 1.3.**" in section
     assert "``codly-init``" in section
+    assert "``#show: codly.set_(...)``" in section
+    assert '``#import "@preview/codly:2.0.0" as codly``' in section
 
 
 def test_templates_tells_authors_to_import_rather_than_pin():
@@ -316,6 +342,19 @@ def test_changelog_unreleased_records_the_change():
     assert "`template dependency drift: ...`" in section
     assert "--root <outdir>" in section
     assert "### Planned for Future Releases" in section
+
+
+def test_changelog_unreleased_records_the_codly_2_breaking_change():
+    section = _unreleased_section()
+    assert "**Breaking: codly is upgraded from 1.3.0 to 2.0.0" in section
+    assert "`codly-init`" in section
+    assert "`codly.new(...)`" in section
+    assert "`#show: codly.set_(...)`" in section
+    assert '`#import "@preview/codly:2.0.0" as codly`' in section
+    assert "**Raw blocks written by users are no longer rendered through codly.**" in (
+        section
+    )
+    assert "`.. raw:: typst`" in section
 
 
 # --------------------------------------------------------------------------

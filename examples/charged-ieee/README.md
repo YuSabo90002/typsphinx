@@ -39,10 +39,12 @@ ieee_authors = [
 ]
 
 # Template function with parameters -- the complete, exclusive parameter set
-# (including "authors") lives here on the params route
+# (including "title" and "authors") lives here on the params route; omit
+# "title" and charged-ieee prints its own "Paper Title" default
 typst_template_function = {
     "name": "ieee",
     "params": {
+        "title": project,
         "abstract": ieee_abstract,
         "index-terms": ieee_keywords,
         "paper-size": "a4",

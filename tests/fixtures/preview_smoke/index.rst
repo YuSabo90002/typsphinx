@@ -25,8 +25,8 @@ Code Block
 
    x = 1
 
-Exercises codly + codly-languages (labeled code block -> codly()/codly-range()
-calls, initialized globally via #codly(languages: codly-languages)).
+Exercises codly + codly-languages (labeled code block -> a codly.new(raw(...))
+call, with the language table registered by typsphinx-init).
 
 Math Block
 ----------

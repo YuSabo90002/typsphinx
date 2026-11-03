@@ -1,0 +1,80 @@
+{
+  "canonical_project_dir": ".project",
+  "command": "verify-landed",
+  "head": "38d5d17c03c9fa24761201c854182001fc39152c",
+  "project_dir": ".project",
+  "tasks": [
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M004",
+        "candidates": [
+          {
+            "base": "46eb036ba984e361c9b68f6e1a07cc5d0cc9c3a4",
+            "commit": "7b6a1c632e01f61546d353aba72edad00b28c0ce",
+            "valid": true
+          }
+        ],
+        "head": "38d5d17c03c9fa24761201c854182001fc39152c",
+        "subject": "T001: Move deps.typ to codly 2.0.0, emit every code block as code-mode codly.new(raw(...)), rewrite the 1.3-era tests and document the contract change"
+      },
+      "landed_commit": "7b6a1c632e01f61546d353aba72edad00b28c0ce",
+      "reasons": [],
+      "task": {
+        "base": "46eb036ba984e361c9b68f6e1a07cc5d0cc9c3a4",
+        "id": "T001",
+        "status": "done",
+        "task_file": ".project/tasks/T001-codly2-deps-and-code-mode-emission.md"
+      }
+    },
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M004",
+        "candidates": [
+          {
+            "base": "f02c214194731a8ba4b8a7415d1cf29afa9ebe50",
+            "commit": "4615c1f65a7efa7ede126fd9324754d997a512ed",
+            "valid": true
+          }
+        ],
+        "head": "38d5d17c03c9fa24761201c854182001fc39152c",
+        "subject": "T002: Prove codly 2.0 code blocks at the surface \u2014 option/edge/caption PDF gate and the four-project code-mode .typ gate"
+      },
+      "landed_commit": "4615c1f65a7efa7ede126fd9324754d997a512ed",
+      "reasons": [],
+      "task": {
+        "base": "f02c214194731a8ba4b8a7415d1cf29afa9ebe50",
+        "id": "T002",
+        "status": "done",
+        "task_file": ".project/tasks/T002-codly2-surface-gates.md"
+      }
+    },
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M004",
+        "candidates": [
+          {
+            "base": "2277b882636c6c88436827971b2438fe5457ec55",
+            "commit": "77b53ed11fd05b767e95537d6eae312ab043ad58",
+            "valid": true
+          }
+        ],
+        "head": "38d5d17c03c9fa24761201c854182001fc39152c",
+        "subject": "T003: Compile every example and the project docs to PDF under codly 2.0, fix charged-ieee approach1's title and the advanced README claims"
+      },
+      "landed_commit": "77b53ed11fd05b767e95537d6eae312ab043ad58",
+      "reasons": [],
+      "task": {
+        "base": "2277b882636c6c88436827971b2438fe5457ec55",
+        "id": "T003",
+        "status": "done",
+        "task_file": ".project/tasks/T003-examples-pdf-builds-and-audit-rulings.md"
+      }
+    }
+  ]
+}

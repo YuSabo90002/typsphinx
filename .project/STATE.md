@@ -1,15 +1,15 @@
 ---
 pipeline: gsd-path/v2
 project: typsphinx
-milestone: windows-test-portability
+milestone: codly-2-upgrade
 phase: shipped
                     # inspect only for brownfield; greenfield starts at define
                     # roadmap only in program flow (CHARTER.md exists)
 status: done
-branch: gsd-path/M003
+branch: gsd-path/M004
                     # the router rebinds before any next-milestone file change
                     # the bound branch is never main; ship integrates it there
-archive: .project/archive/003-windows-test-portability
+archive: .project/archive/004-codly-2-upgrade
 integration_default: pull-request
 integration: pull-request
 integration_source: default
@@ -73,4 +73,20 @@ it on completion. If this file and the artifacts disagree, the artifacts win
 - 2026-11-03 — build — Constraint observation: ci.yml run 41592991566 on temp branch ci-probe/m003-windows at 9a1dc595 succeeded, including Test Python 3.12/3.13 on windows-latest; temp branch deleted
 - 2026-11-03 — ship — build done; final review pending
 - 2026-11-03 — ship — final gate passed; shipping approval pending
+- 2026-11-03 — shipped — archive preflight passed; shipment recorded
+- 2026-11-03 — inspect — next milestone bound: gsd-path/M004 at base 46a72b5f80b9510f67f43031288fcba52478f701; previous M003 ship 5942dafe7822e8a16e29c20cf935673b25db811a archive .project/archive/003-windows-test-portability integrated via PR #189 landing 46a72b5f80b9510f67f43031288fcba52478f701
+- 2026-11-03 — inspect — inspection artifacts passed
+- 2026-11-03 — define — definition started
+- 2026-11-03 — define — milestone intent approved
+- 2026-11-03 — research — research started
+- 2026-11-03 — research — research complete: manifest .project/research/RESEARCH.md; dispatched stack, pitfalls; skipped domain, similar; 4 questions (orchestrator normalized header/answer question text and two Confidence fields to the gate format, content unchanged)
+- 2026-11-03 — decide — decision synthesis started
+- 2026-11-03 — decide — synthesis validated: .project/research/SYNTHESIS.md (8 decisions; user rulings Q1 a, Q2 a recorded; INTENT C4 appended)
+- 2026-11-03 — plan — planning started
+- 2026-11-03 — plan — plan approved
+- 2026-11-03 — build — build started
+- 2026-11-03 — build — plan defect repaired in T001: files += tests/test_deps_output_gate.py, tests/test_integration_basic.py (NEEDS-ORCHESTRATOR answer a); Verify grep pattern rewritten to avoid closing its code fence; T001 returned to pending for serial redispatch
+- 2026-11-03 — ship — build done; final review pending
+- 2026-11-03 — ship — final gate passed; shipping approval pending
+- 2026-11-03 — ship — shipping approved by user: "2" (archive and ship now; CI checked on the PR)
 - 2026-11-03 — shipped — archive preflight passed; shipment recorded

@@ -371,5 +371,6 @@ class TestCustomTemplateIntegration:
         typ_file = temp_build_dir / "index.typ"
         content = typ_file.read_text()
 
-        # Should have code blocks that work with codly
+        # Should have code blocks emitted as codly 2.0 codly.new(raw(...)) calls
         assert "def hello():" in content  # Code from fixture
+        assert "codly.new(raw(" in content

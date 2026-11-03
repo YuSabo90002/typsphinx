@@ -220,7 +220,7 @@ class TestAbsoluteAndBytes:
         src = _copy_fixture(tmp_path)
         raw = (
             "// dépendances — 日本語\r\n"
-            '#import "@preview/codly:1.3.0": *\r\n'
+            '#import "@preview/codly:2.0.0" as codly\r\n'
             "#let typsphinx-init(body) = body"
         ).encode()
         assert b"\r\n" in raw and not raw.endswith(b"\n")

@@ -10,10 +10,11 @@ instead of pinning versions themselves. This module asserts:
 * a grep-equivalent of `grep -rlE '@preview/(codly|...):' typsphinx/` over
   every `.py` and `.typ` file finds only `typsphinx/typst_deps.py`;
 * `writer.py`, `template_engine.py`, and `templates/base.typ` carry no codly
-  initialisation lines (`codly-init` / `codly(languages:`);
+  initialisation lines (`codly-init` / `codly(languages:` / `lang-set_`);
 * a real build's `<outdir>/_typsphinx/deps.typ` equals
   `render_default_deps()` and imports each `DEFAULT_PACKAGES` entry once,
-  in order.
+  in order, with codly imported as a module (`as codly`) and a
+  `typsphinx-init` that only applies `codly.lang-set_`.
 
 The repository's own templates and samples are a further surface (SC5):
 `test_repo_templates_pin_none_of_the_five` asserts that no file under
@@ -28,10 +29,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 from typsphinx.typst_deps import (
     DEFAULT_PACKAGES,
     DEPS_FILENAME,
     DEPS_OUTPUT_DIR,
+    PreviewPackage,
     render_default_deps,
 )
 
@@ -57,7 +61,7 @@ BASIC_ROOT = Path(__file__).parent / "roots" / "test-basic"
 _FIVE_SPEC_RE = re.compile(
     r"@preview/(codly|codly-languages|mitex|gentle-clues|diagraph):"
 )
-_CODLY_INIT_RE = re.compile(r"codly-init|codly\(languages")
+_CODLY_INIT_RE = re.compile(r"codly-init|codly\(languages|lang-set_")
 
 
 def test_five_specs_appear_only_in_typst_deps_module():
@@ -81,7 +85,7 @@ def test_former_declaration_sites_carry_no_codly_init():
 
 def test_default_packages_are_the_five_in_order():
     assert [(p.name, p.version) for p in DEFAULT_PACKAGES] == [
-        ("codly", "1.3.0"),
+        ("codly", "2.0.0"),
         ("codly-languages", "0.1.10"),
         ("mitex", "0.2.7"),
         ("gentle-clues", "1.3.1"),
@@ -93,7 +97,10 @@ def test_default_packages_are_the_five_in_order():
 
 def test_built_deps_typ_equals_module_definitions(tmp_path):
     """SC1: a built `deps.typ` is exactly `render_default_deps()`, with one
-    `#import "<spec>": <items>` line per `DEFAULT_PACKAGES` entry, in order."""
+    `#import` line per `DEFAULT_PACKAGES` entry, in order -- codly as a module
+    (`as codly`), the other four as item imports -- and a `typsphinx-init`
+    holding only the codly 2.0 language registration (no `codly-init`, no
+    state-style `codly(` call, no `show raw` rule)."""
     out = tmp_path / "out"
     result = subprocess.run(
         [sys.executable, "-m", "sphinx", "-q", "-E", "-b", "typst"]
@@ -111,16 +118,42 @@ def test_built_deps_typ_equals_module_definitions(tmp_path):
         for line in built.decode("utf-8").splitlines()
         if line.startswith("#import")
     ]
+    assert import_lines == [package.import_line() for package in DEFAULT_PACKAGES]
     assert import_lines == [
-        f'#import "{package.spec}": {package.items}' for package in DEFAULT_PACKAGES
-    ]
-    assert import_lines == [
-        '#import "@preview/codly:1.3.0": *',
+        '#import "@preview/codly:2.0.0" as codly',
         '#import "@preview/codly-languages:0.1.10": *',
         '#import "@preview/mitex:0.2.7": mi, mitex',
         '#import "@preview/gentle-clues:1.3.1": *',
         '#import "@preview/diagraph:0.3.7": render',
     ]
+
+    text = built.decode("utf-8")
+    init = text[text.index("#let typsphinx-init(body) = {") :]
+    assert init == (
+        "#let typsphinx-init(body) = {\n"
+        "  show: codly.lang-set_(languages: codly-languages)\n"
+        "  body\n"
+        "}\n"
+    )
+    assert "codly-init" not in text
+    assert not re.search(r"(^|[^.a-z-])codly\(", text)
+    assert "show raw" not in text
+
+
+def test_preview_package_import_forms():
+    """An aliased package imports as a module; exactly one form is set."""
+    assert (
+        PreviewPackage(spec="@preview/codly:2.0.0", alias="codly").import_line()
+        == '#import "@preview/codly:2.0.0" as codly'
+    )
+    assert (
+        PreviewPackage(spec="@preview/mitex:0.2.7", items="mi, mitex").import_line()
+        == '#import "@preview/mitex:0.2.7": mi, mitex'
+    )
+    with pytest.raises(ValueError):
+        PreviewPackage(spec="@preview/codly:2.0.0")
+    with pytest.raises(ValueError):
+        PreviewPackage(spec="@preview/codly:2.0.0", items="*", alias="codly")
 
 
 def _no_pin_violations(roots):

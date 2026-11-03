@@ -117,8 +117,8 @@ def test_preview_smoke_all_four_packages_compile(preview_smoke_dir, temp_build_d
     # carries them.
     #
     # The four @preview imports now live in the shared
-    # `_typsphinx/deps.typ` the content file imports, and the codly
-    # init/config calls in the `typsphinx-init` show function it applies.
+    # `_typsphinx/deps.typ` the content file imports, and the codly 2.0
+    # language registration in the `typsphinx-init` show function it applies.
     index_lines = index_text.splitlines()
     for expected_line in (
         '#import "/_typsphinx/deps.typ": *',
@@ -131,7 +131,7 @@ def test_preview_smoke_all_four_packages_compile(preview_smoke_dir, temp_build_d
         )
     deps_text = (temp_build_dir / "_typsphinx" / "deps.typ").read_text(encoding="utf-8")
     for expected_import in (
-        '#import "@preview/codly:1.3.0": *',
+        '#import "@preview/codly:2.0.0" as codly',
         '#import "@preview/codly-languages:0.1.10": *',
         '#import "@preview/mitex:0.2.7": mi, mitex',
         '#import "@preview/gentle-clues:1.3.1": *',
@@ -139,17 +139,18 @@ def test_preview_smoke_all_four_packages_compile(preview_smoke_dir, temp_build_d
         assert (
             expected_import in deps_text
         ), f"Expected {expected_import!r} in _typsphinx/deps.typ:\n{deps_text}"
-    assert "show: codly-init.with()" in deps_text, (
-        "Expected the codly initialisation show-rule in typsphinx-init "
-        f"(D-06):\n{deps_text}"
-    )
-    assert "codly(languages: codly-languages)" in deps_text, (
-        "Expected the codly-languages configuration call in "
+    assert "show: codly.lang-set_(languages: codly-languages)" in deps_text, (
+        "Expected the codly-languages registration show rule in "
         f"typsphinx-init (D-06):\n{deps_text}"
     )
+    assert "codly-init" not in deps_text, deps_text
+    # The code block itself is a real codly 2.0 call in the content file.
+    assert (
+        'codly.new(raw("x = 1", block: true, lang: "python")' in index_text
+    ), f"Expected the code block as a codly.new(raw(...)) call:\n{index_text}"
 
     # 2. Compile the CONTENT file to PDF with typst-py -- R1: the four
-    # packages' real invocations (mitex(), codly(), gentle-clues' info())
+    # packages' real invocations (mitex(), codly.new(), gentle-clues' info())
     # all live in the translated body, which the content file carries
     # unconditionally (D-06's own preamble makes it a complete,
     # self-contained document on its own). No try/except wrapper: an

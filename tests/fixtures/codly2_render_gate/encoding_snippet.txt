@@ -1,0 +1,6 @@
+enc_quote = "dq" 'sq'
+enc_backslash = "a\\b\n"
+enc_tick = `one` and ```three``` and ````four````
+enc_hash = #let x = $m$ # $
+enc_cjk = "日本語" "😀"
+	enc_tabbed = 1   

@@ -3,7 +3,14 @@ The single source of typsphinx's Typst Universe ``@preview`` dependencies.
 
 Every build writes ``<outdir>/_typsphinx/deps.typ`` (see
 ``TypstBuilder._write_dependencies_file()``): the five ``#import`` lines
-below plus a ``typsphinx-init`` show function that sets up codly. Every
+below plus a ``typsphinx-init`` show function that registers the
+``codly-languages`` table with codly 2.0 (``codly.lang-set_``). codly is
+imported as a module (``as codly``), not with ``*``: codly 2.0's top level
+defines ``line``, ``highlight``, ``info`` and other names that would shadow
+Typst builtins and typsphinx's own output, and every code block is emitted
+as an explicit ``codly.new(raw(...), ...)`` call. No ``show raw`` rule is
+installed, so a raw block a user writes is left to Typst's own rendering.
+Every
 content file, every wrapper, and the bundled ``templates/base.typ`` import
 that one file by the root-absolute path ``/_typsphinx/deps.typ`` instead of
 pinning versions themselves, so a version bump happens here and nowhere
@@ -37,14 +44,28 @@ INIT_FUNCTION_NAME = "typsphinx-init"
 class PreviewPackage:
     """One Typst Universe package import of the default ``deps.typ``.
 
+    Exactly one of ``items`` and ``alias`` is set.
+
     Attributes:
-        spec: The full package spec, e.g. ``"@preview/codly:1.3.0"``.
+        spec: The full package spec, e.g. ``"@preview/codly:2.0.0"``.
         items: The import list after the colon, e.g. ``"*"``,
-            ``"mi, mitex"`` or ``"render"``.
+            ``"mi, mitex"`` or ``"render"``; empty when ``alias`` is set.
+        alias: The module name of an ``#import "SPEC" as ALIAS`` import,
+            e.g. ``"codly"``; ``None`` for an item import.
+
+    Raises:
+        ValueError: If both or neither of ``items`` and ``alias`` are set.
     """
 
     spec: str
-    items: str
+    items: str = ""
+    alias: str | None = None
+
+    def __post_init__(self) -> None:
+        if bool(self.items) == (self.alias is not None):
+            raise ValueError(
+                f"PreviewPackage {self.spec!r}: set exactly one of items and alias"
+            )
 
     @property
     def name(self) -> str:
@@ -53,17 +74,23 @@ class PreviewPackage:
 
     @property
     def version(self) -> str:
-        """The package version, e.g. ``"1.3.0"``."""
+        """The package version, e.g. ``"2.0.0"``."""
         return self.spec.rsplit(":", 1)[1]
 
     def import_line(self) -> str:
-        """The Typst ``#import`` line for this package."""
+        """The Typst ``#import`` line for this package.
+
+        ``#import "SPEC" as ALIAS`` when ``alias`` is set, otherwise
+        ``#import "SPEC": ITEMS``.
+        """
+        if self.alias is not None:
+            return f'#import "{self.spec}" as {self.alias}'
         return f'#import "{self.spec}": {self.items}'
 
 
 #: The default packages, in ``deps.typ`` import order.
 DEFAULT_PACKAGES: tuple[PreviewPackage, ...] = (
-    PreviewPackage(spec="@preview/codly:1.3.0", items="*"),
+    PreviewPackage(spec="@preview/codly:2.0.0", alias="codly"),
     PreviewPackage(spec="@preview/codly-languages:0.1.10", items="*"),
     PreviewPackage(spec="@preview/mitex:0.2.7", items="mi, mitex"),
     PreviewPackage(spec="@preview/gentle-clues:1.3.1", items="*"),
@@ -72,11 +99,13 @@ DEFAULT_PACKAGES: tuple[PreviewPackage, ...] = (
 
 # The codly initialisation every content file and wrapper applies through
 # `#show: typsphinx-init`. A top-level show rule does not cross #include(),
-# so each file applies it itself; this text lives only here.
+# so each file applies it itself; this text lives only here. It only
+# registers the codly-languages table (badge names, icons, colours) for the
+# explicit codly.new(...) calls typsphinx emits; it installs no `show raw`
+# rule and sets no other codly field, so codly 2.0's defaults apply.
 _INIT_FUNCTION = (
     f"#let {INIT_FUNCTION_NAME}(body) = {{\n"
-    "  show: codly-init.with()\n"
-    "  codly(languages: codly-languages)\n"
+    "  show: codly.lang-set_(languages: codly-languages)\n"
     "  body\n"
     "}\n"
 )

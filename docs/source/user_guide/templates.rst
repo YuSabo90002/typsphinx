@@ -150,8 +150,9 @@ authors may rely on. ``deps.typ`` exports these names:
      - Default version
      - Exported names typsphinx relies on
    * - codly
-     - 1.3.0
-     - ``codly``, ``codly-init``
+     - 2.0.0
+     - ``codly``, imported as a module (``codly.new``, ``codly.set_``,
+       ``codly.lang-set_``, ...)
    * - codly-languages
      - 0.1.10
      - ``codly-languages``
@@ -169,12 +170,32 @@ authors may rely on. ``deps.typ`` exports these names:
      -
      - ``typsphinx-init``
 
-``typsphinx-init`` is a show function that sets up codly for the content
-it wraps: it applies ``codly-init`` and registers ``codly-languages`` as
-codly's language table. Imported names and top-level show rules do not
-cross ``#include()``, so every content file and every wrapper imports
-``deps.typ`` and applies ``#show: typsphinx-init`` itself. A template does
-not need to apply ``typsphinx-init``; the wrapper already does.
+``typsphinx-init`` is a show function that registers ``codly-languages``
+as codly's language table for the content it wraps, through
+``show: codly.lang-set_(languages: codly-languages)``. It sets no other
+codly field and installs no rule that turns raw blocks into codly blocks:
+typsphinx emits every code block as an explicit ``codly.new(raw(...))``
+call, and a raw block you write yourself (in a template or a
+``.. raw:: typst`` directive) is left to Typst's own rendering -- wrap it
+in ``codly.new(...)`` to render it through codly. Imported names and
+top-level show rules do not cross ``#include()``, so every content file
+and every wrapper imports ``deps.typ`` and applies
+``#show: typsphinx-init`` itself. A template does not need to apply
+``typsphinx-init``; the wrapper already does.
+
+**Migrating from codly 1.3.** Earlier releases imported codly 1.3.0 with
+``*`` and exported ``codly-init`` and the state-style ``codly``
+configuration function. Both are gone. A template that used them changes
+as follows:
+
+- Remove ``#show: codly-init.with()`` -- codly 2.0 needs no
+  initialisation.
+- Replace a state-style ``codly`` configuration call with a scoped show
+  rule, ``#show: codly.set_(...)``, or pass the fields to one block,
+  ``#codly.new(raw(...), ...)``.
+- A ``typst_dependencies`` file must import codly as a module,
+  ``#import "@preview/codly:2.0.0" as codly``, because the generated
+  markup calls ``codly.new``.
 
 **Take package names from deps.typ, do not pin versions.** A template
 that needs one of these functions imports it from the shared file instead

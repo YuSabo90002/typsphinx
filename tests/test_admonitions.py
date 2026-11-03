@@ -249,8 +249,10 @@ class TestAdmonitionConversion:
         output = translator.astext()
         assert "info({" in output
         assert "info[" not in output
-        assert "```" in output
-        assert "x = 1" in output
+        assert "```" not in output
+        assert 'info({codly.new(raw("x = 1", block: true), number-enabled: false)' in (
+            output
+        )
 
     def test_admonition_with_title_in_content(self, temp_sphinx_app: SphinxTestApp):
         """Test admonition with custom title in first paragraph."""

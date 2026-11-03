@@ -35,8 +35,14 @@ with the fix. Drives the full ``-b typstpdf`` path -- NOT ``-b typst`` -- on
 purpose: the fatal only aborts on the ``TypstPDFBuilder.finish()`` compile path,
 so a ``-b typst`` build would emit the invalid ``.typ`` but never compile it and
 thus prove nothing.
+
+codly 2.0 re-pointing: the code block in the definition is now one code-mode
+``codly.new(raw(...), ...)`` expression (no state-style ``codly`` call, no
+markup fence), so the gate also asserts that invariant inside the wrapped
+definition.
 """
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -148,18 +154,21 @@ class TestDeflistDefinitionMultiblockRenderGate:
         typ_text = typ_output.read_text(encoding="utf-8")
 
         # The definition must be passed as a single {...}-wrapped argument, i.e.
-        # terms.item(<term>, {par(...) ... codly(...) ... list(...) }). Assert
-        # the wrapped-arg boundary directly, and that the paragraph, code fence,
-        # and list all live inside that one content block.
+        # terms.item(<term>, {par(...) ... codly.new(...) ... list(...) }).
+        # Assert the wrapped-arg boundary directly, and that the paragraph,
+        # code block, and list all live inside that one content block.
         assert ", {par(" in typ_text, (
             "Expected the definition to be passed as a single "
             "'{ ... }'-wrapped 2nd argument to terms.item( -- the wrap fix is "
             f"not applied:\n{typ_text}"
         )
-        assert "codly(" in typ_text and "list({" in typ_text, (
-            "The multi-block definition should still emit its code fence and "
-            "bullet list inside the wrapped content block"
+        wrapped = typ_text[typ_text.index(", {par(") :]
+        assert "\ncodly.new(raw(" in wrapped and "list({" in wrapped, (
+            "The multi-block definition should still emit its codly.new(...) "
+            f"code block and bullet list inside the wrapped content block:\n{typ_text}"
         )
+        assert "```" not in typ_text, typ_text
+        assert not re.search(r"(^|[^.a-z-])codly\(", typ_text), typ_text
 
         # The emitted .typ must have compiled to a real, non-empty PDF.
         # Phase 47: TypstPDFBuilder compiles only wrapper files (R4). This
