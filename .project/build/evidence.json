@@ -1,0 +1,56 @@
+{
+  "canonical_project_dir": ".project",
+  "command": "verify-landed",
+  "head": "8271ee2ff2cd4e9b320f7a3860ae283b28088d46",
+  "project_dir": ".project",
+  "tasks": [
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M006",
+        "candidates": [
+          {
+            "base": "d3e33bccfb008560106232d050e7324140df9e13",
+            "commit": "b85cc016d53f3ff9b868ad10d53e8762a22e0e79",
+            "valid": true
+          }
+        ],
+        "head": "8271ee2ff2cd4e9b320f7a3860ae283b28088d46",
+        "subject": "T001: Prepare release 0.10.0 \u2014 version, README status, dated CHANGELOG section with breaking-change lead, newest-first order, and gate tests that follow the version"
+      },
+      "landed_commit": "b85cc016d53f3ff9b868ad10d53e8762a22e0e79",
+      "reasons": [],
+      "task": {
+        "base": "d3e33bccfb008560106232d050e7324140df9e13",
+        "id": "T001",
+        "status": "done",
+        "task_file": ".project/tasks/T001-release-0-10-0-prep.md"
+      }
+    },
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M006",
+        "candidates": [
+          {
+            "base": "d3e33bccfb008560106232d050e7324140df9e13",
+            "commit": "3c23c646953f4dc64113587d465aafa129b18907",
+            "valid": true
+          }
+        ],
+        "head": "8271ee2ff2cd4e9b320f7a3860ae283b28088d46",
+        "subject": "T002: Make charged-ieee approach1 render the same abstract as approach2 and replace the stale sphinx-typst name in its README"
+      },
+      "landed_commit": "3c23c646953f4dc64113587d465aafa129b18907",
+      "reasons": [],
+      "task": {
+        "base": "d3e33bccfb008560106232d050e7324140df9e13",
+        "id": "T002",
+        "status": "done",
+        "task_file": ".project/tasks/T002-charged-ieee-identical-abstract-and-name.md"
+      }
+    }
+  ]
+}
