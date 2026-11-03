@@ -3,30 +3,12 @@
 // Requirement 8.11: Include #outline() in template (not in body)
 // Requirement 7.4: codly package integration for code highlighting
 
-// Import codly for code highlighting (Task 4.2.1)
-// Design 3.5: codly is mandatory for all code blocks
-#import "@preview/codly:1.3.0": *
-#import "@preview/codly-languages:0.1.10": *
-
-// Import mitex for LaTeX math support (Task 6.1)
-// Design 3.3: mitex for LaTeX math compatibility
-// Requirement 4.1: mitex package integration
-#import "@preview/mitex:0.2.7": *
-
-// Import gentle-clues for admonitions (Task 3.4)
-// Design 3.6: gentle-clues for admonition display
-// Requirement 2.8-2.10: Admonition conversion to gentle-clues
-#import "@preview/gentle-clues:1.3.1": *
-
-// Import diagraph for Graphviz DOT rendering
-// Renders DOT in-process via typst-py -- no external `dot` binary (MEM001)
-#import "@preview/diagraph:0.3.7": render
-
-// Initialize codly
-#show: codly-init.with()
-
-// Configure codly with codly-languages for comprehensive language support
-#codly(languages: codly-languages)
+// Typst Universe packages (codly, codly-languages, mitex, gentle-clues,
+// diagraph) come from the build's generated /_typsphinx/deps.typ -- the one
+// place their versions are pinned (Design 3.3/3.5/3.6, Requirement 4.1,
+// 2.8-2.10, 7.4). The wrapper applies the typsphinx-init show rule (codly
+// setup) itself, so this template does not.
+#import "/_typsphinx/deps.typ": *
 
 // FID-13: distinguish external hyperlinks with color + underline (D-01).
 // Scoped to external URLs only -- `it.dest` is a `str` for an external

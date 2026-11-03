@@ -305,17 +305,19 @@ class TestPackageOnlyConfigGate:
 
     def test_bug_f_essential_imports_present_exactly_once(self, build):
         """
-        All four essential ``@preview`` imports, plus the codly
-        initialisation show-rule, are present -- and each import line
-        occurs EXACTLY ONCE -- even though this master takes the
-        package-only routing path (no template file import).
+        The shared ``/_typsphinx/deps.typ`` import (which carries the
+        essential ``@preview`` imports) and the ``typsphinx-init`` show
+        rule (which carries the codly initialisation) are present -- each
+        EXACTLY ONCE -- even though this master takes the package-only
+        routing path (no template file import). No ``@preview`` spec of
+        the five is pinned in the wrapper itself.
         """
         text = build["text"]
-        assert text.count("@preview/codly:") == 1
-        assert text.count("@preview/codly-languages:") == 1
-        assert text.count("@preview/mitex:") == 1
-        assert text.count("@preview/gentle-clues:") == 1
-        assert "#show: codly-init.with()" in text
+        lines = text.splitlines()
+        assert lines.count('#import "/_typsphinx/deps.typ": *') == 1
+        assert lines.count("#show: typsphinx-init") == 1
+        for name in ("codly", "codly-languages", "mitex", "gentle-clues"):
+            assert f"@preview/{name}:" not in text
 
     def test_real_compile_produces_valid_pdf(self, build):
         """

@@ -46,12 +46,12 @@ OUTPUT_LAYOUT_RST_PATH = (
 )
 
 # The fragment the raised error is expected to name when a nested-target
-# wrapper is compiled with no root -- the basename of the bundled default
-# template a wrapper naming the reserved "typst" key imports. Asserting
-# this fragment (rather than merely "raises") means a future, unrelated
-# compile failure cannot masquerade as this specific root-resolution
-# hazard.
-MISSING_TEMPLATE_FRAGMENT = "base.typ"
+# wrapper is compiled with no root -- the wrapper's FIRST root-absolute
+# import, the shared `/_typsphinx/deps.typ` every wrapper imports before
+# its template (`/_template/typst/base.typ`). Asserting this fragment
+# (rather than merely "raises") means a future, unrelated compile failure
+# cannot masquerade as this specific root-resolution hazard.
+MISSING_TEMPLATE_FRAGMENT = "_typsphinx/deps.typ"
 
 
 def _run_sphinx_build(
@@ -220,7 +220,7 @@ class TestNestedTargetWrapperNeedsTheOutdirAsRoot:
             typst.compile(str(build["wrapper_path"]))
         error_text = str(excinfo.value)
         assert MISSING_TEMPLATE_FRAGMENT in error_text, (
-            f"Expected the raised error to name the template file "
+            f"Expected the raised error to name the root-absolute file "
             f"typsphinx could not find ({MISSING_TEMPLATE_FRAGMENT!r}), so "
             f"a future, unrelated failure cannot masquerade as this one. "
             f"Got: {error_text!r}"

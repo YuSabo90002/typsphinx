@@ -140,11 +140,14 @@ class TestEmptyTypstDocumentsOptoutGate:
         # directory at all. There is therefore no template file anywhere
         # in this build's output, unlike the single-file writer this
         # phase deleted, which ran unconditionally regardless of
-        # typst_documents.
+        # typst_documents. The one non-content file is the shared
+        # `_typsphinx/deps.typ`, which every build writes unconditionally
+        # because every content file imports it.
         typ_files = sorted(p.relative_to(build_dir) for p in build_dir.rglob("*.typ"))
-        assert typ_files == [Path("index.typ")], (
-            f"Expected exactly one content file (index.typ), and zero "
-            f"wrapper files and zero template files, in the build "
+        assert typ_files == [Path("_typsphinx/deps.typ"), Path("index.typ")], (
+            f"Expected exactly one content file (index.typ) plus the "
+            f"shared _typsphinx/deps.typ, and zero wrapper files and zero "
+            f"template files, in the build "
             f"directory, found: {typ_files}\nstdout: {result.stdout}\n"
             f"stderr: {result.stderr}"
         )

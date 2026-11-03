@@ -25,6 +25,7 @@ from typsphinx.template_registry import (
     resolve_template_registry,
 )
 from typsphinx.translator import TypstTranslator, render_include_edge_state
+from typsphinx.typst_deps import deps_preamble_lines
 
 logger = logging.getLogger(__name__)
 
@@ -239,8 +240,8 @@ class TypstWriter(writers.Writer):
         OUT-03), carrying no template application -- template application
         now belongs exclusively to ``render_wrapper()``, which the
         builder calls separately, once per ``typst_documents`` entry
-        naming this docname. D-06 makes the four ``@preview`` imports
-        plus codly init unconditional here: this is exact status-quo
+        naming this docname. D-06 makes the shared ``deps.typ`` import
+        plus ``typsphinx-init`` unconditional here: this is exact status-quo
         preservation for what used to be an "included document", and it
         is only a NEW preamble for a docname that used to be a master's
         single undivided file.
@@ -259,21 +260,11 @@ class TypstWriter(writers.Writer):
 
         # D-06: unconditional for EVERY content file. Typst's #include()
         # does not inherit imports from the parent file, so each content
-        # file needs its own imports regardless of whether it is also
-        # #include()d by a wrapper.
-        imports = []
-        imports.append("// Essential imports for included document")
-        imports.append('#import "@preview/codly:1.3.0": *')
-        imports.append('#import "@preview/codly-languages:0.1.10": *')
-        imports.append('#import "@preview/mitex:0.2.7": mi, mitex')
-        imports.append('#import "@preview/gentle-clues:1.3.1": *')
-        imports.append('#import "@preview/diagraph:0.3.7": render')
+        # file imports the shared /_typsphinx/deps.typ (written by
+        # TypstBuilder.finish()) and applies its typsphinx-init show rule
+        # itself, regardless of whether it is also #include()d by a wrapper.
+        imports = deps_preamble_lines()
         imports.append("")
-        imports.append("// Initialize codly")
-        imports.append("#show: codly-init.with()")
-        imports.append("#codly(languages: codly-languages)")
-        imports.append("")
-
         self.output = "\n".join(imports) + "\n" + body
 
     def render_wrapper(

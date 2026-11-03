@@ -170,9 +170,9 @@ class TestRegistryKeyPreWriteGate:
                 # writer that used to put "_template.typ" at the outdir
                 # root is deleted -- the built-in "typst" key's bundled
                 # default template is the ONLY route now, copied to
-                # _template/typst/base.typ. Unrelated to CONF-14's
-                # validation pass this control test pins.
+                # _template/typst/base.typ; plus the shared _typsphinx/deps.typ.
                 "base.typ",
+                "deps.typ",
                 "five.typ",
                 "five_out.typ",
                 "four.typ",

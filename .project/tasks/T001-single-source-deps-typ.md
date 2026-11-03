@@ -3,9 +3,9 @@ id: T001
 title: Move the five @preview specs to typsphinx/typst_deps.py and emit a shared _typsphinx/deps.typ imported by every content file, wrapper, and base.typ
 wave: 1
 deps: []
-status: pending
-agent: null
-base: null
+status: done
+agent: build_T001
+base: 1b901dfa8cb9dccc641315a0a90f74818fafe928
 worktree: null
 task_branch: null
 files:
@@ -92,3 +92,27 @@ Heavy: yes
 ## Log
 
 - 2026-11-03 — created by planner
+- 2026-11-03 — build_T001 (coder): implemented. New leaf `typsphinx/typst_deps.py` (K1: constants, frozen `PreviewPackage` with `name`/`version` properties plus an `import_line()` helper, `DEFAULT_PACKAGES`, `render_default_deps()`, `deps_preamble_lines()`); it is the only `.py`/`.typ` under `typsphinx/` naming a five-package spec and the only home of `codly-init`/`codly(languages:`. `writer.py` content preamble = `deps_preamble_lines()` + blank line. `template_engine.render()` emits the preamble on every route (after the optional package import, before the template import or inlined template); the CR-01 skip is gone. `base.typ` drops pins and top-level codly init, imports `/_typsphinx/deps.typ`, and never applies `typsphinx-init`. `builder.py`: `_write_dependencies_file()` is the first statement of `finish()` (`Path.write_bytes(render_default_deps().encode("utf-8"))`, single commented seam for T002's override); OUT-07 extended through new `_reserved_output_dir()` (folds via `_collision_key()`), so content/wrapper paths under `_typsphinx` fail in the same aggregated `ExtensionError` naming `'_typsphinx'` (`_template` message unchanged). Inline-route measurement: `TemplateEngine().render()` with no template_file/no package compiled under typst-py 0.15 with `deps.typ` at root (duplicate `#import "/_typsphinx/deps.typ": *` accepted; `#show: typsphinx-init` count 1); no runner-up fallback needed; pinned in `tests/test_deps_output_gate.py::TestInlineDefaultTemplateRouteCompiles`. Goldens (desc_rubric + all ten inline_image incl. `.pre_fix`) edited by exact replacement of the 11-line block + blank with the 2-line preamble + blank. Tests updated only in import/init-shape or file-count assertions; `test_integration_nested_toctree` compile root is now the outdir; hand-compile gate now expects the error to name `_typsphinx/deps.typ` (the first unresolvable root-absolute import). Side constraint found: `tests/test_repr_census_guard.py` (not in `files`) pins line numbers in `test_registry_prewrite_validation_gate.py` and `test_template_engine.py`, so edits there keep line counts unchanged before those sites. Verify (task command, verbatim): pass — uv sync ok, SC1 grep = `typsphinx/typst_deps.py`, no codly init in the three sites, 277 passed, examples/basic, examples/advanced, docs/source built typstpdf PDFs, preamble present in every emitted `.typ`, no forbidden `@preview` literal/import. Extra: `LC_ALL=C uv run pytest tests/` 1762 passed / 1 skipped / 0 failed; black --check, ruff, mypy clean.
+- 2026-11-03 — orchestrator Verify (sidecar gsd-path-verify/task-t001-verify): pass, exit 0; output tail:
+  ```
+   + sphinxcontrib-applehelp==2.0.0
+   + sphinxcontrib-bibtex==2.7.0
+   + sphinxcontrib-devhelp==2.0.0
+   + sphinxcontrib-htmlhelp==2.1.0
+   + sphinxcontrib-jsmath==1.0.1
+   + sphinxcontrib-qthelp==2.0.0
+   + sphinxcontrib-serializinghtml==2.0.0
+   + tomli-w==1.2.0
+   + tox==4.64.10
+   + tox-uv==1.37.2
+   + tox-uv-bare==1.37.2
+   + twine==7.0.0
+   + types-docutils==0.23.0.20260923
+   + typing-extensions==4.16.0
+   + typsphinx==0.9.8 (from file:///home/yuta/.gsd-path/projects/4018706f853274cd7713143cf7ba094e230867e5ad2bfc5891d0cd69027eb98b/4b529697c911aff5766d6b9c03f122ba2ed9565d87a00e2f51ea62f3fd0642ec/verify/task-t001-verify)
+   + typst==0.15.0
+   + urllib3==2.7.0
+   + uv==0.13.6
+   + virtualenv==21.5.1
+  WARNING: html_static_path entry '_static' does not exist
+  ```

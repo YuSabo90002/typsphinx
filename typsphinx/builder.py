@@ -10,6 +10,7 @@ import posixpath
 import shutil
 from collections.abc import Iterator
 from os import path
+from pathlib import Path
 from typing import Any
 
 from docutils import nodes
@@ -27,6 +28,7 @@ from typsphinx.template_registry import (
     resolve_template_registry,
 )
 from typsphinx.translator import derive_master_edge_keys
+from typsphinx.typst_deps import DEPS_FILENAME, DEPS_OUTPUT_DIR, render_default_deps
 from typsphinx.writer import TEMPLATE_OUTPUT_DIR, TypstWriter
 
 logger = logging.getLogger(__name__)
@@ -1065,6 +1067,39 @@ class TypstBuilder(Builder):
         first_segment = folded.split("/", 1)[0]
         return first_segment == reserved
 
+    @staticmethod
+    def _reserved_output_dir(relative_path: str) -> tuple[str, str] | None:
+        """Which reserved builder-owned output directory, if any,
+        ``relative_path``'s FIRST output-path segment folds to (OUT-07).
+
+        Two top-level directories are written by ``finish()`` and so may
+        never hold a content or wrapper file: ``TEMPLATE_OUTPUT_DIR``
+        (template bundles, ``_reserves_template_prefix()``) and
+        ``DEPS_OUTPUT_DIR`` (the generated ``deps.typ``). Folding goes
+        through ``_collision_key()`` exactly as
+        ``_reserves_template_prefix()`` does.
+
+        Args:
+            relative_path: An outdir-relative output path.
+
+        Returns:
+            ``(directory, purpose)`` for the matching reserved directory,
+            or ``None`` when the first segment is not reserved.
+
+        Examples:
+            >>> TypstBuilder._reserved_output_dir("_Typsphinx/x.typ")[0]
+            '_typsphinx'
+            >>> TypstBuilder._reserved_output_dir("_typsphinxes/x.typ") is None
+            True
+        """
+        if TypstBuilder._reserves_template_prefix(relative_path):
+            return (TEMPLATE_OUTPUT_DIR, "template bundles")
+        folded = TypstBuilder._collision_key(relative_path)
+        first_segment = folded.split("/", 1)[0]
+        if first_segment == TypstBuilder._collision_key(DEPS_OUTPUT_DIR):
+            return (DEPS_OUTPUT_DIR, "the generated Typst dependencies file")
+        return None
+
     def _validate_output_path_collisions(self) -> None:
         """Validate that no two logical output files -- a docname's
         content file, or a ``typst_documents`` entry's wrapper file --
@@ -1158,15 +1193,17 @@ class TypstBuilder(Builder):
         for docname in found_docs:
             content_relpath = docname + ".typ"
             _claim(content_relpath, f"the content file for docname {docname!r}")
-            if self._reserves_template_prefix(content_relpath):
+            reservation = self._reserved_output_dir(content_relpath)
+            if reservation is not None:
+                reserved_dir, purpose = reservation
                 failures.append(
                     (
                         content_relpath,
                         f"the content file for docname {docname!r} would "
                         f"be written to {quote_path(content_relpath)}, "
                         f"whose first path segment is "
-                        f"{quote_path(TEMPLATE_OUTPUT_DIR)} -- that "
-                        "directory is reserved for template bundles",
+                        f"{quote_path(reserved_dir)} -- that "
+                        f"directory is reserved for {purpose}",
                     )
                 )
 
@@ -1213,7 +1250,9 @@ class TypstBuilder(Builder):
                 f"typst_documents entry {index} (docname {docname!r}, "
                 f"target {target_text})",
             )
-            if self._reserves_template_prefix(wrapper_relpath):
+            reservation = self._reserved_output_dir(wrapper_relpath)
+            if reservation is not None:
+                reserved_dir, purpose = reservation
                 failures.append(
                     (
                         wrapper_relpath,
@@ -1221,8 +1260,8 @@ class TypstBuilder(Builder):
                         f"{docname!r}, target {target_text}) would write "
                         f"its wrapper to {quote_path(wrapper_relpath)}, "
                         f"whose first path segment is "
-                        f"{quote_path(TEMPLATE_OUTPUT_DIR)} -- that "
-                        "directory is reserved for template bundles",
+                        f"{quote_path(reserved_dir)} -- that "
+                        f"directory is reserved for {purpose}",
                     )
                 )
 
@@ -2475,8 +2514,30 @@ class TypstBuilder(Builder):
         ``_copy_used_template_bundles()`` itself, not a build-wide
         early return.
         """
+        self._write_dependencies_file()
         self.copy_image_files()
         self._copy_used_template_bundles()
+
+    def _write_dependencies_file(self) -> None:
+        """Write ``<outdir>/_typsphinx/deps.typ`` -- the shared Typst
+        dependencies file every content file, wrapper, and the bundled
+        ``base.typ`` import by the root-absolute path
+        ``/_typsphinx/deps.typ``.
+
+        Runs first in ``finish()`` on EVERY build, regardless of which
+        docnames were written, so ``TypstPDFBuilder.finish()`` (which calls
+        ``super().finish()`` before compiling) always compiles against it.
+        Written as bytes so no newline translation happens and a rebuild
+        produces identical bytes. Tolerates a builder whose ``write()``
+        never ran: it needs only ``self.outdir``.
+        """
+        # Effective dependencies file content. The single seam where a
+        # user-supplied file would replace the generated default.
+        content = render_default_deps().encode("utf-8")
+
+        deps_dir = Path(self.outdir) / DEPS_OUTPUT_DIR
+        deps_dir.mkdir(parents=True, exist_ok=True)
+        (deps_dir / DEPS_FILENAME).write_bytes(content)
 
 
 class TypstPDFBuilder(TypstBuilder):
