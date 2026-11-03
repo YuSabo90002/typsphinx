@@ -2,10 +2,10 @@
 pipeline: gsd-path/v2
 project: typsphinx
 milestone: codly-2-upgrade
-phase: plan
+phase: build
                     # inspect only for brownfield; greenfield starts at define
                     # roadmap only in program flow (CHARTER.md exists)
-status: done
+status: active
 branch: gsd-path/M004
                     # the router rebinds before any next-milestone file change
                     # the bound branch is never main; ship integrates it there
@@ -84,3 +84,4 @@ it on completion. If this file and the artifacts disagree, the artifacts win
 - 2026-11-03 — decide — synthesis validated: .project/research/SYNTHESIS.md (8 decisions; user rulings Q1 a, Q2 a recorded; INTENT C4 appended)
 - 2026-11-03 — plan — planning started
 - 2026-11-03 — plan — plan approved
+- 2026-11-03 — build — build started
