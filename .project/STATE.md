@@ -2,14 +2,14 @@
 pipeline: gsd-path/v2
 project: typsphinx
 milestone: codly-2-upgrade
-phase: ship
+phase: shipped
                     # inspect only for brownfield; greenfield starts at define
                     # roadmap only in program flow (CHARTER.md exists)
-status: active
+status: done
 branch: gsd-path/M004
                     # the router rebinds before any next-milestone file change
                     # the bound branch is never main; ship integrates it there
-archive: null
+archive: .project/archive/004-codly-2-upgrade
 integration_default: pull-request
 integration: pull-request
 integration_source: default
@@ -87,3 +87,6 @@ it on completion. If this file and the artifacts disagree, the artifacts win
 - 2026-11-03 — build — build started
 - 2026-11-03 — build — plan defect repaired in T001: files += tests/test_deps_output_gate.py, tests/test_integration_basic.py (NEEDS-ORCHESTRATOR answer a); Verify grep pattern rewritten to avoid closing its code fence; T001 returned to pending for serial redispatch
 - 2026-11-03 — ship — build done; final review pending
+- 2026-11-03 — ship — final gate passed; shipping approval pending
+- 2026-11-03 — ship — shipping approved by user: "2" (archive and ship now; CI checked on the PR)
+- 2026-11-03 — shipped — archive preflight passed; shipment recorded
