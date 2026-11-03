@@ -2,7 +2,7 @@
 pipeline: gsd-path/v2
 project: typsphinx
 milestone: externalize-typst-deps
-phase: build
+phase: ship
                     # inspect only for brownfield; greenfield starts at define
                     # roadmap only in program flow (CHARTER.md exists)
 status: active
@@ -60,3 +60,4 @@ it on completion. If this file and the artifacts disagree, the artifacts win
 - 2026-11-03 — plan — owner ruling recorded INTENT correction C2 (SC2 wording: no #import @preview/<five> line) before plan approval; owner chose C2:1
 - 2026-11-03 — plan — plan approved
 - 2026-11-03 — build — build started
+- 2026-11-03 — ship — build done; final review pending
