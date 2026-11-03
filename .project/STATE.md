@@ -85,3 +85,4 @@ it on completion. If this file and the artifacts disagree, the artifacts win
 - 2026-11-03 — plan — planning started
 - 2026-11-03 — plan — plan approved
 - 2026-11-03 — build — build started
+- 2026-11-03 — build — plan defect repaired in T001: files += tests/test_deps_output_gate.py, tests/test_integration_basic.py (NEEDS-ORCHESTRATOR answer a); Verify grep pattern rewritten to avoid closing its code fence; T001 returned to pending for serial redispatch
