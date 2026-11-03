@@ -95,3 +95,4 @@ it on completion. If this file and the artifacts disagree, the artifacts win
 - 2026-11-03 — plan — planning started
 - 2026-11-03 — plan — plan approved
 - 2026-11-03 — build — build started
+- 2026-11-03 — build — plan defect repaired in T001: Verify clause git ls-files 'docs/S0*' removed (index check cannot pass on an unstaged isolate); T001 isolate retired for a retry at a new base
