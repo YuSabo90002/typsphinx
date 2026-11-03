@@ -16,6 +16,7 @@ the one place they are defined.
 This module is a leaf: it imports nothing from the rest of typsphinx.
 """
 
+import re
 from dataclasses import dataclass
 
 #: Outdir-relative directory the generated dependencies file is written to.
@@ -107,3 +108,105 @@ def deps_preamble_lines() -> list[str]:
         ``['#import "/_typsphinx/deps.typ": *', '#show: typsphinx-init']``
     """
     return [f'#import "{DEPS_IMPORT_PATH}": *', f"#show: {INIT_FUNCTION_NAME}"]
+
+
+# The five default package names, longest alternative first so `codly`
+# never wins over `codly-languages`. The `:` must follow the name
+# immediately, and only the `@preview/` namespace is matched.
+_PREVIEW_PIN_RE = re.compile(
+    r"@preview/(codly-languages|codly|mitex|gentle-clues|diagraph):" r"(\d+\.\d+\.\d+)"
+)
+
+
+def strip_typst_comments(text: str) -> str:
+    """Return ``text`` with Typst ``//`` and ``/* */`` comments removed.
+
+    A single left-to-right character scan, not a regex:
+
+    - a double-quoted string literal is copied through unchanged, honouring
+      backslash escapes; it ends at an unescaped ``"`` or at the end of the
+      line, so ``"https://example.com"`` is never read as a ``//`` comment;
+    - a ``/* ... */`` block comment is removed with nesting-depth counting,
+      as Typst nests block comments (an unterminated one runs to the end of
+      the text); it is replaced by one space so the text on either side is
+      never joined;
+    - a ``//`` line comment is removed up to, not including, the newline.
+
+    Known limit (accepted as a best-effort aid): the scanner does not track
+    Typst's markup/code modes, so a ``"`` in markup-mode prose is treated as
+    a string delimiter too, up to the next ``"`` or the end of that line.
+
+    Args:
+        text: Typst source text.
+
+    Returns:
+        The text with comments removed and everything else unchanged.
+    """
+    out: list[str] = []
+    i = 0
+    n = len(text)
+    while i < n:
+        ch = text[i]
+        if ch == '"':
+            # String literal: copy through to the closing quote or newline.
+            j = i + 1
+            while j < n:
+                c = text[j]
+                if c == "\\" and j + 1 < n and text[j + 1] != "\n":
+                    j += 2
+                    continue
+                if c == '"':
+                    j += 1
+                    break
+                if c == "\n":
+                    break
+                j += 1
+            out.append(text[i:j])
+            i = j
+        elif text.startswith("/*", i):
+            depth = 1
+            j = i + 2
+            while j < n and depth:
+                if text.startswith("/*", j):
+                    depth += 1
+                    j += 2
+                elif text.startswith("*/", j):
+                    depth -= 1
+                    j += 2
+                else:
+                    j += 1
+            out.append(" ")
+            i = j
+        elif text.startswith("//", i):
+            j = text.find("\n", i)
+            i = n if j == -1 else j
+        else:
+            out.append(ch)
+            i += 1
+    return "".join(out)
+
+
+def extract_preview_versions(text: str) -> dict[str, set[str]]:
+    """Return every version of the five default packages pinned in ``text``.
+
+    The text is comment-stripped first (``strip_typst_comments()``), then
+    only ``@preview/<name>:<major>.<minor>.<patch>`` for the five default
+    package names is matched; any other package, and any other namespace
+    such as ``@local/``, is ignored.
+
+    Args:
+        text: Typst source text.
+
+    Returns:
+        A mapping from package name to the set of versions found; a package
+        that is not pinned is absent.
+    """
+    found: dict[str, set[str]] = {}
+    for match in _PREVIEW_PIN_RE.finditer(strip_typst_comments(text)):
+        found.setdefault(match.group(1), set()).add(match.group(2))
+    return found
+
+
+def version_sort_key(version: str) -> tuple[int, ...]:
+    """Numeric ``(major, minor, patch)`` sort key for a version string."""
+    return tuple(int(part) for part in version.split("."))
