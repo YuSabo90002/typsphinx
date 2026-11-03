@@ -2,7 +2,7 @@
 pipeline: gsd-path/v2
 project: typsphinx
 milestone: housekeeping-py314
-phase: build
+phase: ship
                     # inspect only for brownfield; greenfield starts at define
                     # roadmap only in program flow (CHARTER.md exists)
 status: active
@@ -96,3 +96,4 @@ it on completion. If this file and the artifacts disagree, the artifacts win
 - 2026-11-03 — plan — plan approved
 - 2026-11-03 — build — build started
 - 2026-11-03 — build — plan defect repaired in T001: Verify clause git ls-files 'docs/S0*' removed (index check cannot pass on an unstaged isolate); T001 isolate retired for a retry at a new base
+- 2026-11-03 — ship — build done; final review pending
