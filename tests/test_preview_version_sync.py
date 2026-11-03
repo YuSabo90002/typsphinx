@@ -15,11 +15,12 @@ instead of pinning versions themselves. This module asserts:
   `render_default_deps()` and imports each `DEFAULT_PACKAGES` entry once,
   in order.
 
-The bundled `examples/` templates are a further surface. When an example
-pins one of the five, a stale pin makes the shipped sample fail to compile
-outright (`codly-languages` older than 0.1.10 aborts with
-`unknown variable: kai`), so `test_example_templates_match_canonical_versions`
-compares example pins against `DEFAULT_PACKAGES`.
+The repository's own templates and samples are a further surface (SC5):
+`test_repo_templates_pin_none_of_the_five` asserts that no file under
+`docs/source/_typst/`, `examples/`,
+`tests/fixtures/admonition_greyscale_probe/_templates/`, or
+`tests/fixtures/typst_lang_gate/` names a five-package spec -- they take
+package names from `/_typsphinx/deps.typ` instead of pinning versions.
 """
 
 import re
@@ -42,7 +43,14 @@ WRITER_PATH = PACKAGE_DIR / "writer.py"
 TEMPLATE_ENGINE_PATH = PACKAGE_DIR / "template_engine.py"
 BASE_TYP_PATH = PACKAGE_DIR / "templates" / "base.typ"
 
-EXAMPLES_DIR = REPO_ROOT / "examples"
+# SC5: the repository-owned template and sample trees that must pin none
+# of the five packages.
+NO_PIN_DIRS = (
+    REPO_ROOT / "docs" / "source" / "_typst",
+    REPO_ROOT / "examples",
+    REPO_ROOT / "tests" / "fixtures" / "admonition_greyscale_probe" / "_templates",
+    REPO_ROOT / "tests" / "fixtures" / "typst_lang_gate",
+)
 BASIC_ROOT = Path(__file__).parent / "roots" / "test-basic"
 
 # The same pattern as SC1's grep: any mention of one of the five specs.
@@ -50,19 +58,6 @@ _FIVE_SPEC_RE = re.compile(
     r"@preview/(codly|codly-languages|mitex|gentle-clues|diagraph):"
 )
 _CODLY_INIT_RE = re.compile(r"codly-init|codly\(languages")
-
-# Matches an actual Typst `#import "@preview/<name>:<version>"` statement.
-_PREVIEW_IMPORT_RE = re.compile(
-    r'#import\s+"@preview/(?P<name>[A-Za-z0-9_-]+):(?P<version>\d+\.\d+\.\d+)"'
-)
-
-
-def _extract_preview_versions(path):
-    """Map package name to version for every `#import "@preview/..."` line."""
-    versions = {}
-    for match in _PREVIEW_IMPORT_RE.finditer(path.read_text()):
-        versions[match.group("name")] = match.group("version")
-    return versions
 
 
 def test_five_specs_appear_only_in_typst_deps_module():
@@ -128,27 +123,48 @@ def test_built_deps_typ_equals_module_definitions(tmp_path):
     ]
 
 
-def test_example_templates_match_canonical_versions():
-    """Bundled `examples/` .typ templates must not pin a stale version.
-
-    For each of the five default packages an example pins, the version must
-    equal the one in `DEFAULT_PACKAGES`. Other packages are ignored.
-    """
-    canonical = {package.name: package.version for package in DEFAULT_PACKAGES}
-
-    stale = []
-    for typ_path in sorted(EXAMPLES_DIR.rglob("*.typ")):
-        for package, version in _extract_preview_versions(typ_path).items():
-            if package not in canonical:
+def _no_pin_violations(roots):
+    """`path:line` for every five-package spec under `roots` (grep -rnE)."""
+    hits = []
+    for root in roots:
+        for path in sorted(p for p in root.rglob("*") if p.is_file()):
+            try:
+                text = path.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
                 continue
-            if version != canonical[package]:
-                stale.append(
-                    f"{typ_path.relative_to(REPO_ROOT)}: {package} pins "
-                    f"{version}, DEFAULT_PACKAGES has {canonical[package]}"
-                )
+            for lineno, line in enumerate(text.splitlines(), start=1):
+                if _FIVE_SPEC_RE.search(line):
+                    shown = (
+                        path.relative_to(REPO_ROOT)
+                        if path.is_relative_to(REPO_ROOT)
+                        else path
+                    )
+                    hits.append(f"{shown}:{lineno}")
+    return hits
 
-    assert not stale, (
-        "bundled example template(s) pin @preview versions that diverge from "
-        "typsphinx/typst_deps.py -- a shipped sample that cannot compile: "
-        + "; ".join(stale)
+
+def test_repo_templates_pin_none_of_the_five():
+    """SC5: the repository's own templates and samples pin none of the five.
+
+    Equivalent of `grep -rnE '@preview/(codly|...):'` over `NO_PIN_DIRS`;
+    template authors take these names from `/_typsphinx/deps.typ` instead.
+    """
+    for root in NO_PIN_DIRS:
+        assert root.is_dir(), root
+    hits = _no_pin_violations(NO_PIN_DIRS)
+    assert not hits, (
+        "repository template(s)/sample(s) pin a five-package @preview spec; "
+        "import names from /_typsphinx/deps.typ instead: " + "; ".join(hits)
     )
+
+
+def test_no_pin_check_catches_a_reintroduced_pin(tmp_path):
+    """SC5: the no-pin scan flags a pinned import, so the gate can fail."""
+    (tmp_path / "t.typ").write_text(
+        '#import "@preview/gentle-clues:1.3.1": *\n', encoding="utf-8"
+    )
+    (tmp_path / "ok.typ").write_text(
+        '#import "/_typsphinx/deps.typ": *\n', encoding="utf-8"
+    )
+    hits = _no_pin_violations([tmp_path])
+    assert len(hits) == 1 and hits[0].endswith("t.typ:1"), hits

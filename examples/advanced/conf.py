@@ -89,10 +89,9 @@ typst_template = "_typst/custom.typ"
 # Auto-detected if not specified
 # typst_template_function = 'project'
 
-# Typst Universe packages (optional)
-# Import packages from Typst Universe
-# Example: Import codly for enhanced code highlighting
-# typst_package_imports = [
-#     '#import "@preview/codly:1.3.0": *',
-#     '#import "@preview/gentle-clues:1.3.1": *',
-# ]
+# Typst Universe template package (optional)
+# Use a template published on Typst Universe instead of typst_template;
+# typst_package_imports lists the names to import from it.
+# (codly, mitex, gentle-clues, ... come from /_typsphinx/deps.typ.)
+# typst_package = '@preview/charged-ieee:0.1.4'
+# typst_package_imports = ['ieee']

@@ -3,9 +3,9 @@ id: T004
 title: Remove the five-package pins and top-level codly init from the repository's own templates and samples
 wave: 2
 deps: [T001]
-status: pending
-agent: null
-base: null
+status: done
+agent: build_T004
+base: 99b32c62d2369f3ced4ec6b270a4904502e51939
 worktree: null
 task_branch: null
 files:
@@ -61,3 +61,39 @@ Heavy: yes
 ## Log
 
 - 2026-11-03 — created by planner
+- 2026-11-03 — build_T004: removed the four `@preview/<five>` pins and the top-level `codly-init` / `codly(languages:` lines from the five templates, replacing them with `#import "/_typsphinx/deps.typ": *` (mirrors bundled base.typ; srcdir-shadow fixture keeps its CONF-12/D-I header and `lang` signature); rewrote the stale lockstep comment in examples/advanced/_typst/custom.typ; rewrote the commented `typst_package_imports` sample in examples/advanced/conf.py and README.md to a pin-free item-name use with `typst_package`; in tests/test_preview_version_sync.py replaced `test_example_templates_match_canonical_versions` (and its now-unused helper/regex) with `test_repo_templates_pin_none_of_the_five` over the four directories plus `test_no_pin_check_catches_a_reintroduced_pin`; SC1 tests unchanged. tests/test_typst_lang_gate.py and tests/test_admonition_greyscale_pipeline.py needed no change. Verify: pass (both greps empty; pytest 29 passed; examples/basic, examples/advanced, docs/source typstpdf PDFs produced). black/ruff clean on changed .py.
+- 2026-11-03 — orchestrator Verify (sidecar gsd-path-verify/task-t004-verify): pass, exit 0; output tail:
+  ```
+   + sphinxcontrib-applehelp==2.0.0
+   + sphinxcontrib-bibtex==2.7.0
+   + sphinxcontrib-devhelp==2.0.0
+   + sphinxcontrib-htmlhelp==2.1.0
+   + sphinxcontrib-jsmath==1.0.1
+   + sphinxcontrib-qthelp==2.0.0
+   + sphinxcontrib-serializinghtml==2.0.0
+   + tomli-w==1.2.0
+   + tox==4.64.10
+   + tox-uv==1.37.2
+   + tox-uv-bare==1.37.2
+   + twine==7.0.0
+   + types-docutils==0.23.0.20260923
+   + typing-extensions==4.16.0
+   + typsphinx==0.9.8 (from file:///home/yuta/.gsd-path/projects/4018706f853274cd7713143cf7ba094e230867e5ad2bfc5891d0cd69027eb98b/4b529697c911aff5766d6b9c03f122ba2ed9565d87a00e2f51ea62f3fd0642ec/verify/task-t004-verify)
+   + typst==0.15.0
+   + urllib3==2.7.0
+   + uv==0.13.6
+   + virtualenv==21.5.1
+  WARNING: html_static_path entry '_static' does not exist
+  ```
+- 2026-11-03 — orchestrator regression Verify of T001 (sidecar gsd-path-verify/task-t004-verify): pass, exit 0; output tail:
+  ```
+  ........................................................................ [ 25%]
+  ........................................................................ [ 51%]
+  ........................................................................ [ 77%]
+  ..............................................................           [100%]
+  278 passed in 18.86s
+  /tmp/tmp.30VKJpBaZ6/docs/typsphinx.pdf
+  Resolved 95 packages in 0.55ms
+  Checked 94 packages in 0.48ms
+  WARNING: html_static_path entry '_static' does not exist
+  ```
