@@ -2,14 +2,14 @@
 pipeline: gsd-path/v2
 project: typsphinx
 milestone: windows-test-portability
-phase: ship
+phase: shipped
                     # inspect only for brownfield; greenfield starts at define
                     # roadmap only in program flow (CHARTER.md exists)
-status: active
+status: done
 branch: gsd-path/M003
                     # the router rebinds before any next-milestone file change
                     # the bound branch is never main; ship integrates it there
-archive: null
+archive: .project/archive/003-windows-test-portability
 integration_default: pull-request
 integration: pull-request
 integration_source: default
@@ -72,3 +72,5 @@ it on completion. If this file and the artifacts disagree, the artifacts win
 - 2026-11-03 — build — build started
 - 2026-11-03 — build — Constraint observation: ci.yml run 41592991566 on temp branch ci-probe/m003-windows at 9a1dc595 succeeded, including Test Python 3.12/3.13 on windows-latest; temp branch deleted
 - 2026-11-03 — ship — build done; final review pending
+- 2026-11-03 — ship — final gate passed; shipping approval pending
+- 2026-11-03 — shipped — archive preflight passed; shipment recorded
