@@ -185,9 +185,9 @@ Not run: alignment mode is false for this inspection.
 
 | Queue # | Ruling | User's words | Planned |
 |---------|--------|--------------|---------|
-| 1 | fix-code | "Q2 a" | no |
-| 2 | fix-doc | "Q3 a" | no |
-| 3 | fix-doc | "Q3 a" | no |
+| 1 | fix-code | "Q2 a" | T002 |
+| 2 | fix-doc | "Q3 a" | T002 |
+| 3 | fix-doc | "Q3 a" | T001 |
 
 ## Remediation queue
 
