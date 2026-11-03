@@ -1,15 +1,15 @@
 ---
 pipeline: gsd-path/v2
 project: typsphinx
-milestone: release-0-10-0
-phase: shipped
+milestone: release-notes-py314
+phase: plan
                     # inspect only for brownfield; greenfield starts at define
                     # roadmap only in program flow (CHARTER.md exists)
 status: done
-branch: gsd-path/M006
+branch: gsd-path/M007
                     # the router rebinds before any next-milestone file change
                     # the bound branch is never main; ship integrates it there
-archive: .project/archive/006-release-0-10-0
+archive: null
 integration_default: pull-request
 integration: pull-request
 integration_source: default
@@ -111,3 +111,9 @@ it on completion. If this file and the artifacts disagree, the artifacts win
 - 2026-11-03 — ship — final gate passed; shipping approval pending
 - 2026-11-03 — ship — shipping approved by user: "1" (ship now; v0.10.0 tag deferred until a follow-up milestone adds the Python 3.14 release-note line)
 - 2026-11-03 — shipped — archive preflight passed; shipment recorded
+- 2026-11-03 — inspect — next milestone bound: gsd-path/M007 at base 6defa41d1bf9815083d5567c0dd9a4c7f7df4ca1; previous M006 ship 7659a097bd513952a6592d62cf57b1d4095be25d archive .project/archive/006-release-0-10-0 integrated via PR #192 landing 6defa41d1bf9815083d5567c0dd9a4c7f7df4ca1; v0.10.0 tag deferred until the follow-up release-note fix lands
+- 2026-11-03 — inspect — inspection artifacts passed
+- 2026-11-03 — define — definition started
+- 2026-11-03 — define — milestone intent approved
+- 2026-11-03 — plan — planning started
+- 2026-11-03 — plan — plan approved
