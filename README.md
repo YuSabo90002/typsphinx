@@ -23,7 +23,7 @@ typsphinx is a Sphinx extension that enables generating Typst documents from reS
   - LaTeX syntax via mitex (`@preview/mitex:0.2.7`)
   - Native Typst math syntax
 - **Code blocks with syntax highlighting**: Using codly package (`@preview/codly:2.0.0`)
-  - Automatic line numbering
+  - Line numbers for code blocks with `:linenos:`
   - Syntax highlighting for multiple languages
   - Highlight specific lines
 - **Images and figures**: Embed images with captions and references

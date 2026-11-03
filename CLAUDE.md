@@ -25,8 +25,8 @@ black --check .              # black --check . (CI); drop --check to format
 ruff check .
 mypy typsphinx/
 
-# Everything, matrixed across py312–py313
-tox                          # env_list: py312, py313, lint, type, cov, docs
+# Everything, matrixed across py312–py314
+tox                          # env_list: py312, py313, py314, lint, type, cov, docs
 
 # Build the project's own docs (from docs/)
 tox -e docs-html             # HTML via furo
@@ -59,6 +59,12 @@ The pipeline follows Sphinx's standard builder → writer → translator layerin
 
 - **`typst_deps.py`** — leaf module and the single source of the five `@preview` package specs (`DEFAULT_PACKAGES`), the default `deps.typ` text (`render_default_deps()`), the preamble (`deps_preamble_lines()`), and the comment-stripping pin scanner the drift warning uses.
 
+- **`template_registry.py`** — resolves the `typst_document_templates` config dict into registry key → `TemplateRegistryEntry` (`resolve_template_registry()`), synthesizing the built-in `"typst"` key from the global `typst_template` / `typst_package` / `typst_template_function` values so an untouched `conf.py` builds byte-identically. It validates every declared key up front (single path segment, no Windows reserved names, no case collisions, and a template whose parent directory is not srcdir or an ancestor of it, so the bundle copy never copies the source tree), and `resolve_registry_key()` maps a `typst_documents` entry's optional fifth element to its entry (absent = `"typst"`).
+
+- **`removed_config.py`** — `check_config_at_init()`, connected to `config-inited` in `setup()`, reads the raw `conf.py` namespace and warns once, by name, for each removed config value still set (`typst_template_assets`, `typst_authors`, `typst_toctree_defaults`, `typst_debug`), since Sphinx gives no diagnostic for names an extension no longer registers.
+
+- **`pathfmt.py`** — leaf module with zero `typsphinx`-internal imports holding `quote_path()`, the delimiter-aware path-quoting helper used in warning/error messages by `builder.py`, `writer.py`, `translator.py` and `template_registry.py` (it is a separate leaf to avoid an import cycle among them).
+
 - **`pdf.py`** — thin wrapper over `typst-py`: `check_typst_available()`, `get_typst_version()`, and compilation raising `TypstCompilationError` with the underlying typst error attached.
 
 ### The `@preview` version-sync hazard
@@ -71,7 +77,7 @@ User-facing config values (all registered in `__init__.py`, prefix `typst_`) inc
 
 ## Tests
 
-`sphinx.testing.fixtures` is loaded as a pytest plugin. `tests/roots/` holds Sphinx test projects (e.g. `test-basic`) used by integration tests via the `rootdir` fixture; `conftest.py` also provides `sample_doctree` and `temp_sphinx_app` fixtures. Test categories span unit (translator, template engine), integration (multi-doc, nested toctree, PDF generation), config coverage, math (mitex/native/fallback), and documentation-example verification.
+Most tests are subprocess gates: a `tests/test_*_gate.py` file builds a small Sphinx project under `tests/fixtures/` by running `sys.executable -m sphinx` in a subprocess (into a temporary output directory) and asserts on the emitted `.typ`/PDF output and warnings. Follow that convention for new integration tests. `sphinx.testing.fixtures` is also loaded as a pytest plugin, but `tests/roots/` holds only `test-basic`, used by the few tests that take the `rootdir` fixture; `conftest.py` also provides `sample_doctree` and `temp_sphinx_app` fixtures. Test categories span unit (translator, template engine), integration (multi-doc, nested toctree, PDF generation), config coverage, math (mitex/native/fallback), and documentation-example verification.
 
 ## Conventions & gotchas
 
@@ -79,7 +85,7 @@ User-facing config values (all registered in `__init__.py`, prefix `typst_`) inc
 - Line length 88 (black); `E501` is ignored in ruff since black owns wrapping.
 - `tox.ini` pins `tox-uv~=1.35` (not `>=1.35,<2`) — see the comment in that file; tox's ini parser splits a single-line `requires` on commas, so `>=1.35,<2` breaks tox's startup and `~=1.35` is the comma-free equivalent. The pin was earlier `tox-uv-bare` (QUA-04, Phase 45.2) only because the `uv` bundled with `tox-uv` could not exec on NixOS; the NixOS FHS shims now handle that, which is why plain `tox-uv` is correct again.
 - **Toolchain-pin sync hazard, same shape as the `@preview` one above.** The `tox-uv` (vs. `tox-uv-bare`) rationale is restated in multiple places that must move together whenever this pin is ever revisited: `pyproject.toml`'s `dev` extra (the actual pin), `tox.ini`'s `requires` line and its comment, `flake.nix`'s header/`uvShim` comments, this file's two mentions, and `tests/test_toolchain_config_gate.py`'s `test_dev_extra_pins_tox_uv_not_tox_uv_bare` docstring (the gate that enforces the pin). Update all of them in the same commit — this drifted out of sync once already (Phase 65 → Phase 68).
-- CI (`.github/workflows/ci.yml`) runs the py312–py313 + lint + type + cov matrix. A weekly `drift.yml` re-resolves latest allowed deps and files an issue on breakage. `release.yml` publishes to PyPI.
+- CI (`.github/workflows/ci.yml`) runs the test job on an ubuntu/windows/macos × py312/py313/py314 matrix, plus lint, type and cov jobs. A weekly `drift.yml` re-resolves latest allowed deps and files an issue on breakage. `release.yml` publishes to PyPI.
 
 ### NixOS development shell
 

@@ -1,0 +1,56 @@
+{
+  "canonical_project_dir": ".project",
+  "command": "verify-landed",
+  "head": "f1ab6935f7c4fd63f7938a7b45916c1c52a6bee5",
+  "project_dir": ".project",
+  "tasks": [
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M005",
+        "candidates": [
+          {
+            "base": "5aee2fb977eec2376e4f7bfed01492c6cd6dd4f5",
+            "commit": "c03f3168fdae3232e013d668c184aa47827fedfd",
+            "valid": true
+          }
+        ],
+        "head": "f1ab6935f7c4fd63f7938a7b45916c1c52a6bee5",
+        "subject": "T001: Update CLAUDE.md to match the code, retire the docs/S0x evidence files and their gate checks, and fix three stale doc claims"
+      },
+      "landed_commit": "c03f3168fdae3232e013d668c184aa47827fedfd",
+      "reasons": [],
+      "task": {
+        "base": "5aee2fb977eec2376e4f7bfed01492c6cd6dd4f5",
+        "id": "T001",
+        "status": "done",
+        "task_file": ".project/tasks/T001-claude-md-evidence-files-and-doc-fixes.md"
+      }
+    },
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M005",
+        "candidates": [
+          {
+            "base": "b20a0dc545d698e67ae2cd23aead7794e5476578",
+            "commit": "5aee2fb977eec2376e4f7bfed01492c6cd6dd4f5",
+            "valid": true
+          }
+        ],
+        "head": "f1ab6935f7c4fd63f7938a7b45916c1c52a6bee5",
+        "subject": "T002: Declare Python 3.14 in classifiers, black, the CI test matrix and tox, and prove tox -e py314 and the full suite pass"
+      },
+      "landed_commit": "5aee2fb977eec2376e4f7bfed01492c6cd6dd4f5",
+      "reasons": [],
+      "task": {
+        "base": "b20a0dc545d698e67ae2cd23aead7794e5476578",
+        "id": "T002",
+        "status": "done",
+        "task_file": ".project/tasks/T002-declare-and-test-python-3-14.md"
+      }
+    }
+  ]
+}

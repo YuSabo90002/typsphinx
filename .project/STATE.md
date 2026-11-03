@@ -1,15 +1,15 @@
 ---
 pipeline: gsd-path/v2
 project: typsphinx
-milestone: codly-2-upgrade
+milestone: housekeeping-py314
 phase: shipped
                     # inspect only for brownfield; greenfield starts at define
                     # roadmap only in program flow (CHARTER.md exists)
 status: done
-branch: gsd-path/M004
+branch: gsd-path/M005
                     # the router rebinds before any next-milestone file change
                     # the bound branch is never main; ship integrates it there
-archive: .project/archive/004-codly-2-upgrade
+archive: .project/archive/005-housekeeping-py314
 integration_default: pull-request
 integration: pull-request
 integration_source: default
@@ -89,4 +89,14 @@ it on completion. If this file and the artifacts disagree, the artifacts win
 - 2026-11-03 — ship — build done; final review pending
 - 2026-11-03 — ship — final gate passed; shipping approval pending
 - 2026-11-03 — ship — shipping approved by user: "2" (archive and ship now; CI checked on the PR)
+- 2026-11-03 — shipped — archive preflight passed; shipment recorded
+- 2026-11-03 — define — next milestone bound: gsd-path/M005 at base 660e3436274607e52981b849ef77701edfe9cad9; previous M004 ship f34a9f9d7efd7265d1698dc73d13eaf34e74baf2 archive .project/archive/004-codly-2-upgrade integrated via PR #190 landing 660e3436274607e52981b849ef77701edfe9cad9; inspect at 660e3436 completed (evidence-codebase.md, DOCS-AUDIT.md kept); milestone test-suite-dedup was defined and researched, then discarded on owner ruling "3" then "1" (Q4 a/b inventory saved ~5 s of 214 s); its uncommitted intent and research were removed and state reset to define/active from the committed shipped state because research/done has no legal edge back to define
+- 2026-11-03 — define — milestone intent approved
+- 2026-11-03 — plan — planning started
+- 2026-11-03 — plan — plan approved
+- 2026-11-03 — build — build started
+- 2026-11-03 — build — plan defect repaired in T001: Verify clause git ls-files 'docs/S0*' removed (index check cannot pass on an unstaged isolate); T001 isolate retired for a retry at a new base
+- 2026-11-03 — ship — build done; final review pending
+- 2026-11-03 — ship — final gate passed; shipping approval pending
+- 2026-11-03 — ship — shipping approved by user: "1" (archive and ship)
 - 2026-11-03 — shipped — archive preflight passed; shipment recorded
