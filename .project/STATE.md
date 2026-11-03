@@ -2,7 +2,7 @@
 pipeline: gsd-path/v2
 project: typsphinx
 milestone: codly-2-upgrade
-phase: build
+phase: ship
                     # inspect only for brownfield; greenfield starts at define
                     # roadmap only in program flow (CHARTER.md exists)
 status: active
@@ -86,3 +86,4 @@ it on completion. If this file and the artifacts disagree, the artifacts win
 - 2026-11-03 — plan — plan approved
 - 2026-11-03 — build — build started
 - 2026-11-03 — build — plan defect repaired in T001: files += tests/test_deps_output_gate.py, tests/test_integration_basic.py (NEEDS-ORCHESTRATOR answer a); Verify grep pattern rewritten to avoid closing its code fence; T001 returned to pending for serial redispatch
+- 2026-11-03 — ship — build done; final review pending
