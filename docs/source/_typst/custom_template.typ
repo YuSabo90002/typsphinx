@@ -36,18 +36,11 @@
 // for the English documentation and for every non-CJK character in the
 // Japanese documentation.
 
-#import "@preview/codly:1.3.0": *
-#import "@preview/codly-languages:0.1.10": *
-
-#import "@preview/mitex:0.2.7": *
-
-#import "@preview/gentle-clues:1.3.1": *
-
-// Initialize codly
-#show: codly-init.with()
-
-// Configure codly with codly-languages for comprehensive language support
-#codly(languages: codly-languages)
+// Typst Universe packages (codly, codly-languages, mitex, gentle-clues,
+// diagraph) come from the build's generated /_typsphinx/deps.typ -- the one
+// place their versions are pinned. Do not pin versions here. The wrapper
+// applies the typsphinx-init show rule (codly setup) itself.
+#import "/_typsphinx/deps.typ": *
 
 // FID-13: distinguish external hyperlinks with color + underline (D-01).
 // Scoped to external URLs only -- `it.dest` is a `str` for an external

@@ -1,13 +1,5 @@
-// Essential imports for included document
-#import "@preview/codly:1.3.0": *
-#import "@preview/codly-languages:0.1.10": *
-#import "@preview/mitex:0.2.7": mi, mitex
-#import "@preview/gentle-clues:1.3.1": *
-#import "@preview/diagraph:0.3.7": render
-
-// Initialize codly
-#show: codly-init.with()
-#codly(languages: codly-languages)
+#import "/_typsphinx/deps.typ": *
+#show: typsphinx-init
 
 #{
 [#metadata(none) <pass_e_image_with_propagated_target_id:__tsx-doc__>]

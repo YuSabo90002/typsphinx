@@ -324,7 +324,7 @@ class TestNonCollidingShapesControlGate:
             f"output:\n{combined_output}"
         )
         survivors = sorted(p.name for p in _typ_files(build_dir))
-        expected = sorted(["custom.typ", "index.typ", "index_out.typ"])
+        expected = sorted(["custom.typ", "deps.typ", "index.typ", "index_out.typ"])
         assert survivors == expected, f"Expected exactly {expected}, found {survivors}"
 
     def test_absent_templates_path_does_not_refuse(self, tmp_path):
@@ -345,7 +345,7 @@ class TestNonCollidingShapesControlGate:
             f"control's output:\n{combined_output}"
         )
         survivors = sorted(p.name for p in _typ_files(build_dir))
-        expected = sorted(["custom.typ", "index.typ", "index_out.typ"])
+        expected = sorted(["custom.typ", "deps.typ", "index.typ", "index_out.typ"])
         assert survivors == expected, f"Expected exactly {expected}, found {survivors}"
 
     def test_no_typst_template_configured_does_not_refuse(self, tmp_path):
@@ -368,7 +368,7 @@ class TestNonCollidingShapesControlGate:
             f"control's output:\n{combined_output}"
         )
         survivors = sorted(p.name for p in _typ_files(build_dir))
-        expected = sorted(["base.typ", "index.typ", "index_out.typ"])
+        expected = sorted(["base.typ", "deps.typ", "index.typ", "index_out.typ"])
         assert survivors == expected, f"Expected exactly {expected}, found {survivors}"
 
 

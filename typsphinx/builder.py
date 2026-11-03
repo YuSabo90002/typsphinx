@@ -10,6 +10,7 @@ import posixpath
 import shutil
 from collections.abc import Iterator
 from os import path
+from pathlib import Path
 from typing import Any
 
 from docutils import nodes
@@ -27,6 +28,14 @@ from typsphinx.template_registry import (
     resolve_template_registry,
 )
 from typsphinx.translator import derive_master_edge_keys
+from typsphinx.typst_deps import (
+    DEFAULT_PACKAGES,
+    DEPS_FILENAME,
+    DEPS_OUTPUT_DIR,
+    extract_preview_versions,
+    render_default_deps,
+    version_sort_key,
+)
 from typsphinx.writer import TEMPLATE_OUTPUT_DIR, TypstWriter
 
 logger = logging.getLogger(__name__)
@@ -1065,6 +1074,39 @@ class TypstBuilder(Builder):
         first_segment = folded.split("/", 1)[0]
         return first_segment == reserved
 
+    @staticmethod
+    def _reserved_output_dir(relative_path: str) -> tuple[str, str] | None:
+        """Which reserved builder-owned output directory, if any,
+        ``relative_path``'s FIRST output-path segment folds to (OUT-07).
+
+        Two top-level directories are written by ``finish()`` and so may
+        never hold a content or wrapper file: ``TEMPLATE_OUTPUT_DIR``
+        (template bundles, ``_reserves_template_prefix()``) and
+        ``DEPS_OUTPUT_DIR`` (the generated ``deps.typ``). Folding goes
+        through ``_collision_key()`` exactly as
+        ``_reserves_template_prefix()`` does.
+
+        Args:
+            relative_path: An outdir-relative output path.
+
+        Returns:
+            ``(directory, purpose)`` for the matching reserved directory,
+            or ``None`` when the first segment is not reserved.
+
+        Examples:
+            >>> TypstBuilder._reserved_output_dir("_Typsphinx/x.typ")[0]
+            '_typsphinx'
+            >>> TypstBuilder._reserved_output_dir("_typsphinxes/x.typ") is None
+            True
+        """
+        if TypstBuilder._reserves_template_prefix(relative_path):
+            return (TEMPLATE_OUTPUT_DIR, "template bundles")
+        folded = TypstBuilder._collision_key(relative_path)
+        first_segment = folded.split("/", 1)[0]
+        if first_segment == TypstBuilder._collision_key(DEPS_OUTPUT_DIR):
+            return (DEPS_OUTPUT_DIR, "the generated Typst dependencies file")
+        return None
+
     def _validate_output_path_collisions(self) -> None:
         """Validate that no two logical output files -- a docname's
         content file, or a ``typst_documents`` entry's wrapper file --
@@ -1158,15 +1200,17 @@ class TypstBuilder(Builder):
         for docname in found_docs:
             content_relpath = docname + ".typ"
             _claim(content_relpath, f"the content file for docname {docname!r}")
-            if self._reserves_template_prefix(content_relpath):
+            reservation = self._reserved_output_dir(content_relpath)
+            if reservation is not None:
+                reserved_dir, purpose = reservation
                 failures.append(
                     (
                         content_relpath,
                         f"the content file for docname {docname!r} would "
                         f"be written to {quote_path(content_relpath)}, "
                         f"whose first path segment is "
-                        f"{quote_path(TEMPLATE_OUTPUT_DIR)} -- that "
-                        "directory is reserved for template bundles",
+                        f"{quote_path(reserved_dir)} -- that "
+                        f"directory is reserved for {purpose}",
                     )
                 )
 
@@ -1213,7 +1257,9 @@ class TypstBuilder(Builder):
                 f"typst_documents entry {index} (docname {docname!r}, "
                 f"target {target_text})",
             )
-            if self._reserves_template_prefix(wrapper_relpath):
+            reservation = self._reserved_output_dir(wrapper_relpath)
+            if reservation is not None:
+                reserved_dir, purpose = reservation
                 failures.append(
                     (
                         wrapper_relpath,
@@ -1221,8 +1267,8 @@ class TypstBuilder(Builder):
                         f"{docname!r}, target {target_text}) would write "
                         f"its wrapper to {quote_path(wrapper_relpath)}, "
                         f"whose first path segment is "
-                        f"{quote_path(TEMPLATE_OUTPUT_DIR)} -- that "
-                        "directory is reserved for template bundles",
+                        f"{quote_path(reserved_dir)} -- that "
+                        f"directory is reserved for {purpose}",
                     )
                 )
 
@@ -1717,6 +1763,10 @@ class TypstBuilder(Builder):
         # templates_path directory into build output.
         self._validate_used_template_paths()
 
+        # Validate `typst_dependencies` before anything is written, so a bad
+        # value leaves ZERO ".typ" files on disk.
+        self._validate_typst_dependencies()
+
         logger.info("preparing documents... ", nonl=True)
         self.prepare_writing(docnames)
         logger.info("done")
@@ -2194,7 +2244,7 @@ class TypstBuilder(Builder):
 
     def _copy_bundle_directory(
         self, src_dir: str, dest_dir: str, key: str, template_filename: str
-    ) -> None:
+    ) -> list[str]:
         """Copy one registry key's resolved template bundle wholesale
         from ``src_dir`` to ``dest_dir`` (OUT-04) via ``os.walk()`` +
         ``shutil.copy2`` (D-02): no ``.typ`` skip (the template body
@@ -2224,6 +2274,12 @@ class TypstBuilder(Builder):
                 whose copy failure, or absence after the walk, is FATAL
                 rather than a warn-and-continue (D-05).
 
+        Returns:
+            The ``dest_dir``-relative POSIX path of every file actually
+            copied, in walk order -- the exact used-bundle set after
+            ``_is_excluded_bundle_entry()`` filtering, which
+            ``_warn_template_dependency_drift()`` scans.
+
         Raises:
             ExtensionError: When copying the resolved template file
                 itself fails, or when it was never found under
@@ -2232,6 +2288,7 @@ class TypstBuilder(Builder):
         """
         import os
 
+        copied: list[str] = []
         template_copied = False
         for root, dirs, files in os.walk(src_dir, followlinks=False):
             dirs[:] = [d for d in dirs if not _is_excluded_bundle_entry(d)]
@@ -2241,10 +2298,12 @@ class TypstBuilder(Builder):
                 src_file = path.join(root, file)
                 rel_path = path.relpath(src_file, src_dir)
                 dest_file = path.join(dest_dir, rel_path)
-                is_template_file = rel_path.replace(path.sep, "/") == template_filename
+                posix_rel_path = rel_path.replace(path.sep, "/")
+                is_template_file = posix_rel_path == template_filename
                 ensuredir(path.dirname(dest_file))
                 try:
                     shutil.copy2(src_file, dest_file)
+                    copied.append(posix_rel_path)
                     logger.debug(f"Copied bundle file for {key!r}: {rel_path}")
                     if is_template_file:
                         template_copied = True
@@ -2268,8 +2327,9 @@ class TypstBuilder(Builder):
                 f"{quote_path(dest_dir)} -- a wrapper naming this key "
                 "would import a file that does not exist"
             )
+        return copied
 
-    def _copy_used_template_bundles(self) -> None:
+    def _copy_used_template_bundles(self) -> list[str]:
         """Copy every USED registry key's resolved template bundle
         wholesale to ``<outdir>/_template/<key>/`` (OUT-04) -- the ONLY
         route from a template directory to the output tree. Called once
@@ -2324,6 +2384,12 @@ class TypstBuilder(Builder):
         any bundle is actually copied, so a collision leaves zero bundle
         files written for the colliding pair.
 
+        Returns:
+            The outdir-relative POSIX path
+            (``_template/<key>/<rel>``) of every bundle file copied, for
+            ``_warn_template_dependency_drift()``; empty when nothing was
+            copied.
+
         Raises:
             ExtensionError: On an A-01 violation (immediate, per key),
                 or once, aggregated, when two used keys collide on their
@@ -2338,7 +2404,7 @@ class TypstBuilder(Builder):
         # CONF-19's own `getattr(config, "_raw_config", {})` defensiveness
         # convention elsewhere in this codebase.
         if not getattr(self, "_used_template_keys", None):
-            return
+            return []
 
         import importlib.resources
 
@@ -2439,8 +2505,10 @@ class TypstBuilder(Builder):
                 f"destination collision(s): {summary}"
             )
 
+        copied: list[str] = []
         for key, resolution, dest_dir, template_filename in to_copy:
             ensuredir(dest_dir)
+            dest_prefix = posixpath.join(TEMPLATE_OUTPUT_DIR, key)
             if resolution.source == "default":
                 # The packaged default's bundle lives inside the
                 # installed package -- hold as_file()'s context open
@@ -2450,14 +2518,16 @@ class TypstBuilder(Builder):
                 with importlib.resources.as_file(
                     default_template_bundle_traversable()
                 ) as bundle_dir:
-                    self._copy_bundle_directory(
+                    rel_paths = self._copy_bundle_directory(
                         str(bundle_dir), dest_dir, key, template_filename
                     )
             else:
                 bundle_src = str(resolution.path.parent)
-                self._copy_bundle_directory(
+                rel_paths = self._copy_bundle_directory(
                     bundle_src, dest_dir, key, template_filename
                 )
+            copied.extend(posixpath.join(dest_prefix, rel) for rel in rel_paths)
+        return copied
 
     def finish(self) -> None:
         """
@@ -2475,8 +2545,154 @@ class TypstBuilder(Builder):
         ``_copy_used_template_bundles()`` itself, not a build-wide
         early return.
         """
+        self._write_dependencies_file()
         self.copy_image_files()
-        self._copy_used_template_bundles()
+        copied_bundle_files = self._copy_used_template_bundles()
+        self._warn_template_dependency_drift(copied_bundle_files)
+
+    def _warn_template_dependency_drift(self, copied_relpaths: list[str]) -> None:
+        """Warn when a copied template bundle file pins one of the five
+        default packages at a version the effective ``deps.typ`` lacks.
+
+        Typst has no version resolution: a template pinning another
+        version of one of the five packages loads it alongside the version
+        ``deps.typ`` imports, silently. This is a best-effort aid, never an
+        error -- the build always continues -- and no file is modified.
+
+        Scans exactly the ``.typ`` files ``_copy_used_template_bundles()``
+        copied, comment-stripped (``extract_preview_versions()``). The
+        effective versions are ``DEFAULT_PACKAGES`` when
+        ``typst_dependencies`` is ``None``, else the versions pinned in the
+        copied ``<outdir>/_typsphinx/deps.typ``. A package the effective
+        file has no version for is not compared. One warning per
+        mismatched (file, package), in ascending (relpath, package) order.
+
+        Args:
+            copied_relpaths: Outdir-relative POSIX paths of the copied
+                bundle files (``_template/<key>/<rel>``).
+        """
+        typ_relpaths = sorted(p for p in copied_relpaths if p.endswith(".typ"))
+        if not typ_relpaths:
+            return
+
+        effective: dict[str, set[str]]
+        if getattr(self.config, "typst_dependencies", None) is None:
+            effective = {p.name: {p.version} for p in DEFAULT_PACKAGES}
+        else:
+            deps_path = Path(self.outdir) / DEPS_OUTPUT_DIR / DEPS_FILENAME
+            effective = extract_preview_versions(
+                deps_path.read_bytes().decode("utf-8", errors="replace")
+            )
+
+        for relpath in typ_relpaths:
+            file_path = Path(self.outdir) / relpath
+            try:
+                text = file_path.read_bytes().decode("utf-8", errors="replace")
+            except OSError:
+                continue
+            pinned = extract_preview_versions(text)
+            for package in sorted(pinned):
+                deps_versions = effective.get(package)
+                if not deps_versions:
+                    continue
+                differing = sorted(
+                    pinned[package] - deps_versions, key=version_sort_key
+                )
+                if not differing:
+                    continue
+                template_versions = ", ".join(differing)
+                deps_version = ", ".join(sorted(deps_versions, key=version_sort_key))
+                logger.warning(
+                    f"template dependency drift: {quote_path(relpath)} pins "
+                    f"@preview/{package}:{template_versions}, but "
+                    f"_typsphinx/deps.typ has @preview/{package}:{deps_version}"
+                )
+
+    def _write_dependencies_file(self) -> None:
+        """Write ``<outdir>/_typsphinx/deps.typ`` -- the shared Typst
+        dependencies file every content file, wrapper, and the bundled
+        ``base.typ`` import by the root-absolute path
+        ``/_typsphinx/deps.typ``.
+
+        Runs first in ``finish()`` on EVERY build, regardless of which
+        docnames were written, so ``TypstPDFBuilder.finish()`` (which calls
+        ``super().finish()`` before compiling) always compiles against it.
+        Written as bytes so no newline translation happens and a rebuild
+        produces identical bytes. Tolerates a builder whose ``write()``
+        never ran: it needs only ``self.outdir``, ``self.srcdir`` and
+        ``self.config``. When ``typst_dependencies`` is set, that one file
+        is copied byte-identical instead; nothing else under
+        ``_typsphinx/`` is created or deleted.
+        """
+        # The effective dependencies file: the user's `typst_dependencies`
+        # file when set, else the generated default. Both modes write the
+        # same one path on every build, so switching modes between builds
+        # always leaves the newly effective file. Re-resolved (and
+        # re-checked) here because tests drive finish() without write().
+        user_deps = self._resolve_typst_dependencies()
+
+        deps_dir = Path(self.outdir) / DEPS_OUTPUT_DIR
+        deps_dir.mkdir(parents=True, exist_ok=True)
+        dest = deps_dir / DEPS_FILENAME
+        if user_deps is None:
+            dest.write_bytes(render_default_deps().encode("utf-8"))
+        else:
+            # Byte copy: no re-encoding, no newline change (N3).
+            shutil.copyfile(user_deps, dest)
+
+    def _resolve_typst_dependencies(self) -> str | None:
+        """Resolve ``typst_dependencies`` to the file it names.
+
+        Returns:
+            ``None`` when the value is ``None`` (generate the default
+            ``deps.typ``); otherwise the resolved path,
+            ``os.path.join(srcdir, value)`` (an absolute value passes
+            through), as ``typst_template`` is resolved.
+
+        Raises:
+            ExtensionError: The value is not a ``str`` (Sphinx only warns
+                on a type mismatch), is ``""``, or resolves to something
+                that is not an existing regular file. The message starts
+                with ``typst_dependencies:`` and names the configured value
+                and the resolved path through ``quote_path()``.
+        """
+        value = getattr(self.config, "typst_dependencies", None)
+        if value is None:
+            return None
+        if not isinstance(value, str):
+            raise ExtensionError(
+                "typst_dependencies: expected a file path (str) or None, "
+                f"got {type(value).__name__} {value!r}"
+            )
+        if value == "":
+            raise ExtensionError(
+                f"typst_dependencies: empty path {quote_path(value)} -- set "
+                "a file path, or None to use the generated default"
+            )
+        resolved = path.join(str(self.srcdir), value)
+        if not path.exists(resolved):
+            raise ExtensionError(
+                f"typst_dependencies: file not found: {quote_path(value)} "
+                f"(resolved to {quote_path(resolved)})"
+            )
+        if not path.isfile(resolved):
+            raise ExtensionError(
+                f"typst_dependencies: not a regular file: {quote_path(value)} "
+                f"(resolved to {quote_path(resolved)})"
+            )
+        return resolved
+
+    def _validate_typst_dependencies(self) -> None:
+        """Refuse a bad ``typst_dependencies`` value pre-write.
+
+        Called from ``write()`` next to this class's other pre-write
+        validators, so a refusal leaves zero ``.typ`` files on disk. The
+        user's file is only located, never parsed or validated (N3).
+
+        Raises:
+            ExtensionError: See ``_resolve_typst_dependencies()``.
+        """
+        self._resolve_typst_dependencies()
 
 
 class TypstPDFBuilder(TypstBuilder):

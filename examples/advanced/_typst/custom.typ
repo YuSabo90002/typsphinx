@@ -4,19 +4,12 @@
 // To use this template, uncomment the following line in conf.py:
 //   typst_template = '_typst/custom.typ'
 
-// Import required packages
-// Keep these versions in lockstep with typsphinx's own bundled template
-// (typsphinx/templates/base.typ) — tests/test_preview_version_sync.py
-// enforces it, because a stale pin here fails to compile at all (an old
-// codly-languages aborts with `unknown variable: kai`).
-#import "@preview/codly:1.3.0": *
-#import "@preview/codly-languages:0.1.10": *
-#import "@preview/mitex:0.2.7": *
-#import "@preview/gentle-clues:1.3.1": *
-
-// Initialize codly for code highlighting
-#show: codly-init.with()
-#codly(languages: codly-languages)
+// Typst Universe packages (codly, codly-languages, mitex, gentle-clues,
+// diagraph): take their names from the build's generated
+// /_typsphinx/deps.typ instead of pinning versions here -- that file is the
+// one place typsphinx pins them. The wrapper applies the typsphinx-init show
+// rule (codly setup) itself, so this template does not.
+#import "/_typsphinx/deps.typ": *
 
 // Custom styling
 #let primary-color = rgb(0, 102, 204)

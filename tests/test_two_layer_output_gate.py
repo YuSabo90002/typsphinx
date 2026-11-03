@@ -84,7 +84,7 @@ class TestTwoLayerOutputGate:
         ``index.typ``, carry NO template application (no
         ``#show: project.with(``, no bundled-template import under
         ``/_template/``) and NO title-page framing, only the D-06
-        preamble (four ``@preview`` imports plus codly init) and the
+        preamble (the shared ``deps.typ`` import plus ``typsphinx-init``) and the
         translated body.
 
         Pre-fix: no ``index.typ`` file exists at all -- the unfixed tree
@@ -115,18 +115,13 @@ class TestTwoLayerOutputGate:
         assert (
             "/_template/" not in content
         ), f"Expected NO bundled-template import in the content file:\n{content}"
+        content_lines = content.splitlines()
         assert (
-            '#import "@preview/codly:1.3.0": *' in content
-        ), f"Expected the D-06 codly import in the content file:\n{content}"
-        assert '#import "@preview/codly-languages:0.1.10": *' in content, (
-            f"Expected the D-06 codly-languages import in the content file:\n"
+            '#import "/_typsphinx/deps.typ": *' in content_lines
+        ), f"Expected the D-06 deps.typ import in the content file:\n{content}"
+        assert "#show: typsphinx-init" in content_lines, (
+            f"Expected the D-06 typsphinx-init show rule in the content file:\n"
             f"{content}"
-        )
-        assert (
-            '#import "@preview/mitex:0.2.7": mi, mitex' in content
-        ), f"Expected the D-06 mitex import in the content file:\n{content}"
-        assert '#import "@preview/gentle-clues:1.3.1": *' in content, (
-            f"Expected the D-06 gentle-clues import in the content file:\n" f"{content}"
         )
         assert (
             "ROOT-BODY-MARKER-AAA" in content

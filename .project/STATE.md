@@ -1,15 +1,15 @@
 ---
 pipeline: gsd-path/v2
 project: typsphinx
-milestone: release-0-9-8
+milestone: externalize-typst-deps
 phase: shipped
                     # inspect only for brownfield; greenfield starts at define
                     # roadmap only in program flow (CHARTER.md exists)
 status: done
-branch: gsd-path/M001
+branch: gsd-path/M002
                     # the router rebinds before any next-milestone file change
                     # the bound branch is never main; ship integrates it there
-archive: .project/archive/001-release-0-9-8
+archive: .project/archive/002-externalize-typst-deps
 integration_default: pull-request
 integration: pull-request
 integration_source: default
@@ -46,5 +46,20 @@ it on completion. If this file and the artifacts disagree, the artifacts win
 - 2026-11-03 — build — wave 2 review cycle 1 passed
 - 2026-11-03 — ship — build done; final review pending
 - 2026-11-03 — ship — owner ruling C2 recorded in INTENT.md outside define (no ship-to-define route in 1.7.1): SC6 PR-checks clause observed at integration; review_final redispatched for SC6
+- 2026-11-03 — ship — final gate passed; shipping approval pending
+- 2026-11-03 — shipped — archive preflight passed; shipment recorded
+- 2026-11-03 — inspect — next milestone bound gsd-path/M002 at base 79ed090eb30aeb255e5775c699c41c9fc3dd766c; previous archive .project/archive/001-release-0-9-8, ship 6714276651f01f121c9ec858c08423c597d2b111, integration 37d2fdb35cd31d89e7c0a54081685ad3aab9bc80 (PR #187), branch gsd-path/M001
+- 2026-11-03 — inspect — inspection artifacts passed
+- 2026-11-03 — define — definition started
+- 2026-11-03 — define — milestone intent approved
+- 2026-11-03 — research — research started
+- 2026-11-03 — research — research complete: manifest .project/research/RESEARCH.md; dispatched none; skipped domain, stack, pitfalls, similar; 0 questions
+- 2026-11-03 — decide — decision synthesis started
+- 2026-11-03 — decide — decision synthesis validated: .project/research/SYNTHESIS.md
+- 2026-11-03 — plan — planning started
+- 2026-11-03 — plan — owner ruling recorded INTENT correction C2 (SC2 wording: no #import @preview/<five> line) before plan approval; owner chose C2:1
+- 2026-11-03 — plan — plan approved
+- 2026-11-03 — build — build started
+- 2026-11-03 — ship — build done; final review pending
 - 2026-11-03 — ship — final gate passed; shipping approval pending
 - 2026-11-03 — shipped — archive preflight passed; shipment recorded

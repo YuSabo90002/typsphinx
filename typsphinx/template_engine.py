@@ -14,6 +14,8 @@ from typing import Any
 
 from sphinx.errors import ExtensionError
 
+from typsphinx.typst_deps import deps_preamble_lines
+
 logger = logging.getLogger(__name__)
 
 
@@ -690,27 +692,15 @@ class TemplateEngine:
             output_parts.append(package_import)
             output_parts.append("")  # Blank line
 
-        # D-02: hoisted out of `if template_file:` so every master gets these
-        # essential imports -- closes BUG-F, where a package-only master (no
-        # template_file) previously got none of them.
-        #
-        # Exception: the inline-default-template path below appends the whole
-        # of `templates/base.typ`, which already carries these same imports and
-        # show-rules. Emitting the hoisted block there too would duplicate every
-        # line (CR-01). So hoist for the two paths that do NOT inline the full
-        # template, keeping exactly one emission site in every case.
-        will_inline_default_template = not template_file and not self.typst_package
-        if not will_inline_default_template:
-            output_parts.append("// Essential package imports")
-            output_parts.append('#import "@preview/codly:1.3.0": *')
-            output_parts.append('#import "@preview/codly-languages:0.1.10": *')
-            output_parts.append('#import "@preview/mitex:0.2.7": mi, mitex')
-            output_parts.append('#import "@preview/gentle-clues:1.3.1": *')
-            output_parts.append('#import "@preview/diagraph:0.3.7": render')
-            output_parts.append("")  # Blank line
-            output_parts.append("#show: codly-init.with()")
-            output_parts.append("#codly(languages: codly-languages)")
-            output_parts.append("")  # Blank line
+        # D-02: every route's wrapper -- template file, package-only, and
+        # the legacy inline-default-template route alike -- imports the
+        # shared /_typsphinx/deps.typ and applies `#show: typsphinx-init`
+        # exactly once, after the optional package import and before the
+        # template import or inlined template. The inlined `base.typ` also
+        # imports deps.typ (a duplicate import Typst accepts) but never
+        # applies typsphinx-init itself, so the show rule stays single.
+        output_parts.extend(deps_preamble_lines())
+        output_parts.append("")  # Blank line
 
         if template_file:
             # Import template from separate file

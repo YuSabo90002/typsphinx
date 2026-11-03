@@ -205,7 +205,7 @@ def _insert_page_override(base_source: str, height_pt: float, margin_pt: float) 
     otherwise UNMODIFIED apart from this inserted preamble, so the
     artifact under test stays the translator's own output. Locates the
     LATER of the document's two `#show: ` statements (the earlier one,
-    `#show: codly-init.with()`, is unrelated) by searching from the
+    `#show: typsphinx-init`, is unrelated) by searching from the
     bundled-template import line onward.
     """
     template_import_idx = base_source.index('#import "/_template/')

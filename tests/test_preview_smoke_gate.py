@@ -115,24 +115,37 @@ def test_preview_smoke_all_four_packages_compile(preview_smoke_dir, temp_build_d
     # assertion, derived from D-06 itself rather than from observed output,
     # proving that route no longer matters -- the content file always
     # carries them.
+    #
+    # The four @preview imports now live in the shared
+    # `_typsphinx/deps.typ` the content file imports, and the codly
+    # init/config calls in the `typsphinx-init` show function it applies.
+    index_lines = index_text.splitlines()
+    for expected_line in (
+        '#import "/_typsphinx/deps.typ": *',
+        "#show: typsphinx-init",
+    ):
+        assert expected_line in index_lines, (
+            f"Expected {expected_line!r} in the content file (index.typ) "
+            "even though its docname is also a typst_documents entry -- "
+            f"D-06 unconditional-preamble regression:\n{index_text}"
+        )
+    deps_text = (temp_build_dir / "_typsphinx" / "deps.typ").read_text(encoding="utf-8")
     for expected_import in (
         '#import "@preview/codly:1.3.0": *',
         '#import "@preview/codly-languages:0.1.10": *',
         '#import "@preview/mitex:0.2.7": mi, mitex',
         '#import "@preview/gentle-clues:1.3.1": *',
     ):
-        assert expected_import in index_text, (
-            f"Expected {expected_import!r} in the content file (index.typ) "
-            "even though its docname is also a typst_documents entry -- "
-            f"D-06 unconditional-preamble regression:\n{index_text}"
-        )
-    assert "#show: codly-init.with()" in index_text, (
-        "Expected the codly initialisation show-rule in the content file "
-        f"(D-06):\n{index_text}"
+        assert (
+            expected_import in deps_text
+        ), f"Expected {expected_import!r} in _typsphinx/deps.typ:\n{deps_text}"
+    assert "show: codly-init.with()" in deps_text, (
+        "Expected the codly initialisation show-rule in typsphinx-init "
+        f"(D-06):\n{deps_text}"
     )
-    assert "#codly(languages: codly-languages)" in index_text, (
-        "Expected the codly-languages configuration call in the content "
-        f"file (D-06):\n{index_text}"
+    assert "codly(languages: codly-languages)" in deps_text, (
+        "Expected the codly-languages configuration call in "
+        f"typsphinx-init (D-06):\n{deps_text}"
     )
 
     # 2. Compile the CONTENT file to PDF with typst-py -- R1: the four

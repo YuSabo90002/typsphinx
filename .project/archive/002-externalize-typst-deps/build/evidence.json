@@ -1,0 +1,128 @@
+{
+  "canonical_project_dir": ".project",
+  "command": "verify-landed",
+  "head": "5d452cadb377fbbac45f537aefa141ec915551b9",
+  "project_dir": ".project",
+  "tasks": [
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M002",
+        "candidates": [
+          {
+            "base": "1b901dfa8cb9dccc641315a0a90f74818fafe928",
+            "commit": "ff6d85212f2750fd118c3c294922ed4522f5f550",
+            "valid": true
+          }
+        ],
+        "head": "5d452cadb377fbbac45f537aefa141ec915551b9",
+        "subject": "T001: Move the five @preview specs to typsphinx/typst_deps.py and emit a shared _typsphinx/deps.typ imported by every content file, wrapper, and base.typ"
+      },
+      "landed_commit": "ff6d85212f2750fd118c3c294922ed4522f5f550",
+      "reasons": [],
+      "task": {
+        "base": "1b901dfa8cb9dccc641315a0a90f74818fafe928",
+        "id": "T001",
+        "status": "done",
+        "task_file": ".project/tasks/T001-single-source-deps-typ.md"
+      }
+    },
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M002",
+        "candidates": [
+          {
+            "base": "10ec848c0f42cec98d0a40a6ad8bd18057567900",
+            "commit": "d5016f0e2ee0720b13f5dd378dee90b4c707b0ea",
+            "valid": true
+          }
+        ],
+        "head": "5d452cadb377fbbac45f537aefa141ec915551b9",
+        "subject": "T002: Add the typst_dependencies config value that replaces the generated _typsphinx/deps.typ with a verbatim copy of the user's file"
+      },
+      "landed_commit": "d5016f0e2ee0720b13f5dd378dee90b4c707b0ea",
+      "reasons": [],
+      "task": {
+        "base": "10ec848c0f42cec98d0a40a6ad8bd18057567900",
+        "id": "T002",
+        "status": "done",
+        "task_file": ".project/tasks/T002-typst-dependencies-override.md"
+      }
+    },
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M002",
+        "candidates": [
+          {
+            "base": "9efd389a5e3aad555e0b86a1c1d18dfd84f9447b",
+            "commit": "761ebf7b929fc54d65c51cf6045c646f5899d534",
+            "valid": true
+          }
+        ],
+        "head": "5d452cadb377fbbac45f537aefa141ec915551b9",
+        "subject": "T003: Warn once per (file, package) when a used template bundle pins one of the five packages at a version different from the effective deps.typ"
+      },
+      "landed_commit": "761ebf7b929fc54d65c51cf6045c646f5899d534",
+      "reasons": [],
+      "task": {
+        "base": "9efd389a5e3aad555e0b86a1c1d18dfd84f9447b",
+        "id": "T003",
+        "status": "done",
+        "task_file": ".project/tasks/T003-template-dependency-drift-warning.md"
+      }
+    },
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M002",
+        "candidates": [
+          {
+            "base": "99b32c62d2369f3ced4ec6b270a4904502e51939",
+            "commit": "e89e4571c24a9a60b15dbb76f4971e89af0c8aa0",
+            "valid": true
+          }
+        ],
+        "head": "5d452cadb377fbbac45f537aefa141ec915551b9",
+        "subject": "T004: Remove the five-package pins and top-level codly init from the repository's own templates and samples"
+      },
+      "landed_commit": "e89e4571c24a9a60b15dbb76f4971e89af0c8aa0",
+      "reasons": [],
+      "task": {
+        "base": "99b32c62d2369f3ced4ec6b270a4904502e51939",
+        "id": "T004",
+        "status": "done",
+        "task_file": ".project/tasks/T004-in-repo-templates-drop-pins.md"
+      }
+    },
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M002",
+        "candidates": [
+          {
+            "base": "c7403260735fb1e8ae025765ff1c7291824afc46",
+            "commit": "bdbcdd17ee3b45837e7c59c5a8e6cd9e015f0760",
+            "valid": true
+          }
+        ],
+        "head": "5d452cadb377fbbac45f537aefa141ec915551b9",
+        "subject": "T005: Document typst_dependencies and the public /_typsphinx/deps.typ contract, record the change in CHANGELOG and CLAUDE.md, and prove the final quality bar"
+      },
+      "landed_commit": "bdbcdd17ee3b45837e7c59c5a8e6cd9e015f0760",
+      "reasons": [],
+      "task": {
+        "base": "c7403260735fb1e8ae025765ff1c7291824afc46",
+        "id": "T005",
+        "status": "done",
+        "task_file": ".project/tasks/T005-document-deps-contract.md"
+      }
+    }
+  ]
+}

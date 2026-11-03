@@ -10,14 +10,9 @@
 // fixture (then named `custom_template_no_lang`) in
 // `45.1-GATE-EVIDENCE-03.md`.
 
-#import "@preview/codly:1.3.0": *
-#import "@preview/codly-languages:0.1.10": *
-#import "@preview/mitex:0.2.7": *
-#import "@preview/gentle-clues:1.3.1": *
-
-#show: codly-init.with()
-
-#codly(languages: codly-languages)
+// Package names come from the build's generated /_typsphinx/deps.typ (no
+// version pins here); the wrapper applies the typsphinx-init show rule.
+#import "/_typsphinx/deps.typ": *
 
 #show link: it => {
   if type(it.dest) == str {

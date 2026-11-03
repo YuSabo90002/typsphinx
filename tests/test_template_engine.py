@@ -463,63 +463,63 @@ class TestPackagePathParameterSuppression:
 
 
 class TestEssentialImportHoist:
-    """Test D-02: every master's render() output carries the four essential
-    @preview imports plus codly initialisation exactly once, whether or not a
-    template file is imported (BUG-F)."""
+    """Test D-02: every master's render() output imports the shared
+    ``/_typsphinx/deps.typ`` and applies ``#show: typsphinx-init`` exactly
+    once on every route -- template file, package-only (BUG-F), and the
+    inline default template (CR-01) -- and pins no ``@preview`` spec of the
+    five itself.
+
+    Counting matters: a check that only asserted the preamble was PRESENT
+    would stay green on a doubled emission. The codly initialisation lives
+    in ``typsphinx-init`` inside ``deps.typ``, so no route's output may
+    carry ``codly-init`` directly.
+    """
+
+    DEPS_IMPORT = '#import "/_typsphinx/deps.typ": *'
+    INIT_SHOW = "#show: typsphinx-init"
+    FIVE = ("codly", "codly-languages", "mitex", "gentle-clues", "diagraph")
+
+    def _assert_preamble_once(self, result):
+        lines = result.splitlines()
+        assert result.count(self.INIT_SHOW) == 1
+        assert lines.count(self.INIT_SHOW) == 1
+        assert lines.index(self.DEPS_IMPORT) < lines.index(self.INIT_SHOW)
+        for name in self.FIVE:
+            assert f"@preview/{name}:" not in result
+        assert "codly-init" not in result
+        return lines
 
     def test_package_only_render_contains_essential_imports_exactly_once(self):
-        """A package-only render (no template_file) carries the essential
-        imports and codly-init exactly once"""
+        """A package-only render (no template_file) imports deps.typ and
+        applies typsphinx-init exactly once, after the package import."""
         engine = TemplateEngine(
             typst_package="@preview/charged-ieee:0.1.4",
             typst_template_function="ieee",
         )
-
-        params = {}
-        body = "= Body\n"
-
-        result = engine.render(params, body)
-
-        assert "#show: codly-init.with()" in result
-        assert result.count("@preview/codly:") == 1
-        assert result.count("@preview/codly-languages:") == 1
-        assert result.count("@preview/mitex:") == 1
-        assert result.count("@preview/gentle-clues:") == 1
+        lines = self._assert_preamble_once(engine.render({}, "= Body\n"))
+        assert lines.count(self.DEPS_IMPORT) == 1
+        package_import = '#import "@preview/charged-ieee:0.1.4": ieee'
+        assert lines.index(package_import) < lines.index(self.DEPS_IMPORT)
 
     def test_template_file_render_does_not_duplicate_essential_imports(self):
-        """A template-file-set render carries the essential imports exactly
-        once -- proving the D-02 hoist did not duplicate the block"""
-        engine = TemplateEngine()
-
+        """A template-file-set render carries the preamble exactly once,
+        before the template import."""
         params = {"title": "T", "authors": ()}
-        body = "= Body\n"
-
-        result = engine.render(params, body, template_file="_template.typ")
-
-        assert result.count("@preview/mitex:") == 1
-        assert result.count("@preview/codly:") == 1
-        assert result.count("@preview/codly-languages:") == 1
-        assert result.count("@preview/gentle-clues:") == 1
+        result = TemplateEngine().render(params, "= B\n", template_file="_t.typ")
+        lines = self._assert_preamble_once(result)
+        assert lines.count(self.DEPS_IMPORT) == 1
+        assert lines.index(self.INIT_SHOW) < lines.index('#import "_t.typ": project')
 
     def test_inline_default_template_render_does_not_duplicate_essential_imports(self):
         """CR-01: the inline-default-template path (no template_file AND no
-        typst_package -- render()'s documented "old behavior") appends the whole
-        of templates/base.typ, which already carries these imports and
-        show-rules. The D-02 hoist must not emit them a second time there.
-
-        Counting matters: the pre-existing tests on this path only asserted the
-        markers were PRESENT, so a doubled emission stayed green.
+        typst_package -- render()'s documented "old behavior") appends the
+        whole of templates/base.typ, which imports deps.typ itself but never
+        applies typsphinx-init. The show rule must still appear exactly once,
+        emitted before the inlined template.
         """
-        engine = TemplateEngine()
-
-        result = engine.render({"title": "T", "authors": ()}, "= Body\n")
-
-        assert result.count("@preview/codly:") == 1
-        assert result.count("@preview/codly-languages:") == 1
-        assert result.count("@preview/mitex:") == 1
-        assert result.count("@preview/gentle-clues:") == 1
-        assert result.count("#show: codly-init.with()") == 1
-        assert result.count("#codly(languages: codly-languages)") == 1
+        result = TemplateEngine().render({"title": "T", "authors": ()}, "= Body\n")
+        lines = self._assert_preamble_once(result)
+        assert lines.index(self.INIT_SHOW) < lines.index("#let project(")
 
 
 class TestTypstUniversePackages:

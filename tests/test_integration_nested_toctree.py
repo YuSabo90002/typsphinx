@@ -555,11 +555,13 @@ class TestE2ETypstCompilation:
 
         pdf_output = temp_build_dir / "chapter1_index.pdf"
 
-        # Compile with correct root directory
+        # Compile with correct root directory: the output directory, which
+        # resolves both the relative #include() paths and the root-absolute
+        # `/_typsphinx/deps.typ` import every content file carries.
         typst.compile(
             str(chapter1_index),
             output=str(pdf_output),
-            root=str(temp_build_dir / "chapter1"),
+            root=str(temp_build_dir),
         )
 
         # Verify compilation succeeded

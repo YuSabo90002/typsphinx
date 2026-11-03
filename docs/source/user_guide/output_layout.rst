@@ -47,6 +47,19 @@ nothing copied. The built-in ``"typst"`` key is handled by the exact same
 rule, with no special case -- see :doc:`configuration` for the registry
 schema.
 
+Every build also writes the shared dependencies file
+``_typsphinx/deps.typ`` under the reserved ``_typsphinx/`` output
+directory, next to ``_template/``. Every content file and every wrapper
+starts by importing it as ``/_typsphinx/deps.typ`` and applying
+``#show: typsphinx-init`` -- see :doc:`templates` for what the file
+exports, and :doc:`configuration` for replacing it with
+``typst_dependencies``.
+
+Both ``_template/`` and ``_typsphinx/`` are reserved: typsphinx owns
+them, so a docname or a ``typst_documents`` target whose output path
+falls inside either one is refused before anything is written (see
+`Targets That Stop the Build`_).
+
 Nothing under the output directory is deleted between builds. A file
 removed from a source bundle can therefore survive at its destination
 across an incremental rebuild.
@@ -69,15 +82,19 @@ limitation -- a content file compiled on its own is simply a document with
 no children rendered.
 
 The wrapper imports its own registry key's template bundle by a
-project-root-absolute path (for example ``/_template/typst/base.typ``), so
-hand-running the Typst compiler resolves that import against the project
-root. Typst's default project root is the directory containing the file
+project-root-absolute path (for example ``/_template/typst/base.typ``), and
+every content file and wrapper imports ``/_typsphinx/deps.typ`` the same
+way, so hand-running the Typst compiler resolves those imports against the
+project root, which must be the output directory. Typst's default project root is the directory containing the file
 being compiled. For a bare target -- the ``manual.typ`` example above (see
 `A bare target`_) -- that directory already IS the output directory, so no
 root option is needed. For a target carrying a path component, as
 `A path in the target`_ shows, the wrapper sits in a subdirectory instead,
-and the default root no longer contains the template bundle -- so the
-compile must be given the output directory as the project root explicitly:
+and the default root no longer contains ``_template/`` or ``_typsphinx/``
+-- so the compile must be given the output directory as the project root
+explicitly. The same holds for a content file compiled on its own from a
+subdirectory (a docname such as ``chapter/intro``). Passing the output
+directory as ``--root`` is always correct, so when in doubt, pass it:
 
 .. code-block:: text
 
@@ -154,7 +171,8 @@ is already claimed by something else, the build raises an error instead of
 falling back, and stops before writing anything.
 
 A path can be claimed by any of three things: the reserved ``_template/``
-output directory typsphinx writes template bundles into, any document's own
+output directory typsphinx writes template bundles into (or the reserved
+``_typsphinx/`` directory it writes ``deps.typ`` into), any document's own
 content file (named after its docname, and written for every document
 whether or not it appears in ``typst_documents``), or any other entry's own
 wrapper.

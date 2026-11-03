@@ -11,12 +11,12 @@ establish:
 
 1. **Both emission paths carry the import.** ``master.typ`` (the templated
    master-document path, owned by ``template_engine.py``) and
-   ``included.typ`` (the minimal-import included-document path, owned by
-   ``writer.py``) must each declare ``@preview/diagraph:0.3.7``. The
-   included half is the one that regresses silently if only
-   ``template_engine.py`` were patched -- Typst's ``#include()`` does not
-   inherit imports from the parent file, so each emitted file must
-   re-declare its own.
+   ``included.typ`` (the included-document path, owned by ``writer.py``)
+   must each import the shared ``/_typsphinx/deps.typ``, which declares
+   ``@preview/diagraph:0.3.7``. The included half is the one that regresses
+   silently if only ``template_engine.py`` were patched -- Typst's
+   ``#include()`` does not inherit imports from the parent file, so each
+   emitted file must re-declare its own.
 
 2. **The escaped hostile DOT actually renders.** The fixture carries no
    diagraph import of its own, so the compile can only succeed if the
@@ -60,9 +60,11 @@ except ImportError:
 
 # The diagraph package coordinate that must appear at every emission path.
 # Kept as one literal so a version bump fails here loudly rather than
-# half-matching. tests/test_preview_version_sync.py owns the three-site
-# lockstep itself; this module only asserts the coordinate reaches OUTPUT.
-DIAGRAPH_IMPORT = "@preview/diagraph:0.3.7"
+# half-matching. tests/test_preview_version_sync.py owns the single source
+# itself; this module only asserts the coordinate reaches OUTPUT, through
+# the generated `_typsphinx/deps.typ` every emitted file imports.
+DIAGRAPH_IMPORT = '#import "@preview/diagraph:0.3.7": render'
+DEPS_IMPORT_LINE = '#import "/_typsphinx/deps.typ": *'
 
 # Diagram-label sentinels asserted in the extracted PDF text. Each is the
 # rendered form of one R013-hazardous construct in the fixture's DOT, and
@@ -138,6 +140,9 @@ def diagraph_render_gate_build(tmp_path_factory):
         "master_source": master_typ.read_text(encoding="utf-8"),
         "index_source": index_typ.read_text(encoding="utf-8"),
         "included_source": included_typ.read_text(encoding="utf-8"),
+        "deps_source": (build_dir / "_typsphinx" / "deps.typ").read_text(
+            encoding="utf-8"
+        ),
         "pdf_text": "\n".join(page.extract_text() for page in reader.pages),
     }
 
@@ -156,10 +161,15 @@ class TestDiagraphEscapingRenderGate:
         This is the half owned by ``template_engine.py``'s generated import
         block.
         """
-        assert DIAGRAPH_IMPORT in diagraph_render_gate_build["master_source"], (
-            "master.typ does not declare "
-            f"{DIAGRAPH_IMPORT}; the master-document import path "
-            "(template_engine.py) regressed"
+        assert (
+            DIAGRAPH_IMPORT in diagraph_render_gate_build["deps_source"]
+        ), f"_typsphinx/deps.typ does not declare {DIAGRAPH_IMPORT}"
+        assert (
+            DEPS_IMPORT_LINE in diagraph_render_gate_build["master_source"].splitlines()
+        ), (
+            f"master.typ does not import /_typsphinx/deps.typ "
+            f"(which declares {DIAGRAPH_IMPORT}); the master-document import "
+            "path (template_engine.py) regressed"
         )
 
     def test_included_document_declares_diagraph_import(
@@ -173,10 +183,16 @@ class TestDiagraphEscapingRenderGate:
         inherit imports from the parent file, so ``writer.py``'s minimal
         import preamble for non-master documents must carry diagraph itself.
         """
-        assert DIAGRAPH_IMPORT in diagraph_render_gate_build["included_source"], (
-            "included.typ does not declare "
-            f"{DIAGRAPH_IMPORT}; the included-document import path "
-            "(writer.py) regressed"
+        assert (
+            DIAGRAPH_IMPORT in diagraph_render_gate_build["deps_source"]
+        ), f"_typsphinx/deps.typ does not declare {DIAGRAPH_IMPORT}"
+        assert (
+            DEPS_IMPORT_LINE
+            in diagraph_render_gate_build["included_source"].splitlines()
+        ), (
+            f"included.typ does not import /_typsphinx/deps.typ "
+            f"(which declares {DIAGRAPH_IMPORT}); the included-document "
+            "import path (writer.py) regressed"
         )
 
     def test_escaped_quote_label_survives_into_pdf(self, diagraph_render_gate_build):
