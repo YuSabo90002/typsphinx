@@ -1,10 +1,10 @@
 # charged-ieee Template Example
 
-This example demonstrates two approaches for using the charged-ieee Typst Universe template with sphinx-typst.
+This example demonstrates two approaches for using the charged-ieee Typst Universe template with typsphinx.
 
 ## Overview
 
-The [charged-ieee](https://typst.app/universe/package/charged-ieee/) template from Typst Universe provides IEEE-style formatting for academic papers. This example shows how to use it with sphinx-typst in two different ways.
+The [charged-ieee](https://typst.app/universe/package/charged-ieee/) template from Typst Universe provides IEEE-style formatting for academic papers. This example shows how to use it with typsphinx in two different ways.
 
 ## Approach 1: Configuration-Based (Recommended)
 
@@ -147,7 +147,7 @@ typst compile paper.typ output.pdf
 
 - [charged-ieee on Typst Universe](https://typst.app/universe/package/charged-ieee/)
 - [Typst Documentation](https://typst.app/docs)
-- [sphinx-typst Documentation](https://github.com/YuSabo90002/typsphinx)
+- [typsphinx Documentation](https://github.com/YuSabo90002/typsphinx)
 
 ## Notes
 

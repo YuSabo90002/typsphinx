@@ -41,7 +41,13 @@ configured ``project`` as the paper title and never charged-ieee's own
 identical-output claim holds. The title is checked on the PDF's extracted
 text (pypdf, whitespace-normalised because the IEEE title may wrap).
 
-Requirements: CONF-02, D-12, M004 SC5, M004 SC7.
+M006 SC4 (doc-audit queue row 1, fix-code): the two PDFs' abstracts are
+identical INCLUDING their line breaks -- the abstract text is compared
+without whitespace normalisation (only CR LF is folded to LF to
+stay OS-neutral). M006 SC5: the README names the project "typsphinx",
+never the stale "sphinx-typst".
+
+Requirements: CONF-02, D-12, M004 SC5, M004 SC7, M006 SC4, M006 SC5.
 """
 
 import re
@@ -89,6 +95,21 @@ def _normalised_pdf_text(pdf_path: Path) -> str:
     return " ".join(text.split())
 
 
+def _abstract_text(pdf_path: Path) -> str:
+    """
+    Return the first page's abstract exactly as extracted -- from the
+    ``Abstract`` label up to (not including) ``Index Terms`` -- with its
+    line breaks kept and only CR LF / CR folded to LF.
+    """
+    text = PdfReader(str(pdf_path)).pages[0].extract_text() or ""
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    start = text.find("Abstract")
+    assert start != -1, f"No abstract in {pdf_path.name}: {text[:300]!r}"
+    end = text.find("Index Terms", start)
+    assert end != -1, f"No index terms in {pdf_path.name}: {text[:600]!r}"
+    return text[start:end]
+
+
 def _assert_project_title(pdf_path: Path) -> None:
     text = _normalised_pdf_text(pdf_path)
     assert PROJECT_TITLE in text, (
@@ -99,6 +120,18 @@ def _assert_project_title(pdf_path: Path) -> None:
         f"{pdf_path.name} still carries charged-ieee's default "
         f"{PACKAGE_DEFAULT_TITLE!r} title"
     )
+
+
+README_PATH = EXAMPLES_DIR / "README.md"
+
+
+def test_readme_names_typsphinx_not_sphinx_typst():
+    """M006 SC5: the README never uses the stale "sphinx-typst" name."""
+    text = README_PATH.read_text(encoding="utf-8")
+    assert "sphinx-typst" not in text
+    assert "typsphinx" in text
+    # The identical-output claim stays (SC4 makes it true).
+    assert "identical output" in text
 
 
 def _run_sphinx_build(
@@ -306,3 +339,27 @@ class TestChargedIeeeExamplesGate:
         # SC7: same paper title as approach1 -- the README's identical-output
         # claim, checked on both sides.
         _assert_project_title(pdf_path)
+
+    def test_both_approaches_render_identical_abstract(self, tmp_path):
+        """
+        M006 SC4: approach1 (params route) and approach2 (custom template)
+        render the same abstract text with the same line breaks, so the
+        README's identical-output claim holds for the abstract too.
+        """
+        abstracts = {}
+        for name, sample_dir in (
+            ("approach1", APPROACH1_DIR),
+            ("approach2", APPROACH2_DIR),
+        ):
+            build_dir = tmp_path / f"{name}_build"
+            result = _run_sphinx_build(sample_dir, sample_dir / "source", build_dir)
+            assert result.returncode == 0, (
+                f"sphinx-build failed for examples/charged-ieee/{name}:\n"
+                f"stdout: {result.stdout}\nstderr: {result.stderr}"
+            )
+            abstracts[name] = _abstract_text(build_dir / "paper.pdf")
+        assert abstracts["approach1"] == abstracts["approach2"], (
+            "Abstracts differ between the charged-ieee approaches:\n"
+            f"approach1: {abstracts['approach1']!r}\n"
+            f"approach2: {abstracts['approach2']!r}"
+        )

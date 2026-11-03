@@ -23,9 +23,16 @@ typst_package = "@preview/charged-ieee:0.1.4"
 
 # -- Author details configuration (params route) -----------------------------
 # IEEE専用の設定変数
-ieee_abstract = """This paper presents novel approaches to machine learning
-applications in computer vision. We demonstrate state-of-the-art results on
-benchmark datasets and provide comprehensive analysis of our methodology."""
+# One logical paragraph with no embedded newlines: a Typst string renders a
+# newline as a hard line break, whereas approach2's content block collapses
+# its source line breaks into spaces. Implicit concatenation keeps the text
+# on one line so both approaches render the same abstract.
+ieee_abstract = (
+    "This paper presents novel approaches to machine learning "
+    "applications in computer vision. We demonstrate state-of-the-art "
+    "results on benchmark datasets and provide comprehensive analysis "
+    "of our methodology."
+)
 
 ieee_keywords = [
     "Machine Learning",

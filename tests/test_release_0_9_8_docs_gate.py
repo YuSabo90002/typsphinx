@@ -10,7 +10,8 @@ Reads files only -- no Sphinx build. It pins three things:
   entries followed by the former Unreleased bibliography entries (E2), is
   dated with the release-prep commit's date (E4), and records the
   ``typst_debug`` removal;
-* the link block for ``[Unreleased]`` and ``[0.9.8]``;
+* the ``[0.9.8]`` tag link in the link block (the ``[Unreleased]`` compare
+  moved to v0.10.0 in M006);
 * one claim re-check per DOCS-AUDIT item #3 and #9-#13, so a stale claim
   cannot come back unnoticed.
 
@@ -135,12 +136,10 @@ def test_first_unreleased_keeps_planned_for_future_releases() -> None:
     assert "### Planned for Future Releases" in subsections, subsections
 
 
-def test_link_block_targets_v0_9_8() -> None:
+def test_link_block_keeps_v0_9_8_tag_link() -> None:
+    # The [Unreleased] compare moved on to v0.10.0 (M006); see
+    # tests/test_release_0_10_0_docs_gate.py.
     lines = _changelog_lines()
-    assert (
-        "[Unreleased]: https://github.com/YuSabo90002/typsphinx/compare/v0.9.8...HEAD"
-        in lines
-    )
     assert (
         "[0.9.8]: https://github.com/YuSabo90002/typsphinx/releases/tag/v0.9.8" in lines
     )
