@@ -3,9 +3,9 @@ id: T002
 title: Declare Python 3.14 in classifiers, black, the CI test matrix and tox, and prove tox -e py314 and the full suite pass
 wave: 1
 deps: []
-status: pending
-agent: null
-base: null
+status: done
+agent: build_T002
+base: b20a0dc545d698e67ae2cd23aead7794e5476578
 worktree: null
 task_branch: null
 files:
@@ -52,3 +52,27 @@ Heavy: yes
 ## Log
 
 - 2026-11-03 — created by plan (quick mode)
+- 2026-11-03 — build_T002: added classifier `Programming Language :: Python :: 3.14` and black `target-version` `py314` (pyproject.toml); CI matrix python-version `'3.14'` + include row `tox-env: py314` (all three OSes via the `os` axis) in .github/workflows/ci.yml; `py314` in tox.ini `env_list` (no per-version testenv sections exist, so none added). tox-uv `requires` pin and comment untouched; ruff/mypy/requires-python unchanged. Verify run exactly as written: EXIT=0 — `uv lock --check` clean (uv.lock unchanged), `LC_ALL=C uv run tox -e py314` OK on cpython3.14 (1856 passed, 28 skipped; tox env has extras=dev only), `LC_ALL=C uv run pytest tests/` 1883 passed, 1 skipped, black --check clean, ruff "All checks passed!", mypy "Success: no issues found in 10 source files". Log: /tmp/claude-1000/t002.PomI/verify.log
+- 2026-11-03 — orchestrator Verify (isolate gsd-path-task/T002): pass, exit 0; output tail:
+  ```
+  tests/test_xref_orphan_degrade_render_gate.py::TestXrefOrphanDegradeRenderGate::test_typstpdf_orphan_xref_degrades_included_xref_links PASSED [ 99%]
+  tests/test_xref_whole_document_guard_render_gate.py::TestXrefWholeDocumentGuardRenderGate::test_build_exits_0_no_dangling_label PASSED [ 99%]
+  tests/test_xref_whole_document_guard_render_gate.py::TestXrefWholeDocumentGuardRenderGate::test_reference_visible_text_present_in_pdf PASSED [ 99%]
+  tests/test_xref_whole_document_guard_render_gate.py::TestXrefWholeDocumentGuardRenderGate::test_orphan_body_marker_never_appears_in_master_pdf PASSED [ 99%]
+  tests/test_xref_whole_document_guard_render_gate.py::TestXrefWholeDocumentGuardRenderGate::test_index_typ_carries_both_guard_expressions PASSED [ 99%]
+  tests/test_xref_whole_document_guard_render_gate.py::TestXrefWholeDocumentGuardRenderGate::test_index_typ_carries_no_string_url_link_to_targets PASSED [ 99%]
+  tests/test_xref_whole_document_guard_render_gate.py::TestXrefWholeDocumentGuardRenderGate::test_included_and_orphan_typ_each_carry_self_anchor_once PASSED [ 99%]
+  tests/test_xref_whole_document_guard_render_gate.py::TestXrefWholeDocumentGuardRenderGate::test_master_pdf_zero_uri_actions_ending_in_out_suffix PASSED [ 99%]
+  tests/test_xref_whole_document_guard_render_gate.py::TestXrefWholeDocumentGuardRenderGate::test_pdf_positional_destination_resolves_to_included_page PASSED [100%]
+  
+  ================= 1883 passed, 1 skipped in 211.66s (0:03:31) ==================
+  All checks passed!
+  Success: no issues found in 10 source files
+  Resolved 95 packages in 0.57ms
+  Checked 94 packages in 0.48ms
+  Resolved 95 packages in 0.54ms
+  Cannot read termcap database;
+  using dumb terminal settings.
+  All done! ✨ 🍰 ✨
+  398 files would be left unchanged.
+  ```
