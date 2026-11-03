@@ -2,7 +2,7 @@
 pipeline: gsd-path/v2
 project: typsphinx
 milestone: windows-test-portability
-phase: build
+phase: ship
                     # inspect only for brownfield; greenfield starts at define
                     # roadmap only in program flow (CHARTER.md exists)
 status: active
@@ -71,3 +71,4 @@ it on completion. If this file and the artifacts disagree, the artifacts win
 - 2026-11-03 — plan — plan approved
 - 2026-11-03 — build — build started
 - 2026-11-03 — build — Constraint observation: ci.yml run 41592991566 on temp branch ci-probe/m003-windows at 9a1dc595 succeeded, including Test Python 3.12/3.13 on windows-latest; temp branch deleted
+- 2026-11-03 — ship — build done; final review pending
