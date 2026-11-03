@@ -1,15 +1,15 @@
 ---
 pipeline: gsd-path/v2
 project: typsphinx
-milestone: housekeeping-py314
-phase: shipped
+milestone: release-0-10-0
+phase: plan
                     # inspect only for brownfield; greenfield starts at define
                     # roadmap only in program flow (CHARTER.md exists)
 status: done
-branch: gsd-path/M005
+branch: gsd-path/M006
                     # the router rebinds before any next-milestone file change
                     # the bound branch is never main; ship integrates it there
-archive: .project/archive/005-housekeeping-py314
+archive: null
 integration_default: pull-request
 integration: pull-request
 integration_source: default
@@ -100,3 +100,9 @@ it on completion. If this file and the artifacts disagree, the artifacts win
 - 2026-11-03 — ship — final gate passed; shipping approval pending
 - 2026-11-03 — ship — shipping approved by user: "1" (archive and ship)
 - 2026-11-03 — shipped — archive preflight passed; shipment recorded
+- 2026-11-03 — inspect — next milestone bound: gsd-path/M006 at base 81af8d6b2bd538e99747f65e78c366946d7b81d1; previous M005 ship 4b9a418e71775c94f2b23246203a15969bfb73fe archive .project/archive/005-housekeeping-py314 integrated via PR #191 landing 81af8d6b2bd538e99747f65e78c366946d7b81d1
+- 2026-11-03 — inspect — inspection artifacts passed
+- 2026-11-03 — define — definition started
+- 2026-11-03 — define — milestone intent approved
+- 2026-11-03 — plan — planning started
+- 2026-11-03 — plan — plan approved
