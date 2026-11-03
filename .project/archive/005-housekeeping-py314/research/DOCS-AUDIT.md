@@ -198,11 +198,11 @@ Scope: the `.agents/skills/**` files are installed third-party agent skill bundl
 
 | Queue # | Ruling | User's words | Planned |
 |---------|--------|--------------|---------|
-| 1 | fix-doc | "4-1 fix-doc" | no |
-| 2 | fix-doc | "4-2 fix-doc" | no |
-| 3 | fix-doc | "4-3 fix-doc" | no |
-| 4 | fix-doc | "Q2 a" (the file is deleted) | no |
-| 5 | fix-doc | "Q2 a" (the file is deleted) | no |
+| 1 | fix-doc | "4-1 fix-doc" | T001 |
+| 2 | fix-doc | "4-2 fix-doc" | T001 |
+| 3 | fix-doc | "4-3 fix-doc" | T001 |
+| 4 | fix-doc | "Q2 a" (the file is deleted) | T001 |
+| 5 | fix-doc | "Q2 a" (the file is deleted) | T001 |
 
 ## Remediation queue
 
