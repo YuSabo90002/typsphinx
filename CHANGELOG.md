@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **One shared dependencies file per build: `<outdir>/_typsphinx/deps.typ`.** Every
+  `typst` and `typstpdf` build writes it. It imports the five Typst Universe packages
+  (codly, codly-languages, mitex, gentle-clues, diagraph) and defines the
+  `typsphinx-init` show function, which sets up codly. Every content file and every
+  wrapper now starts with `#import "/_typsphinx/deps.typ": *` and
+  `#show: typsphinx-init` instead of its own package imports. The path, its exported
+  names and `typsphinx-init` are a public contract for template authors, listed on
+  the Templates page. `_typsphinx/` is a reserved output directory, like `_template/`.
+- **New `typst_dependencies` configuration value.** A path to one file, relative to
+  the source directory or absolute (resolved like `typst_template`), copied
+  byte-identical to `<outdir>/_typsphinx/deps.typ` in place of the generated default.
+  It is one global file for the whole build. `None` (the default) keeps the generated
+  file; an empty, non-string or missing value stops the build with a
+  `typst_dependencies:` error before any `.typ` file is written. Only the default
+  package versions are supported: output built with a replaced `deps.typ` is not
+  guaranteed.
+- **Template dependency drift warning.** After copying a used template bundle, the
+  build prints one warning per (file, package) when a bundle `.typ` file pins one of
+  the five packages at a version different from the effective `deps.typ`
+  (`template dependency drift: ...`). The build still succeeds. The scan is a
+  best-effort aid: it ignores comments and cannot see import strings built at run
+  time or imports reached through other files.
+
+### Changed
+
+- **The five package versions have a single source.** They are defined once, in
+  `typsphinx/typst_deps.py`, which generates the default `deps.typ`. `writer.py`,
+  `template_engine.py` and the bundled `templates/base.typ` no longer carry their own
+  package imports or codly initialisation, so a version bump is one edit.
+- **The repository's own templates no longer pin package versions.** The docs
+  template, the `examples/advanced` template and the test-fixture templates import
+  from `/_typsphinx/deps.typ` instead, as custom templates are now advised to do.
+- **Hand compiles of `-b typst` output need the output directory as the compile
+  root.** Content files and wrappers import `/_typsphinx/deps.typ` by a root-absolute
+  path, so pass `--root <outdir>` when compiling a file that does not sit at the
+  output directory's top level. The `typstpdf` builder already compiles with that
+  root.
+
 ### Planned for Future Releases
 - Glossary generation
 - Index generation

@@ -3,8 +3,10 @@ Release-prep gate for 0.9.8 (M001 T004).
 
 Reads files only -- no Sphinx build. It pins three things:
 
-* the CHANGELOG fold: the first ``## [Unreleased]`` keeps only
-  ``### Planned for Future Releases``; ``## [0.9.8]`` holds the Graphviz
+* the CHANGELOG fold: the first ``## [Unreleased]`` still carries
+  ``### Planned for Future Releases`` (later, unreleased entries may sit
+  beside it -- the 0.9.8-time "nothing else" check was relaxed in M002
+  T005); ``## [0.9.8]`` holds the Graphviz
   entries followed by the former Unreleased bibliography entries (E2), is
   dated with the release-prep commit's date (E4), and records the
   ``typst_debug`` removal;
@@ -129,10 +131,10 @@ def test_0_9_8_date_is_release_prep_commit_date() -> None:
     assert match.group(1) == expected
 
 
-def test_first_unreleased_holds_only_planned_for_future_releases() -> None:
+def test_first_unreleased_keeps_planned_for_future_releases() -> None:
     section = _section(lambda line: line == "## [Unreleased]")
     subsections = [line for line in section if line.startswith("### ")]
-    assert subsections == ["### Planned for Future Releases"]
+    assert "### Planned for Future Releases" in subsections, subsections
 
 
 def test_link_block_targets_v0_9_8() -> None:

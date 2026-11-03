@@ -133,6 +133,53 @@ output, doing so would republish the project's Sphinx template directory
 in the build output. This repository uses ``_typst/`` for exactly that
 reason.
 
+Typst Dependencies
+~~~~~~~~~~~~~~~~~~
+
+Every ``typst`` and ``typstpdf`` build writes one dependencies file,
+``<outdir>/_typsphinx/deps.typ``. It holds the Typst Universe package
+imports (codly, codly-languages, mitex, gentle-clues and diagraph) and the
+``typsphinx-init`` show function. Every content file and every wrapper
+imports it as ``/_typsphinx/deps.typ``; see :doc:`templates` for the full
+list of names it exports.
+
+``typst_dependencies`` replaces that generated file with your own:
+
+.. code-block:: python
+
+   # Default: typsphinx generates _typsphinx/deps.typ itself
+   typst_dependencies = None
+
+   # Use your own file instead
+   typst_dependencies = "_typst/deps.typ"
+
+- **Path rule.** The value is a path relative to the source directory
+  (the directory holding ``conf.py``), or an absolute path. It is
+  resolved the same way as ``typst_template``.
+- **One global file.** The value applies to the whole build. There is
+  one dependencies file per build, never one per template or per
+  ``typst_documents`` entry, because every wrapper includes the same
+  shared content files.
+- **Verbatim copy.** The named file is copied byte-identical to
+  ``<outdir>/_typsphinx/deps.typ``. typsphinx does not read, rewrite or
+  re-encode it, and generates no default file next to it.
+- **Default when unset.** When the value is ``None`` (the default),
+  typsphinx generates the default file with the package versions it
+  ships with.
+- **Build stop.** An empty string, a non-string value, or a path that
+  does not name an existing file stops the build before any ``.typ`` file
+  is written. The message starts with ``typst_dependencies:`` and names
+  the configured value; see `When the Build Stops`_.
+
+.. warning::
+
+   Only the default package versions are supported. The translator emits
+   calls written against the APIs of the default versions, so output
+   built with a replaced ``deps.typ`` is not guaranteed to compile or to
+   render correctly -- a replaced file is used at your own risk. A
+   replaced file must still export every name listed in
+   :doc:`templates`, or the generated ``.typ`` files will not compile.
+
 Typst Package
 ~~~~~~~~~~~~~
 
@@ -284,8 +331,8 @@ entry exactly as it was declared.
 When the Build Stops
 ^^^^^^^^^^^^^^^^^^^^^
 
-A misconfigured registry or an unwritable template bundle stops the
-build with an ``ExtensionError``. The table below identifies each
+A misconfigured registry, an unwritable template bundle, or a bad
+``typst_dependencies`` value stops the build with an ``ExtensionError``. The table below identifies each
 config-caused shape by the leading clause of the message it raises;
 column three names what to change.
 
@@ -342,6 +389,23 @@ column three names what to change.
      - Give the colliding keys' definitions distinct template paths so
        their bundles do not land at the same ``_template/<key>/``
        destination.
+   * - ``typst_dependencies`` is set to a value that is neither a
+       string nor ``None``
+     - ``typst_dependencies: expected a file path (str) or None``
+     - Set ``typst_dependencies`` to a file path string, or to ``None``
+       to use the generated default.
+   * - ``typst_dependencies`` is set to the empty string
+     - ``typst_dependencies: empty path``
+     - Set a file path, or ``None`` to use the generated default.
+   * - ``typst_dependencies`` names a path that does not exist
+     - ``typst_dependencies: file not found:``
+     - Correct the path. A relative path is resolved against the source
+       directory; the message also shows the resolved path.
+   * - ``typst_dependencies`` names a path that exists but is not a
+       regular file (for example a directory)
+     - ``typst_dependencies: not a regular file:``
+     - Point ``typst_dependencies`` at the one file to copy, not at its
+       directory.
 
 .. note::
 

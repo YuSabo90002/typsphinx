@@ -121,6 +121,98 @@ Reference assets in your template using relative paths:
    imports the package directly and Typst fetches its own assets, so there
    is nothing for typsphinx to copy.
 
+Package Dependencies (``deps.typ``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+typsphinx's generated markup calls functions from five Typst Universe
+packages. Their imports live in one file per build,
+``<outdir>/_typsphinx/deps.typ``, and every content file and every wrapper
+starts with the same two lines:
+
+.. code-block:: typst
+
+   #import "/_typsphinx/deps.typ": *
+   #show: typsphinx-init
+
+The path ``/_typsphinx/deps.typ`` is root-absolute: it resolves against
+the compile root, which is the output directory -- the same rule as the
+``/_template/`` bundle imports (see :doc:`output_layout`).
+
+**The public contract.** The path ``/_typsphinx/deps.typ``, the names it
+exports, and ``typsphinx-init`` are a public contract that template
+authors may rely on. ``deps.typ`` exports these names:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 20 55
+
+   * - Package
+     - Default version
+     - Exported names typsphinx relies on
+   * - codly
+     - 1.3.0
+     - ``codly``, ``codly-init``
+   * - codly-languages
+     - 0.1.10
+     - ``codly-languages``
+   * - mitex
+     - 0.2.7
+     - ``mi``, ``mitex``
+   * - gentle-clues
+     - 1.3.1
+     - ``abstract``, ``danger``, ``error``, ``info``, ``memo``,
+       ``notify``, ``task``, ``tip``, ``warning``
+   * - diagraph
+     - 0.3.7
+     - ``render``
+   * - (defined by ``deps.typ`` itself)
+     -
+     - ``typsphinx-init``
+
+``typsphinx-init`` is a show function that sets up codly for the content
+it wraps: it applies ``codly-init`` and registers ``codly-languages`` as
+codly's language table. Imported names and top-level show rules do not
+cross ``#include()``, so every content file and every wrapper imports
+``deps.typ`` and applies ``#show: typsphinx-init`` itself. A template does
+not need to apply ``typsphinx-init``; the wrapper already does.
+
+**Take package names from deps.typ, do not pin versions.** A template
+that needs one of these functions imports it from the shared file instead
+of pinning its own ``@preview/`` version:
+
+.. code-block:: typst
+
+   // _typst/custom.typ
+   #import "/_typsphinx/deps.typ": info, codly
+
+A template that pins its own version loads a second copy of the package
+next to the one the generated markup uses: Typst has no version
+resolution, so both load side by side with no error, and the document
+mixes two versions.
+
+**Drift warning.** typsphinx scans every ``.typ`` file of each used
+template bundle after copying it. When a file pins one of the five
+packages at a version different from the effective ``deps.typ``, the
+build prints one warning per file and package, and still succeeds:
+
+.. code-block:: text
+
+   WARNING: template dependency drift: '_template/<key>/<file>.typ' pins @preview/<package>:<template version>, but _typsphinx/deps.typ has @preview/<package>:<deps.typ version>
+
+The warning is a best-effort aid, not a guarantee. It reads literal
+``@preview/<package>:<version>`` text with comments removed, so it cannot
+see an import string built at run time or an import reached through a
+file outside the bundle.
+
+**Replacing deps.typ.** The ``typst_dependencies`` configuration value
+(see :doc:`configuration`) replaces the generated file with your own,
+copied verbatim. Only the default versions in the table above are
+supported. The translator emits calls written against the APIs of those
+default versions, so output built with a replaced ``deps.typ`` is not
+guaranteed to compile or to render correctly; a replaced file is used at
+your own risk. A replaced file must still export every name in the table
+above.
+
 Basic Structure
 ~~~~~~~~~~~~~~~
 

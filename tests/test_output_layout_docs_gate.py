@@ -149,6 +149,17 @@ class TestOutputLayoutBuildFileSets:
             f"stdout: {result.stdout}\nstderr: {result.stderr}"
         )
 
+        deps_typ = build_dir / "_typsphinx" / "deps.typ"
+        assert deps_typ.is_file(), (
+            "Expected the shared dependencies file under the reserved "
+            f"_typsphinx/ directory:\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+        for typ_file in (wrapper_typ, content_typ):
+            assert '#import "/_typsphinx/deps.typ": *' in typ_file.read_text(
+                encoding="utf-8"
+            ), f"Expected {typ_file.name} to import /_typsphinx/deps.typ."
+
         assert "#show: project.with(" in wrapper_typ.read_text(
             encoding="utf-8"
         ), "Expected the wrapper file manual.typ to carry the template application."
@@ -447,6 +458,15 @@ class TestPublishedOutputLayoutTextMatchesBuild:
                 "docs/source/user_guide/output_layout.rst does not name the "
                 f"refused target value {target_value!r}."
             )
+
+    def test_page_names_the_reserved_deps_directory(self):
+        """docs/source/user_guide/output_layout.rst names the reserved
+        ``_typsphinx/`` directory the bare-target build writes
+        ``deps.typ`` into, and the outdir compile-root rule (M002 T005)."""
+        text = OUTPUT_LAYOUT_RST_PATH.read_text(encoding="utf-8")
+        assert "_typsphinx/deps.typ" in text
+        assert "``_typsphinx/`` are reserved" in text
+        assert "--root build/typst" in text
 
     def test_page_states_the_collision_abort(self):
         """docs/source/user_guide/output_layout.rst quotes the collision

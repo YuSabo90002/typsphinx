@@ -3,9 +3,9 @@ id: T005
 title: Document typst_dependencies and the public /_typsphinx/deps.typ contract, record the change in CHANGELOG and CLAUDE.md, and prove the final quality bar
 wave: 2
 deps: [T001, T002, T003, T004]
-status: pending
-agent: null
-base: null
+status: done
+agent: build_T005
+base: c7403260735fb1e8ae025765ff1c7291824afc46
 worktree: null
 task_branch: null
 files:
@@ -68,3 +68,40 @@ Heavy: yes
 ## Log
 
 - 2026-11-03 — created by planner
+- 2026-11-03 — build_T005 (coder): implemented. configuration.rst: new `Typst Dependencies` subsection after `Custom Template File` (path rule srcdir-relative/absolute like `typst_template`, one global file, byte-identical verbatim copy, generated default when `None`, build stop, N4 warning box: only default versions supported, replaced file not guaranteed / own risk, must export every contract name); `When the Build Stops` intro now names a bad `typst_dependencies` value and gains four rows publishing the T002 fragments `typst_dependencies: expected a file path (str) or None`, `typst_dependencies: empty path`, `typst_dependencies: file not found:`, `typst_dependencies: not a regular file:` (fixes the T002-noted registry catalogue failure). templates.rst: new `Package Dependencies (``deps.typ``)` subsection under Custom Template Files — two-line preamble, root-absolute path rule, public-contract table (package / default version / exported names, all 16 K3 names), what `typsphinx-init` does, author guidance (`#import "/_typsphinx/deps.typ": info, codly`, do not pin), K5 drift warning shape with placeholders as a best-effort aid (comments ignored, cannot see run-time-built or indirectly reached imports), N4. output_layout.rst: `_typsphinx/` named as reserved next to `_template/` (refused via the existing collision check), every content file/wrapper imports `/_typsphinx/deps.typ`, compile root must be the outdir and `--root <outdir>` is always correct. CHANGELOG `[Unreleased]`: `### Added` (deps.typ + typsphinx-init contract, `typst_dependencies`, drift warning) and `### Changed` (single source `typsphinx/typst_deps.py`, in-repo template cleanup, hand-compile root note); `### Planned for Future Releases` kept. tests/test_release_0_9_8_docs_gate.py: only the Unreleased check relaxed to "still carries Planned for Future Releases" (renamed `test_first_unreleased_keeps_planned_for_future_releases`, docstring updated); 0.9.8 assertions untouched. CLAUDE.md: `@preview` section rewritten for the single source and its gates; `builder.py`/`writer.py`/`template_engine.py` bullets updated, new `typst_deps.py` bullet; configuration surface lists `typst_dependencies`; toolchain-pin and NixOS sections untouched. New tests/test_deps_contract_docs_gate.py (22 tests; export list derived from `render_default_deps()` + translator `_visit_admonition` call sites; default-version rows checked against `DEFAULT_PACKAGES`; no "compatible"/"tested" in the two deps sections). tests/test_output_layout_docs_gate.py: bare-target build also asserts `_typsphinx/deps.typ` and the import in wrapper/content; new prose test for the reserved directory.
+- 2026-11-03 — build_T005 Verify (task command, verbatim except mktemp under the session scratchpad): pass, VERIFY_RC=0 — targeted 46 passed; HTML build with no warnings, both greps hit; `LC_ALL=C uv run pytest tests/` 1825 passed / 1 skipped / 0 failed; black --check (394 files unchanged), ruff clean, mypy typsphinx/ clean (10 files). The Verify syncs `--extra dev --extra docs`, so the docs extra stays installed.
+- 2026-11-03 — orchestrator Verify (sidecar gsd-path-verify/task-t005-verify): pass, exit 0; output tail:
+  ```
+   + sphinxcontrib-bibtex==2.7.0
+   + sphinxcontrib-devhelp==2.0.0
+   + sphinxcontrib-htmlhelp==2.1.0
+   + sphinxcontrib-jsmath==1.0.1
+   + sphinxcontrib-qthelp==2.0.0
+   + sphinxcontrib-serializinghtml==2.0.0
+   + tomli-w==1.2.0
+   + tox==4.64.10
+   + tox-uv==1.37.2
+   + tox-uv-bare==1.37.2
+   + twine==7.0.0
+   + types-docutils==0.23.0.20260923
+   + typing-extensions==4.16.0
+   + typsphinx==0.9.8 (from file:///home/yuta/.gsd-path/projects/4018706f853274cd7713143cf7ba094e230867e5ad2bfc5891d0cd69027eb98b/4b529697c911aff5766d6b9c03f122ba2ed9565d87a00e2f51ea62f3fd0642ec/verify/task-t005-verify)
+   + typst==0.15.0
+   + urllib3==2.7.0
+   + uv==0.13.6
+   + virtualenv==21.5.1
+  All done! ✨ 🍰 ✨
+  394 files would be left unchanged.
+  ```
+- 2026-11-03 — orchestrator regression Verify of T001 (sidecar gsd-path-verify/task-t005-verify): pass, exit 0; output tail:
+  ```
+  ........................................................................ [ 25%]
+  ........................................................................ [ 51%]
+  ........................................................................ [ 77%]
+  ...............................................................          [100%]
+  279 passed in 18.43s
+  /tmp/tmp.rXPEuY8G2E/docs/typsphinx.pdf
+  Resolved 95 packages in 0.52ms
+  Checked 94 packages in 0.47ms
+  WARNING: html_static_path entry '_static' does not exist
+  ```
