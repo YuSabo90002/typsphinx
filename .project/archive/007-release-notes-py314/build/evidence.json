@@ -1,0 +1,32 @@
+{
+  "canonical_project_dir": ".project",
+  "command": "verify-landed",
+  "head": "35fa1e24a92fdc7d2fbb0208e7c4359758911260",
+  "project_dir": ".project",
+  "tasks": [
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M007",
+        "candidates": [
+          {
+            "base": "bed17f9f476e7027924236e9ffe014f74f6877e1",
+            "commit": "1feaaf53c6bd7bed85d4e2d78b0bd2aed274928c",
+            "valid": true
+          }
+        ],
+        "head": "35fa1e24a92fdc7d2fbb0208e7c4359758911260",
+        "subject": "T001: Add the Python 3.14 bullet to the 0.10.0 notes, make the advanced.rst ieee_abstract example single-line with a pinning test, and mark documentclass optional in README"
+      },
+      "landed_commit": "1feaaf53c6bd7bed85d4e2d78b0bd2aed274928c",
+      "reasons": [],
+      "task": {
+        "base": "bed17f9f476e7027924236e9ffe014f74f6877e1",
+        "id": "T001",
+        "status": "done",
+        "task_file": ".project/tasks/T001-release-notes-py314-and-doc-fixes.md"
+      }
+    }
+  ]
+}

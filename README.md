@@ -81,7 +81,9 @@ typst_use_mitex = True  # Use mitex for LaTeX math (default: True)
 #### `typst_documents`
 
 `typst_documents` is the list of master documents to build. Each entry is a
-tuple `(source, target, title, author, documentclass)`, and each entry
+tuple `(source, target, title, author[, documentclass])` — the fifth element
+`documentclass` is optional and, when given, is a template registry key into
+`typst_document_templates` — and each entry
 produces a wrapper `.typ` file at the entry's target and, under the
 `typstpdf` builder, one compiled `.pdf` from that wrapper; the entry's
 source document is additionally emitted as its own `.typ` file holding the
@@ -230,7 +232,7 @@ For more details, see the [Sphinx Extension API documentation](https://www.sphin
 
 Below are the main configuration options. This is not the complete set — see [docs/source/user_guide/configuration.rst](docs/source/user_guide/configuration.rst) for the full reference:
 
-- `typst_documents`: Master documents to build, as `[(source, target, title, author, documentclass), ...]` — optional; when unset, typsphinx derives a single master from `root_doc`/`project`/`author` (target `<project>.typ`), and an explicit value always overrides that derived default. The target names the entry's wrapper file.
+- `typst_documents`: Master documents to build, as `[(source, target, title, author[, documentclass]), ...]`, where the fifth element `documentclass` is optional (a template registry key into `typst_document_templates`) — optional; when unset, typsphinx derives a single master from `root_doc`/`project`/`author` (target `<project>.typ`), and an explicit value always overrides that derived default. The target names the entry's wrapper file.
 - `typst_use_mitex`: Enable/disable mitex for LaTeX math
 - `typst_template`: Custom template path
 - `typst_elements`: Template parameters (paper size, fonts, etc.)

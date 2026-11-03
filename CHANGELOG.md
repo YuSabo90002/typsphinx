@@ -49,6 +49,9 @@ migration entry under Changed below.
   (`template dependency drift: ...`). The build still succeeds. The scan is a
   best-effort aid: it ignores comments and cannot see import strings built at run
   time or imports reached through other files.
+- **Python 3.14 support.** The package declares the
+  `Programming Language :: Python :: 3.14` classifier, and the CI test matrix
+  (Ubuntu, Windows and macOS) and tox (`py314`) now run the test suite on Python 3.14.
 
 ### Changed
 
