@@ -3,9 +3,9 @@ id: T002
 title: Prove codly 2.0 code blocks at the surface — option/edge/caption PDF gate and the four-project code-mode .typ gate
 wave: 1
 deps: [T001]
-status: pending
-agent: null
-base: null
+status: done
+agent: build_T002
+base: f02c214194731a8ba4b8a7415d1cf29afa9ebe50
 worktree: null
 task_branch: null
 files:
@@ -80,3 +80,32 @@ Heavy: yes
 ## Log
 
 - 2026-11-03 — created by planner
+- 2026-11-03 — build_T002: implemented within `files`; no translator change needed (`typsphinx/translator.py` and `tests/test_translator.py` untouched — every SYNTHESIS medium-confidence rule rendered as stated: empty block → one row + Python badge via `skip-last-empty: false`; literalinclude with trailing newline → rows 1,2 only; `default`/`none` → no `lang:`, no badge).
+  - Fixture `tests/fixtures/codly2_render_gate/` (conf.py `numfig = True`, `highlight_language` unset; index.rst; `tab_snippet.txt`, `encoding_snippet.txt` — `.txt` so ruff/black never lint the deliberate tab/trailing whitespace; `figure.svg`). Contexts: captioned listing, list item, admonition, table cell.
+  - `tests/test_codly2_render_gate.py` (24 tests): one `-E -b typstpdf -d` build; PDF read with pypdf as positioned text rows (line number = digits-only first run, badge = run in the right 30% of the page) plus a q/Q/cm/path/fill content-stream interpreter; a row is highlighted when a row-sized fill over its code column carries a paint absent from every row of un-highlighted control blocks (structure, no colour constants). Covers AC4–AC11, incl. Listing 1 / Figure 1 / Listing 2 ordering, numref/ref text, out-of-range warning (LC_ALL=C in subprocess env). E2 PDF text: tab ↔ whitespace, each non-ASCII char ↔ itself or one NUL (.notdef) — measured: compiling with `ignore_system_fonts=True` (the ubuntu/windows CI case, cf. test_diagraph_escaping_render_gate) extracts CJK/emoji as `\x00`; a dedicated test recompiles that way. Byte identity is asserted on the decoded `.typ` string vs the file (read_text, CRLF-safe) and the doctree text.
+  - `tests/test_codly2_output_gate.py` (10 tests): `-b typst -d` builds of test-basic, examples/basic, examples/advanced, docs/source and the fixture; content files = docname `.typ` (set asserted equal to all non-`_typsphinx`/`_template` `.typ` minus `env.config.typst_documents` wrappers). Interpretation note for AC1: the count of `codly.new(raw(` is taken over code-mode text only (string-literal spans skipped), because docs/source inline literals legitimately contain that text (`api/index`, `changelog`, `user_guide/templates` carry 2 extra in-string hits each); each code-mode hit must also parse against the Interface-contract grammar, and decoded raw() strings must equal the doctree literal/doctest texts in order. Expression termination: `\n`, or `}` in a table cell (the cell body is emitted with trailing whitespace trimmed). ``` and `codly\(` absence run over the WHOLE text of the four SC2 projects; the fixture is excluded from the whole-text fence check (its E2 block holds backtick runs in its string) and checked on code-mode text instead. C5 exemption: exactly `{ codly(...) }` and `#codly(number-format: none)` in docs `changelog.typ` inline `raw("...")` literals, each verified verbatim in CHANGELOG.md and each required to be hit.
+  - Mutation check (translator temporarily mutated, restored byte-identical): dropping the highlight offset, dropping `highlighted`, adding a duplicate/extra line, dropping `skip-last-empty`, keeping `default` as a language, and a leading `#` each turned the gates red.
+  - Verify (exact command, primary checkout): exit 0 — gate files 34 passed, no skips; `LC_ALL=C uv run pytest tests/` 1879 passed, 1 skipped, 0 failed; black --check 390 unchanged; ruff clean; mypy clean.
+- 2026-11-03 — orchestrator Verify (sidecar gsd-path-verify/task-t002-verify): pass, exit 0; output tail:
+  ```
+   + sphinxcontrib-bibtex==2.7.0
+   + sphinxcontrib-devhelp==2.0.0
+   + sphinxcontrib-htmlhelp==2.1.0
+   + sphinxcontrib-jsmath==1.0.1
+   + sphinxcontrib-qthelp==2.0.0
+   + sphinxcontrib-serializinghtml==2.0.0
+   + tomli-w==1.2.0
+   + tox==4.64.10
+   + tox-uv==1.37.2
+   + tox-uv-bare==1.37.2
+   + twine==7.0.0
+   + types-docutils==0.23.0.20260923
+   + typing-extensions==4.16.0
+   + typsphinx==0.9.8 (from file:///home/yuta/.gsd-path/projects/4018706f853274cd7713143cf7ba094e230867e5ad2bfc5891d0cd69027eb98b/4b529697c911aff5766d6b9c03f122ba2ed9565d87a00e2f51ea62f3fd0642ec/verify/task-t002-verify)
+   + typst==0.15.0
+   + urllib3==2.7.0
+   + uv==0.13.6
+   + virtualenv==21.5.1
+  All done! ✨ 🍰 ✨
+  390 files would be left unchanged.
+  ```
