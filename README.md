@@ -281,6 +281,7 @@ typsphinx/
 │   ├── translator.py       # Node translator
 │   ├── template_engine.py  # Template processor
 │   ├── pdf.py              # PDF generation
+│   ├── typst_deps.py       # Typst @preview package versions
 │   └── templates/          # Default templates
 ├── tests/                  # Test suite
 ├── docs/                   # Documentation

@@ -63,7 +63,7 @@ _CODLY_INIT_RE = re.compile(r"codly-init|codly\(languages")
 def test_five_specs_appear_only_in_typst_deps_module():
     """SC1: under `typsphinx/`, only `typst_deps.py` names a five-package spec."""
     matches = sorted(
-        str(p.relative_to(REPO_ROOT))
+        p.relative_to(REPO_ROOT).as_posix()
         for pattern in ("*.py", "*.typ")
         for p in PACKAGE_DIR.rglob(pattern)
         if _FIVE_SPEC_RE.search(p.read_text(encoding="utf-8"))

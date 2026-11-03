@@ -3,9 +3,9 @@ id: T001
 title: Make the eight Windows-failing tests platform-independent and add typst_deps.py to the README tree
 wave: 1
 deps: []
-status: pending
-agent: null
-base: null
+status: done
+agent: build_T001
+base: 3307123fceb391388cb8be1dab03467ad2913a75
 worktree: null
 task_branch: null
 files:
@@ -63,3 +63,27 @@ Heavy: yes
 ## Log
 
 - 2026-11-03 — created by plan (quick mode)
+- 2026-11-03 — build_T001 (coder): Pre-fix Windows simulation `env -u NO_COLOR FORCE_COLOR=1 LC_ALL=C uv run pytest tests/test_template_dependency_drift_gate.py -o addopts="" -q` → 6 failed / 22 passed (each captured line kept a trailing `\x1b[39;49;00m`), confirming the simulation colourises stderr on Linux. Changes: drift gate strips every ANSI SGR sequence (`ANSI_SGR_RE = r"\x1b\[[0-9;]*m"`) from each stderr line in `_drift_messages()` before the marker test/slice — all assertions, expected messages, counts, and order unchanged; version-sync test uses `p.relative_to(REPO_ROOT).as_posix()`, expected list unchanged; hand-compile gate adds `_names_missing_template()` (normalises `\` to `/` before matching `MISSING_TEMPLATE_FRAGMENT`), used by `test_compile_without_root_raises_naming_the_missing_template`, plus `TestMissingTemplateMatchIsSeparatorAgnostic` (3 matching forms parametrized, `/x/_typsphinx/other.typ` rejected); README Project Structure gains `typst_deps.py` under `typsphinx/`. Task Verify run in full: exit 0 — FORCE_COLOR drift gate 28 passed; three-file run 48 passed; grep/README checks pass; `LC_ALL=C uv run pytest tests/` 1829 passed, 1 skipped; black --check, ruff, mypy clean. No-colour drift run also 28 passed. docs extra still installed after sync (furo, myst-parser present).
+- 2026-11-03 — orchestrator Verify (sidecar gsd-path-verify/task-t001-verify): pass, exit 0; output tail:
+  ```
+   + sphinxcontrib-bibtex==2.7.0
+   + sphinxcontrib-devhelp==2.0.0
+   + sphinxcontrib-htmlhelp==2.1.0
+   + sphinxcontrib-jsmath==1.0.1
+   + sphinxcontrib-qthelp==2.0.0
+   + sphinxcontrib-serializinghtml==2.0.0
+   + tomli-w==1.2.0
+   + tox==4.64.10
+   + tox-uv==1.37.2
+   + tox-uv-bare==1.37.2
+   + twine==7.0.0
+   + types-docutils==0.23.0.20260923
+   + typing-extensions==4.16.0
+   + typsphinx==0.9.8 (from file:///home/yuta/.gsd-path/projects/4018706f853274cd7713143cf7ba094e230867e5ad2bfc5891d0cd69027eb98b/4b529697c911aff5766d6b9c03f122ba2ed9565d87a00e2f51ea62f3fd0642ec/verify/task-t001-verify)
+   + typst==0.15.0
+   + urllib3==2.7.0
+   + uv==0.13.6
+   + virtualenv==21.5.1
+  All done! ✨ 🍰 ✨
+  394 files would be left unchanged.
+  ```

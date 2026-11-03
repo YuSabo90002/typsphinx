@@ -54,6 +54,16 @@ OUTPUT_LAYOUT_RST_PATH = (
 MISSING_TEMPLATE_FRAGMENT = "_typsphinx/deps.typ"
 
 
+def _names_missing_template(error_text: str) -> bool:
+    """True when ``error_text`` names ``MISSING_TEMPLATE_FRAGMENT``.
+
+    typst writes the missing path with native separators -- on Windows
+    ``\\\\?\\C:\\...\\_typsphinx\\deps.typ`` -- so ``\\`` is normalised to
+    ``/`` before matching.
+    """
+    return MISSING_TEMPLATE_FRAGMENT in error_text.replace("\\", "/")
+
+
 def _run_sphinx_build(
     source_dir: Path, build_dir: Path, builder: str
 ) -> subprocess.CompletedProcess:
@@ -219,7 +229,7 @@ class TestNestedTargetWrapperNeedsTheOutdirAsRoot:
         with pytest.raises(Exception) as excinfo:
             typst.compile(str(build["wrapper_path"]))
         error_text = str(excinfo.value)
-        assert MISSING_TEMPLATE_FRAGMENT in error_text, (
+        assert _names_missing_template(error_text), (
             f"Expected the raised error to name the root-absolute file "
             f"typsphinx could not find ({MISSING_TEMPLATE_FRAGMENT!r}), so "
             f"a future, unrelated failure cannot masquerade as this one. "
@@ -233,6 +243,27 @@ class TestNestedTargetWrapperNeedsTheOutdirAsRoot:
         assert len(pdf_bytes) > 0, (
             "Expected a non-empty compile result for the nested-target "
             "wrapper when the output directory is passed as root."
+        )
+
+
+class TestMissingTemplateMatchIsSeparatorAgnostic:
+    """typst names the missing file with native separators; the match must
+    accept both ``/`` and ``\\`` forms and still reject a different file."""
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            r"\\?\C:\x\_typsphinx\deps.typ",
+            r"C:\x\_typsphinx\deps.typ",
+            "/x/_typsphinx/deps.typ",
+        ],
+    )
+    def test_both_separator_forms_match(self, path):
+        assert _names_missing_template(f"file not found (searched at {path})"), path
+
+    def test_different_missing_file_does_not_match(self):
+        assert not _names_missing_template(
+            "file not found (searched at /x/_typsphinx/other.typ)"
         )
 
 
