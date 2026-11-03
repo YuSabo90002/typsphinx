@@ -22,10 +22,10 @@ Use the charged-ieee package for IEEE-style papers:
    typst_package = "@preview/charged-ieee:0.1.4"
 
    # Configure template with parameters
-   ieee_abstract = """
-   This paper presents novel approaches to machine learning
-   applications in computer vision.
-   """
+   ieee_abstract = (
+       "This paper presents novel approaches to machine learning "
+       "applications in computer vision."
+   )
 
    ieee_keywords = ["Machine Learning", "Computer Vision", "AI"]
 

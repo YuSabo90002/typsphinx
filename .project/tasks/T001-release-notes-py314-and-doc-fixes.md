@@ -3,9 +3,9 @@ id: T001
 title: Add the Python 3.14 bullet to the 0.10.0 notes, make the advanced.rst ieee_abstract example single-line with a pinning test, and mark documentclass optional in README
 wave: 1
 deps: []
-status: pending
-agent: null
-base: null
+status: done
+agent: build_T001
+base: bed17f9f476e7027924236e9ffe014f74f6877e1
 worktree: null
 task_branch: null
 files:
@@ -58,3 +58,27 @@ Heavy: yes
 ## Log
 
 - 2026-11-03 — created by plan (quick mode)
+- 2026-11-03 — build_T001: added tests/test_advanced_example_abstract_gate.py (ast.parse of the advanced.rst code block, ast.literal_eval of the ieee_abstract RHS, no exec; asserts no newline, same words, and TemplateEngine._format_typst_value output has no line break); pre-fix RED confirmed on unmodified advanced.rst (2 failed, 1 passed). advanced.rst ieee_abstract rewritten as parenthesised adjacent string literals (same words). CHANGELOG.md: one "Python 3.14 support" bullet appended to `## [0.10.0]` `### Added` (classifier, CI matrix ubuntu/windows/macos, tox py314); heading and other lines untouched. README.md: both typst_documents tuple descriptions now read `author[, documentclass]` and state the fifth element is optional (template registry key into `typst_document_templates`). Verify (exact command) exit 0: focused gates passed; full suite 1897 passed, 1 skipped; black 400 unchanged; ruff all checks passed; mypy no issues in 10 files.
+- 2026-11-03 — orchestrator Verify (sidecar gsd-path-verify/task-t001-verify): pass, exit 0; output tail:
+  ```
+   + sphinxcontrib-bibtex==2.7.0
+   + sphinxcontrib-devhelp==2.0.0
+   + sphinxcontrib-htmlhelp==2.1.0
+   + sphinxcontrib-jsmath==1.0.1
+   + sphinxcontrib-qthelp==2.0.0
+   + sphinxcontrib-serializinghtml==2.0.0
+   + tomli-w==1.2.0
+   + tox==4.64.10
+   + tox-uv==1.37.2
+   + tox-uv-bare==1.37.2
+   + twine==7.0.0
+   + types-docutils==0.23.0.20260923
+   + typing-extensions==4.16.0
+   + typsphinx==0.10.0 (from file:///home/yuta/.gsd-path/projects/4018706f853274cd7713143cf7ba094e230867e5ad2bfc5891d0cd69027eb98b/4b529697c911aff5766d6b9c03f122ba2ed9565d87a00e2f51ea62f3fd0642ec/verify/task-t001-verify)
+   + typst==0.15.0
+   + urllib3==2.7.0
+   + uv==0.13.6
+   + virtualenv==21.5.1
+  All done! ✨ 🍰 ✨
+  400 files would be left unchanged.
+  ```
