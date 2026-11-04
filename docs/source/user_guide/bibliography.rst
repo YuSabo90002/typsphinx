@@ -15,6 +15,21 @@ The practical consequence is that what sphinxcontrib-bibtex supports is what
 typsphinx supports, and the constraints you can trip are its constraints rather
 than typsphinx's.
 
+Plain reStructuredText Citations
+--------------------------------
+
+Plain reStructuredText citations need no extension at all. A ``[Ref]_``
+reference and its ``.. [Ref]`` citation target render directly:
+
+.. code-block:: rst
+
+   See the original paper [Smith2020]_.
+
+   .. [Smith2020] J. Smith, *A Paper*, 2020.
+
+The rest of this page covers BibTeX-based citations, which need
+sphinxcontrib-bibtex.
+
 Setup
 -----
 

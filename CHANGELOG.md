@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+- README simplified: configuration, advanced usage and development details moved to the manual.
+
 ### Planned for Future Releases
 - Index generation
 - Pre-commit hooks

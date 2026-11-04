@@ -17,9 +17,17 @@ Key Features
 - **Self-Contained PDF Generation**: Self-contained PDF generation via typst-py
 - **Customizable Output**: Customize Typst templates and styles
 - **Cross-References**: Reproduce Sphinx cross-references, indexes, and table of contents in Typst
+- **Standard docutils Nodes**: Paragraphs, sections, lists, tables, admonitions, and more
 - **Code Highlighting**: Syntax highlighting with codly package
+
+  - Line numbers for code blocks with ``:linenos:``
+  - Syntax highlighting for multiple languages
+  - Highlight specific lines with ``:emphasize-lines:``
+
 - **Math Support**: LaTeX math via mitex or native Typst math
 - **Figure Management**: Embed and reference images, tables, and figures
+- **Multi-Document Support**: Generate multiple Typst files with toctree integration using ``#include()``
+- **Bibliographies and Citations**: Plain ``[Ref]_`` reStructuredText citations render directly; BibTeX citations work through sphinxcontrib-bibtex (see :doc:`user_guide/bibliography`)
 
 Quick Links
 -----------

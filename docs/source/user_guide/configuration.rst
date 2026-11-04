@@ -133,6 +133,24 @@ output, doing so would republish the project's Sphinx template directory
 in the build output. This repository uses ``_typst/`` for exactly that
 reason.
 
+Template Parameter Mapping
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``typst_template_mapping`` maps Sphinx metadata to template parameters:
+
+.. code-block:: python
+
+   typst_template_mapping = {
+       "project": "doc_title",
+       "author": "doc_authors",
+       "release": "version",
+   }
+
+Keys are Sphinx metadata names; values are the template parameter names
+they map to. When the value is unset, the default mapping sends
+``project`` to ``title``, ``author`` to ``authors`` and ``release`` to
+``date``.
+
 Typst Dependencies
 ~~~~~~~~~~~~~~~~~~
 
@@ -663,6 +681,46 @@ Here's a complete ``conf.py`` example:
 
    # Paper size and base font size
    typst_elements = {"papersize": "us-letter", "fontsize": "20pt"}
+
+Third-Party Extension Nodes
+---------------------------
+
+typsphinx integrates with Sphinx's standard extension mechanism. For custom
+nodes from third-party extensions (for example sphinxcontrib-mermaid), register
+Typst handlers in your ``conf.py``:
+
+.. code-block:: python
+
+   # conf.py
+   def setup(app):
+       # Example: Support sphinxcontrib-mermaid diagrams
+       if "sphinxcontrib.mermaid" in app.config.extensions:
+           from sphinxcontrib.mermaid import mermaid
+           from docutils import nodes
+
+           def typst_visit_mermaid(self, node):
+               """Render Mermaid diagram as image in Typst output"""
+               # Export diagram as SVG and include in Typst
+               diagram_path = f"diagrams/{node['name']}.svg"
+               self.add_text(f'#image("{diagram_path}")\n\n')
+               raise nodes.SkipNode
+
+           # Register with Sphinx's standard API
+           app.add_node(mermaid, typst=(typst_visit_mermaid, None))
+
+How it works:
+
+- typsphinx uses Sphinx's standard ``app.add_node()`` API; no custom registry
+  is needed.
+- A node with no registered Typst handler triggers the translator's
+  ``unknown_visit()``, which logs an ``unknown node type`` warning and
+  continues into the node's children, so their text content still reaches
+  the output.
+- You can add Typst support for any extension by registering handlers in
+  ``conf.py`` this way.
+
+For more details, see the `Sphinx Extension API documentation
+<https://www.sphinx-doc.org/en/master/extdev/appapi.html#sphinx.application.Sphinx.add_node>`_.
 
 Removed Configuration Values
 -----------------------------

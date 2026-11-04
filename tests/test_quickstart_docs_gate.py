@@ -206,15 +206,27 @@ class TestPublishedQuickstartTextMatchesBuild:
             "steps produces."
         )
 
-    def test_readme_quickstart_explains_typst_documents(self):
-        """README.md's Quick Start section mentions typst_documents
-        (ROADMAP SC#1)."""
-        section = _extract_readme_quick_start_section(_read_readme_text())
-        assert "typst_documents" in section, (
-            "README.md's Quick Start section does not mention "
-            "typst_documents -- ROADMAP SC#1 requires the Quick Start to "
-            "name it."
+    def test_quickstart_explains_typst_documents(self):
+        """The ``typst_documents`` explanation lives in the manual's Quick
+        Start (ROADMAP SC#1); M008 moved it out of README.md, whose Quick
+        Start keeps a minimal conf.py with no ``#### typst_documents``
+        subsection."""
+        text = QUICKSTART_RST_PATH.read_text(encoding="utf-8")
+        assert "typst_documents" in text, (
+            "docs/source/quickstart.rst does not mention typst_documents "
+            "-- ROADMAP SC#1 requires the Quick Start to name it."
         )
+        section = _extract_readme_quick_start_section(_read_readme_text())
+        assert "#### `typst_documents`" not in section, (
+            "README.md's Quick Start regained a typst_documents subsection; "
+            "M008 SC2 keeps that detail in the manual."
+        )
+        subsections = [line for line in section.splitlines() if line.startswith("### ")]
+        assert subsections == [
+            "### Basic Configuration",
+            "### Build Typst Output",
+            "### Example Document",
+        ], subsections
 
     def test_readme_no_longer_calls_typst_documents_mandatory(self):
         """README.md's Configuration Options bullet no longer claims

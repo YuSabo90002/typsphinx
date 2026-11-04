@@ -92,14 +92,35 @@ def test_readme_documentation_links_point_at_readthedocs():
     )
 
 
+def _readme_documentation_section() -> str:
+    """README.md's ``## Documentation`` section, up to the next ``## ``."""
+    lines = _read_readme_text().splitlines()
+    start = lines.index("## Documentation")
+    end = next(
+        (i for i in range(start + 1, len(lines)) if lines[i].startswith("## ")),
+        len(lines),
+    )
+    return "\n".join(lines[start:end])
+
+
 def test_readme_deep_links_carry_language_version_prefix():
-    """README.md must have exactly 8 `/en/latest/` deep links, in order.
+    """README.md's Documentation section has exactly 8 `/en/latest/` deep
+    links, in order.
 
     Asserts both the count and the exact suffixes so a dropped, reordered,
-    or silently-retargeted link is caught -- not just a wrong host.
+    or silently-retargeted link is caught -- not just a wrong host. Deep
+    links elsewhere in README.md (M008: the Features guide links and the
+    Contributing link) are outside this set; every README deep link must
+    still carry the `/en/latest/` prefix.
     """
     text = _read_readme_text()
-    deep_links = _DEEP_LINK_RE.findall(text)
+    language_scoped = [
+        url for url in _READTHEDOCS_URL_RE.findall(text) if "/en/" in url
+    ]
+    assert len(language_scoped) == len(
+        _DEEP_LINK_RE.findall(text)
+    ), f"every README /en/ deep link must carry /en/latest/: {language_scoped}"
+    deep_links = _DEEP_LINK_RE.findall(_readme_documentation_section())
     assert len(deep_links) == len(_EXPECTED_DEEP_LINK_SUFFIXES), (
         f"expected exactly {len(_EXPECTED_DEEP_LINK_SUFFIXES)} README deep "
         f"links under /en/latest/, found {len(deep_links)}: {deep_links}"

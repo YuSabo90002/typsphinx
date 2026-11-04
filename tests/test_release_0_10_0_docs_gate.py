@@ -5,8 +5,8 @@ Reads files only -- no Sphinx build. It pins:
 
 * the version: ``pyproject.toml`` and README.md's status line name 0.10.0;
 * the CHANGELOG fold: ``## [Unreleased]`` holds only ``### Planned for
-  Future Releases``; ``## [0.10.0]`` sits directly above ``## [0.9.8]``, is
-  dated with the release-prep commit's date, and opens with a lead
+  Future Releases`` plus the one M008 README-simplification bullet;
+  ``## [0.10.0]`` sits directly above ``## [0.9.8]``, is dated with the release-prep commit's date, and opens with a lead
   paragraph naming the codly 2.0.0 breaking change and ``deps.typ``;
 * the link block for ``[Unreleased]``, ``[0.10.0]`` and ``[0.9.8]``;
 * every ``## [x.y.z]`` release heading in strictly descending PEP 440 order;
@@ -98,11 +98,23 @@ def test_readme_status_names_v0_10_0() -> None:
 
 
 def test_unreleased_holds_only_planned_for_future_releases() -> None:
+    """Since 0.10.0, ``[Unreleased]`` gained only the M008 README bullet.
+
+    ``### Planned for Future Releases`` stays, and the only other content is
+    the one ``### Documentation`` bullet recording the README simplification.
+    """
     section = _section(lambda line: line == "## [Unreleased]")
     subsections = [line for line in section if line.startswith("### ")]
-    assert subsections == ["### Planned for Future Releases"], subsections
+    assert subsections == [
+        "### Documentation",
+        "### Planned for Future Releases",
+    ], subsections
     before_planned = section[1 : section.index("### Planned for Future Releases")]
-    assert not [line for line in before_planned if line.strip()], before_planned
+    content = [line for line in before_planned if line.strip()]
+    assert len(content) == 2, content
+    assert content[0] == "### Documentation"
+    assert content[1].startswith("- README simplified"), content[1]
+    assert "manual" in content[1], content[1]
 
 
 def test_0_10_0_sits_directly_above_0_9_8() -> None:
