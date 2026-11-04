@@ -1,0 +1,56 @@
+{
+  "canonical_project_dir": ".project",
+  "command": "verify-landed",
+  "head": "5f3d15b99fcc752fc32d983daa263f4af15c12c4",
+  "project_dir": ".project",
+  "tasks": [
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M008",
+        "candidates": [
+          {
+            "base": "c913040e95620798b3349f69846fcd10edb1eef3",
+            "commit": "284337586f85ad12b8ad42cd8591f8ebaa69a684",
+            "valid": true
+          }
+        ],
+        "head": "5f3d15b99fcc752fc32d983daa263f4af15c12c4",
+        "subject": "T001: Add every README-only item to the manual and record the mapping table"
+      },
+      "landed_commit": "284337586f85ad12b8ad42cd8591f8ebaa69a684",
+      "reasons": [],
+      "task": {
+        "base": "c913040e95620798b3349f69846fcd10edb1eef3",
+        "id": "T001",
+        "status": "done",
+        "task_file": ".project/tasks/T001-move-readme-only-content-to-manual.md"
+      }
+    },
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M008",
+        "candidates": [
+          {
+            "base": "aced58a96f273064c8f5ce5bec619387c03f21f4",
+            "commit": "28d0e7d9b20223143a13e52bd27097e127b2312b",
+            "valid": true
+          }
+        ],
+        "head": "5f3d15b99fcc752fc32d983daa263f4af15c12c4",
+        "subject": "T002: Rewrite README.md to the approved shape, update its gates, add the CHANGELOG bullet"
+      },
+      "landed_commit": "28d0e7d9b20223143a13e52bd27097e127b2312b",
+      "reasons": [],
+      "task": {
+        "base": "aced58a96f273064c8f5ce5bec619387c03f21f4",
+        "id": "T002",
+        "status": "done",
+        "task_file": ".project/tasks/T002-rewrite-readme-and-follow-gates.md"
+      }
+    }
+  ]
+}
