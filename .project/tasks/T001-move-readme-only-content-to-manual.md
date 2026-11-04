@@ -3,9 +3,9 @@ id: T001
 title: Add every README-only item to the manual and record the mapping table
 wave: 1
 deps: []
-status: pending
-agent: null
-base: null
+status: done
+agent: build_T001
+base: c913040e95620798b3349f69846fcd10edb1eef3
 worktree: null
 task_branch: null
 files:
@@ -65,3 +65,39 @@ Heavy: no
 ## Log
 
 - 2026-11-04 — created by plan (quick mode)
+- 2026-11-04 — build_T001 (coder): README.md@c1606cd9 compared item by item against docs/source; manual statements left unchanged (E6), README-only items added:
+  - Features "Standard docutils nodes" (paragraphs, sections, lists, tables, admonitions) → docs/source/index.rst § Key Features (new bullet)
+  - Features codly sub-bullets (`:linenos:` line numbers, multiple languages, highlight specific lines) → docs/source/index.rst § Key Features (sub-bullets under Code Highlighting; highlight stated as `:emphasize-lines:`, which the translator maps from `hl_lines`)
+  - Features "Multi-document support … toctree integration using `#include()`" → docs/source/index.rst § Key Features (new bullet)
+  - Features bibliography: plain `[Ref]_` citations render directly → docs/source/index.rst § Key Features (new bullet) and docs/source/user_guide/bibliography.rst § Plain reStructuredText Citations (new section, example verified to build and compile with typstpdf)
+  - Advanced Usage "Template Parameter Mapping" example (`project→doc_title`, `author→doc_authors`, `release→version`; keys are Sphinx metadata names, values template parameter names) → docs/source/user_guide/configuration.rst § Template Configuration › Template Parameter Mapping (new; also states the default mapping project→title, author→authors, release→date from template_engine.DEFAULT_PARAMETER_MAPPING)
+  - Advanced Usage "Working with Third-Party Extensions" (mermaid `app.add_node` example verbatim, How it works bullets, Sphinx add_node API link) → docs/source/user_guide/configuration.rst § Third-Party Extension Nodes (new; unknown_visit stated as logging `unknown node type` and continuing into children, per translator.py)
+  - Advanced Usage "Multi-Document Projects" toctree example (`:maxdepth: 2`, `:numbered:`) and "#include() with heading level adjustments" → docs/source/user_guide/output_layout.rst § Multi-Document Projects (new; offset rule `set heading(offset: heading.offset + 1)` per translator.py)
+  - Development `typst_deps.py` Project Structure line → docs/source/contributing.rst § Project Structure (one line added)
+  - Development `uv run pytest --cov=typsphinx --cov-report=html` → docs/source/contributing.rst § Running Tests (added)
+  - Development Testing Strategy example projects `examples/basic/`, `examples/advanced/` → docs/source/contributing.rst § Coding Guidelines › Testing (bullet added)
+  - Already covered, not added: `@preview` versions (templates.rst § Package Dependencies table), typst_documents explanation (configuration.rst § Typst Documents, quickstart.rst, builders.rst § Document Definitions, output_layout.rst § Wrapper and Content Files), auto-discovery (quickstart.rst note), bibliography setup/pybtex/CSL (bibliography.rst), custom template path (templates.rst/configuration.rst), typst_elements (configuration.rst § Paper Size and Format), Development setup/tox/TDD/unit+integration tests (contributing.rst). README `## Contributing` not moved (C5).
+  - Verify: pass — uv sync ok; `sphinx-build -W -E -b html` build succeeded (0 warnings); three contributing.rst greps and contributing.html grep matched; 6 docs gates 78 passed. Added text confirmed present in built index/bibliography/configuration/output_layout/contributing HTML.
+- 2026-11-04 — orchestrator Verify (sidecar gsd-path-verify/task-t001-verify): pass, exit 0; output tail:
+  ```
+   + sphinx-intl==2.4.0
+   + sphinxcontrib-applehelp==2.0.0
+   + sphinxcontrib-bibtex==2.7.0
+   + sphinxcontrib-devhelp==2.0.0
+   + sphinxcontrib-htmlhelp==2.1.0
+   + sphinxcontrib-jsmath==1.0.1
+   + sphinxcontrib-qthelp==2.0.0
+   + sphinxcontrib-serializinghtml==2.0.0
+   + tomli-w==1.2.0
+   + tox==4.64.10
+   + tox-uv==1.37.2
+   + tox-uv-bare==1.37.2
+   + twine==7.0.0
+   + types-docutils==0.23.0.20260923
+   + typing-extensions==4.16.0
+   + typsphinx==0.10.0 (from file:///home/yuta/.gsd-path/projects/4018706f853274cd7713143cf7ba094e230867e5ad2bfc5891d0cd69027eb98b/4b529697c911aff5766d6b9c03f122ba2ed9565d87a00e2f51ea62f3fd0642ec/verify/task-t001-verify)
+   + typst==0.15.0
+   + urllib3==2.7.0
+   + uv==0.13.6
+   + virtualenv==21.5.1
+  ```

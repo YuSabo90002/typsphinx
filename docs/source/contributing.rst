@@ -43,6 +43,9 @@ We use pytest for testing:
    # Run with coverage
    uv run pytest --cov
 
+   # Run tests with an HTML coverage report
+   uv run pytest --cov=typsphinx --cov-report=html
+
    # Run specific test file
    uv run pytest tests/test_builder.py
 
@@ -243,6 +246,8 @@ Testing
 - Write integration tests for complete builds
 - Use fixtures for test data
 - Test edge cases and error conditions
+- Use the example projects ``examples/basic/`` and ``examples/advanced/``
+  to check complete builds
 
 Project Structure
 -----------------
@@ -257,6 +262,7 @@ Project Structure
    │   ├── writer.py           # TypstWriter
    │   ├── translator.py       # TypstTranslator
    │   ├── template_engine.py  # Template processing
+   │   ├── typst_deps.py       # Typst @preview package versions
    │   └── templates/          # Default templates
    ├── tests/                  # Test suite
    ├── docs/                   # Documentation

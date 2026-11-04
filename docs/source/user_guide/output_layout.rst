@@ -196,6 +196,26 @@ This check runs before any file is written, so a build that fails this way
 leaves no ``.typ`` files behind, and no template bundle either. The fix is
 to choose a target that is not any document's own name.
 
+Multi-Document Projects
+-----------------------
+
+Use a toctree to combine multiple documents:
+
+.. code-block:: rst
+
+   .. toctree::
+      :maxdepth: 2
+      :numbered:
+
+      intro
+      chapter1
+      chapter2
+
+Each toctree entry becomes an ``#include()`` of that document's content file
+in the Typst output, with heading levels adjusted: a toctree's ``#include()`` calls
+run inside a scope that applies ``set heading(offset: heading.offset + 1)``, so an included
+document's headings sit one level below the document that includes it.
+
 Documents Shared by Several Masters
 ------------------------------------
 
