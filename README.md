@@ -19,19 +19,15 @@ typsphinx is a Sphinx extension that enables generating Typst documents from reS
 
 - **Convert Sphinx documentation to Typst format**: Seamlessly transform your reStructuredText/Markdown documents
 - **Standard docutils nodes**: Full support for paragraphs, sections, lists, tables, admonitions, and more
-- **Mathematical expressions**:
-  - LaTeX syntax via mitex (`@preview/mitex:0.2.7`)
-  - Native Typst math syntax
-- **Code blocks with syntax highlighting**: Using codly package (`@preview/codly:2.0.0`)
-  - Line numbers for code blocks with `:linenos:`
-  - Syntax highlighting for multiple languages
-  - Highlight specific lines
+- **Mathematical expressions**: LaTeX syntax via mitex, or native Typst math syntax
+- **Code blocks with syntax highlighting**: Using the codly package, with line numbers and highlighted lines
 - **Images and figures**: Embed images with captions and references
 - **Cross-references**: Maintain document structure with internal links
 - **Customizable templates**: Use default or custom Typst templates
 - **Direct PDF generation**: Self-contained PDF generation via typst-py (no external Typst CLI required)
 - **Multi-document support**: Generate multiple Typst files with toctree integration using `#include()`
-- **Bibliographies and citations**: Plain `[Ref]_` reStructuredText citations render directly. For BibTeX, install and enable [sphinxcontrib-bibtex](https://pypi.org/project/sphinxcontrib-bibtex/) yourself — typsphinx does not depend on it and needs no bibliography-specific configuration, because its resolved `:cite:` and `.. bibliography::` nodes are ordinary docutils nodes the existing visitors already handle. Citation and bibliography style is therefore owned by pybtex, the formatter sphinxcontrib-bibtex drives; Typst's own `#bibliography()`/`#cite()` and its CSL styles are not used. See [docs/source/user_guide/bibliography.rst](docs/source/user_guide/bibliography.rst) for the required setup and the constraints that follow from this design.
+- **Graphviz diagrams**: `.. graphviz::`, `.. digraph::` and `.. graph::` DOT diagrams compile into Typst/PDF output without a Graphviz installation ([guide](https://typsphinx.readthedocs.io/en/latest/user_guide/diagrams.html))
+- **Bibliographies and citations**: Plain reStructuredText citations and sphinxcontrib-bibtex `:cite:` / `.. bibliography::` render in the output ([guide](https://typsphinx.readthedocs.io/en/latest/user_guide/bibliography.html))
 
 ## Requirements
 
@@ -77,37 +73,6 @@ Configure Typst output in your `conf.py`:
 # Optional: Configure Typst builder
 typst_use_mitex = True  # Use mitex for LaTeX math (default: True)
 ```
-
-#### `typst_documents`
-
-`typst_documents` is the list of master documents to build. Each entry is a
-tuple `(source, target, title, author[, documentclass])` — the fifth element
-`documentclass` is optional and, when given, is a template registry key into
-`typst_document_templates` — and each entry
-produces a wrapper `.typ` file at the entry's target and, under the
-`typstpdf` builder, one compiled `.pdf` from that wrapper; the entry's
-source document is additionally emitted as its own `.typ` file holding the
-document body, as is every other document in the project. See
-[docs/source/user_guide/output_layout.rst](docs/source/user_guide/output_layout.rst)
-for the full contract and which file to compile.
-
-You never need to set it for a single-master project — leaving it unset is
-supported, and that's exactly what this Quick Start does. When unset,
-typsphinx derives a single entry from `root_doc`, `project`, and `author`:
-the target stem is `project` run through the same filename helper Sphinx's
-own LaTeX builder uses, so `project = "My Project"` yields `myproject.typ`
-and, under `typstpdf`, `myproject.pdf`. This is more than a rename — the
-derived entry makes the root document a master, so its emitted `.typ` gains
-the full template wrapper it would not otherwise receive.
-
-An explicit `typst_documents` value — including an explicit empty list `[]`
-— always overrides the derived default: Sphinx resolves your raw config
-value before falling back to the callable default.
-
-Only the documents named in `typst_documents` (or the single derived entry)
-become PDFs. A document reached only through a toctree is not a separate
-PDF — it is emitted as its own `.typ` file and pulled into its master
-through Typst's `#include()`.
 
 ### Build Typst Output
 
@@ -156,141 +121,6 @@ This will generate a Typst file with:
 - LaTeX math via mitex (or native Typst math)
 - Syntax-highlighted code blocks with codly
 
-## Advanced Usage
-
-### Custom Templates
-
-Create a custom Typst template:
-
-```python
-# conf.py
-typst_template = '_typst/custom.typ'
-```
-
-### Template Parameter Mapping
-
-Map Sphinx metadata to template parameters:
-
-```python
-# conf.py
-typst_template_mapping = {
-    'project': 'doc_title',
-    'author': 'doc_authors',
-    'release': 'version',
-}
-```
-
-Keys are Sphinx metadata names; values are the template parameter names they map to.
-
-### Multi-Document Projects
-
-Use toctree to combine multiple documents:
-
-```rst
-.. toctree::
-   :maxdepth: 2
-   :numbered:
-
-   intro
-   chapter1
-   chapter2
-```
-
-This generates `#include()` directives in Typst with proper heading level adjustments.
-
-### Working with Third-Party Extensions
-
-typsphinx integrates with Sphinx's standard extension mechanism. For custom nodes from third-party extensions (e.g., sphinxcontrib-mermaid), you can register Typst handlers in your `conf.py`:
-
-```python
-# conf.py
-def setup(app):
-    # Example: Support sphinxcontrib-mermaid diagrams
-    if 'sphinxcontrib.mermaid' in app.config.extensions:
-        from sphinxcontrib.mermaid import mermaid
-        from docutils import nodes
-
-        def typst_visit_mermaid(self, node):
-            """Render Mermaid diagram as image in Typst output"""
-            # Export diagram as SVG and include in Typst
-            diagram_path = f"diagrams/{node['name']}.svg"
-            self.add_text(f'#image("{diagram_path}")\n\n')
-            raise nodes.SkipNode
-
-        # Register with Sphinx's standard API
-        app.add_node(mermaid, typst=(typst_visit_mermaid, None))
-```
-
-**How it works**:
-- typsphinx uses Sphinx's standard `app.add_node()` API (no custom registry needed)
-- Unknown nodes trigger `unknown_visit()` which logs a warning and extracts text content
-- Users can add Typst support for any extension by registering handlers in `conf.py`
-
-For more details, see the [Sphinx Extension API documentation](https://www.sphinx-doc.org/en/master/extdev/appapi.html#sphinx.application.Sphinx.add_node).
-
-## Configuration Options
-
-Below are the main configuration options. This is not the complete set — see [docs/source/user_guide/configuration.rst](docs/source/user_guide/configuration.rst) for the full reference:
-
-- `typst_documents`: Master documents to build, as `[(source, target, title, author[, documentclass]), ...]`, where the fifth element `documentclass` is optional (a template registry key into `typst_document_templates`) — optional; when unset, typsphinx derives a single master from `root_doc`/`project`/`author` (target `<project>.typ`), and an explicit value always overrides that derived default. The target names the entry's wrapper file.
-- `typst_use_mitex`: Enable/disable mitex for LaTeX math
-- `typst_template`: Custom template path
-- `typst_elements`: Template parameters (paper size, fonts, etc.)
-- `typst_template_mapping`: Sphinx metadata to template parameter mapping
-
-## Development
-
-This project uses uv for fast package management and follows TDD (Test-Driven Development) practices.
-
-### Setup Development Environment
-
-```bash
-# Install with development dependencies
-uv sync --extra dev
-
-# Run tests
-uv run pytest
-
-# Run tests with coverage report
-uv run pytest --cov=typsphinx --cov-report=html
-
-# Run tests across multiple Python versions
-uv run tox
-
-# Run specific tox environments
-uv run tox -e lint          # Run linters (black, ruff)
-uv run tox -e type          # Run type checking (mypy)
-uv run tox -e py312         # Run tests on Python 3.12
-uv run tox -e docs-html     # Build HTML documentation
-uv run tox -e docs-pdf      # Build PDF documentation
-uv run tox -e docs          # Build both HTML and PDF docs
-uv run tox -e linkcheck     # Check external links and anchors (needs network; not run by plain tox)
-```
-
-### Testing Strategy
-
-- **Unit tests**: Cover all major components
-- **Integration tests**: Full build process validation
-- **Example projects**: `examples/basic/` and `examples/advanced/`
-
-### Project Structure
-
-```
-typsphinx/
-├── typsphinx/              # Main package
-│   ├── builder.py          # Typst builder
-│   ├── writer.py           # Doctree writer
-│   ├── translator.py       # Node translator
-│   ├── template_engine.py  # Template processor
-│   ├── pdf.py              # PDF generation
-│   ├── typst_deps.py       # Typst @preview package versions
-│   └── templates/          # Default templates
-├── tests/                  # Test suite
-├── docs/                   # Documentation
-├── examples/               # Example projects
-└── pyproject.toml          # Project configuration
-```
-
 ## Documentation
 
 **📖 Full documentation is available at [typsphinx.readthedocs.io](https://typsphinx.readthedocs.io/)**
@@ -310,20 +140,7 @@ Quick links:
 
 ## Contributing
 
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Write tests for new features
-4. Ensure all tests pass: `uv run pytest`
-5. Submit a pull request
-
-### Development Guidelines
-
-- Follow TDD (Test-Driven Development)
-- Use black for code formatting
-- Follow Sphinx extension conventions
-- Add tests for all new features
+See the [Contributing Guide](https://typsphinx.readthedocs.io/en/latest/contributing.html).
 
 ## License
 
@@ -336,7 +153,9 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - Integrates [mitex](https://github.com/mitex-rs/mitex) for LaTeX math
 - Uses [codly](https://typst.app/universe/package/codly) for code highlighting
 - Uses [gentle-clues](https://typst.app/universe/package/gentle-clues) for admonitions
-- Developed with [Claude Code](https://claude.com/product/claude-code) and [GSD](https://github.com/open-gsd/gsd-core) (spec-driven development for AI coding agents)
+- Uses [diagraph](https://typst.app/universe/package/diagraph) to render Graphviz diagrams
+- Uses [typst-py](https://github.com/messense/typst-py) to perform the Typst compilation
+- Developed with [Claude Code](https://claude.com/product/claude-code) and [GSD Path](https://github.com/open-gsd/gsd-path)
 
 ## Version History
 
