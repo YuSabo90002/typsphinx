@@ -5,7 +5,8 @@ Reads files only -- no Sphinx build. It pins:
 
 * the version: ``pyproject.toml`` and README.md's status line name 0.10.0;
 * the CHANGELOG fold: ``## [Unreleased]`` holds only ``### Planned for
-  Future Releases`` plus the one M008 README-simplification bullet;
+  Future Releases``, the one M008 README-simplification bullet, and the M009
+  ``### Fixed`` entry for issue #194;
   ``## [0.10.0]`` sits directly above ``## [0.9.8]``, is dated with the release-prep commit's date, and opens with a lead
   paragraph naming the codly 2.0.0 breaking change and ``deps.typ``;
 * the link block for ``[Unreleased]``, ``[0.10.0]`` and ``[0.9.8]``;
@@ -98,23 +99,46 @@ def test_readme_status_names_v0_10_0() -> None:
 
 
 def test_unreleased_holds_only_planned_for_future_releases() -> None:
-    """Since 0.10.0, ``[Unreleased]`` gained only the M008 README bullet.
+    """Since 0.10.0, ``[Unreleased]`` gained the M008 README bullet and M009's fix.
 
-    ``### Planned for Future Releases`` stays, and the only other content is
-    the one ``### Documentation`` bullet recording the README simplification.
+    ``### Planned for Future Releases`` stays; above it sit the M009
+    ``### Fixed`` entry (issue #194) and the one ``### Documentation`` bullet
+    recording the README simplification.
     """
     section = _section(lambda line: line == "## [Unreleased]")
     subsections = [line for line in section if line.startswith("### ")]
     assert subsections == [
+        "### Fixed",
         "### Documentation",
         "### Planned for Future Releases",
     ], subsections
-    before_planned = section[1 : section.index("### Planned for Future Releases")]
-    content = [line for line in before_planned if line.strip()]
-    assert len(content) == 2, content
-    assert content[0] == "### Documentation"
-    assert content[1].startswith("- README simplified"), content[1]
-    assert "manual" in content[1], content[1]
+    documentation = section[
+        section.index("### Documentation")
+        + 1 : section.index("### Planned for Future Releases")
+    ]
+    content = [line for line in documentation if line.strip()]
+    assert len(content) == 1, content
+    assert content[0].startswith("- README simplified"), content[0]
+    assert "manual" in content[0], content[0]
+
+
+def test_unreleased_fixed_records_issue_194() -> None:
+    """M009 SC7: the ``### Fixed`` entry names the three constructs and #194."""
+    section = _section(lambda line: line == "## [Unreleased]")
+    fixed = section[section.index("### Fixed") + 1 : section.index("### Documentation")]
+    entries = [line for line in fixed if line.startswith("- ")]
+    assert len(entries) == 1, entries
+    text = " ".join(" ".join(fixed).split())
+    for fragment in (
+        "Option lists",
+        "definition-list classifiers",
+        "productionlists",
+        "#194",
+        "PDF compile",
+        "without a Typst visitor",
+        "unknown node type",
+    ):
+        assert fragment in text, fragment
 
 
 def test_0_10_0_sits_directly_above_0_9_8() -> None:

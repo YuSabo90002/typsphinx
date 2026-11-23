@@ -80,6 +80,16 @@ def test_preamble_keeps_badges_description_and_link_line() -> None:
         assert fragment in link_line[0], fragment
 
 
+def test_requirements_state_upper_bounds() -> None:
+    """M009 SC6: the Sphinx and typst-py bounds match pyproject.toml."""
+    body = _body("## Requirements")
+    assert "- Sphinx 9.1 or higher (below 10)" in body, body
+    assert "- typst-py 0.15.0 or higher (below 0.16)" in body, body
+    pyproject = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    assert '"sphinx>=9.1,<10"' in pyproject
+    assert '"typst>=0.15.0,<0.16"' in pyproject
+
+
 # --- SC2 ----------------------------------------------------------------
 
 

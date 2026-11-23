@@ -764,6 +764,17 @@ class TypstTranslator(SphinxTranslator):
         self._in_attribution = False
         self._attribution_has_content: bool = False
 
+        # Productionlist rule-cell concat context (M009, issue #194): a
+        # production's rule children (Text runs, resolved/unresolved
+        # :token: references) are the code-mode cell argument of grid(...),
+        # so adjacent expressions must be + separated.
+        self._in_production = False
+        self._production_has_content: bool = False
+
+        # unknown_visit statement-context fallback frames: (node, saved
+        # list_item_needs_separator), popped by unknown_departure.
+        self._unknown_statement_stack: list[tuple[nodes.Node, bool]] = []
+
         # Definition list state
         self.in_definition_list = False
         self._in_term = False  # Track if buffering a def-list term for + concatenation
@@ -1629,6 +1640,7 @@ class TypstTranslator(SphinxTranslator):
         ("_in_term", "_term_has_content"),
         ("_in_field_body", "_field_body_has_content"),
         ("_in_attribution", "_attribution_has_content"),
+        ("_in_production", "_production_has_content"),
     )
 
     def _inline_concat_context(self) -> tuple[str, str] | None:
@@ -2893,6 +2905,315 @@ class TypstTranslator(SphinxTranslator):
 
         self.current_term_buffer = None
         self.current_definition_buffer = None
+
+    # ------------------------------------------------------------------
+    # Classifiers, option lists and productionlists (M009, issue #194).
+    #
+    # Before these visitors existed the nodes fell through unknown_visit,
+    # whose children were juxtaposed in the code-mode body ("expected
+    # semicolon or line break") -- and a classifier's text landed before the
+    # whole terms(...) call. Each construct now reuses the definition-list
+    # machinery (option lists, classifiers) or emits one self-contained
+    # grid(...) statement (productionlists).
+    # ------------------------------------------------------------------
+
+    def _capture_children(self, children: list[nodes.Node]) -> str:
+        """
+        Walk ``children`` through this translator into a private buffer and
+        return the captured output, leaving the real output stream untouched.
+
+        ``add_text`` writes to ``table_cell_content`` (not ``self.body``)
+        inside a table cell, so both destinations are swapped for the
+        duration of the walk and restored afterwards.
+
+        Args:
+            children: The nodes to render.
+
+        Returns:
+            The concatenated output of the walked nodes.
+        """
+        buffer: list[str] = []
+        saved_body = self.body
+        in_cell = getattr(self, "in_table", False) and hasattr(
+            self, "table_cell_content"
+        )
+        saved_cell = self.table_cell_content if in_cell else buffer
+        self.body = buffer
+        if in_cell:
+            self.table_cell_content = buffer
+        try:
+            for child in children:
+                child.walkabout(self)
+        finally:
+            self.body = saved_body
+            if in_cell:
+                self.table_cell_content = saved_cell
+        return "".join(buffer)
+
+    def visit_classifier(self, node: nodes.classifier) -> None:
+        """
+        Visit a classifier (``term : classifier``) node.
+
+        A classifier is a SIBLING of its ``term`` inside the
+        ``definition_list_item``, so by the time it is visited
+        ``depart_term`` has already restored the body and stored the term
+        string in ``current_term_buffer``. Render the classifier's inline
+        children in the same ``+``-concat term context and append them to
+        that stored term as `` : `` + italics, so the classifier ends up
+        inside its own ``terms.item`` term in source order (SC2).
+
+        Args:
+            node: The classifier node
+        """
+        term = self.current_term_buffer
+        self._in_term = True
+        self._term_has_content = False
+        try:
+            content = self._capture_children(list(node.children)).strip()
+        finally:
+            self._in_term = False
+            self._term_has_content = False
+        if isinstance(term, str) and content:
+            self.current_term_buffer = f'{term} + text(" : ") + emph({content})'
+        raise nodes.SkipNode
+
+    def depart_classifier(self, node: nodes.classifier) -> None:
+        """
+        Depart a classifier node (never reached: ``visit_classifier`` raises
+        ``SkipNode`` after rendering the children itself).
+
+        Args:
+            node: The classifier node
+        """
+        pass
+
+    def visit_option_list(self, node: nodes.option_list) -> None:
+        """
+        Visit an option list node.
+
+        Rendered exactly like a definition list -- one
+        ``terms(separator: linebreak(), ...)`` statement -- with each
+        option group as the term and its description as the item body
+        (SC1). The definition-list frame, anchor and list-item separator
+        handling are reused verbatim.
+
+        Args:
+            node: The option list node
+        """
+        self.visit_definition_list(node)
+
+    def depart_option_list(self, node: nodes.option_list) -> None:
+        """
+        Depart an option list node, emitting the collected ``terms(...)``.
+
+        Args:
+            node: The option list node
+        """
+        self.depart_definition_list(node)
+
+    def visit_option_list_item(self, node: nodes.option_list_item) -> None:
+        """
+        Visit an option list item node (no markup of its own).
+
+        Args:
+            node: The option list item node
+        """
+        pass
+
+    def depart_option_list_item(self, node: nodes.option_list_item) -> None:
+        """
+        Depart an option list item node.
+
+        Args:
+            node: The option list item node
+        """
+        pass
+
+    def visit_option_group(self, node: nodes.option_group) -> None:
+        """
+        Visit an option group node: build the item's term.
+
+        Each ``option`` becomes its ``option_string`` in monospace
+        (``raw``) followed, per ``option_argument``, by the argument's
+        docutils ``delimiter`` (space or ``=``) in monospace and the
+        argument itself in italic monospace. The options of a group are
+        joined by ``, ``. The pieces are ``+``-joined (the term is the
+        code-mode 1st argument of ``terms.item``) and stored in
+        ``current_term_buffer`` for ``visit_description`` to pair, exactly
+        as ``depart_term`` does for a definition-list term.
+
+        Args:
+            node: The option group node
+        """
+        options: list[str] = []
+        for option in node.findall(nodes.option):
+            pieces: list[str] = []
+            for child in option.children:
+                # option_argument.astext() prepends the delimiter; take the
+                # argument's own text so the delimiter is emitted once.
+                text = escape_typst_string(
+                    "".join(grandchild.astext() for grandchild in child.children)
+                )
+                if isinstance(child, nodes.option_argument):
+                    delimiter = escape_typst_string(child.get("delimiter", " "))
+                    pieces.append(f'raw("{delimiter}")')
+                    pieces.append(f'emph(raw("{text}"))')
+                else:
+                    pieces.append(f'raw("{text}")')
+            if pieces:
+                options.append(" + ".join(pieces))
+        self.current_term_buffer = ' + text(", ") + '.join(options) or "[]"
+        raise nodes.SkipNode
+
+    def depart_option_group(self, node: nodes.option_group) -> None:
+        """
+        Depart an option group node (never reached: ``visit_option_group``
+        raises ``SkipNode``).
+
+        Args:
+            node: The option group node
+        """
+        pass
+
+    def visit_description(self, node: nodes.description) -> None:
+        """
+        Visit an option description node: buffered as the item body,
+        exactly like a definition-list definition.
+
+        Args:
+            node: The description node
+        """
+        self.visit_definition(node)
+
+    def depart_description(self, node: nodes.description) -> None:
+        """
+        Depart an option description node, pairing it with its term.
+
+        Args:
+            node: The description node
+        """
+        self.depart_definition(node)
+
+    #: Code-mode separator between the three grid cells of a production row.
+    _PRODUCTION_ASSIGN = 'raw("::=")'
+
+    def _production_rule(self, children: list[nodes.Node]) -> str:
+        """
+        Render a production's rule children (everything after its name) as
+        one ``+``-joined code-mode expression in monospace.
+
+        The first Text child carries the ``::=`` separator (named
+        production) or the indentation (continuation line); both are
+        stripped, as is the trailing newline of the last Text child. Text
+        runs become ``raw("...")``; ``reference``/``literal`` children (a
+        resolved or unresolved ``:token:``) are walked through the normal
+        visitors inside a dedicated concat context, so a resolved token
+        becomes ``link(<label>, raw(...))`` and an unresolved one a plain
+        ``raw(...)``.
+
+        Args:
+            children: The production's rule children.
+
+        Returns:
+            The rule expression, or ``[]`` for an empty rule.
+        """
+        pieces: list[str] = []
+        last_text = max(
+            (i for i, c in enumerate(children) if isinstance(c, nodes.Text)),
+            default=-1,
+        )
+        for index, child in enumerate(children):
+            if isinstance(child, nodes.Text):
+                text = child.astext()
+                if not pieces:
+                    text = text.lstrip()
+                    if text.startswith("::="):
+                        text = text[3:].lstrip()
+                if index == last_text:
+                    text = text.rstrip()
+                if text:
+                    pieces.append(f'raw("{escape_typst_string(text)}")')
+                continue
+            self._in_production = True
+            self._production_has_content = False
+            try:
+                rendered = self._capture_children([child]).strip()
+            finally:
+                self._in_production = False
+                self._production_has_content = False
+            if rendered:
+                pieces.append(rendered)
+        return " + ".join(pieces) or "[]"
+
+    def visit_productionlist(self, node: addnodes.productionlist) -> None:
+        """
+        Visit a productionlist (``.. productionlist::``) node.
+
+        Emits one monospace three-column ``grid(...)`` statement -- token
+        name, ``::=``, rule -- with a continuation production (empty
+        ``tokenname``) placed in the rule column under the previous rule
+        line (SC3). Each production's name cell carries a ``<label>`` for
+        every id on the production and on its ``literal_strong`` name node
+        (Sphinx puts the ``grammar-token-*`` id there), namespaced exactly
+        as the same-document ``refid`` branch of ``visit_reference``
+        namespaces it, so a ``:token:`` reference links to it.
+
+        Args:
+            node: The productionlist node
+        """
+        self._emit_id_anchors(node)
+        needs_separator = self.in_list_item and self.list_item_needs_separator
+        docname = self._current_docname()
+        cells: list[str] = []
+        for production in node.children:
+            if not isinstance(production, addnodes.production):
+                continue
+            children = list(production.children)
+            ids: list[str] = list(production.get("ids") or [])
+            rule_children: list[nodes.Node] = []
+            for child in children:
+                if isinstance(child, addnodes.literal_strong) and not rule_children:
+                    ids.extend(child.get("ids") or [])
+                    continue
+                rule_children.append(child)
+            tokenname = production.get("tokenname", "")
+            if tokenname:
+                name = f'raw("{escape_typst_string(tokenname)}")'
+                labels: list[str] = []
+                for raw_id in ids:
+                    label = self._namespace_label(docname, raw_id)
+                    if label not in labels:
+                        labels.append(label)
+                if labels:
+                    # Markup-mode block: every further label attaches to its
+                    # own zero-width metadata element before the name.
+                    extra = "".join(
+                        f"#metadata(none) <{label}>" for label in labels[1:]
+                    )
+                    name = f"[{extra}#{name} <{labels[0]}>]"
+                cells.extend([name, self._PRODUCTION_ASSIGN])
+            else:
+                cells.extend(["[]", "[]"])
+            cells.append(self._production_rule(rule_children))
+        if needs_separator:
+            self.add_text("\n")
+        self.add_text(
+            "grid(columns: 3, column-gutter: 6pt, row-gutter: 8pt, "
+            f"{', '.join(cells)})\n\n"
+        )
+        if self.in_list_item:
+            self.list_item_needs_separator = True
+        raise nodes.SkipNode
+
+    def depart_productionlist(self, node: addnodes.productionlist) -> None:
+        """
+        Depart a productionlist node (never reached: ``visit_productionlist``
+        raises ``SkipNode``).
+
+        Args:
+            node: The productionlist node
+        """
+        pass
 
     def visit_figure(self, node: nodes.figure) -> None:
         """
@@ -5805,6 +6126,19 @@ class TypstTranslator(SphinxTranslator):
         """
         Handle unknown nodes during visit.
 
+        The warning is always logged and the node's children are always
+        rendered (its text is never dropped). Where the surrounding context
+        already separates sibling expressions -- a paragraph (newline), a
+        list item (``list_item_needs_separator``), a code-mode ``+`` concat
+        context (term / link / desc parameter / field body / attribution /
+        production) or markup mode -- the children are left to descend
+        normally. Otherwise the node sits in a bare code-mode statement
+        context (document body, table cell, definition, ...), where the
+        children's juxtaposed expressions would be a Typst syntax error
+        ("expected semicolon or line break", issue #194): treat the subtree
+        like list-item content (each child newline-separated) and put the
+        node on its own lines; ``unknown_departure`` restores the state.
+
         Args:
             node: The unknown node
         """
@@ -5814,6 +6148,22 @@ class TypstTranslator(SphinxTranslator):
         logger = logging.getLogger(__name__)
         logger.warning(f"unknown node type: {node}")
 
+        if (
+            self.in_paragraph
+            or self.in_list_item
+            or self._in_markup_mode
+            or self._inline_concat_context() is not None
+        ):
+            return
+        # Bare statement context: reuse the list-item separator machinery for
+        # the node's subtree, so every child expression/statement is
+        # newline-separated from its predecessor, and newline-separate the
+        # node from its own neighbours. unknown_departure restores the state.
+        self._unknown_statement_stack.append((node, self.list_item_needs_separator))
+        self.add_text("\n")
+        self.in_list_item = True
+        self.list_item_needs_separator = False
+
     def unknown_departure(self, node: nodes.Node) -> None:
         """
         Handle unknown nodes during departure.
@@ -5821,8 +6171,15 @@ class TypstTranslator(SphinxTranslator):
         Args:
             node: The unknown node
         """
-        # Silently ignore unknown departures
-        pass
+        # Close the statement-context fallback opened by unknown_visit (only
+        # when it was opened for THIS node: a node with a visit_* but no
+        # depart_* method also reaches here).
+        stack = self._unknown_statement_stack
+        if stack and stack[-1][0] is node:
+            _, was_needs_separator = stack.pop()
+            self.in_list_item = False
+            self.list_item_needs_separator = was_needs_separator
+            self.add_text("\n")
 
     def _convert_latex_to_typst(self, latex_content: str) -> str:
         """

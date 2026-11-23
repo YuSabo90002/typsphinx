@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Option lists, definition-list classifiers and productionlists now render in Typst/PDF
+  output instead of failing the PDF compile with `expected semicolon or line break`
+  ([#194](https://github.com/YuSabo90002/typsphinx/issues/194)). A node type without a
+  Typst visitor no longer breaks compilation either: it still logs the
+  `unknown node type` warning and keeps its text.
+
 ### Documentation
 - README simplified: configuration, advanced usage and development details moved to the manual.
 
