@@ -3,9 +3,9 @@ id: T002
 title: State README dependency upper bounds and add the CHANGELOG Fixed entry
 wave: 1
 deps: []
-status: pending
-agent: null
-base: null
+status: done
+agent: build_T002
+base: dbaf40583b181d0ebc8391fdeae30c30a7d9a790
 worktree: null
 task_branch: null
 files:
@@ -53,3 +53,27 @@ Heavy: no
 ## Log
 
 - 2026-11-23 — created by plan (quick lane, orchestrator-written)
+- 2026-11-23 — build_T002: README `## Requirements` now reads "Sphinx 9.1 or higher (below 10)" and "typst-py 0.15.0 or higher (below 0.16)" (only those two lines changed vs a31fd6ca). CHANGELOG `## [Unreleased]` gains `### Fixed` (above `### Documentation`) with one entry: option lists, definition-list classifiers and productionlists render instead of failing the PDF compile (#194); visitor-less nodes no longer break compilation, still warn and keep text. Diff vs a31fd6ca is add-only. tests/test_release_0_10_0_docs_gate.py: subsection set updated to [Fixed, Documentation, Planned], Documentation bullet still asserted; new `test_unreleased_fixed_records_issue_194`. tests/test_readme_structure_gate.py: new `test_requirements_state_upper_bounds`. Verify (LC_ALL=C): exit 0 — 64 passed, both README greps hit, `### Fixed` at CHANGELOG.md:10, black --check tests/ clean, ruff check tests/ clean.
+- 2026-11-23 — orchestrator Verify (isolate gsd-path-task/T002): pass, exit 0; output tail:
+  ```
+  800:### Fixed
+  856:### Fixed
+  905:### Fixed
+  956:### Fixed
+  1029:### Fixed
+  1057:### Fixed
+  1115:### Fixed
+  1147:### Fixed
+  1173:### Fixed
+  1185:### Fixed
+  1204:### Fixed
+  1214:### Fixed
+  1371:### Fixed
+  1399:### Fixed
+  1416:### Fixed
+  All checks passed!
+  Resolved 95 packages in 0.67ms
+  Checked 85 packages in 0.45ms
+  All done! ✨ 🍰 ✨
+  384 files would be left unchanged.
+  ```

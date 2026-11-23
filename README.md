@@ -32,8 +32,8 @@ typsphinx is a Sphinx extension that enables generating Typst documents from reS
 ## Requirements
 
 - Python 3.12 or higher
-- Sphinx 9.1 or higher
-- typst-py 0.15.0 or higher
+- Sphinx 9.1 or higher (below 10)
+- typst-py 0.15.0 or higher (below 0.16)
 
 ## Installation
 
