@@ -3,9 +3,9 @@ id: T001
 title: Render option lists, classifiers and productionlists, and make unknown_visit compile-safe
 wave: 1
 deps: []
-status: pending
-agent: null
-base: null
+status: done
+agent: build_T001
+base: dbaf40583b181d0ebc8391fdeae30c30a7d9a790
 worktree: null
 task_branch: null
 files:
@@ -62,3 +62,28 @@ Heavy: yes
 ## Log
 
 - 2026-11-23 — created by plan (quick lane, orchestrator-written)
+- 2026-11-23 — build_T001 implemented: typsphinx/translator.py adds visit/depart for option_list (reuses the definition-list frame → `terms(separator: linebreak(), ...)`), option_list_item, option_group (term = `raw(opt) + raw(delim) + emph(raw(arg))`, options joined by `text(", ")`), description (reuses visit/depart_definition), classifier (rendered in the `_in_term` concat context and appended to the stored term as ` + text(" : ") + emph(...)`), productionlist (one `grid(columns: 3, column-gutter: 6pt, row-gutter: 8pt, ...)` with `[#raw(name) <label>]` anchors from the production/literal_strong ids, `raw("::=")`, rule cell via a new `_in_production` concat context; continuation rows `[], [], rule`); helper `_capture_children`; `unknown_visit` keeps the warning and descent and, only in a bare statement context (not paragraph / list item / markup / concat), newline-wraps the node and runs its subtree under the list-item separator machinery, restored by `unknown_departure` via `_unknown_statement_stack` (no SkipNode, so the direct-call unit test still passes). Gutters use pt, not em, to keep tests/test_desc_content_indent_render_gate.py's single-em-literal source grep green. New gate tests/test_unhandled_nodes_render_gate.py (18 tests) + fixtures under tests/fixtures/unhandled_nodes_render_gate/{option_list,classifier,productionlist,fallback}; the gate fails 16/18 against the base translator. No pre-existing test edited.
+- 2026-11-23 — Verify (full task command) rc=0: gate 18 passed; `LC_ALL=C uv run pytest tests/ -q` 1926 passed, 1 skipped; black/ruff/mypy clean; clean docs typstpdf build succeeded.
+- 2026-11-23 — orchestrator Verify (isolate gsd-path-task/T001): pass, exit 0; output tail:
+  ```
+  writing output... [examples/basic] done
+  writing output... [examples/index] done
+  writing output... [index] done
+  writing output... [installation] done
+  writing output... [quickstart] done
+  writing output... [user_guide/bibliography] done
+  writing output... [user_guide/builders] done
+  writing output... [user_guide/configuration] done
+  writing output... [user_guide/diagrams] done
+  writing output... [user_guide/index] done
+  writing output... [user_guide/output_layout] done
+  writing output... [user_guide/templates] done
+  typst: wrote 1 wrapper file(s) -- compile these: typsphinx.typ
+  Compiling 1 master document(s) to PDF...
+  Generated PDF: /home/yuta/.gsd-path/projects/4018706f853274cd7713143cf7ba094e230867e5ad2bfc5891d0cd69027eb98b/4b529697c911aff5766d6b9c03f122ba2ed9565d87a00e2f51ea62f3fd0642ec/task/T001/docs/_build/pdf/typsphinx.pdf
+  build succeeded.
+  Resolved 95 packages in 0.61ms
+  Checked 94 packages in 0.62ms
+  All done! ✨ 🍰 ✨
+  407 files would be left unchanged.
+  ```
