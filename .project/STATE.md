@@ -1,15 +1,15 @@
 ---
 pipeline: gsd-path/v2
 project: typsphinx
-milestone: readme-simplify
-phase: shipped
+milestone: fix-unhandled-nodes
+phase: plan
                     # inspect only for brownfield; greenfield starts at define
                     # roadmap only in program flow (CHARTER.md exists)
 status: done
-branch: gsd-path/M008
+branch: gsd-path/M009
                     # the router rebinds before any next-milestone file change
                     # the bound branch is never main; ship integrates it there
-archive: .project/archive/008-readme-simplify
+archive: null
 integration_default: pull-request
 integration: pull-request
 integration_source: default
@@ -133,3 +133,9 @@ it on completion. If this file and the artifacts disagree, the artifacts win
 - 2026-11-05 — ship — final gate passed; shipping approval pending
 - 2026-11-05 — ship — shipping approved by user: "1" (archive and ship)
 - 2026-11-05 — shipped — archive preflight passed; shipment recorded
+- 2026-11-05 — inspect — next milestone bound: gsd-path/M009 at base a31fd6ca45bfb1a1873f3f191ca8fb565416e2e9; previous M008 ship 979cca2e3ea0b62b9ac9188ab820f46668edc72c archive .project/archive/008-readme-simplify integrated via PR #195 landing a31fd6ca45bfb1a1873f3f191ca8fb565416e2e9
+- 2026-11-07 — inspect — inspection artifacts passed
+- 2026-11-07 — define — definition started
+- 2026-11-23 — define — milestone intent approved
+- 2026-11-23 — plan — planning started
+- 2026-11-23 — plan — plan approved
