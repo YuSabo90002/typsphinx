@@ -1,0 +1,56 @@
+{
+  "canonical_project_dir": ".project",
+  "command": "verify-landed",
+  "head": "f8dac86bd4230b8b8993d138be074711fb02a08c",
+  "project_dir": ".project",
+  "tasks": [
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M009",
+        "candidates": [
+          {
+            "base": "dbaf40583b181d0ebc8391fdeae30c30a7d9a790",
+            "commit": "e651abd0c3c771068f9a12616b5191575be6c0be",
+            "valid": true
+          }
+        ],
+        "head": "f8dac86bd4230b8b8993d138be074711fb02a08c",
+        "subject": "T001: Render option lists, classifiers and productionlists, and make unknown_visit compile-safe"
+      },
+      "landed_commit": "e651abd0c3c771068f9a12616b5191575be6c0be",
+      "reasons": [],
+      "task": {
+        "base": "dbaf40583b181d0ebc8391fdeae30c30a7d9a790",
+        "id": "T001",
+        "status": "done",
+        "task_file": ".project/tasks/T001-render-unhandled-nodes.md"
+      }
+    },
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M009",
+        "candidates": [
+          {
+            "base": "dbaf40583b181d0ebc8391fdeae30c30a7d9a790",
+            "commit": "6aad1e692602d3c7c942352c11021bb851043380",
+            "valid": true
+          }
+        ],
+        "head": "f8dac86bd4230b8b8993d138be074711fb02a08c",
+        "subject": "T002: State README dependency upper bounds and add the CHANGELOG Fixed entry"
+      },
+      "landed_commit": "6aad1e692602d3c7c942352c11021bb851043380",
+      "reasons": [],
+      "task": {
+        "base": "dbaf40583b181d0ebc8391fdeae30c30a7d9a790",
+        "id": "T002",
+        "status": "done",
+        "task_file": ".project/tasks/T002-readme-bounds-and-changelog-fixed.md"
+      }
+    }
+  ]
+}
